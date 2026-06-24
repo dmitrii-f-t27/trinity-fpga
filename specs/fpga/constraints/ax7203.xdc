@@ -3,13 +3,11 @@
 # Clock: 200 MHz differential on R4/T4 — bank uses DIFF_SSTL15 (not LVDS)
 # Per LiteX / ALINX schematics; confirmed 2026-06-24.
 
-set_property IOSTANDARD DIFF_SSTL15 [get_ports {clk200_p clk200_n}]
+# Set IOSTANDARD on BOTH P and N pads explicitly for nextpnr-xilinx.
+set_property IOSTANDARD DIFF_SSTL15 [get_ports clk200_p]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports clk200_n]
 set_property PACKAGE_PIN R4 [get_ports clk200_p]
 set_property PACKAGE_PIN T4 [get_ports clk200_n]
-
-# nextpnr-xilinx requires DIFF_TERM explicitly for differential inputs.
-# Source is on-board LVDS oscillator with its own termination; disable internal DIFF_TERM.
-set_property DIFF_TERM FALSE [get_ports clk200_p]
 
 create_clock -period 5.000 -name clk200 [get_ports clk200_p]
 
