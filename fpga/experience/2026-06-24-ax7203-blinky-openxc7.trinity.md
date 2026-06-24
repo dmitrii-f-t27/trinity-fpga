@@ -200,11 +200,12 @@ stalls), so the correct sequence remains `pld load` + `runtest 200000` +
 After the hang, the AL321 FT2232H cable needed a power-cycle; UART responses
 were absent until the cable was reset.
 
-**Correction (verified against ALINX AX7203 manual and LiteX platform):** the
-AX7203 carrier has an on-board **Silicon Labs CP2102GM** USB-to-UART bridge
-connected to FPGA pins **N15 (TX)** and **P20 (RX)** via the board-to-board
-connector. This is a separate mini-USB debug port, not the AL321 FT2232H JTAG
-cable. `/dev/tty.usbserial-210512180081` is therefore the CP2102 bridge.
+**Correction:** macOS registry confirms `/dev/tty.usbserial-210512180081` is the
+**Digilent USB Device** (AL321 FT2232H), not the on-board CP2102. The AX7203
+does have an on-board CP2102GM per the ALINX manual, but it is not enumerated
+on this host. The current UART path therefore uses the FT2232H channel of the
+AL321 cable, which must have its UART pins wired to FPGA N15/P20 separately
+from JTAG. This wiring is the prime suspect for the 0-byte response.
 
 ## Flash Result (2026-06-24)
 
@@ -279,12 +280,38 @@ TAP shift register is latched with garbage; the FPGA itself is probably still
 running the previous image (likely the blinky/factory design), which explains
 why the GF16 conformance script receives no response.
 
-**Recovery required:** power-cycle the AL321 cable (unplug and replug its USB
-connector) or reboot the Mac, then re-run:
-```bash
-openFPGALoader --cable digilent_ad --freq 1000000 build/ax7203_gf16_fixed/gf16_codec_ax7203.bit
-python3 conformance/gf16_conformance_ax7203.py --pack t27/conformance/gf16_vectors.json --device /dev/tty.usbserial-210512180081 --limit 1
-```
+### UART Connection Blocker (2026-06-24)
+
+After re-plugging the AL321 cable, JTAG recovered immediately (`IDCODE
+0x13636093` ✅), and openFPGALoader flashed the GF16 bitstream successfully
+(`done=1 init=1` ✅). However, the conformance script still times out with 0
+bytes.
+
+Registry check on macOS shows the serial device is the **Digilent FT2232H**
+(`idVendor=1027`), not the on-board CP2102. This means the AL321 cable must
+provide the UART path via its FT2232H channel B, and that path is currently not
+reaching the FPGA pins N15/P20. Likely causes:
+
+1. UART fly wires/adapter between AL321 and AX7203 are loose or disconnected.
+2. The AL321 cable's UART channel is not wired to the FPGA at all; the earlier
+   `0xFA` responses may have come from a different temporary connection.
+3. The AX7203 on-board CP2102 mini-USB debug port is not plugged in; if it were,
+   it would enumerate separately as a Silicon Labs device.
+
+### Diagnostic Actions Taken
+- Created `fpga/vivado/uart_loopback_ax7203.v`: echoes every received byte back.
+- Created `.github/workflows/ax7203-uart-loopback.yml` and host script
+  `conformance/uart_loopback_ax7203.py`.
+- Created new GF16 bitstream with a proper AXI-Stream identity stage:
+  `gf16_adder.v` now passes `in_a` through so `a + 0 == a` is bit-exact, and
+  `gf16_codec_ax7203.v` reconstructs the mantissa LSB.
+- Pushed commit `d0942b1b1`; workflows **28115686120** (GF16) and
+  **28115686121** (loopback) are building.
+
+**Next:** wait for workflow artifacts, flash the loopback bitstream, run
+`conformance/uart_loopback_ax7203.py`. If it passes, the UART path is good and
+we can reflash GF16. If it fails, inspect the physical UART wiring or plug in
+the AX7203 on-board CP2102 mini-USB debug port.
 
 ### GF16 Conformance Script Fix
 Updated `conformance/gf16_conformance_ax7203.py`:
