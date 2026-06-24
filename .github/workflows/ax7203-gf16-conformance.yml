@@ -44,11 +44,11 @@ jobs:
             regymm/openxc7 \
             yosys -p "
               read_verilog fpga/vivado/gf16_codec_ax7203.v fpga/openxc7-synth/gf16_adder.v;
-              synth_xilinx -flatten -abc9 -arch xc7 -top gf16_codec_ax7203;
+              synth_xilinx -flatten -abc9 -nocarry -arch xc7 -top gf16_codec_ax7203;
               setundef -zero -params;
               write_json build/ax7203_gf16/gf16_codec_ax7203.json
             " 2>&1 | tee /tmp/yosys.log
-          grep "Estimated number of LCs" /tmp/yosys.log
+          grep -E "Estimated number of LCs|ERROR" /tmp/yosys.log
 
       - name: Cache chipdb for xc7a200tfbg484-2
         id: chipdb-cache
@@ -84,8 +84,10 @@ jobs:
               --json /work/build/ax7203_gf16/gf16_codec_ax7203.json \
               --write /work/build/ax7203_gf16/gf16_codec_ax7203_routed.json \
               --fasm /work/build/ax7203_gf16/gf16_codec_ax7203.fasm \
-              --freq 100.0 --seed 1 --placer sa --router router1 --timing-allow-fail --force 2>&1 | tee /tmp/nextpnr.log
-          grep "Max frequency" /tmp/nextpnr.log || true
+              --freq 50.0 --seed 1 --placer sa --router router1 --timing-allow-fail --force \
+              --verbose-placer 10 --verbose-router 10 2>&1 | tee /tmp/nextpnr.log
+          tail -n 200 /tmp/nextpnr.log
+          grep -E "Max frequency|ERROR|Warning|router|placer" /tmp/nextpnr.log || true
 
       - name: fasm2frames + xc7frames2bit
         run: |

@@ -151,6 +151,25 @@ ERROR: port <name> of type PAD has no IOSTANDARD property
 3. **fasm2frames antlr warning**
    - Slow pure-Python parser fallback; not fatal but slows bitstream assembly.
 
+### GF16 Conformance Diagnostic (2026-06-24)
+
+| Attempt | Design size | nextpnr flags | Result | Notes |
+|---------|-------------|---------------|--------|-------|
+| 28100283541 | full ALU (ADD+MUL) + DSP48E1 | `--placer sa --router router1` | hung >1h | DSP48E1 placer/router convergence issue on xc7a200t |
+| 28102591254 | ADD only, LUT-based, 128 LC | `--placer sa --router router1` | hung >1h | Router1 also very slow on xc7a200t; design had CARRY4 chains |
+
+### Diagnostic learnings
+- `nextpnr-xilinx` Router2 is known to fail to converge on XC7A100/XC7A200 ([gatecat/nextpnr-xilinx#83](https://github.com/gatecat/nextpnr-xilinx/issues/83)).
+- Long `CARRY4` chains can hang the HeAP or SA placer ([gatecat/nextpnr-xilinx#34](https://github.com/gatecat/nextpnr-xilinx/issues/34)); workaround is `synth_xilinx -nocarry`.
+- `--timing-allow-fail --force` skips timing errors but not routing/placer convergence.
+- `--verbose-placer 10 --verbose-router 10` enables progress output in nextpnr logs.
+- `--freq 50.0` reduces routing stress vs 100 MHz / 200 MHz.
+
+### Applied fixes
+- Switched to `synth_xilinx -nocarry` in GF16 workflow.
+- Reduced target frequency to 50 MHz.
+- Added verbose logging and tail/grep of nextpnr log for diagnostics.
+
 ## Flash Result (2026-06-24)
 
 Bitstream: `build/ax7203_blinky/blinky_ax7203.bit` (9.3 MB, valid Xilinx BIT for xc7a200tfbg484-2)
