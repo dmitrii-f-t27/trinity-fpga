@@ -25,6 +25,11 @@ import serial
 TRINITY_ANCHOR = 3.0
 PACK_MAGIC = None  # Accept any JSON pack; optional validation later
 
+# GF16 pack format (NUMERIC-STANDARD-001)
+GF16_EXP_BIAS = 31
+GF16_MANT_BITS = 9
+GF16_MANT_MASK = (1 << GF16_MANT_BITS) - 1
+
 
 def phi_identity() -> float:
     phi = (1.0 + math.sqrt(5.0)) / 2.0
@@ -35,6 +40,25 @@ def load_pack(path: Path) -> dict:
     with open(path, "r") as f:
         data = json.load(f)
     return data
+
+
+def gf16_encode(value: float) -> int:
+    """Encode a Python float into the pack's 16-bit GF16 raw word.
+
+    Format: 1 sign bit, 6 exponent bits (bias 31), 9 stored mantissa bits.
+    Subnormals/NaN/Inf are not required for this conformance pack.
+    """
+    if value == 0.0:
+        return 0
+    sign = 1 if value < 0.0 else 0
+    av = abs(value)
+    exp = int(math.floor(math.log2(av)))
+    mant = round((av / (2.0 ** exp) - 1.0) * (1 << GF16_MANT_BITS))
+    if mant == (1 << GF16_MANT_BITS):
+        mant = 0
+        exp += 1
+    exp_field = (exp + GF16_EXP_BIAS) & 0x3F
+    return (sign << 15) | (exp_field << GF16_MANT_BITS) | (mant & GF16_MANT_MASK)
 
 
 def uart_exchange(port: serial.Serial, a: int, b: int, cmd: int = 0) -> Tuple[int, int]:
@@ -60,17 +84,20 @@ def run(pack_path: Path, device: str, baud: int = 115200, limit: int = 0) -> int
     with serial.Serial(device, baud, timeout=2) as port:
         fails = 0
         for i, vec in enumerate(vectors):
-            raw = int(vec.get("expected", {}).get("raw", 0))
-            # For a simple ADD-only smoke test, send the same value as both operands
-            # and compare against raw encoding of the input. This is not a true GF16
-            # add check; it only verifies the UART loop + adder pipeline toggles.
-            a = raw
-            b = raw
+            value = float(vec.get("input", {}).get("value", 0.0))
+            expected_raw = vec.get("expected", {}).get("raw")
+            if expected_raw is None:
+                expected_raw = gf16_encode(value)
+            else:
+                expected_raw = int(expected_raw)
+
+            a = expected_raw
+            b = 0  # ADD identity: a + 0 should return a
             result, status = uart_exchange(port, a, b)
-            ok = (result == a) and (status == 0)
+            ok = (result == expected_raw) and (status == 0)
             if not ok:
                 fails += 1
-                print(f"FAIL[{i}] a=0x{a:04X} b=0x{b:04X} exp=0x{a:04X} got=0x{result:04X} status={status}")
+                print(f"FAIL[{i}] a=0x{a:04X} b=0x{b:04X} exp=0x{expected_raw:04X} got=0x{result:04X} status={status}")
             else:
                 print(f"PASS[{i}] a=0x{a:04X} b=0x{b:04X} -> 0x{result:04X}")
 
