@@ -1,7 +1,7 @@
 `default_nettype wire
 
 // =============================================================================
-// gf16_codec_ax7203 — GoldenFloat16 codec + UART conformance engine
+// gf16_codec_ax7203 — GoldenFloat16 ADD conformance engine over UART
 // =============================================================================
 // Target: ALINX AX7203 (XC7A200T-FBG484-2)
 // Clock: 200 MHz differential on R4/T4
@@ -10,7 +10,7 @@
 // Protocol (matches conformance/gf16_conformance_ax7203.py):
 //   Host -> FPGA: [0xAA][0x55][a_lo][a_hi][b_lo][b_hi][cmd]
 //   FPGA -> Host: [0xA5][res_lo][res_hi][status]
-//   cmd[0]: 0 = ADD, 1 = MUL
+//   cmd is ignored in this simplified ADD-only build.
 // =============================================================================
 
 `timescale 1ns / 1ps
@@ -43,7 +43,7 @@ module gf16_codec_ax7203 (
     wire rst = ~rst_n;
 
     // =========================================================================
-    // UART clock divider: 200 MHz / 115200 ≈ 1736
+    // UART clock divider: 200 MHz / 115200 ~= 1736
     // =========================================================================
     localparam UART_DIV = 11'd1736;
     localparam UART_DIV_HALF = 11'd868;
@@ -83,11 +83,11 @@ module gf16_codec_ax7203 (
 
     always @(posedge clk200 or posedge rst) begin
         if (rst) begin
-            rx_state     <= RX_IDLE;
-            rx_sample_cnt<= 11'd0;
-            rx_bit_idx   <= 3'd0;
-            rx_byte      <= 8'd0;
-            rx_done      <= 1'b0;
+            rx_state      <= RX_IDLE;
+            rx_sample_cnt <= 11'd0;
+            rx_bit_idx    <= 3'd0;
+            rx_byte       <= 8'd0;
+            rx_done       <= 1'b0;
         end else begin
             rx_done <= 1'b0;
             case (rx_state)
@@ -128,7 +128,7 @@ module gf16_codec_ax7203 (
                         if (rx_sample_cnt == UART_DIV - 1) begin
                             rx_state      <= RX_IDLE;
                             rx_sample_cnt <= 11'd0;
-                            rx_done       <= 1'b1; // valid even if stop bit not 1
+                            rx_done       <= 1'b1;
                         end else begin
                             rx_sample_cnt <= rx_sample_cnt + 1'b1;
                         end
@@ -152,7 +152,6 @@ module gf16_codec_ax7203 (
     reg [2:0] frm_state;
     reg [15:0] op_a;
     reg [15:0] op_b;
-    reg        op_is_mul;
     reg        frame_valid;
 
     always @(posedge clk200 or posedge rst) begin
@@ -160,7 +159,6 @@ module gf16_codec_ax7203 (
             frm_state   <= FRM_SYNC0;
             op_a        <= 16'd0;
             op_b        <= 16'd0;
-            op_is_mul   <= 1'b0;
             frame_valid <= 1'b0;
         end else begin
             frame_valid <= 1'b0;
@@ -173,7 +171,6 @@ module gf16_codec_ax7203 (
                     FRM_B_LO:  begin op_b[7:0]  <= rx_byte; frm_state <= FRM_B_HI;  end
                     FRM_B_HI:  begin op_b[15:8] <= rx_byte; frm_state <= FRM_CMD;   end
                     FRM_CMD:   begin
-                        op_is_mul   <= rx_byte[0];
                         frame_valid <= 1'b1;
                         frm_state   <= FRM_SYNC0;
                     end
@@ -183,60 +180,30 @@ module gf16_codec_ax7203 (
     end
 
     // =========================================================================
-    // GF16 adder / multiplier instances
+    // GF16 adder (LUT-based, 15-bit legacy format from gf16_adder.v)
+    // Adapter: our operands are 16-bit [sign][exp6][mant9]; use top 15 bits
+    // mapping [sign][exp6][mant8] by dropping LSB of mantissa.
+    // This is intentionally a first-pass conformance smoke test.
     // =========================================================================
-    wire        add_in_ready, mul_in_ready;
-    wire        add_out_valid, mul_out_valid;
-    wire [15:0] add_out_y,    mul_out_y;
+    wire [14:0] add_a15 = op_a[15:1];
+    wire [14:0] add_b15 = op_b[15:1];
+    wire        add_in_ready;
+    wire        add_out_valid;
+    wire [14:0] add_out_y15;
 
-    reg         calc_valid;
-    reg  [1:0]  calc_op;
-    reg  [15:0] calc_a;
-    reg  [15:0] calc_b;
-    wire        calc_ready = op_is_mul ? mul_in_ready : add_in_ready;
-
-    always @(posedge clk200 or posedge rst) begin
-        if (rst) begin
-            calc_valid <= 1'b0;
-            calc_op    <= 2'd0;
-            calc_a     <= 16'd0;
-            calc_b     <= 16'd0;
-        end else begin
-            calc_valid <= frame_valid;
-            calc_op    <= op_is_mul ? 2'b01 : 2'b00;
-            calc_a     <= op_a;
-            calc_b     <= op_b;
-        end
-    end
-
-    gf16_add u_add (
+    gf16_adder u_add (
         .clk       (clk200),
-        .rst_n     (rst_n),
-        .in_valid  (calc_valid & ~op_is_mul),
+        .rst       (rst),
+        .in_valid  (frame_valid),
+        .in_a      (add_a15),
+        .in_b      (add_b15),
         .in_ready  (add_in_ready),
-        .in_op     (2'b00),
-        .in_a      (calc_a),
-        .in_b      (calc_b),
         .out_valid (add_out_valid),
-        .out_ready (1'b1),
-        .out_y     (add_out_y)
+        .out_y     (add_out_y15),
+        .out_ready (1'b1)
     );
 
-    gf16_mul u_mul (
-        .clk       (clk200),
-        .rst_n     (rst_n),
-        .in_valid  (calc_valid & op_is_mul),
-        .in_ready  (mul_in_ready),
-        .in_op     (2'b01),
-        .in_a      (calc_a),
-        .in_b      (calc_b),
-        .out_valid (mul_out_valid),
-        .out_ready (1'b1),
-        .out_y     (mul_out_y)
-    );
-
-    wire        result_valid = op_is_mul ? mul_out_valid : add_out_valid;
-    wire [15:0] result_y     = op_is_mul ? mul_out_y     : add_out_y;
+    wire [15:0] result_y = {add_out_y15, 1'b0};
 
     // =========================================================================
     // Output response buffer: [0xA5][res_lo][res_hi][status]
@@ -246,12 +213,9 @@ module gf16_codec_ax7203 (
     reg [7:0] tx_data;
     reg       tx_start;
     reg       tx_busy;
-    reg [3:0] tx_bit_idx;
-    reg [9:0] tx_shift;
     reg       tx_active;
 
     reg [15:0] result_reg;
-    reg        result_status;
 
     always @(posedge clk200 or posedge rst) begin
         if (rst) begin
@@ -259,12 +223,10 @@ module gf16_codec_ax7203 (
             tx_byte_idx <= 2'd0;
             tx_start    <= 1'b0;
             result_reg  <= 16'd0;
-            result_status<= 1'b0;
         end else begin
             tx_start <= 1'b0;
-            if (result_valid && !tx_busy) begin
+            if (add_out_valid && !tx_busy) begin
                 result_reg   <= result_y;
-                result_status<= 1'b0; // 0 = OK
                 tx_state     <= 3'd1;
                 tx_byte_idx  <= 2'd0;
                 tx_start     <= 1'b1;
@@ -282,7 +244,7 @@ module gf16_codec_ax7203 (
             2'd0: tx_data = 8'hA5;
             2'd1: tx_data = result_reg[7:0];
             2'd2: tx_data = result_reg[15:8];
-            2'd3: tx_data = {7'd0, result_status};
+            2'd3: tx_data = 8'h00; // status = OK
         endcase
     end
 
@@ -297,15 +259,16 @@ module gf16_codec_ax7203 (
     reg [1:0] tx_fsm;
     reg [7:0] tx_sr;
     reg [2:0] tx_idx;
+    reg [9:0] tx_shift;
 
     always @(posedge clk200 or posedge rst) begin
         if (rst) begin
-            tx_fsm   <= TX_IDLE;
-            tx_sr    <= 8'hFF;
-            tx_idx   <= 3'd0;
-            tx_shift <= 10'h3FF;
-            tx_active<= 1'b0;
-            tx_busy  <= 1'b0;
+            tx_fsm    <= TX_IDLE;
+            tx_sr     <= 8'hFF;
+            tx_idx    <= 3'd0;
+            tx_shift  <= 10'h3FF;
+            tx_active <= 1'b0;
+            tx_busy   <= 1'b0;
         end else begin
             if (tx_start && !tx_active) begin
                 tx_active <= 1'b1;
@@ -318,29 +281,29 @@ module gf16_codec_ax7203 (
             if (uart_tick && tx_active) begin
                 case (tx_fsm)
                     TX_START: begin
-                        tx_shift <= {1'b0, tx_sr}; // start bit + data
+                        tx_shift <= {1'b0, tx_sr}; // start bit + data[0..7]
                         tx_idx   <= 3'd0;
                         tx_fsm   <= TX_DATA;
                     end
                     TX_DATA: begin
                         if (tx_idx == 3'd7) begin
                             tx_fsm <= TX_STOP;
+                            tx_shift <= {1'b1, tx_shift[9:1]}; // stop bit
                         end else begin
                             tx_shift <= {1'b1, tx_shift[9:1]};
                             tx_idx   <= tx_idx + 1'b1;
                         end
                     end
                     TX_STOP: begin
-                        tx_shift[0] <= 1'b1; // stop bit already loaded
-                        tx_active   <= 1'b0;
-                        tx_busy     <= 1'b0;
+                        tx_active <= 1'b0;
+                        tx_busy   <= 1'b0;
+                        tx_fsm    <= TX_IDLE;
                     end
                 endcase
             end
         end
     end
 
-    // TX line: idle high; bit 0 is current transmit bit
     assign uart_tx = tx_active ? tx_shift[0] : 1'b1;
 
     // =========================================================================
@@ -352,10 +315,9 @@ module gf16_codec_ax7203 (
         else     hb_cnt <= hb_cnt + 1'b1;
     end
 
-    // LED0 = heartbeat, LED1 = RX frame received, LED2 = result valid, LED3 = reset state inverse
     assign led[0] = hb_cnt[25];
     assign led[1] = frame_valid;
-    assign led[2] = result_valid;
+    assign led[2] = add_out_valid;
     assign led[3] = ~rst;
 
 endmodule

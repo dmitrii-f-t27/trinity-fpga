@@ -43,7 +43,7 @@ jobs:
             -v "$PWD:/work" -w /work \
             regymm/openxc7 \
             yosys -p "
-              read_verilog fpga/vivado/gf16_codec_ax7203.v fpga/openxc7-synth/gf16_add.v fpga/openxc7-synth/gf16_mul.v;
+              read_verilog fpga/vivado/gf16_codec_ax7203.v fpga/openxc7-synth/gf16_adder.v;
               synth_xilinx -flatten -abc9 -arch xc7 -top gf16_codec_ax7203;
               setundef -zero -params;
               write_json build/ax7203_gf16/gf16_codec_ax7203.json
