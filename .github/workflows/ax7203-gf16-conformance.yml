@@ -84,9 +84,8 @@ jobs:
               --json /work/build/ax7203_gf16/gf16_codec_ax7203.json \
               --write /work/build/ax7203_gf16/gf16_codec_ax7203_routed.json \
               --fasm /work/build/ax7203_gf16/gf16_codec_ax7203.fasm \
-              --freq 50.0 --seed 1 --placer sa --router router1 --timing-allow-fail --force \
-              --verbose-placer 10 --verbose-router 10 2>&1 | tee /tmp/nextpnr.log
-          tail -n 200 /tmp/nextpnr.log
+              --freq 50.0 --seed 1 --placer sa --router router1 --timing-allow-fail --force 2>&1 | tee /tmp/nextpnr.log
+          tail -n 200 /tmp/nextpnr.log || true
           grep -E "Max frequency|ERROR|Warning|router|placer" /tmp/nextpnr.log || true
 
       - name: fasm2frames + xc7frames2bit

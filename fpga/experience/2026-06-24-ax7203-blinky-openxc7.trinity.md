@@ -168,7 +168,8 @@ ERROR: port <name> of type PAD has no IOSTANDARD property
 ### Applied fixes
 - Switched to `synth_xilinx -nocarry` in GF16 workflow.
 - Reduced target frequency to 50 MHz.
-- Added verbose logging and tail/grep of nextpnr log for diagnostics.
+- Removed unsupported `--verbose-placer` / `--verbose-router` flags from nextpnr-xilinx.
+- Kept `tee` + `tail` of nextpnr.log for diagnostics.
 
 ## Flash Result (2026-06-24)
 
