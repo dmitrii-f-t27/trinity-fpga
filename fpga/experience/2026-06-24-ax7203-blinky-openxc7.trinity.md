@@ -177,6 +177,30 @@ Bitstream: `build/ax7203_gf16/gf16_codec_ax7203.bit` (9.3 MB)
 Flashed via OpenOCD + AL321. IDCODE `0x13636093` verified.
 Next: run `conformance/gf16_conformance_ax7203.py` against USB-UART.
 
+### UART TX Framing Bug (2026-06-24)
+Host probe returned `faaafa55fa00fa00...` — each response byte was prefixed with
+`0xFA`. Root cause: broken TX FSM loaded only `{1'b0, tx_sr}` (9 bits) into a
+10-bit shift register, so the stop bit was never transmitted and the line dropped
+low after data. This produced framing errors on the host.
+
+Fix in `fpga/vivado/gf16_codec_ax7203.v`:
+- Load full 8N1 frame: `tx_shift <= {1'b1, tx_sr[7:0], 1'b0};`
+- Count 10 bit-times (`tx_bit_cnt` 0..9) and shift right each bit-time.
+- `tx_shift[0]` drives `uart_tx`; idle line is `1'b1`.
+
+Workflow **28105427299**: success ✅
+New bitstream: `gf16_codec_ax7203.bit` (9.7 MB), sha256 `cc257872ef651ece69e57138f4e0018900cea8f51c45041e9162cd26daa8e4e7`.
+
+### Flash / UART Diagnostic (2026-06-24)
+First flash of corrected bitstream succeeded (`loaded ... in 78s`).
+OpenOCD `xc7_program xc7.tap` after `pld load` caused a hang (`mpsse_flush`
+stalls), so the correct sequence remains `pld load` + `runtest 200000` +
+`shutdown`.
+
+After the hang, the AL321 FT2232H cable needed a power-cycle; UART responses
+were absent until the cable was reset. `/dev/tty.usbserial-210512180081` is the
+UART channel of the Digilent/AL321 FT2232H cable, not a separate CP2102.
+
 ## Flash Result (2026-06-24)
 
 Bitstream: `build/ax7203_blinky/blinky_ax7203.bit` (9.3 MB, valid Xilinx BIT for xc7a200tfbg484-2)

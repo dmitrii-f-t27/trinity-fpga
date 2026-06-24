@@ -249,7 +249,9 @@ module gf16_codec_ax7203 (
     end
 
     // =========================================================================
-    // UART TX: 8N1
+    // UART TX: 8N1, LSB first.
+    // Frame layout in tx_shift after load: {stop=1, data[7], ..., data[0], start=0}
+    // We shift right each bit-time; tx_shift[0] drives the line.
     // =========================================================================
     localparam TX_IDLE  = 2'd0;
     localparam TX_START = 2'd1;
@@ -258,40 +260,41 @@ module gf16_codec_ax7203 (
 
     reg [1:0] tx_fsm;
     reg [7:0] tx_sr;
-    reg [2:0] tx_idx;
+    reg [3:0] tx_bit_cnt; // 0..9 for the 10 bit-times
     reg [9:0] tx_shift;
 
     always @(posedge clk200 or posedge rst) begin
         if (rst) begin
-            tx_fsm    <= TX_IDLE;
-            tx_sr     <= 8'hFF;
-            tx_idx    <= 3'd0;
-            tx_shift  <= 10'h3FF;
-            tx_active <= 1'b0;
-            tx_busy   <= 1'b0;
+            tx_fsm     <= TX_IDLE;
+            tx_sr      <= 8'hFF;
+            tx_bit_cnt <= 4'd0;
+            tx_shift   <= 10'h3FF;
+            tx_active  <= 1'b0;
+            tx_busy    <= 1'b0;
         end else begin
             if (tx_start && !tx_active) begin
                 tx_active <= 1'b1;
                 tx_busy   <= 1'b1;
                 tx_fsm    <= TX_START;
                 tx_sr     <= tx_data;
-                tx_shift  <= 10'h3FF;
             end
 
             if (uart_tick && tx_active) begin
                 case (tx_fsm)
                     TX_START: begin
-                        tx_shift <= {1'b0, tx_sr}; // start bit + data[0..7]
-                        tx_idx   <= 3'd0;
-                        tx_fsm   <= TX_DATA;
+                        // Load full 8N1 frame; first bit out is start=0
+                        tx_shift   <= {1'b1, tx_sr[7:0], 1'b0};
+                        tx_bit_cnt <= 4'd0;
+                        tx_fsm     <= TX_DATA;
                     end
                     TX_DATA: begin
-                        if (tx_idx == 3'd7) begin
+                        // Shift out one bit per bit-time. After 10 shifts the
+                        // stop bit has been sent and tx_shift is all ones again.
+                        tx_shift <= {1'b1, tx_shift[9:1]};
+                        if (tx_bit_cnt == 4'd9) begin
                             tx_fsm <= TX_STOP;
-                            tx_shift <= {1'b1, tx_shift[9:1]}; // stop bit
                         end else begin
-                            tx_shift <= {1'b1, tx_shift[9:1]};
-                            tx_idx   <= tx_idx + 1'b1;
+                            tx_bit_cnt <= tx_bit_cnt + 1'b1;
                         end
                     end
                     TX_STOP: begin
