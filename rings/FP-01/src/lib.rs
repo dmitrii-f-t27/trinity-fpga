@@ -14,9 +14,16 @@ pub struct SynthConfig {
     pub constraints: PathBuf,
     pub output_dir: PathBuf,
     pub freq_mhz: f64,
+    pub part_name: String,
 }
 
 impl SynthConfig {
+    /// Returns the prjxray-style part string: "{device}{package}-{speedgrade}".
+    /// Example for AX7203: "xc7a200tfbg484-2" (NO hyphen between device and package).
+    fn part_from_board(board: &BoardConfig) -> String {
+        format!("{}{}-{}", board.device, board.package, board.speedgrade)
+    }
+
     pub fn for_board(board: &BoardConfig, rtl_dir: &Path, xdc: &Path, out: &Path) -> Self {
         let mut rtl_sources = Vec::new();
         collect_verilog(rtl_dir, &mut rtl_sources);
@@ -27,6 +34,7 @@ impl SynthConfig {
             constraints: xdc.to_path_buf(),
             output_dir: out.to_path_buf(),
             freq_mhz: board.clock_mhz,
+            part_name: Self::part_from_board(board),
         }
     }
 
@@ -40,6 +48,18 @@ impl SynthConfig {
             constraints: PathBuf::from("fpga/vsa/vsa_matmul_top.xdc"),
             output_dir: out.to_path_buf(),
             freq_mhz: board.clock_mhz,
+            part_name: Self::part_from_board(board),
+        }
+    }
+
+    pub fn blinky_ax7203(board: &BoardConfig, out: &Path) -> Self {
+        Self {
+            top_module: "blinky_ax7203".to_string(),
+            rtl_sources: vec![PathBuf::from("fpga/vivado/blinky_ax7203.v")],
+            constraints: PathBuf::from("specs/fpga/constraints/ax7203.xdc"),
+            output_dir: out.to_path_buf(),
+            freq_mhz: board.clock_mhz,
+            part_name: Self::part_from_board(board),
         }
     }
 }
@@ -78,6 +98,7 @@ impl Default for OpenXc7Runner {
                 constraints: PathBuf::from("fpga/openxc7-synth/hslm_full_top.xdc"),
                 output_dir: PathBuf::from("build"),
                 freq_mhz: 81.25,
+                part_name: "xc7a100tfgg676-1".to_string(),
             },
             docker_image: "regymm/openxc7:latest".to_string(),
         }
@@ -144,7 +165,8 @@ impl OpenXc7Runner {
     }
 
     fn run_nextpnr(&self, json_in: &Path, fasm_out: &Path) -> Result<()> {
-        let chipdb = self.config.output_dir.join("chipdb/xc7a100tfgg676-1.bin");
+        let part = &self.config.part_name;
+        let chipdb = self.config.output_dir.join(format!("chipdb/{}.bin", part));
         let xdc = &self.config.constraints;
 
         let output = Command::new("docker")
@@ -174,17 +196,16 @@ impl OpenXc7Runner {
     }
 
     fn run_fasm2bit(&self, fasm_in: &Path, bit_out: &Path) -> Result<()> {
+        let part = &self.config.part_name;
         let fasm_cmd = format!(
             "source /prjxray/env/bin/activate && \
              fasm2frames --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 \
-             --part xc7a100tfgg676-1 {} {}.frames && \
+             --part {part} {} {part}.frames && \
              /prjxray/build/tools/xc7frames2bit \
-             --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a100tfgg676-1/part.yaml \
-             --part_name xc7a100tfgg676-1 \
-             --frm_file {}.frames \
+             --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/{part}/part.yaml \
+             --part_name {part} \
+             --frm_file {part}.frames \
              --output_file {}",
-            fasm_in.display(),
-            fasm_in.display(),
             fasm_in.display(),
             bit_out.display()
         );
@@ -206,13 +227,14 @@ impl OpenXc7Runner {
     }
 
     pub fn generate_chipdb(&self, chipdb_dir: &Path) -> Result<PathBuf> {
+        let part = &self.config.part_name;
         std::fs::create_dir_all(chipdb_dir)?;
-        let bba_path = chipdb_dir.join("xc7a100tfgg676-1.bba");
-        let bin_path = chipdb_dir.join("xc7a100tfgg676-1.bin");
+        let bba_path = chipdb_dir.join(format!("{}.bba", part));
+        let bin_path = chipdb_dir.join(format!("{}.bin", part));
 
         let cmd = format!(
             "cd /nextpnr-xilinx && \
-             python3 xilinx/python/bbaexport.py --device xc7a100tfgg676-1 --bba {} && \
+             python3 xilinx/python/bbaexport.py --device {part} --bba {} && \
              bbasm -l {} {}",
             bba_path.display(),
             bba_path.display(),
@@ -430,6 +452,19 @@ mod tests {
         );
         assert_eq!(cfg.top_module, "hslm_full_top");
         assert_eq!(cfg.freq_mhz, 81.25);
+        assert_eq!(cfg.part_name, "xc7a200tfbg484-2");
+    }
+
+    #[test]
+    fn part_string_matches_prjxray() {
+        assert_eq!(
+            SynthConfig::part_from_board(&trios_fpga_fp00::ALINX_AX7203),
+            "xc7a200tfbg484-2"
+        );
+        assert_eq!(
+            SynthConfig::part_from_board(&trios_fpga_fp00::ARTIX7_100T),
+            "xc7a100tfgg676-1"
+        );
     }
 
     #[test]

@@ -294,6 +294,29 @@ CLAUDE.md.agent
 fpga/openxc7-synth/*.py
 fpga/openxc7-synth/*.txt
 fpga/openxc7-synth/*.sh
+fpga/openxc7-synth/*.bit
+
+# fpga/vsa experiment generated artifacts (keep only source .v)
+fpga/vsa/*.bit
+fpga/vsa/*.fasm
+fpga/vsa/*.frames
+fpga/vsa/*.json
+fpga/vsa/*_routed.json
+fpga/vsa/*.xdc
+fpga/vsa/*.vvp
+fpga/vsa/*.v
+!fpga/vsa/vsa_matmul_top.v
+fpga/vsa/*.ys
+fpga/vsa/fpga/
+
+# Duplicate / misplaced FPGA output tree
+fpga/fpga/
+
+# VSA simulation/test artifacts in repo root
+/tb_vsa_ops.vvp
+
+# Rust build dir (sometimes created at repo root)
+/target/
 
 # Runtime data and logs (auto-generated)
 .trinity/farm/account_health.json

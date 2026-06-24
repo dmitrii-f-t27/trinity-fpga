@@ -1,9 +1,11 @@
 use std::net::IpAddr;
 use std::path::PathBuf;
+use std::process::Command;
 use std::time::Instant;
 
+use anyhow::{Context, bail};
 use clap::{Parser, Subcommand};
-use trios_fpga_fp00::{BoardConfig, TritValue, XvcConfig, ARTIX7_100T, ARTIX7_200T};
+use trios_fpga_fp00::{BoardConfig, TritValue, XvcConfig, ALINX_AX7203, ARTIX7_100T, ARTIX7_200T};
 
 #[derive(Parser)]
 #[command(name = "trios-fpga", version, about = "FPGA synthesis, flash and verify via XVC WiFi JTAG")]
@@ -29,6 +31,12 @@ enum Commands {
         #[arg(long, default_value = "XC7A100T")]
         board: String,
     },
+    FlashOpenocd {
+        #[arg(long)]
+        bitstream: PathBuf,
+        #[arg(long, default_value = "fpga/openxc7-synth/ax7203_al321.cfg")]
+        openocd_cfg: PathBuf,
+    },
     Synth {
         #[arg(long)]
         rtl_dir: PathBuf,
@@ -44,7 +52,15 @@ enum Commands {
         output_dir: PathBuf,
     },
     Status {},
+    StatusOpenocd {
+        #[arg(long, default_value = "fpga/openxc7-synth/ax7203_al321.cfg")]
+        openocd_cfg: PathBuf,
+    },
     Verify {},
+    VerifyOpenocd {
+        #[arg(long, default_value = "fpga/openxc7-synth/ax7203_al321.cfg")]
+        openocd_cfg: PathBuf,
+    },
     Bench {
         #[arg(long, default_value_t = 100)]
         iterations: u64,
@@ -57,8 +73,72 @@ fn resolve_board(name: &str) -> Option<&'static BoardConfig> {
     match name.to_uppercase().as_str() {
         "XC7A100T" | "ARTIX7-100T" => Some(&ARTIX7_100T),
         "XC7A200T" | "ARTIX7-200T" => Some(&ARTIX7_200T),
+        "AX7203" | "ALINX-AX7203" | "XC7A200T-FBG484-2" => Some(&ALINX_AX7203),
         _ => None,
     }
+}
+
+fn run_openocd_verify(cfg: &PathBuf) -> anyhow::Result<()> {
+    let output = Command::new("openocd")
+        .arg("-f")
+        .arg(cfg)
+        .args([
+            "-c", "init",
+            "-c", "scan_chain",
+            "-c", "shutdown",
+        ])
+        .output()
+        .with_context(|| format!("run openocd with {}", cfg.display()))?;
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !output.status.success() {
+        bail!("openocd failed: {stderr}");
+    }
+    for line in stderr.lines() {
+        if line.contains("found: 0x13636093") {
+            println!("IDCODE: 0x13636093 — MATCH");
+            return Ok(());
+        }
+    }
+    bail!("IDCODE 0x13636093 not found in openocd output")
+}
+
+fn run_openocd_flash(cfg: &PathBuf, bitstream: &PathBuf) -> anyhow::Result<()> {
+    let output = Command::new("openocd")
+        .arg("-f")
+        .arg(cfg)
+        .args([
+            "-c", "init",
+            "-c", "xc7_program xc7.tap",
+            "-c", &format!("pld load 0 {}", bitstream.display()),
+            "-c", "shutdown",
+        ])
+        .output()
+        .with_context(|| format!("run openocd with {}", cfg.display()))?;
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !output.status.success() {
+        bail!("openocd flash failed: {stderr}");
+    }
+    println!("OK: flashed {} via OpenOCD", bitstream.display());
+    Ok(())
+}
+
+fn run_openocd_status(cfg: &PathBuf) -> anyhow::Result<()> {
+    let output = Command::new("openocd")
+        .arg("-f")
+        .arg(cfg)
+        .args([
+            "-c", "init",
+            "-c", "scan_chain",
+            "-c", "shutdown",
+        ])
+        .output()
+        .with_context(|| format!("run openocd with {}", cfg.display()))?;
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !output.status.success() {
+        bail!("openocd failed: {stderr}");
+    }
+    print!("{stderr}");
+    Ok(())
 }
 
 fn make_xvc_config(cli: &Cli) -> anyhow::Result<XvcConfig> {
@@ -83,17 +163,25 @@ fn main() -> anyhow::Result<()> {
             board,
         } => {
             let board_cfg = resolve_board(board)
-                .ok_or_else(|| anyhow::anyhow!("unknown board '{board}'. Use XC7A100T or XC7A200T"))?;
+                .ok_or_else(|| anyhow::anyhow!("unknown board '{board}'. Use XC7A100T, XC7A200T or AX7203"))?;
             let flasher = trios_fpga_fp02::XvcFlasher::new(xvc, board_cfg);
 
             eprintln!("Flashing {} via XVC...", bitstream.display());
             let result = flasher.flash_file(bitstream)?;
             eprintln!(
-                "OK: {} bytes, IDCODE=0x{:08X}, {:.2}s",
+                "OK: {} bytes, IDCODE=0x{:08X}, done={}, {:.2}s",
                 result.bytes_written,
                 result.idcode,
+                result.done,
                 result.elapsed.as_secs_f64()
             );
+        }
+        Commands::FlashOpenocd {
+            bitstream,
+            openocd_cfg,
+        } => {
+            eprintln!("Flashing {} via OpenOCD (AL321)...", bitstream.display());
+            run_openocd_flash(openocd_cfg, bitstream)?;
         }
 
         Commands::Synth {
@@ -125,12 +213,22 @@ fn main() -> anyhow::Result<()> {
         }
 
         Commands::Status {} => {
-            let flasher = trios_fpga_fp02::XvcFlasher::new(xvc, &ARTIX7_100T);
+            let board = resolve_board("AX7203").unwrap_or(&ARTIX7_100T);
+            let flasher = trios_fpga_fp02::XvcFlasher::new(xvc, board);
+            let status = flasher.status()?;
+            print!("{status}");
+        }
+        Commands::StatusOpenocd { openocd_cfg } => {
+            run_openocd_status(openocd_cfg)?;
         }
         Commands::Verify {} => {
-            let flasher = trios_fpga_fp02::XvcFlasher::new(xvc, &ARTIX7_100T);
+            let board = resolve_board("AX7203").unwrap_or(&ARTIX7_100T);
+            let flasher = trios_fpga_fp02::XvcFlasher::new(xvc, board);
             let idcode = flasher.verify_idcode()?;
             println!("IDCODE: 0x{idcode:08X} — MATCH");
+        }
+        Commands::VerifyOpenocd { openocd_cfg } => {
+            run_openocd_verify(openocd_cfg)?;
         }
 
         Commands::Bench { iterations, gf16_bin } => {

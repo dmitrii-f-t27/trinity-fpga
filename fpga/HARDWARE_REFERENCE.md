@@ -1,6 +1,83 @@
-# QMTECH Artix-7 XC7A100T Reference
+# FPGA Hardware Reference
 
-## Board Specifications
+## ALINX AX7203 (primary target)
+
+### Board Specifications
+
+| Parameter | Value |
+|-----------|-------|
+| **Model** | AX7203 |
+| **FPGA** | Artix-7 XC7A200T |
+| **Package** | FBG484 (484-ball BGA) |
+| **Speed Grade** | -2 |
+| **Logic Cells** | 215,360 |
+| **Slices** | 33,650 |
+| **DSP Slices** | 740 |
+| **BRAM** | 13.14 Mb (365 × 36 Kb) |
+| **User I/O** | 500 |
+| **Operating Temp** | 0°C to +85°C |
+| **JTAG IDCODE** | 0x13636093 (rev 1, verified via OpenOCD + AL321 2026-06-24) |
+
+### Pin Mapping
+
+#### Clock Input (differential)
+
+| Signal | Pin | Standard | Notes |
+|--------|-----|----------|-------|
+| CLK200_P | R4 | DIFF_SSTL15 | 200 MHz oscillator, Bank 34 |
+| CLK200_N | T4 | DIFF_SSTL15 | Differential pair |
+
+**IMPORTANT**: use `DIFF_SSTL15`, not `LVDS`. Using `LVDS` caused DONE to stay dark and LEDs not to blink.
+
+### Reset
+
+| Signal | Pin | Standard | Notes |
+|--------|-----|----------|-------|
+| CPU_RESET_N | T6 | LVCMOS15 | Active-low |
+
+### LED Outputs (Active-High)
+
+| LED | Pin | Notes |
+|-----|-----|-------|
+| LED0 | B13 | LVCMOS18 |
+| LED1 | C13 | LVCMOS18 |
+| LED2 | D14 | LVCMOS18 |
+| LED3 | D15 | LVCMOS18 |
+
+### UART
+
+| Signal | Pin | Standard | Notes |
+|--------|-----|----------|-------|
+| UART_TX | N15 | LVCMOS33 | FPGA -> host |
+| UART_RX | P20 | LVCMOS33 | Host -> FPGA |
+
+### XDC Constraints
+
+```tcl
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {clk200_p clk200_n}]
+set_property PACKAGE_PIN R4 [get_ports clk200_p]
+set_property PACKAGE_PIN T4 [get_ports clk200_n]
+create_clock -period 5.000 -name clk200 [get_ports clk200_p]
+
+set_property IOSTANDARD LVCMOS15 [get_ports rst_n]
+set_property PACKAGE_PIN T6 [get_ports rst_n]
+
+set_property IOSTANDARD LVCMOS18 [get_ports {led[0] led[1] led[2] led[3]}]
+set_property PACKAGE_PIN B13 [get_ports led[0]]
+set_property PACKAGE_PIN C13 [get_ports led[1]]
+set_property PACKAGE_PIN D14 [get_ports led[2]]
+set_property PACKAGE_PIN D15 [get_ports led[3]]
+
+set_property IOSTANDARD LVCMOS33 [get_ports {uart_tx uart_rx}]
+set_property PACKAGE_PIN N15 [get_ports uart_tx]
+set_property PACKAGE_PIN P20 [get_ports uart_rx]
+```
+
+---
+
+## QMTECH Artix-7 XC7A100T Reference (legacy)
+
+### Board Specifications
 
 | Parameter | Value |
 |-----------|-------|
@@ -63,18 +140,39 @@ set_property IOSTANDARD LVCMOS33 [get_ports led]
 ### FPGA IDCODE
 
 ```
-IDCODE: 0x13631093
+IDCODE: 0x03631093
 ```
 
 Breakdown:
-- Bits [31:28]: 0x1 (Version)
-- Bits [27:12]: 0x363 (Manufacturer: Xilinx)
+- Bits [31:28]: 0x0 (Version)
+- Bits [27:12]: 0x3631 (Xilinx manufacturer)
 - Bits [11:0]: 0x093 (Device: XC7A100T)
+
+### JTAG Header Pinout (6-pin, QMTech non-standard)
+
+```
+Pin 1: VREF (3.3V)
+Pin 2: GND
+Pin 3: TCK
+Pin 4: TDO
+Pin 5: TDI
+Pin 6: TMS
+```
+
+WARNING: This is NOT the standard Xilinx pinout (Xilinx has TDI=3, TMS=4, TCK=5, TDO=6).
+
+ESP32 XVC wiring (verified 2026-05-06):
+| ESP32 GPIO | Wire Color | JTAG Pin | JTAG Signal |
+|------------|-----------|----------|-------------|
+| GPIO18 | Orange | Pin 6 | TMS |
+| GPIO19 | Yellow | Pin 3 | TCK |
+| GPIO23 | Green | Pin 5 | TDI |
+| GPIO35 | Blue | Pin 4 | TDO |
 
 ### JTAG Chain
 
 ```
-Host → Platform Cable → FPGA (XC7A100T)
+Host → ESP32 XVC (WiFi 192.168.1.30:2542) → FPGA (XC7A100T)
 ```
 
 Single device chain (no Daisy-chain).

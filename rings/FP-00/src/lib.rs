@@ -4,8 +4,8 @@ use std::net::IpAddr;
 
 pub const TRINITY_ANCHOR: f64 = 3.0;
 
-pub const IDCODE_ARTIX7_200T: u32 = 0x0362D093;
-pub const IDCODE_ARTIX7_100T: u32 = 0x03631093;
+pub const IDCODE_ARTIX7_200T: u32 = 0x13636093; // AX7203 (xc7a200t-fbg484-2, rev 1)
+pub const IDCODE_ARTIX7_100T: u32 = 0x13631093;
 pub const XVC_DEFAULT_PORT: u16 = 2542;
 pub const BITSTREAM_SIZE_APPROX: usize = 3_800_000;
 pub const DEFAULT_CLOCK_MHZ: f64 = 81.25;
@@ -16,6 +16,9 @@ pub struct BoardConfig {
     pub idcode: u32,
     pub bitstream_size_approx: usize,
     pub clock_mhz: f64,
+    pub device: &'static str,
+    pub package: &'static str,
+    pub speedgrade: &'static str,
 }
 
 pub const ARTIX7_200T: BoardConfig = BoardConfig {
@@ -23,6 +26,9 @@ pub const ARTIX7_200T: BoardConfig = BoardConfig {
     idcode: IDCODE_ARTIX7_200T,
     bitstream_size_approx: BITSTREAM_SIZE_APPROX,
     clock_mhz: DEFAULT_CLOCK_MHZ,
+    device: "xc7a200t",
+    package: "fbg484",
+    speedgrade: "2",
 };
 
 pub const ARTIX7_100T: BoardConfig = BoardConfig {
@@ -30,6 +36,19 @@ pub const ARTIX7_100T: BoardConfig = BoardConfig {
     idcode: IDCODE_ARTIX7_100T,
     bitstream_size_approx: 2_600_000,
     clock_mhz: DEFAULT_CLOCK_MHZ,
+    device: "xc7a100t",
+    package: "fgg676",
+    speedgrade: "1",
+};
+
+pub const ALINX_AX7203: BoardConfig = BoardConfig {
+    name: "AX7203",
+    idcode: IDCODE_ARTIX7_200T,
+    bitstream_size_approx: 5_400_000,
+    clock_mhz: 200.0,
+    device: "xc7a200t",
+    package: "fbg484",
+    speedgrade: "2",
 };
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -120,13 +139,21 @@ mod tests {
 
     #[test]
     fn idcode_artix7_200t() {
-        assert_eq!(ARTIX7_200T.idcode, 0x0362D093);
+        assert_eq!(ARTIX7_200T.idcode, 0x13636093);
         assert_eq!(ARTIX7_200T.name, "XC7A200T");
     }
 
     #[test]
+    fn idcode_alinx_ax7203() {
+        assert_eq!(ALINX_AX7203.idcode, 0x13636093);
+        assert_eq!(ALINX_AX7203.device, "xc7a200t");
+        assert_eq!(ALINX_AX7203.package, "fbg484");
+        assert_eq!(ALINX_AX7203.speedgrade, "2");
+    }
+
+    #[test]
     fn idcode_artix7_100t() {
-        assert_eq!(ARTIX7_100T.idcode, 0x03631093);
+        assert_eq!(ARTIX7_100T.idcode, 0x13631093);
     }
 
     #[test]

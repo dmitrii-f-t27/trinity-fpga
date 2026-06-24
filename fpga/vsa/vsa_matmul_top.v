@@ -26,8 +26,8 @@ module vsa_matmul_top (
     output reg [1:0] debug_state
 );
 
-    localparam DIM       = 64;
-    localparam N_OUT     = 64;
+    localparam DIM       = 32;
+    localparam N_OUT     = 32;
     localparam ACC_WIDTH = 16;
     localparam VOCAB     = 64;
     localparam MAX_GEN   = 16;
@@ -38,6 +38,8 @@ module vsa_matmul_top (
     wire clk81;
     wire mmcm_locked;
 
+    wire clkfb;
+
     PLLE2_BASE #(
         .CLKIN1_PERIOD    (20.0),
         .CLKFBOUT_MULT    (13),
@@ -47,8 +49,8 @@ module vsa_matmul_top (
         .CLKIN1   (clk50),
         .CLKOUT0  (clk81),
         .LOCKED   (mmcm_locked),
-        .CLKFBOUT (),
-        .CLKFBIN  (),
+        .CLKFBOUT (clkfb),
+        .CLKFBIN  (clkfb),
         .PWRDWN   (1'b0),
         .RST      (1'b0)
     );
