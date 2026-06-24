@@ -20,11 +20,17 @@ module blinky_ax7203 (
     input  wire uart_rx
 );
 
-    wire clk200;
+    wire clk200_raw;
     IBUFDS clk_ibufds (
         .I  (clk200_p),
         .IB (clk200_n),
-        .O  (clk200)
+        .O  (clk200_raw)
+    );
+
+    wire clk200;
+    BUFG clk_bufg (
+        .I (clk200_raw),
+        .O (clk200)
     );
 
     wire rst = ~rst_n;

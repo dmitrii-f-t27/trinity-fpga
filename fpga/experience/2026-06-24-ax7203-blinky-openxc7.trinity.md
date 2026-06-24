@@ -166,12 +166,6 @@ openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
 OpenOCD status: IDCODE `0x13636093` confirmed, no JTAG error.
 Hardware observation: DONE not lit, LED0–LED3 not blinking.
 
-### Hypothesis
-Stock `cpld/xilinx-xc7.cfg` comments out `JSTART` in `xc7_program` with note
-"JSTART prevents this from working". Calling `xc7_program` after `pld load`
-may re-issue JSTART / leave FPGA outside user mode. Also possible: bitstream
-compression or insufficient start-up clocks after `pld load`.
-
 ### Attempt 2 (corrected sequence)
 Updated `ax7203_al321.cfg`:
 - Removed `JSTART` from `xc7_program`
@@ -184,11 +178,23 @@ openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
   -c "runtest 200000" \
   -c "shutdown"
 ```
+Hardware observation: DONE lit ✅, but LED0–LED3 are steady ON and not blinking.
 
-**LED/DONE observation:** [pending user confirmation]
+### Hypothesis for steady LEDs
+Counter clock does not reach the flip-flops. Design used `IBUFDS` output directly
+as the clock net without a `BUFG` global clock buffer. On Xilinx 7-series,
+clocks sourced from differential pads normally go `IBUFDS → BUFG`. Without
+`BUFG`, nextpnr may route the clock on general fabric and the counter may not
+toggle, leaving high counter bits at a constant value and LEDs constantly on.
+
+### Attempt 3
+Updated `fpga/vivado/blinky_ax7203.v` to insert `BUFG` between `IBUFDS` and
+the counter clock net. Re-synthesize and re-flash.
+
+**LED/DONE observation:** [pending new run]
 
 ## Next Steps
 
-1. Confirm DONE lights and LED0–LED3 blink on hardware after corrected sequence.
-2. If still dark: generate uncompressed bitstream and re-test.
+1. Synthesize new bitstream with BUFG.
+2. Flash and confirm LED0–LED3 blink.
 3. Once blinky works: proceed to variant B (GF16 codec + bit-exact conformance over UART).
