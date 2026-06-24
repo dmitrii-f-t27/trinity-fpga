@@ -113,10 +113,16 @@ Expected output: `JTAG tap: xc7.tap ... found: 0x13636093`
 ```bash
 openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
   -c 'init' \
-  -c 'xc7_program xc7.tap' \
   -c 'pld load 0 build/ax7203_blinky/blinky_ax7203.bit' \
+  -c 'xc7_program xc7.tap' \
   -c 'shutdown'
 ```
+
+Confirmed sequence (2026-06-24):
+- Workflow `28096964681` succeeded → `blinky_ax7203.bit` (9.3 MB)
+- Flash command above completed without JTAG errors
+- IDCODE verified: `0x13636093` (Artix-7 XC7A200T rev 1)
+- `xc7_program` runs after `pld load` to start the bitstream
 
 ### Legacy XVC flash command (ESP32-XVC, if used):
 ```bash

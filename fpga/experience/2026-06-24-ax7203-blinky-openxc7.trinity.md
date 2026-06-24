@@ -154,8 +154,15 @@ ERROR: port <name> of type PAD has no IOSTANDARD property
 ## Flash Result (2026-06-24)
 
 Bitstream: `build/ax7203_blinky/blinky_ax7203.bit` (9.3 MB, valid Xilinx BIT for xc7a200tfbg484-2)
-Flashed via: `cargo run --manifest-path rings/BR-BITSTREAM/Cargo.toml -- flash-openocd --bitstream ...`
-OpenOCD status: IDCODE `0x13636093` confirmed.
+Flashed via:
+```bash
+openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
+  -c "init" \
+  -c "pld load 0 build/ax7203_blinky/blinky_ax7203.bit" \
+  -c "xc7_program xc7.tap" \
+  -c "shutdown"
+```
+OpenOCD status: IDCODE `0x13636093` confirmed, `xc7_program` returned without error.
 
 **LED/DONE observation:** [pending user confirmation]
 
