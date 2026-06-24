@@ -13,9 +13,10 @@ Supported boards:
 
 ## BEFORE STARTING: Load Experience
 Read the experience log FIRST to avoid repeating work:
-`fpga/experience/2026-05-07-led-mapping-synthesis-flash.trinity.md`
+- Primary: `fpga/experience/2026-06-24-ax7203-blinky-openxc7.trinity.md`
+- Legacy QMTECH: `fpga/experience/2026-05-07-led-mapping-synthesis-flash.trinity.md`
 
-If the file doesn't exist, check `fpga/experience/*.trinity.md` for latest.
+Always check `fpga/experience/*.trinity.md` for latest AX7203 entry and update it after every experiment.
 
 ## ALINX AX7203 Board Truth (VERIFIED BY USER 2026-06-24)
 | Signal | Pin | Standard | Notes |
@@ -65,14 +66,14 @@ set_property PACKAGE_PIN P20 [get_ports uart_rx]
 Docker image: `regymm/openxc7` (amd64, needs QEMU on ARM Mac)
 Chipdb generated per board/package/speedgrade.
 
-### IMPORTANT: xc7a200t chipdb on ARM Mac
-Generating `xc7a200tfbg484-2.bin` via `bbaexport.py` inside Docker/QEMU on ARM Mac
-was killed at 16 GB RAM (OOM). Workarounds:
-1. Generate chipdb on an x86_64 Linux host with >16 GB RAM and copy `.bin` to `build/ax7203_blinky/chipdb/`.
-2. Use Vivado for bitstream generation (Vivado is not installed in this environment).
-3. Request a pre-built `xc7a200tfbg484-2.bin` from the openXC7 project.
+### IMPORTANT: xc7a200t chipdb
+- Generating `xc7a200tfbg484-2.bin` via `bbaexport.py` inside Docker/QEMU on ARM Mac
+  was killed at 16 GB RAM (OOM). Use x86_64 Linux or GitHub Actions.
+- In CI, cache the chipdb with `actions/cache@v4` to avoid regenerating it every run.
+- Known issue with `regymm/openxc7` on xc7a200t: `Invalid global constant node 'INT_L_X0Y105/GND_WIRE'`.
+  Workaround attempt: `--router router1 --timing-allow-fail --freq 100.0`.
 
-Until the chipdb is available, the openXC7 bitstream path is **blocked**.
+Until the chipdb + routing are stable, the openXC7 bitstream path may be blocked.
 The Verilog design is already yosys-lint-clean.
 
 ### AX7203 blinky synthesis command:
