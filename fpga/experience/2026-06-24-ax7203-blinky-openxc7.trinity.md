@@ -171,6 +171,12 @@ ERROR: port <name> of type PAD has no IOSTANDARD property
 - Removed unsupported `--verbose-placer` / `--verbose-router` flags from nextpnr-xilinx.
 - Kept `tee` + `tail` of nextpnr.log for diagnostics.
 
+### GF16 Conformance Result (2026-06-24)
+Workflow **28104459893**: success ✅
+Bitstream: `build/ax7203_gf16/gf16_codec_ax7203.bit` (9.3 MB)
+Flashed via OpenOCD + AL321. IDCODE `0x13636093` verified.
+Next: run `conformance/gf16_conformance_ax7203.py` against USB-UART.
+
 ## Flash Result (2026-06-24)
 
 Bitstream: `build/ax7203_blinky/blinky_ax7203.bit` (9.3 MB, valid Xilinx BIT for xc7a200tfbg484-2)
