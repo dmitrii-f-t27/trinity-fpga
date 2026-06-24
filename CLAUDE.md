@@ -1,155 +1,213 @@
 # CLAUDE.md
 
-## Zig 0.15 API Compatibility and Migration Rules
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Reference**: docs/zig-migration-rules.md — https://ziglang.org/download/0.15.1/
+## Repository Overview
 
----
+`trinity-fpga` is the orchestrator repo for the Trinity project family. It is a Zig-first monorepo that also contains Rust FPGA tooling, Verilog designs, and a Docusaurus docs site.
 
-## SplitIterator API Changes (Zig 0.15)
+- **Primary language**: Zig (current toolchain is Zig 0.16.0 in this environment; many modules were written for Zig 0.15.x and are still being migrated).
+- **No top-level `build.zig`**: the root `build.zig` was intentionally removed and converted to a `.tri` spec. Individual subprojects still have their own `build.zig` files (e.g., `src/vibeec/build.zig`, `deploy/trinity-nexus/build.zig`).
+- **Source of truth**: `.tri` specs in `specs/` and `.trinity/ralph/specs/`. Generated outputs live in `generated/` and `var/trinity/output/` and must not be edited by hand.
+- **External kernel**: `external/zig-golden-float` (git submodule) provides the numerical core for GF16, TF3, VSA, and ternary VM operations.
+- **FPGA tools**: `rings/` is a Cargo workspace that builds the bitstream flash/verify binary (`trios-fpga`).
+- **Compiler**: the VIBEE/Tri compiler sources are in `src/vibeec/`; prebuilt binaries are in `tools/bin/`.
 
-⚠️ **IMPORTANT**: `SplitIterator` semantics changed significantly in Zig 0.15:
-- `.first()` and `.next()` now return `?[]const u8` (optional) instead of direct slices
-- Multiple `orelse` calls fail when left side is not optional
-- Direct slice access pattern requires using `?[0..N]` or iterator index notation
+## Common Commands
 
-**Rules**:
-1. ✅ Используйте `if (iterator_expr) |capture|` для optionals, `orelse` для non-optionals
-2. ✅ Не полагайтесь на поведение `next()`/`first()` из Zig 0.14 — они могут не работать в Zig 0.15
-3. ✅ Проверяйте типы с помощью `@as()`, `@intCast()`, или явной аннотации типа
+### Zig
 
-### ArrayList.init() API Changes
+- Check Zig version: `zig version`
+- Format a file or directory: `zig fmt src/path/to/file.zig`
+- Check formatting without writing: `zig fmt --check src/`
+- Run tests for a single file: `zig test src/path/to/file.zig`
+- AST check a file: `zig ast-check src/path/to/file.zig`
+- Note: `zig build` does **not** work from the repository root because there is no root `build.zig`. Use subproject build files or the `tri` pipeline instead.
 
-⚠️ **IMPORTANT**: `ArrayList.init()` now uses error union return types:
-- Return type is `!ArrayList(Header, null)` or similar error unions
-- Cannot use `.append()` or `.writer()` with error returns
+### VIBEE / `.tri` Code Generation
 
-**Rules**:
-1. ✅ Используйте `ArrayList(Header).initCapacity(allocator, capacity)` вместо `ArrayList(Header).init(allocator)`
-2. ✅ Обрабатывайте error union из `init()` явно с помощью `if` или `switch`
-3. ✅ Не пытайтесь присвоить результат `init()` переменной до проверки ошибок
+- Generate from a spec: `tools/bin/vibee_gen <path/to/spec.tri>` or `tools/bin/vibee_arm64 <path/to/spec.tri>`
+- The compiler emits Zig, TRI-27 assembly (`.t27`), Verilog, or Python depending on the spec's `language:` field.
+- Generated output is written to `var/trinity/output/` and `generated/`. Edit the spec and regenerate — never edit generated files directly.
 
-### orelse Keyword (Zig 0.15)
+### `tri` CLI
 
-⚠️ **IMPORTANT**: `orelse` now requires optional on LEFT side:
-```zig
-if (optional_expr) |capture| else_expr
+- The `tri` CLI entry point is `src/tri/main.zig`. There is no prebuilt `tri` binary at the repo root in this environment; to run it you would need a build step for `src/tri/main.zig` or use an existing build artifact if present.
+- Common subcommands referenced throughout the codebase: `tri pipeline run "<task>"`, `tri dev scan`, `tri dev pick --smart`, `tri spec create`, `tri gen`, `tri test`, `tri verdict --toxic`, `tri experience save`, `tri git commit`, `tri agent spawn <issue>`, `tri agent run <issue>`.
+
+### Rust FPGA Workspace (`rings/`)
+
+- Build: `cargo build --workspace`
+- Test: `cargo test --workspace`
+- Run the bitstream CLI: `cargo run --manifest-path rings/BR-BITSTREAM/Cargo.toml -- --help`
+- Flash example: `cargo run --manifest-path rings/BR-BITSTREAM/Cargo.toml -- --xvc-host 192.168.1.30 flash --board XC7A100T --bitstream fpga/vsa/DESIGN.bit`
+
+### FPGA Synthesis (openXC7)
+
+- The canonical FPGA board is a QMTech/AliExpress Artix-7 **XC7A100T-1FGG676C**.
+- Synthesis uses the `regymm/openxc7` Docker image (amd64; requires QEMU on ARM Macs).
+- UART bridge commands referenced in `fpga/README.md`: `tri fpga build-uart`, `tri fpga flash-uart`, `tri fpga uart-test`, `tri fpga status`.
+- For detailed board truth, pin mappings, and the full synthesis/flash command sequence, follow `.claude/skills/fpga-synth/SKILL.md`.
+
+### Documentation Site
+
+- Local dev: `cd docs && yarn install && yarn start`
+- Build: `cd docs && yarn build`
+- `baseUrl` is `/trinity/docs/` — do not change it; it breaks all asset paths.
+
+## High-Level Architecture
+
+### The `.tri` Spec-First Pipeline
+
+The project follows a strict "spec-first" workflow:
+
+```
+specs/**/*.tri (VIBEE/Tri spec)  ← SINGLE source of truth
+    │
+    ├── tools/bin/vibee_gen  → var/trinity/output/*.zig
+    ├── tools/bin/vibee_gen  → *.t27 (TRI-27 assembly)
+    ├── tools/bin/vibee_gen  → *.v (Verilog/FPGA)
+    └── future: Python, Rust, Go targets
 ```
 
-**Rules**:
-1. ✅ Левая сторона `orelse` ДОЛЖНА быть optional (т.е. `if` или `while`)
-2. ✅ Для получения среза из optional: `if (opt) |val| opt.? else default_value`
-3. ✅ Не используйте `orelse` для простых развилок без захвата ошибок
+- `src/vibeec/` is the VIBEE compiler: parser, codegen, type checker, bytecode emitter, VM runtime, JIT, Verilog backend.
+- `.tri` specs define modules with `name`, `version`, `language`, `module`, `types`, and `behaviors` (each behavior has `given`, `when`, `then`).
+- `.vibee` files in `specs/tri/` are the same spec format with a different extension; treat them identically.
 
----
+### `tri` CLI and the Golden Chain
 
-## PostgreSQL Protocol Read Patterns
+`src/tri/main.zig` is the unified CLI. It is decomposed into ~650 files covering:
 
-✅ `stream.read(buffer)` возвращает количество прочитанных байтов
-- Используйте `if (bytes_read > 0)` проверки
-- Не используйте `readAll()` — эта функция была удалена в Zig 0.15
+- Brain-zone modules (`src/tri/brain/`, amygdala, hippocampus, cortex, etc.)
+- Golden Chain pipeline (`src/tri/golden_chain.zig`, `src/tri/pipeline_executor.zig`)
+- Agent orchestration (`src/tri/mu_agent.zig`, `src/tri/swarm/`, `src/tri/cloud_orchestrator.zig`)
+- Railway/Deployment helpers (`src/cli/railway_*.zig`)
+- FPGA integration (`src/cli/fpga_*.zig`, `src/tri/sacred_fpga.zig`)
 
----
+The canonical 8/10-step pipeline is:
 
-**Ссылка на правила миграции**
+1. `tri dev scan`
+2. `tri dev pick --smart`
+3. `tri issue comment N`
+4. `tri spec create`
+5. `tri gen`
+6. `tri test`
+7. `tri verdict --toxic`
+8. `tri experience save`
+9. `tri git commit`
+10. `tri loop decide`
 
-Миграция API: **Zig 0.15 Compatibility**
-- Типы данных: optional, error unions
-- Ссылка на: docs/zig-migration-rules.md
+### Module Map
 
----
-**Дата добавления**: 2026-04-03
+| Area | Location | Notes |
+|------|----------|-------|
+| Ternary VM / VSA core | `src/vsa*.zig`, `src/vm.zig`, `src/hybrid.zig`, `src/sdk.zig` | Allowed direct-edit core library files |
+| VIBEE compiler | `src/vibeec/` | Has its own `build.zig` |
+| `tri` CLI | `src/tri/` | Entry point `src/tri/main.zig` |
+| Agent / orchestration | `src/agent_mu/`, `src/tri/mu_agent.zig` | Issue-bound autonomous agents |
+| HSLM training | `src/hslm/` | 74/74 tests required via `zig test src/hslm/model.zig` |
+| BSD verification | `src/bsd/` | 3,063,485 Cremona curves verified; read-only LMFDB data in `data/ecdata/` |
+| FPGA bitstream tooling | `rings/FP-00`, `rings/FP-01`, `rings/FP-02`, `rings/BR-BITSTREAM` | Cargo workspace |
+| Verilog designs | `fpga/openxc7-synth/`, `fpga/vsa/`, `fpga/rtl/` | Synthesized with openXC7 |
+| Docs | `docs/` | Docusaurus site |
+| Trinity Nexus (experimental) | `deploy/trinity-nexus/` | Separate Zig workspace with core/lang/symb/network/canvas/tools modules |
 
----
+### Dependency Graph
 
-## Queen Trinity Orchestrator Law
+From `README.md`:
 
-### SOUL.md — Mandatory Agent Soul
-
-**Every container/agent MUST have `SOUL.md` at its root.**
-
-**SOUL.md contains:**
-- Agent type (Ralph / Mu / Scholar / Copywright / Oracle / Swarm / Custom)
-- Bound GitHub issue number
-- Mission statement
-- Allowed commands
-- Stop conditions
-- Reporting format (Protocol v2)
-- References to CLAUDE.md and AGENTS.md
-
-**Template**: `templates/SOUL.md`
-
-### Issue-Bound Containers
-
-**Every container MUST be bound to exactly one GitHub issue.**
-
-**Canonical registry**: `.trinity/issue_bindings.json`
-
-```json
-{
-  "issue_number": 505,
-  "agent_id": "ralph-505-a1",
-  "soul_file": ".trinity/souls/issue-505-ralph-505-a1/SOUL.md",
-  "session_id": "sess_123",
-  "railway_service_id": "svc_abc",
-  "deployment_id": "dep_xyz",
-  "experience_file": ".trinity/experience/issue-505-run-001.jsonl",
-  "status": "ACTIVE"
-}
+```
+t27                    ← SSOT: Ternary specs + Rust bootstrap compiler
+         ↑
+zig-golden-float      ← Numerical core: GF16, TF3, JIT, VM
+         ↑
+zig-sacred-geometry     ← Sacred geometry: φ-attention, Beal
+zig-physics             ← Quantum: QCD, gravity, dark matter, baryogenesis
+zig-hdc                 ← Hyperdimensional: VSA, Sequence HDC
+zig-knowledge-graph     ← Knowledge Graph: server + CLI
+trinity-training        ← HSLM ML: benchmarks, datasets
+         ↑
+zig-agents              ← Agents: MCP, autonomous
+zig-crypto-mining       ← BTC mining + DePIN
+         ↑
+trinity                 ← Orchestrator (links all via build.zig.zon)
 ```
 
-### Akashic Journaling — GitHub Issues as Immutable Record
+## Important Rules
 
-**Every significant agent action MUST be reflected as a GitHub issue comment.**
+### Source of Truth
 
-**Comment format (Protocol v2):**
-- `🔍 [RESEARCH] Step 1/8`
-- `📜 [SPEC] Reused nearest template`
-- `⚙️ [CODEGEN] .tri -> .zig`
-- `🧪 [TEST] 6/7 passed`
-- `☣️ [VERDICT] Past: 3/7. Now: 7/7`
-- `✅ [DONE] Build clean. Commit pushed`
+- `.tri` specs are the single source of truth. If a `.tri` spec exists for a module, edit the spec and regenerate — do not hand-edit the generated `.zig`/`.v`/`.py` files.
+- Direct `.zig` edits are only allowed for: core library (`src/vsa.zig`, `src/vm.zig`, `src/hybrid.zig`, `src/sdk.zig`), pipeline infrastructure, build system, MCP/bot code, HSLM training, BSD verification, and config files.
+- Files in `generated/` and `var/trinity/output/` are read-only.
 
-### Single Source of Truth
+### Development Workflow
 
-- **`.tri` spec** — Logic and algorithms
-- **`.trinity/experience/`** — Episodes and learnings
-- **GitHub issue** — Immutable event thread
-- **`.trinity/issue_bindings.json`** — Issue ↔ session ↔ service ↔ soul mapping
+- Use the pipeline: `tri pipeline run "<task>"`. If it fails 3 times, diagnose the pipeline/spec, not the generated code.
+- MNL (Mistake → Not-repeat → Learning): a task that failed 3+ consecutive times is considered toxic and should be skipped; re-prioritize based on similar solved tasks.
+- Every agent/container must have a `SOUL.md` and be bound to exactly one GitHub issue (canonical registry: `.trinity/issue_bindings.json`).
+- Significant agent actions must be reflected as GitHub issue comments using Protocol v2 prefixes (`🔍 [RESEARCH]`, `📜 [SPEC]`, `⚙️ [CODEGEN]`, `🧪 [TEST]`, `☣️ [VERDICT]`, `✅ [DONE]`).
 
-### Agent Lifecycle Commands
+### Code Style & Commits
 
-- `tri agent spawn <issue>` — Create container + SOUL.md + register binding
-- `tri agent run <issue>` — Execute 8-step cycle with journaling
-- `tri agent stop <issue>` — Delete service + final comment
+- Format Zig with `zig fmt` before committing.
+- Commit format: `feat(<module>): <description>`, `fix(<module>): ...`, `refactor(<module>): ...`, `docs(<module>): ...`, `chore(<module>): ...`.
+- Commit messages must be bilingual (English then Russian). Example:
+  ```
+  feat(cli): add XC7A100T board support
 
-### 8-Step Agent Cycle
+  Добавлена поддержка платы XC7A100T.
+  ```
+- Push after commit. Never force-push to `main` without explicit user approval.
+- Large files (>1MB) must be in `.gitignore`.
 
-1. `tri dev scan` — Read issues + experience
-2. `tri dev pick --smart` — Priority + MNL (avoid 3+ fails)
-3. `tri spec create` — .tri spec from experience template
-4. `tri gen` — .tri → .t27 + .zig
-5. `tri test` — Compare outputs
-6. `tri verdict --toxic` — "Past: 3/7. Now: 7/7"
-7. `tri experience save` — Episode + learnings + mistakes
-8. `tri git commit` — [DONE] + push
-9. `tri loop decide` — Continue or Done?
+### No Shell Scripts
 
-**Each step writes to:**
-- GitHub issue (comment)
-- `.trinity/agent_events.jsonl`
-- `.trinity/experience/...`
+- Do not create, edit, or reference `.sh`/`.bash` files. Legacy scripts in `scripts/`, `deploy/`, `.ralph/scripts/`, and `fpga/` are marked for deletion.
+- Add new tooling as `tri` subcommands or Zig binaries, not shell scripts.
 
-### MNL Pattern (Mistake → Not-repeat → Learning)
+### Author Attribution
 
-- Task X: 3 consecutive fails → SKIP (toxic)
-- Task Y: 0 fails, similar to solved Z → PICK
-- Task Z: 1 fail, but fix found → PICK with learning
+- Canonical maintainer: **Dmitrii Vasilev** / GitHub **@gHashTag**.
+- Do not replace this attribution with generic placeholders in files listed in `tools/config/author_attribution_guard.manifest`.
+- `zig build test` in the Nexus subproject runs `src/tri/author_attribution_guard.zig` and fails if attribution is missing.
 
-### Hard Rules
+### VSA / Ternary Conventions
 
-- ❌ No direct `.zig` writing where `.tri -> tri gen` should be used
-- ❌ No logic duplication between spec and code
-- ✅ Every container must have `SOUL.md`
-- ✅ Every container must be bound to exactly one issue
-- ✅ Every significant action must be reflected as issue comment
+- VSA operations use the trit set `{-1, 0, +1}`. Never mix with binary representations.
+- Ternary VM and sacred-geometry constants derive from `φ² + 1/φ² = 3`.
+
+### Zig 0.15 / 0.16 API Notes
+
+- `SplitIterator.first()` / `.next()` return `?[]const u8` in Zig 0.15+. Use `if (it.next()) |slice|` instead of direct slice access.
+- `ArrayList.init()` returns an error union in newer Zig; prefer `ArrayList(T).initCapacity(allocator, capacity)` or explicitly handle the error union.
+- `orelse` requires an optional on the left-hand side.
+- `std.io.Reader.read(buffer)` returns the number of bytes read; use `if (bytes_read > 0)` checks. `readAll()` was removed in Zig 0.15.
+- The installed Zig in this environment is 0.16.0; many files still target 0.15.x APIs, so verify compatibility when editing.
+
+### Testing
+
+- Tests live in the same file as source (Zig convention).
+- Run a single file: `zig test src/path/to/file.zig`.
+- Run the VIBEEC test suite from its subproject: `cd src/vibeec && zig build test`.
+- Run HSLM model tests: `zig test src/hslm/model.zig`.
+- Run BSD verification: `zig test src/bsd/verify_bsd.zig`.
+- Run Rust workspace tests: `cargo test --workspace`.
+- Never skip failing tests; fix the root cause.
+
+### FPGA
+
+- Target board: Artix-7 `xc7a100tfgg676-1` (QMTech). Some docs also reference `xc7a200t`.
+- Canonical UART bridge constraints: `fpga/constraints/uart_bridge_j2.xdc`.
+- LED on pin T23 is active-low.
+- After modifying Verilog, run synthesis via the openXC7 Docker flow or the `/fpga-synth` skill.
+
+## Key Reference Files
+
+- `AGENTS.md` — 27-agent alphabet and Agent T (Queen Trinity) orchestration rules.
+- `templates/SOUL.md` — mandatory agent soul template.
+- `docs/zig-migration-rules.md` — detailed Zig 0.15 migration notes.
+- `graph_v2.json` — module dependency graph used by the orchestrator.
+- `.claude/rules/` — detailed per-domain rules (testing, FPGA, specs, HSLM, MCP, docsite, etc.).
+- `.cursor/rules/author-attribution-lock.mdc` — author attribution lock for Cursor/Copilot.
+- `.github/copilot-instructions.md` — Copilot-specific forbidden-file and toxic-verdict rules.
