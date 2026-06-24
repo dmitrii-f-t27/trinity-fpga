@@ -187,14 +187,30 @@ clocks sourced from differential pads normally go `IBUFDS → BUFG`. Without
 `BUFG`, nextpnr may route the clock on general fabric and the counter may not
 toggle, leaving high counter bits at a constant value and LEDs constantly on.
 
-### Attempt 3
+### Attempt 3 (SUCCESS)
 Updated `fpga/vivado/blinky_ax7203.v` to insert `BUFG` between `IBUFDS` and
-the counter clock net. Re-synthesize and re-flash.
+the counter clock net. Synthesized via workflow **28099101503** (success).
 
-**LED/DONE observation:** [pending new run]
+Flashed with:
+```bash
+openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
+  -c "init" \
+  -c "pld load 0 build/ax7203_blinky/blinky_ax7203.bit" \
+  -c "runtest 200000" \
+  -c "shutdown"
+```
+
+Hardware observation:
+- DONE lit ✅
+- LED0–LED3 blinking ✅
+- Power indicators PWR3V3 / PWR1V8 / PWR1V0 lit steadily (normal)
+- INIT may remain dimly lit (normal on this carrier)
+
+## Result
+AX7203 minimal blinky bring-up is **complete**.
 
 ## Next Steps
-
-1. Synthesize new bitstream with BUFG.
-2. Flash and confirm LED0–LED3 blink.
-3. Once blinky works: proceed to variant B (GF16 codec + bit-exact conformance over UART).
+1. Proceed to variant B: GF16 codec + bit-exact conformance over UART.
+2. Create `fpga/vivado/gf16_codec_ax7203.v` + XDC.
+3. Host script `conformance/gf16_conformance_ax7203.py`.
+4. Synthesize, flash, run conformance.
