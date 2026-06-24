@@ -11,6 +11,21 @@ Supported boards:
 - **QMTECH XC7A100T-FGG676** (legacy)
 - **ALINX AX7203 (XC7A200T-FBG484-2)** — new primary target
 
+## Trinity FPGA Hardware Inventory
+These devices are available in the project. Documentation links are canonical; replace `YOUR_FOLDER_ID` with the actual Google Drive folder IDs shared by the user.
+
+| Device | Type | Docs / Notes |
+|--------|------|--------------|
+| **AX7203 / AX7203B** | ALINX Artix-7 FPGA carrier board | [AX7203/AX7203B_EN](https://drive.google.com/drive/folders/1u5Ofz0sWViA-ROgPr4fEx6Iz3zJhJmcK?usp=sharing) |
+| **P201 MINI / P203 MINI** | ALINX FPGA modules / daughter cards | [P201 MINI / P203 MINI](https://drive.google.com/drive/folders/1mKWlSyf95ehVl2OCfvKzC0WvL2Q04cEy?usp=sharing) |
+| **AN9767** | ALINX module | [AN9767 docs](https://drive.google.com/drive/folders/10egsCPDlaWmdaQDXNscolcV2tigygh-I?usp=sharing) |
+| **AN706** | ALINX module | [AN706 docs](https://drive.google.com/drive/folders/1mqM_hEX_7Zeqsh6EUpAWaqTaayQ3_vhV?usp=sharing) |
+| **AN9238** | ALINX module | [AN9238 docs](https://drive.google.com/drive/folders/17AVfY9cxfJg1s2b3_iEUXuupqfuhz3tV?usp=sharing) |
+| **AN5642** | ALINX module | [AN5642 docs](https://drive.google.com/drive/folders/1u6TrdFFbF9tGKWl8597npVKh9QQu9T_v?usp=sharing) |
+| **AN430** | ALINX module | [AN430 docs](https://drive.google.com/drive/folders/1KjpP-1FKpjwGo0igNBqTSptd4BN0bS7k?usp=sharing) |
+
+When designing for these modules, extract pinout and voltage level info from the linked manuals and update this SKILL + the board XDC accordingly.
+
 ## BEFORE STARTING: Load Experience
 Read the experience log FIRST to avoid repeating work:
 - Primary: `fpga/experience/2026-06-24-ax7203-blinky-openxc7.trinity.md`
