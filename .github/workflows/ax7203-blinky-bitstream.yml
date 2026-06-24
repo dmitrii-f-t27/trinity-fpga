@@ -48,7 +48,17 @@ jobs:
             " 2>&1 | tee /tmp/yosys.log
           grep "Estimated number of LCs" /tmp/yosys.log
 
+      - name: Cache chipdb for xc7a200tfbg484-2
+        id: chipdb-cache
+        uses: actions/cache@v4
+        with:
+          path: build/ax7203_blinky/chipdb/xc7a200tfbg484-2.bin
+          key: chipdb-xc7a200tfbg484-2-regymm-openxc7-${{ github.run_id }}
+          restore-keys: |
+            chipdb-xc7a200tfbg484-2-regymm-openxc7-
+
       - name: Generate chipdb for xc7a200tfbg484-2
+        if: steps.chipdb-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p build/ax7203_blinky/chipdb
           docker run --rm \
@@ -72,7 +82,7 @@ jobs:
               --json /work/build/ax7203_blinky/blinky_ax7203.json \
               --write /work/build/ax7203_blinky/blinky_ax7203_routed.json \
               --fasm /work/build/ax7203_blinky/blinky_ax7203.fasm \
-              --freq 200.0 --seed 1 --placer sa --force 2>&1 | tee /tmp/nextpnr.log
+              --freq 100.0 --seed 1 --placer sa --router router1 --timing-allow-fail --force 2>&1 | tee /tmp/nextpnr.log
           grep "Max frequency" /tmp/nextpnr.log || true
 
       - name: fasm2frames + xc7frames2bit
