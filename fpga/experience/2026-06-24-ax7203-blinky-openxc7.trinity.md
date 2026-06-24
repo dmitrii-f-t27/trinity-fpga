@@ -154,7 +154,8 @@ ERROR: port <name> of type PAD has no IOSTANDARD property
 ## Flash Result (2026-06-24)
 
 Bitstream: `build/ax7203_blinky/blinky_ax7203.bit` (9.3 MB, valid Xilinx BIT for xc7a200tfbg484-2)
-Flashed via:
+
+### Attempt 1 (FAILED: DONE dark, LEDs not blinking)
 ```bash
 openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
   -c "init" \
@@ -162,12 +163,32 @@ openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
   -c "xc7_program xc7.tap" \
   -c "shutdown"
 ```
-OpenOCD status: IDCODE `0x13636093` confirmed, `xc7_program` returned without error.
+OpenOCD status: IDCODE `0x13636093` confirmed, no JTAG error.
+Hardware observation: DONE not lit, LED0–LED3 not blinking.
+
+### Hypothesis
+Stock `cpld/xilinx-xc7.cfg` comments out `JSTART` in `xc7_program` with note
+"JSTART prevents this from working". Calling `xc7_program` after `pld load`
+may re-issue JSTART / leave FPGA outside user mode. Also possible: bitstream
+compression or insufficient start-up clocks after `pld load`.
+
+### Attempt 2 (corrected sequence)
+Updated `ax7203_al321.cfg`:
+- Removed `JSTART` from `xc7_program`
+- Recommended usage is `pld load` + `runtest 200000` + `shutdown`
+
+```bash
+openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
+  -c "init" \
+  -c "pld load 0 build/ax7203_blinky/blinky_ax7203.bit" \
+  -c "runtest 200000" \
+  -c "shutdown"
+```
 
 **LED/DONE observation:** [pending user confirmation]
 
 ## Next Steps
 
-1. Confirm DONE lights and LED0–LED3 blink on hardware.
-2. Update this log with observed states.
-3. Proceed to variant B: GF16 codec + bit-exact conformance over UART.
+1. Confirm DONE lights and LED0–LED3 blink on hardware after corrected sequence.
+2. If still dark: generate uncompressed bitstream and re-test.
+3. Once blinky works: proceed to variant B (GF16 codec + bit-exact conformance over UART).

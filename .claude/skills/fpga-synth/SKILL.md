@@ -114,15 +114,20 @@ Expected output: `JTAG tap: xc7.tap ... found: 0x13636093`
 openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
   -c 'init' \
   -c 'pld load 0 build/ax7203_blinky/blinky_ax7203.bit' \
-  -c 'xc7_program xc7.tap' \
+  -c 'runtest 200000' \
   -c 'shutdown'
 ```
 
-Confirmed sequence (2026-06-24):
+**IMPORTANT**: do NOT call `xc7_program` after `pld load`. The `virtex2` driver
+already sends the 7-series start-up sequence. Re-issuing `JSTART` can leave
+the FPGA outside user mode (DONE stays dark). The `xc7_program` proc in the
+cfg is only for explicit clear/reset before loading.
+
+Confirmed (2026-06-24):
 - Workflow `28096964681` succeeded → `blinky_ax7203.bit` (9.3 MB)
-- Flash command above completed without JTAG errors
+- Flash command completed without JTAG errors
 - IDCODE verified: `0x13636093` (Artix-7 XC7A200T rev 1)
-- `xc7_program` runs after `pld load` to start the bitstream
+- `runtest 200000` provides extra TCK start-up cycles
 
 ### Legacy XVC flash command (ESP32-XVC, if used):
 ```bash
