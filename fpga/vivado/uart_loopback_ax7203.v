@@ -144,6 +144,23 @@ module uart_loopback_ax7203 (
     reg [3:0] tx_bit_cnt;
     reg [9:0] tx_shift;
     reg       tx_active;
+    reg       tx_start_req;
+
+    // Capture rx_done into a request flag so it is visible to the TX FSM
+    // across clock edges (rx_done is only one clk200 cycle wide).
+    always @(posedge clk200 or posedge rst) begin
+        if (rst) begin
+            tx_start_req <= 1'b0;
+        end else begin
+            if (rx_done && !tx_active) begin
+                tx_start_req <= 1'b1;
+                tx_sr        <= rx_byte;
+            end
+            if (tx_start_req && tx_active) begin
+                tx_start_req <= 1'b0;
+            end
+        end
+    end
 
     always @(posedge clk200 or posedge rst) begin
         if (rst) begin
@@ -153,20 +170,22 @@ module uart_loopback_ax7203 (
             tx_shift   <= 10'h3FF;
             tx_active  <= 1'b0;
         end else begin
-            if (rx_done && !tx_active) begin
-                tx_active <= 1'b1;
-                tx_fsm    <= TX_START;
-                tx_sr     <= rx_byte;
-            end
-
-            if (uart_tick && tx_active) begin
-                case (tx_fsm)
-                    TX_START: begin
+            case (tx_fsm)
+                TX_IDLE: begin
+                    if (tx_start_req) begin
+                        tx_active <= 1'b1;
+                        tx_fsm    <= TX_START;
+                    end
+                end
+                TX_START: begin
+                    if (uart_tick) begin
                         tx_shift   <= {1'b1, tx_sr[7:0], 1'b0};
                         tx_bit_cnt <= 4'd0;
                         tx_fsm     <= TX_DATA;
                     end
-                    TX_DATA: begin
+                end
+                TX_DATA: begin
+                    if (uart_tick) begin
                         tx_shift <= {1'b1, tx_shift[9:1]};
                         if (tx_bit_cnt == 4'd9) begin
                             tx_fsm <= TX_STOP;
@@ -174,12 +193,14 @@ module uart_loopback_ax7203 (
                             tx_bit_cnt <= tx_bit_cnt + 1'b1;
                         end
                     end
-                    TX_STOP: begin
+                end
+                TX_STOP: begin
+                    if (uart_tick) begin
                         tx_active <= 1'b0;
                         tx_fsm    <= TX_IDLE;
                     end
-                endcase
-            end
+                end
+            endcase
         end
     end
 
