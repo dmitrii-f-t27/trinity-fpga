@@ -453,3 +453,30 @@ the AL321 ch.B port receives nothing. The CORRECT bridge is
 (1) verify host->FPGA direction (P20) via the uart_loopback design with
 `--device /dev/cu.usbserial-120`; (2) use each design's actual baud (gf16/
 loopback are 200 MHz-derived, not 115200) — find it by sweep as done here.
+
+### GF16 HW-CONFORMANCE ACHIEVED — 10/10 PASSED (2026-06-27)
+
+**gf16_clean_ax7203.v** — clean GF16 ADD conformance engine built from PROVEN
+components: RX FSM from rx_echo_hb (verified 0x55 echo), TX pattern from
+uart_tx_probe (verified monotonic cnt), gf16_adder submodule, all on CFGMCLK
+(~70 MHz, STARTUPE2→BUFG). Replaces the buggy gf16_codec smoke-test (which had
+3+ bugs: RX sampling, dup-decl, TX 0xFF).
+
+Result: `conformance/gf16_conformance_ax7203.py --pack t27/conformance/gf16_vectors.json
+--device /dev/cu.usbserial-120 --baud 160000` → **10/10 passed** (a+0=a identity,
+bit-exact on AX7203 hardware).
+
+**Full session arc** (root causes found + fixed):
+1. Wrong serial port: conformance scripts defaulted `/dev/ttyUSB0` (Linux) →
+   fixed to `/dev/cu.usbserial-120` (on-board CP2102N, verified).
+2. AL321 FT2232H ch.B (`/dev/cu.usbserial-210512180081`) = DEAD (not wired to
+   N15/P20). CP2102N = the working UART bridge.
+3. CFGMCLK (~70 MHz) = PROVEN clock for AX7203; 200 MHz differential oscillates
+   (counter 23.7/s) but UART on it is unstable (loopback/gf16 0 response).
+4. gf16_codec RX-FSM sampling bug: rx_sample_cnt counted uart_ticks (per-bit)
+   vs UART_DIV_HALF (per-cycle) → sampled ~217 bit-times off → never received.
+5. Duplicate tx_active/tx_busy declarations → yosys silently merged into broken
+   TX logic (iverilog catches; yosys doesn't).
+6. gf16_codec TX/data bugs (0xFF response) — abandoned smoke-test, built clean.
+
+**GF16 FPGA cell: CLOSED.** Matrix [GF16 × {SW✓, FPGA✓}] = both green.
