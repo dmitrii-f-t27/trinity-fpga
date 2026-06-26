@@ -109,7 +109,12 @@ def run(pack_path: Path, device: str, baud: int = 115200, limit: int = 0) -> int
 def main() -> int:
     parser = argparse.ArgumentParser(description="GF16 conformance harness for AX7203")
     parser.add_argument("--pack", type=Path, required=True, help="GF16 conformance JSON pack")
-    parser.add_argument("--device", default="/dev/ttyUSB0", help="USB-UART device")
+    # Verified 2026-06-26: FPGA uart_tx (N15) reaches the on-board CP2102N =
+    # /dev/cu.usbserial-120. AL321 FT2232H ch.B (/dev/cu.usbserial-210512180081)
+    # receives nothing (not wired to N15/P20). /dev/ttyUSB0 is Linux-only and was
+    # the root cause of the prior "0 bytes" blocker.
+    parser.add_argument("--device", default="/dev/cu.usbserial-120",
+                        help="USB-UART bridge (verified on-board CP2102N)")
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--limit", type=int, default=0, help="Limit number of vectors")
     args = parser.parse_args()
