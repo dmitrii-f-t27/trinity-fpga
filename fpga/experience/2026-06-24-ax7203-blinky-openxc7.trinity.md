@@ -434,3 +434,22 @@ guard: fail if "Failed to find a route" appears (backstop). (4) UART payload
 0x55 -> cnt[26:19] (monotonic counter byte) so a received stream irrefutably
 proves the fabric/counter runs (sim: 0x00,0x01,0x02 monotonic), not just that
 TX toggles.
+
+### uart_tx_probe RESULT — UART TX path works via on-board CP2102N (2026-06-26)
+
+Flashed the definitive build (cnt[26:19] payload, seed 1 = clean route, no
+--force) + IDCODE recheck 0x13636093. Baud sweep on BOTH serial ports:
+  /dev/cu.usbserial-210512180081 (AL321 FT2232H ch.B) -> 0 bytes (NOT wired)
+  /dev/cu.usbserial-120           (on-board CP2102N)  -> DATA FLOWING
+Fine baud scan: clean (score 0.99) at ~155000-161290 => CFGMCLK ~= 69-70 MHz
+(actual baud ~= 160000, NOT 115200). Clean read (flush + discard) yields a
+MONOTONIC cnt[26:19] staircase: 0x84,0x85,...,0xa5 (34 contiguous +1 values).
+IRREFUTABLE: fabric/counter ALIVE, uart_tx (N15) reaches host via CP2102N.
+
+KEY UNBLOCK for the original gf16 "0 bytes" blocker: it was a WRONG PORT.
+conformance scripts default `--device /dev/ttyUSB0` (Linux; absent on macOS) and
+the AL321 ch.B port receives nothing. The CORRECT bridge is
+`/dev/cu.usbserial-120` (on-board CP2102N). Remaining to fully unblock gf16:
+(1) verify host->FPGA direction (P20) via the uart_loopback design with
+`--device /dev/cu.usbserial-120`; (2) use each design's actual baud (gf16/
+loopback are 200 MHz-derived, not 115200) — find it by sweep as done here.
