@@ -4,8 +4,8 @@
 // gf16_codec_ax7203 — GoldenFloat16 ADD conformance engine over UART
 // =============================================================================
 // Target: ALINX AX7203 (XC7A200T-FBG484-2)
-// Clock: 200 MHz differential on R4/T4
-// UART:  115200 8N1 on N15 (TX) / P20 (RX)
+// Clock: CFGMCLK (~70 MHz, STARTUPE2) — re-clocked from 200 MHz (UART non-responsive on 200 MHz)
+// UART:  ~161290 baud 8N1 on N15 (TX) / P20 (RX) — host reads/sends ~160000
 //
 // Protocol (matches conformance/gf16_conformance_ax7203.py):
 //   Host -> FPGA: [0xAA][0x55][a_lo][a_hi][b_lo][b_hi][cmd]
@@ -25,28 +25,47 @@ module gf16_codec_ax7203 (
 );
 
     // =========================================================================
-    // Clock input: differential -> IBUFDS -> BUFG
+    // Clock: STARTUPE2 CFGMCLK (~70 MHz) -> BUFG. Re-clocked from the 200 MHz
+    // differential path because UART on 200 MHz gave 0 response (gf16 + loopback)
+    // while CFGMCLK UART is proven (rx_echo, uart_tx_probe). clk200_p/n pads are
+    // kept (unused) so gf16_ax7203.xdc still applies; the `clk200` net name is
+    // preserved so all always-blocks below stay unchanged.
     // =========================================================================
-    wire clk200_raw;
-    IBUFDS clk_ibufds (
-        .I  (clk200_p),
-        .IB (clk200_n),
-        .O  (clk200_raw)
+    wire mclk_c;
+    wire eos;
+    STARTUPE2 #(
+        .PROG_USR("FALSE"),
+        .SIM_CCLK_FREQ(0.0)
+    ) u_startup (
+        .CFGCLK(),
+        .CFGMCLK(mclk_c),
+        .EOS(eos),
+        .CLK(1'b0),
+        .GSR(1'b0),
+        .GTS(1'b0),
+        .KEYCLEARB(1'b0),
+        .PACK(1'b0),
+        .USRCCLKO(1'b0),
+        .USRCCLKTS(1'b0),
+        .USRDONEO(1'b0),
+        .USRDONETS(1'b0)
     );
 
-    wire clk200;
+    wire _unused_diff = clk200_p ^ clk200_n; // keep diff pads for XDC reuse
+
+    wire clk200;   // now CFGMCLK-derived; name kept so always-blocks match
     BUFG clk_bufg (
-        .I (clk200_raw),
+        .I (mclk_c),
         .O (clk200)
     );
 
-    wire rst = ~rst_n;
+    wire rst = ~rst_n | ~eos;
 
     // =========================================================================
-    // UART clock divider: 200 MHz / 115200 ~= 1736
+    // UART clock divider: CFGMCLK ~70 MHz / 161290 baud ~= 434 (host reads ~160k)
     // =========================================================================
-    localparam UART_DIV = 11'd1736;
-    localparam UART_DIV_HALF = 11'd868;
+    localparam UART_DIV = 11'd434;
+    localparam UART_DIV_HALF = 11'd217;
 
     reg [10:0] uart_cnt;
     reg        uart_tick;
