@@ -83,76 +83,68 @@ module gf16_codec_ax7203 (
     end
 
     // =========================================================================
-    // UART RX: 8N1, oversample at bit-center
+    // UART RX: 8N1, mid-bit sample via a CYCLE counter (LSB first).
+    // FIX: the original incremented rx_sample_cnt on uart_tick (1 pulse per
+    // bit-time) but compared it to UART_DIV_HALF (a CYCLE count) -> it sampled
+    // ~UART_DIV bit-times late and never assembled a frame (0 response on both
+    // 200 MHz and CFGMCLK). Now counts CYCLES: on the start edge wait
+    // 1.5*UART_DIV to the middle of bit0, then UART_DIV per bit (same scheme as
+    // the proven rx_echo_hb RX FSM). rx_byte/rx_done interface unchanged.
     // =========================================================================
     reg [2:0] rx_sync;
     always @(posedge clk200) rx_sync <= {rx_sync[1:0], uart_rx};
     wire rx_bit = rx_sync[2];
 
-    localparam RX_IDLE  = 3'd0;
-    localparam RX_START = 3'd1;
-    localparam RX_DATA  = 3'd2;
-    localparam RX_STOP  = 3'd3;
+    localparam RX_IDLE = 2'd0;
+    localparam RX_DATA = 2'd1;
+    localparam RX_STOP = 2'd2;
 
-    reg [2:0] rx_state;
-    reg [10:0] rx_sample_cnt;
-    reg [2:0] rx_bit_idx;
-    reg [7:0] rx_byte;
-    reg       rx_done;
+    reg [1:0]  rx_state;
+    reg [10:0] rx_rcnt;      // cycle countdown to the next sample point
+    reg [2:0]  rx_bit_idx;
+    reg [7:0]  rx_byte;
+    reg        rx_done;
 
     always @(posedge clk200 or posedge rst) begin
         if (rst) begin
-            rx_state      <= RX_IDLE;
-            rx_sample_cnt <= 11'd0;
-            rx_bit_idx    <= 3'd0;
-            rx_byte       <= 8'd0;
-            rx_done       <= 1'b0;
+            rx_state   <= RX_IDLE;
+            rx_rcnt    <= 11'd0;
+            rx_bit_idx <= 3'd0;
+            rx_byte    <= 8'd0;
+            rx_done    <= 1'b0;
         end else begin
             rx_done <= 1'b0;
             case (rx_state)
                 RX_IDLE: begin
-                    if (rx_bit == 1'b0) begin // start bit falling edge
-                        rx_state      <= RX_START;
-                        rx_sample_cnt <= 11'd0;
-                    end
-                end
-                RX_START: begin
-                    if (uart_tick) begin
-                        if (rx_sample_cnt == UART_DIV_HALF) begin
-                            rx_state      <= RX_DATA;
-                            rx_sample_cnt <= 11'd0;
-                            rx_bit_idx    <= 3'd0;
-                        end else begin
-                            rx_sample_cnt <= rx_sample_cnt + 1'b1;
-                        end
+                    if (rx_bit == 1'b0) begin                     // start-bit edge
+                        rx_rcnt    <= (UART_DIV + UART_DIV_HALF) - 11'd1; // -> mid bit0
+                        rx_state   <= RX_DATA;
+                        rx_bit_idx <= 3'd0;
                     end
                 end
                 RX_DATA: begin
-                    if (uart_tick) begin
-                        if (rx_sample_cnt == UART_DIV - 1) begin
-                            rx_sample_cnt <= 11'd0;
-                            rx_byte       <= {rx_bit, rx_byte[7:1]};
-                            if (rx_bit_idx == 3'd7) begin
-                                rx_state <= RX_STOP;
-                            end else begin
-                                rx_bit_idx <= rx_bit_idx + 1'b1;
-                            end
+                    if (rx_rcnt == 11'd0) begin
+                        rx_byte <= {rx_bit, rx_byte[7:1]};        // shift in LSB first
+                        if (rx_bit_idx == 3'd7) begin
+                            rx_state <= RX_STOP;
+                            rx_rcnt  <= UART_DIV - 11'd1;         // -> mid stop
                         end else begin
-                            rx_sample_cnt <= rx_sample_cnt + 1'b1;
+                            rx_bit_idx <= rx_bit_idx + 3'd1;
+                            rx_rcnt    <= UART_DIV - 11'd1;       // -> mid next bit
                         end
+                    end else begin
+                        rx_rcnt <= rx_rcnt - 11'd1;
                     end
                 end
                 RX_STOP: begin
-                    if (uart_tick) begin
-                        if (rx_sample_cnt == UART_DIV - 1) begin
-                            rx_state      <= RX_IDLE;
-                            rx_sample_cnt <= 11'd0;
-                            rx_done       <= 1'b1;
-                        end else begin
-                            rx_sample_cnt <= rx_sample_cnt + 1'b1;
-                        end
+                    if (rx_rcnt == 11'd0) begin
+                        rx_done  <= 1'b1;                         // byte complete
+                        rx_state <= RX_IDLE;
+                    end else begin
+                        rx_rcnt <= rx_rcnt - 11'd1;
                     end
                 end
+                default: rx_state <= RX_IDLE;
             endcase
         end
     end
