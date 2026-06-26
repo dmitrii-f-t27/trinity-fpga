@@ -279,9 +279,10 @@ module gf16_codec_ax7203 (
     reg [7:0] tx_sr;
     reg [3:0] tx_bit_cnt; // 0..9 for the 10 bit-times
     reg [9:0] tx_shift;
-    reg       tx_active;
-    reg       tx_busy;
     reg       tx_start_req;
+    // NOTE: tx_active and tx_busy are declared once above (response-buffer
+    // block). An earlier duplicate declaration here was silently merged by
+    // yosys into broken logic (TX sent 0xFF); iverilog catches it.
 
     always @(posedge clk200 or posedge rst) begin
         if (rst) begin
