@@ -67,10 +67,10 @@ module gf_adder_param #(
                     if (!mw[MANT_BITS]) begin
                         mw = mw << 1; ew = ew - 1;
                     end
-            if (mw == 0 || ew == 0 || ew[EXP_BITS])
+            if (mw == 0)
                 result_packed = {TOTAL{1'b0}};
-            else if (ew > {1'b0, { (EXP_BITS-1){1'b1} }})
-                result_packed = {sg, {(EXP_BITS-1){1'b1}}, 1'b0, {MANT_BITS{1'b1}}};
+            else if (ew[EXP_BITS])
+                result_packed = {sg, {EXP_BITS{1'b1}}, {MANT_BITS{1'b1}}};
             else
                 result_packed = {sg, ew[EXP_BITS-1:0], mw[MANT_BITS-1:0]};
         end
