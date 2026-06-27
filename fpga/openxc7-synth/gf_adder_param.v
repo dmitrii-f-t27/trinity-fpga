@@ -29,13 +29,21 @@ module gf_adder_param #(
     wire                        a_zero = (in_a == {TOTAL{1'b0}});
     wire                        b_zero = (in_b == {TOTAL{1'b0}});
 
-    // Implicit leading 1 + GRS bits (MANT_BITS+4 wide: 1+MANT_BITS+G+R+S)
-    wire [MANT_BITS:0]   ma_f = {1'b1, ma};
-    wire [MANT_BITS:0]   mb_f = {1'b1, mb};
+    // Denormal detection: exp_field==0 && mant!=0 && bias>0 (only exists for EXP_BITS>=2)
+    wire a_denorm = (BIAS > 0) && (ea == {EXP_BITS{1'b0}}) && (ma != {MANT_BITS{1'b0}});
+    wire b_denorm = (BIAS > 0) && (eb == {EXP_BITS{1'b0}}) && (mb != {MANT_BITS{1'b0}});
 
-    wire a_larger = (ea > eb) || ((ea == eb) && (ma_f >= mb_f));
+    // Effective exponent: denormals use 1 (not 0) for alignment — their real_exp = 1-BIAS
+    wire [EXP_BITS-1:0] ea_eff = a_denorm ? {{(EXP_BITS-1){1'b0}}, 1'b1} : ea;
+    wire [EXP_BITS-1:0] eb_eff = b_denorm ? {{(EXP_BITS-1){1'b0}}, 1'b1} : eb;
+
+    // Mantissa: denormals have NO implicit 1 ({0, ma} instead of {1, ma})
+    wire [MANT_BITS:0]   ma_f = a_denorm ? {1'b0, ma} : {1'b1, ma};
+    wire [MANT_BITS:0]   mb_f = b_denorm ? {1'b0, mb} : {1'b1, mb};
+
+    wire a_larger = (ea_eff > eb_eff) || ((ea_eff == eb_eff) && (ma_f >= mb_f));
     wire [EXP_BITS:0] ediff = a_larger ?
-        ({1'b0, ea} - {1'b0, eb}) : ({1'b0, eb} - {1'b0, ea});
+        ({1'b0, ea_eff} - {1'b0, eb_eff}) : ({1'b0, eb_eff} - {1'b0, ea_eff});
 
     // Sticky: OR of all bits below G+R from the SMALLER operand (the shifted one)
     reg sticky_bit;
@@ -56,7 +64,7 @@ module gf_adder_param #(
     wire [MANT_BITS+3:0] ma_al = a_larger ? ma_ext : {ma_al_raw[MANT_BITS+3:1], ma_al_raw[0] | sticky_bit};
     wire [MANT_BITS+3:0] mb_al = a_larger ? {mb_al_raw[MANT_BITS+3:1], mb_al_raw[0] | sticky_bit} : mb_ext;
 
-    wire [EXP_BITS-1:0]  er   = a_larger ? ea : eb;
+    wire [EXP_BITS-1:0]  er   = a_larger ? ea_eff : eb_eff;
     wire                 sr   = a_larger ? sa : sb;
 
     wire                  same_sign = (sa == sb);
