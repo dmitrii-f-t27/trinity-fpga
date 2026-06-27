@@ -95,7 +95,7 @@ module gf_adder_param #(
                 mw[0] = mw[0] | old_sticky;
                 ew = ew + 1;
             end
-            // Subtraction normalize + denormal result handling
+            // Subtraction normalize
             if (!same_sign && mw != 0)
                 for (i = 0; i < MANT_BITS+3; i = i + 1)
                     if (!mw[MANT_BITS+3]) begin
@@ -103,36 +103,27 @@ module gf_adder_param #(
                         if (ew == 0) underflow = 1'b1;
                         else ew = ew - 1;
                     end
-            // Addition denormal result: denorm+denorm=denorm (exp stays at denormal boundary)
-            if (same_sign && !mw[MANT_BITS+3] && ew <= 1'b1) begin
-                ew = {EXP_BITS{1'b0}};  // pack as denormal (exp_field=0)
-                // Right-shift mantissa to denormal position: leading 1 is at
-                // some position below MANT_BITS+3. Shift it to MANT_BITS+2
-                // (just below implicit-1 position) so mant_rounded extracts correctly.
-                // The denormal "implicit" position is MANT_BITS+2 (one below normal).
-                for (i = 0; i < MANT_BITS+1; i = i + 1)
-                    if (!mw[MANT_BITS+2]) mw = mw << 1;
-            end
             // Round-half-to-even using G(bit2) R(bit1) S(bit0)
-            // mw layout: [MANT_BITS+3]=implicit1, [MANT_BITS+2:3]=mantissa, [2]=G, [1]=R, [0]=S
             if (mw[2] && (mw[1] || mw[0] || mw[3]))
-                mant_rounded = mw[MANT_BITS+3:3] + 1;  // round up
+                mant_rounded = mw[MANT_BITS+3:3] + 1;
             else
-                mant_rounded = mw[MANT_BITS+3:3];       // truncate or ties-even-down
-            // Check rounding overflow (mantissa overflowed past implicit 1)
+                mant_rounded = mw[MANT_BITS+3:3];
             if (mant_rounded[MANT_BITS+1]) begin
                 mant_rounded = mant_rounded >> 1;
                 ew = ew + 1;
             end
-            // Pack: denormal (ew==0, mw!=0) → exp_field=0 with mantissa bits
+            // Denormal result detection (addition only, same_sign)
+            if (same_sign && BIAS > 0 && !mw[MANT_BITS+3] && ew <= 1'b1)
+                ew = {EXP_BITS{1'b0}};  // force denormal packing
+            // Pack
             if (mw == 0 || underflow)
                 result_packed = {TOTAL{1'b0}};
             else if (ew[EXP_BITS])
                 result_packed = {sg, {EXP_BITS{1'b1}}, {MANT_BITS{1'b1}}};
             else if (ew == {EXP_BITS{1'b0}})
-                result_packed = {sg, {EXP_BITS{1'b0}}, mant_rounded[MANT_BITS-1:0]};  // denormal
+                result_packed = {sg, {EXP_BITS{1'b0}}, mant_rounded[MANT_BITS-1:0]};
             else
-                result_packed = {sg, ew[EXP_BITS-1:0], mant_rounded[MANT_BITS-1:0]};  // normal
+                result_packed = {sg, ew[EXP_BITS-1:0], mant_rounded[MANT_BITS-1:0]};
         end
     end
 
