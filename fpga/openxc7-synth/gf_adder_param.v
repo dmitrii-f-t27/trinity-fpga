@@ -26,8 +26,8 @@ module gf_adder_param #(
     wire [EXP_BITS-1:0]         eb = in_b[TOTAL-2:MANT_BITS];
     wire [MANT_BITS-1:0]        mb = in_b[MANT_BITS-1:0];
 
-    wire                        a_zero = (ea == 0);
-    wire                        b_zero = (eb == 0);
+    wire                        a_zero = (in_a == {TOTAL{1'b0}});
+    wire                        b_zero = (in_b == {TOTAL{1'b0}});
 
     // Implicit leading 1 (MANT_BITS+1 wide)
     wire [MANT_BITS:0] ma_f = {1'b1, ma};
