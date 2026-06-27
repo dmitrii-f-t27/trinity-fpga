@@ -95,7 +95,7 @@ module gf_adder_param #(
                 mw[0] = mw[0] | old_sticky;
                 ew = ew + 1;
             end
-            // Subtraction normalize
+            // Subtraction normalize + denormal result handling
             if (!same_sign && mw != 0)
                 for (i = 0; i < MANT_BITS+3; i = i + 1)
                     if (!mw[MANT_BITS+3]) begin
@@ -103,6 +103,9 @@ module gf_adder_param #(
                         if (ew == 0) underflow = 1'b1;
                         else ew = ew - 1;
                     end
+            // Addition denormal result: denorm+denorm=denorm (exp stays at denormal boundary)
+            if (same_sign && !mw[MANT_BITS+3] && ew <= 1'b1)
+                ew = {EXP_BITS{1'b0}};  // pack as denormal (exp_field=0)
             // Round-half-to-even using G(bit2) R(bit1) S(bit0)
             // mw layout: [MANT_BITS+3]=implicit1, [MANT_BITS+2:3]=mantissa, [2]=G, [1]=R, [0]=S
             if (mw[2] && (mw[1] || mw[0] || mw[3]))
@@ -114,13 +117,15 @@ module gf_adder_param #(
                 mant_rounded = mant_rounded >> 1;
                 ew = ew + 1;
             end
-            // Pack
+            // Pack: denormal (ew==0, mw!=0) → exp_field=0 with mantissa bits
             if (mw == 0 || underflow)
                 result_packed = {TOTAL{1'b0}};
             else if (ew[EXP_BITS])
                 result_packed = {sg, {EXP_BITS{1'b1}}, {MANT_BITS{1'b1}}};
+            else if (ew == {EXP_BITS{1'b0}})
+                result_packed = {sg, {EXP_BITS{1'b0}}, mant_rounded[MANT_BITS-1:0]};  // denormal
             else
-                result_packed = {sg, ew[EXP_BITS-1:0], mant_rounded[MANT_BITS-1:0]};
+                result_packed = {sg, ew[EXP_BITS-1:0], mant_rounded[MANT_BITS-1:0]};  // normal
         end
     end
 
