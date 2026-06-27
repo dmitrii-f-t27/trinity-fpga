@@ -79,9 +79,10 @@ module gf_adder_param #(
         else if (b_zero) result_packed = in_a;
         else begin
             sg = sr; mw = mant_raw; ew = {1'b0, er}; underflow = 1'b0;
-            // Add overflow (preserve sticky: OR shifted-out bit into new S)
+            // Add overflow (preserve sticky: OR only the ACTUAL shifted-out bit)
             if (same_sign && mw[MANT_BITS+4]) begin
-                mw = mw >> 1; mw[0] = mw[0] | 1'b1; ew = ew + 1;
+                mw = {1'b0, mw[MANT_BITS+4:1], mw[0]};  // shift right, keep old bit[0] as new sticky
+                ew = ew + 1;
             end
             // Subtraction normalize
             if (!same_sign && mw != 0)
