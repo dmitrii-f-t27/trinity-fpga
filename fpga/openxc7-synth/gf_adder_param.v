@@ -60,7 +60,9 @@ module gf_adder_param #(
 
     wire                  same_sign = (sa == sb);
     wire [MANT_BITS+4:0]  sum_add = {1'b0, ma_al} + {1'b0, mb_al};
-    wire [MANT_BITS+4:0]  sum_sub = {1'b0, ma_al} - {1'b0, mb_al};
+    wire [MANT_BITS+4:0]  sum_sub = a_larger ?
+        ({1'b0, ma_al} - {1'b0, mb_al}) :
+        ({1'b0, mb_al} - {1'b0, ma_al});
     wire [MANT_BITS+4:0]  mant_raw = same_sign ? sum_add : sum_sub;
 
     reg  [TOTAL-1:0]      result_packed;
