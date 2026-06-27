@@ -26,8 +26,9 @@ module gf_adder_param #(
     wire [EXP_BITS-1:0]         eb = in_b[TOTAL-2:MANT_BITS];
     wire [MANT_BITS-1:0]        mb = in_b[MANT_BITS-1:0];
 
-    wire                        a_zero = (in_a == {TOTAL{1'b0}});
-    wire                        b_zero = (in_b == {TOTAL{1'b0}});
+    // Zero detection: both +0 (all bits 0) and -0 (sign=1, exp=0, mant=0)
+    wire                        a_zero = (ea == {EXP_BITS{1'b0}}) && (ma == {MANT_BITS{1'b0}});
+    wire                        b_zero = (eb == {EXP_BITS{1'b0}}) && (mb == {MANT_BITS{1'b0}});
 
     // Denormal detection: exp_field==0 && mant!=0 && bias>0 (only exists for EXP_BITS>=2)
     wire a_denorm = (BIAS > 0) && (ea == {EXP_BITS{1'b0}}) && (ma != {MANT_BITS{1'b0}});
