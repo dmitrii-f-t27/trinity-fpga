@@ -85,7 +85,7 @@ module gf_adder_param #(
                 for (i = 0; i < MANT_BITS+3; i = i + 1)
                     if (!mw[MANT_BITS+3]) begin
                         mw = mw << 1;
-                        if (ew == {(EXP_BITS+1){1'b1}}) underflow = 1'b1;
+                        if (ew == 0) underflow = 1'b1;
                         else ew = ew - 1;
                     end
             // Round-half-to-even using G(bit2) R(bit1) S(bit0)
