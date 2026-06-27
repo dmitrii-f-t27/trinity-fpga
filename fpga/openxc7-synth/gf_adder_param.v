@@ -104,8 +104,15 @@ module gf_adder_param #(
                         else ew = ew - 1;
                     end
             // Addition denormal result: denorm+denorm=denorm (exp stays at denormal boundary)
-            if (same_sign && !mw[MANT_BITS+3] && ew <= 1'b1)
+            if (same_sign && !mw[MANT_BITS+3] && ew <= 1'b1) begin
                 ew = {EXP_BITS{1'b0}};  // pack as denormal (exp_field=0)
+                // Right-shift mantissa to denormal position: leading 1 is at
+                // some position below MANT_BITS+3. Shift it to MANT_BITS+2
+                // (just below implicit-1 position) so mant_rounded extracts correctly.
+                // The denormal "implicit" position is MANT_BITS+2 (one below normal).
+                for (i = 0; i < MANT_BITS+1; i = i + 1)
+                    if (!mw[MANT_BITS+2]) mw = mw << 1;
+            end
             // Round-half-to-even using G(bit2) R(bit1) S(bit0)
             // mw layout: [MANT_BITS+3]=implicit1, [MANT_BITS+2:3]=mantissa, [2]=G, [1]=R, [0]=S
             if (mw[2] && (mw[1] || mw[0] || mw[3]))
