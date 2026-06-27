@@ -20,14 +20,19 @@ def extract_vectors(pack):
                 raw = int(v[key])
                 break
         if raw is None:
-            for key in ["raw", "expected_raw", "raw_int"]:
-                if key in v:
+            for key in ["raw", "expected_raw", "raw_int", "bits"]:
+                if key in v and isinstance(v[key], (int, float)):
                     raw = int(v[key]); break
         if raw is None:
             # Try *_bits_hex
             for key in sorted(v.keys()):
                 if key.endswith("_bits_hex"):
                     raw = int(v[key], 16); break
+        if raw is None:
+            # Try hex field directly
+            if "hex" in v and isinstance(v["hex"], str):
+                try: raw = int(v["hex"], 16)
+                except: pass
         if raw is None:
             # Try expected.raw (GF schema)
             exp = v.get("expected", {})
