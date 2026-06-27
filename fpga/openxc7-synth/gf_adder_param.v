@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // Parameterized GoldenFloat ADD — works for GF4 (1S+1E+2M) through GF16 (1S+6E+9M).
 // Same algorithm as gf16_adder.v: align exp → effective add/sub → normalize → pack.
-// Truncation rounding (no GRS). AXI-Stream handshake identical to gf16_adder.
+// Round-half-to-even (RNE) with GRS (G=bit2, R=bit1, S=bit0). AXI-Stream handshake identical to gf16_adder.
 module gf_adder_param #(
     parameter EXP_BITS  = 6,
     parameter MANT_BITS = 8,
@@ -96,14 +96,23 @@ module gf_adder_param #(
                 mw[0] = mw[0] | old_sticky;
                 ew = ew + 1;
             end
-            // Subtraction normalize
+            // Subtraction normalize — stop at ew==0 (do NOT over-shift past the
+            // denormal boundary; a subnormal result is packed as denormal below).
             if (!same_sign && mw != 0)
                 for (i = 0; i < MANT_BITS+3; i = i + 1)
-                    if (!mw[MANT_BITS+3]) begin
+                    if (!mw[MANT_BITS+3] && ew != 0) begin
                         mw = mw << 1;
-                        if (ew == 0) underflow = 1'b1;
-                        else ew = ew - 1;
+                        ew = ew - 1;
                     end
+            // Subtraction subnormal result (ew==0): after normalize the denormal
+            // mantissa sits one bit high; right-shift by 1 (sticky-preserving) to
+            // align with the ew==0 denormal pack path. (er-independent: the offset
+            // is GRS_width+1 regardless of exponent/MANT_BITS.)
+            if (!same_sign && BIAS > 0 && mw != 0 && ew == 0) begin
+                old_sticky = mw[0];
+                mw = mw >> 1;
+                mw[0] = mw[0] | old_sticky;
+            end
             // Round-half-to-even using G(bit2) R(bit1) S(bit0)
             if (mw[2] && (mw[1] || mw[0] || mw[3]))
                 mant_rounded = mw[MANT_BITS+3:3] + 1;

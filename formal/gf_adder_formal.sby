@@ -10,8 +10,8 @@ depth 50
 smtbmc z3
 
 [script]
-read_verilog -DVERIFIC formal/gf_adder_property.v
 read_verilog -sv fpga/openxc7-synth/gf_adder_param.v
+read_verilog -sv formal/gf_adder_property.v
 prep -top gf_adder_property
 
 [files]
