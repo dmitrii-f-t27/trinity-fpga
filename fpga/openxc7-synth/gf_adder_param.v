@@ -37,23 +37,24 @@ module gf_adder_param #(
     wire [EXP_BITS:0] ediff = a_larger ?
         ({1'b0, ea} - {1'b0, eb}) : ({1'b0, eb} - {1'b0, ea});
 
-    // Sticky: OR of all bits below G+R positions (for variable ediff)
+    // Sticky: OR of all bits below G+R from the SMALLER operand (the shifted one)
     reg sticky_bit;
     integer j;
     always @(*) begin
         sticky_bit = 1'b0;
         for (j = 0; j <= MANT_BITS; j = j + 1)
             if (j < $signed(ediff) - 2)
-                sticky_bit = sticky_bit | mb_f[j];
+                sticky_bit = sticky_bit | (a_larger ? mb_f[j] : ma_f[j]);
     end
 
     // Extend to MANT_BITS+4, align, preserve G+R+S
     wire [MANT_BITS+3:0] ma_ext = {ma_f, 3'b000};
     wire [MANT_BITS+3:0] mb_ext = {mb_f, 3'b000};
-    wire [MANT_BITS+3:0] ma_al = a_larger ? ma_ext : (ma_ext >> ediff);
+    wire [MANT_BITS+3:0] ma_al_raw = a_larger ? ma_ext : (ma_ext >> ediff);
     wire [MANT_BITS+3:0] mb_al_raw = a_larger ? (mb_ext >> ediff) : mb_ext;
-    // Inject sticky into bit 0
-    wire [MANT_BITS+3:0] mb_al = {mb_al_raw[MANT_BITS+3:1], mb_al_raw[0] | sticky_bit};
+    // Inject sticky into the SHIFTED operand's bit 0
+    wire [MANT_BITS+3:0] ma_al = a_larger ? ma_ext : {ma_al_raw[MANT_BITS+3:1], ma_al_raw[0] | sticky_bit};
+    wire [MANT_BITS+3:0] mb_al = a_larger ? {mb_al_raw[MANT_BITS+3:1], mb_al_raw[0] | sticky_bit} : mb_ext;
 
     wire [EXP_BITS-1:0]  er   = a_larger ? ea : eb;
     wire                 sr   = a_larger ? sa : sb;
