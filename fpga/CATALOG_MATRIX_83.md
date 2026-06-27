@@ -30,15 +30,17 @@
 | tf32 | bit-exact | 8 | ✅ tf32_decode.v | ✅ | ☐ |
 
 ## Достигнуто на AX7203 [verified 2026-06-27]
-| Формат | SW | FPGA encoding | FPGA ADD |
-|--------|-----|---------------|----------|
-| gf4 | bit-exact | ✅ 6/6 | ☐ (ALU pass-through) |
-| gf8 | bit-exact | ✅ 7/7 | ☐ |
-| gf12 | bit-exact | ✅ 7/7 | ☐ |
-| gf16 | bit-exact | ✅ 10/10 | ☐ (ALU pass-through) |
+| Формат | SW | FPGA encoding | FPGA ADD compute |
+|--------|-----|---------------|------------------|
+| gf4 | bit-exact | ✅ 6/6 | ✅ **256/256 exhaustive** [доказано] |
+| gf8 | bit-exact | ✅ 7/7 | ✅ **65536/65536 exhaustive** [доказано] |
+| gf12 | bit-exact | ✅ 7/7 | ☐ (16M пар — нужен formal proof) |
+| gf16 | bit-exact | ✅ 10/10 | ☐ (smoke-test 6 probes — [не доказано]) |
 
 ## Инфраструктура (полностью отлажена)
 - UART: CP2102N `/dev/cu.usbserial-120`, TX=N15, RX=P20, CFGMCLK ≈70 МГц
-- CI: seed-search 1..8 + routing-guard, БЕЗ --force
+- CI: seed-search 1..16 + routing-guard, БЕЗ --force
 - Conveyor: parameterized `gf_conformance_ax7203.py` + identity-echo bitstream
-- ALU: pass-through (нужен реальный ADD для compute-conformance)
+- **ALU: `gf_adder_param.v` — real FP ADD (GRS+RNE+sticky), proven exhaustive GF4+GF8**
+- Compute score: **2/83** (GF4+GF8 exhaustive-proven, same RTL, zero width-specific branches)
+- Next: SymbiYosys k-induction formal proof (closes "any MANT_BITS" + GF12/16/20/24)
