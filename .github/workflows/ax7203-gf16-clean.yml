@@ -6,6 +6,7 @@ on:
     branches: [main, 'feat/**']
     paths:
       - 'fpga/vivado/gf16_clean_ax7203.v'
+      - 'fpga/openxc7-synth/gf16_adder.v'
       - 'specs/fpga/constraints/gf16_clean_ax7203.xdc'
       - '.github/workflows/ax7203-gf16-clean.yml'
 
