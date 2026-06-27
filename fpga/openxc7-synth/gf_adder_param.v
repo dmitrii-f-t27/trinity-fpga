@@ -52,22 +52,25 @@ module gf_adder_param #(
     reg  [MANT_BITS+1:0]     mw;
     reg  [EXP_BITS:0]        ew;
     reg                       sg;
+    reg                       underflow;
     integer i;
 
     always @(*) begin
         if (a_zero)      result_packed = in_b;
         else if (b_zero) result_packed = in_a;
         else begin
-            sg = sr; mw = mant_raw; ew = {1'b0, er};
+            sg = sr; mw = mant_raw; ew = {1'b0, er}; underflow = 1'b0;
             if (same_sign && mw[MANT_BITS+1]) begin
                 mw = mw >> 1; ew = ew + 1;
             end
             if (!same_sign && mw != 0)
                 for (i = 0; i < MANT_BITS; i = i + 1)
                     if (!mw[MANT_BITS]) begin
-                        mw = mw << 1; ew = ew - 1;
+                        mw = mw << 1;
+                        if (ew == 0) underflow = 1'b1;
+                        else ew = ew - 1;
                     end
-            if (mw == 0)
+            if (mw == 0 || underflow)
                 result_packed = {TOTAL{1'b0}};
             else if (ew[EXP_BITS])
                 result_packed = {sg, {EXP_BITS{1'b1}}, {MANT_BITS{1'b1}}};
