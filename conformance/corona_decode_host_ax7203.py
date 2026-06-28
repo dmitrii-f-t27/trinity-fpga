@@ -134,7 +134,7 @@ def self_test():
     return bad == 0
 
 
-def run_hw(port, baud):
+def run_hw(port, baud, fmt_filter=None):
     import serial
     ser = serial.Serial(port, baud, timeout=2)
     fails = checked = 0
@@ -145,6 +145,8 @@ def run_hw(port, baud):
     cases += [(FMT_FP8, c) for c in range(256)]            # fp8 e4m3 fnuz exhaustive
     cases += [(FMT_POSIT8, c) for c in range(256)]         # posit8 exhaustive
     for fmt, code in cases:
+        if fmt_filter is not None and fmt != fmt_filter:
+            continue
         g = golden(fmt, code)
         if g is None:
             continue
@@ -164,10 +166,11 @@ def main():
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--port", default="/dev/cu.usbserial-120")
     ap.add_argument("--baud", type=int, default=160000)
+    ap.add_argument("--fmt", type=int, default=None, help="only test this format (0-4), None=all")
     a = ap.parse_args()
     if a.self_test:
         sys.exit(0 if self_test() else 1)
-    sys.exit(0 if run_hw(a.port, a.baud) else 1)
+    sys.exit(0 if run_hw(a.port, a.baud, a.fmt) else 1)
 
 
 if __name__ == "__main__":
