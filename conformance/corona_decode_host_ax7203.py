@@ -21,22 +21,10 @@ FMT_BF16, FMT_FP8, FMT_INT8, FMT_NF4, FMT_POSIT8 = 0, 1, 2, 3, 4
 
 # NF4 codebook (standard NormalFloat-4, 16 values) -> fp32 bits.
 NF4_TABLE = [
-    0x00000000,  # 0 (zero)
-    0xBFC00000,  # -1.5
-    0xBF800000,  # -1.0
-    0xBF400000,  # -0.75
-    0xBF000000,  # -0.5
-    0xBEB00000,  # -0.3125  (NF4 value)
-    0xBE800000,  # -0.25
-    0xBE000000,  # -0.0625  (NF4 smallest negative)
-    0x3E000000,  # 0.0625
-    0x3E800000,  # 0.25
-    0x3EB00000,  # 0.3125
-    0x3F000000,  # 0.5
-    0x3F400000,  # 0.75
-    0x3F800000,  # 1.0
-    0x3FC00000,  # 1.5
-    0x40000000,  # 2.0
+    0xBF800000, 0xBF3239B1, 0xBF066B30, 0xBECA32A0,  # Corona nf4 codebook (sim-verified)
+    0xBE91A24D, 0xBE3D353F, 0xBDBA7871, 0x00000000,
+    0x3DA2FAFF, 0x3E24CAE3, 0x3E7C04DD, 0x3EAD033A,
+    0x3EE1A4B8, 0x3F1007AB, 0x3F3913B3, 0x3F800000,
 ]
 
 
