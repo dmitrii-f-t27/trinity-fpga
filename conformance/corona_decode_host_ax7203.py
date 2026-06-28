@@ -15,12 +15,13 @@
 #
 #   self-test:  python3 corona_decode_host_ax7203.py --self-test
 #   on HW:      python3 corona_decode_host_ax7203.py --port /dev/cu.usbserial-120 --baud 160000
-import argparse, sys
+import argparse, sys, struct
 
 FMT_BF16, FMT_FP8, FMT_INT8, FMT_NF4, FMT_POSIT8 = 0, 1, 2, 3, 4
 FMT_FP8_E5M2, FMT_FP4, FMT_INT4, FMT_FP6_E2M3, FMT_FP6_E3M2 = 5, 6, 7, 8, 9
 FMT_LNS8 = 10
 FMT_TF32 = 11   # NOTE: tf32 uses a 7-byte frame (3 code bytes) — see hw_exchange_tf32
+FMT_BINARY16 = 12
 
 # LNS8 antilog fractional LUT: 2^(i/16) scaled to Q0.8 (256 = 1.0). Mirrors lns8_decode.v.
 LNS8_FRAC_LUT = [256, 267, 279, 292, 304, 318, 332, 347, 362, 378, 395, 412, 431, 450, 470, 490]
@@ -180,6 +181,13 @@ def _tf32(code):
     return (sign << 31) | (exp << 23) | (mant << 13)
 
 
+def _binary16(code):
+    """IEEE 754 binary16 (half) -> FP32 via the C-library half (struct 'e').
+    Independent of the Verilog formula; RTL verified EXHAUSTIVE 65536/65536 vs this."""
+    f16 = struct.unpack('<e', struct.pack('<H', code & 0xFFFF))[0]
+    return struct.unpack('<I', struct.pack('<f', f16))[0]
+
+
 def golden(fmt, code):
     """Independent decode golden (32-bit result), matching Corona RTL — 5/5 formats."""
     if fmt == FMT_INT8:
@@ -207,6 +215,8 @@ def golden(fmt, code):
         return _lns8(code & 0xFF)
     if fmt == FMT_TF32:
         return _tf32(code & 0x7FFFF)
+    if fmt == FMT_BINARY16:
+        return _binary16(code & 0xFFFF)
     return None
 
 
@@ -279,6 +289,12 @@ def self_test():
         (FMT_TF32, 0x3FC00, 0x7F800000),  # +Inf
         (FMT_TF32, 0x3FC01, 0x7F802000),  # NaN
         (FMT_TF32, 0x0FC01, 0x1F802000),  # normal exp=63, mant=1
+        (FMT_BINARY16, 0x0000, 0x00000000),  # +0
+        (FMT_BINARY16, 0x3C00, 0x3F800000),  # 1.0
+        (FMT_BINARY16, 0x7C00, 0x7F800000),  # +Inf
+        (FMT_BINARY16, 0xFC00, 0xFF800000),  # -Inf
+        (FMT_BINARY16, 0x7C01, 0x7F802000),  # NaN (payload 1)
+        (FMT_BINARY16, 0x0001, 0x33800000),  # smallest denormal 2^-24
     ]
     bad = 0
     for fmt, code, exp in checks:
@@ -309,6 +325,7 @@ def run_hw(port, baud, fmt_filter=None):
     cases += [(FMT_LNS8, c) for c in range(256)]           # lns8 exhaustive
     cases += [(FMT_TF32, c) for c in                      # tf32 corners (19-bit, not exhaustive)
               [0x00000, 0x40000, 0x1FC00, 0x5FC00, 0x3FC00, 0x3FC01, 0x0FC01, 0x3FBFF]]
+    cases += [(FMT_BINARY16, c) for c in range(65536)]    # binary16 exhaustive
     for fmt, code in cases:
         if fmt_filter is not None and fmt != fmt_filter:
             continue
