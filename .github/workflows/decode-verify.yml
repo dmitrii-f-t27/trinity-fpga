@@ -26,4 +26,4 @@ jobs:
             fpga/openxc7-synth/int4_decode.v fpga/openxc7-synth/posit8_decode.v \
             fpga/openxc7-synth/lns8_decode.v fpga/openxc7-synth/int8_decode.v
           vvp /tmp/dec.vvp | python3 conformance/decode_verify.py
-      - run: echo "DECODE RTL VERIFY: PASS"
+      - run: echo "DECODE RTL VERIFY PASS"
