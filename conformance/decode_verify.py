@@ -35,6 +35,10 @@ def _fp(sign, exp, mant, ebits, mbits, bias, code, exp_max, has_inf):
 def oracle(fmt, code):
     """Return (fp32_bits, is_special_class). is_special=True for Inf/NaN codes."""
     if fmt == 'binary16':
+        bexp = (code >> 10) & 0x1F
+        bmant = code & 0x3FF
+        if bexp == 0x1F and bmant != 0:    # NaN: propagate payload (deterministic, matches RTL)
+            return ((code >> 15) & 1) << 31 | (0xFF << 23) | (bmant << 13), False
         return struct.unpack('<I', struct.pack('<f',
             struct.unpack('<e', struct.pack('<H', code & 0xFFFF))[0]))[0], False
     if fmt == 'int4':

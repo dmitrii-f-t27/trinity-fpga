@@ -182,9 +182,16 @@ def _tf32(code):
 
 
 def _binary16(code):
-    """IEEE 754 binary16 (half) -> FP32 via the C-library half (struct 'e').
-    Independent of the Verilog formula; RTL verified EXHAUSTIVE 65536/65536 vs this."""
-    f16 = struct.unpack('<e', struct.pack('<H', code & 0xFFFF))[0]
+    """IEEE 754 binary16 (half) -> FP32. NaN payload propagated EXPLICITLY
+    ({sign,0xFF,mant<<13}, matching binary16_decode.v) — do NOT rely on struct 'e'
+    for NaN, whose float16->float32 payload handling is platform-dependent.
+    Zero/Inf/normal/denormal use struct 'e' (deterministic, exact in fp32)."""
+    code &= 0xFFFF
+    exp = (code >> 10) & 0x1F
+    mant = code & 0x3FF
+    if exp == 0x1F and mant != 0:                       # NaN: propagate payload
+        return ((code >> 15) & 1) << 31 | (0xFF << 23) | (mant << 13)
+    f16 = struct.unpack('<e', struct.pack('<H', code))[0]
     return struct.unpack('<I', struct.pack('<f', f16))[0]
 
 
