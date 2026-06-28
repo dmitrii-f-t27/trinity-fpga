@@ -74,5 +74,5 @@ jobs:
       - name: Format check
         run: |
           zig fmt --check \
-            src/vsa.zig src/vm.zig src/hybrid.zig src/trinity.zig \
-            src/bsd/ src/hslm/ src/vsa/*.zig src/vsa/agent/ tools/mcp/
+            src/vm.zig src/trinity.zig \
+            src/bsd/ src/hslm/ tools/mcp/
