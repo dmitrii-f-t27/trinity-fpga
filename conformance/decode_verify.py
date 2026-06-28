@@ -41,6 +41,9 @@ def oracle(fmt, code):
         c = code & 0xF
         v = c - 16 if (c & 8) else c
         return v & 0xFFFFFFFF, False
+    if fmt == 'int8':
+        v = code - 256 if (code & 0x80) else code
+        return v & 0xFFFFFFFF, False
     if fmt == 'fp8_e4m3':       # fnuz: bias=8, no Inf, 0x80=NaN, 0x00=+0
         if code == 0x80:
             return 0x7FC00000, True

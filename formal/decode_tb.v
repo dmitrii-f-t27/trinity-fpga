@@ -20,6 +20,8 @@ module decode_tb;
     int4_decode           u_i4   (.int4_in(code[3:0]), .int32_out(i4_out), .is_zero(i4_z));
     posit8_decode         u_posit(.posit_in(code[7:0]), .fp32_out(posit_out), .is_zero(posit_z), .is_nar(posit_nar));
     lns8_decode           u_lns  (.lns_in(code[7:0]), .sign_out(lns_sign), .magnitude(lns_mag), .is_zero(lns_z));
+    wire [31:0] i8_out; wire i8_z;
+    int8_decode           u_i8   (.int8_in(code[7:0]), .int32_out(i8_out), .is_zero(i8_z));
 
     integer i;
     initial begin
@@ -32,6 +34,7 @@ module decode_tb;
             if (i < 16)  $display("int4     %02x %08x", code[3:0], i4_out);
             $display("posit8   %02x %08x", code[7:0], posit_out);
             $display("lns8     %02x %04x", code[7:0], lns_mag);
+            $display("int8     %02x %08x", code[7:0], i8_out);
         end
         $finish;
     end
