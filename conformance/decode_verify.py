@@ -58,6 +58,31 @@ def oracle(fmt, code):
         return _fp((code >> 5) & 1, (code >> 2) & 7, code & 3, 3, 2, 3, code, 7, False), False
     if fmt == 'fp4_e2m1':       # bias=1
         return _fp((code >> 3) & 1, (code >> 1) & 3, code & 1, 2, 1, 1, code, 3, False), False
+    if fmt == 'posit8':         # es=0, useed=2; value = 2^k * (1+fraction)
+        if code == 0x00:
+            return 0x00000000, False
+        if code == 0x80:
+            return 0x7FC00000, True                       # NaR
+        sign = (code >> 7) & 1
+        abs7 = code & 0x7F
+        if sign:
+            abs7 = ((~abs7) + 1) & 0x7F                    # 2's complement (7-bit)
+        bits = format(abs7, '07b')
+        first = bits[0]
+        run = 0
+        for b in bits:                                     # regime length (bit-string parse)
+            if b == first:
+                run += 1
+            else:
+                break
+        k = run - 1 if first == '1' else -run
+        regime_len = run + (1 if run < 7 else 0)           # + separator bit
+        fb_bits = bits[regime_len:]
+        fb = len(fb_bits)
+        frac = int(fb_bits, 2) if fb_bits else 0
+        val = (2.0 ** k) * (1.0 + frac / (2.0 ** fb)) if fb > 0 else 2.0 ** k
+        val = -val if sign else val
+        return _enc(val), False
     raise SystemExit(f"unknown format: {fmt}")
 
 

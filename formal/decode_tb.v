@@ -10,12 +10,14 @@ module decode_tb;
     wire [31:0] e3m2_out;
     wire [31:0] fp4_out;
     wire [31:0] i4_out;   wire i4_z;
+    wire [31:0] posit_out; wire posit_z, posit_nar;
 
     fp8_e4m3_fnuz_decode u_e4m3 (.e4m3_in(code[7:0]), .fp32_out(e4m3_out), .is_zero(e4m3_z), .is_nan(e4m3_nan));
     fp6_e2m3_decode       u_e2m3 (.fp6_in(code[5:0]), .fp32_out(e2m3_out), .is_zero(e2m3_z));
     fp6_e3m2_decode       u_e3m2 (.fp6_in(code[5:0]), .fp32_out(e3m2_out));
     fp4_decode            u_fp4  (.fp4_in(code[3:0]), .fp32_out(fp4_out));
     int4_decode           u_i4   (.int4_in(code[3:0]), .int32_out(i4_out), .is_zero(i4_z));
+    posit8_decode         u_posit(.posit_in(code[7:0]), .fp32_out(posit_out), .is_zero(posit_z), .is_nar(posit_nar));
 
     integer i;
     initial begin
@@ -26,6 +28,7 @@ module decode_tb;
             if (i < 64)  $display("fp6_e3m2 %02x %08x", code[5:0], e3m2_out);
             if (i < 16)  $display("fp4_e2m1 %02x %08x", code[3:0], fp4_out);
             if (i < 16)  $display("int4     %02x %08x", code[3:0], i4_out);
+            $display("posit8   %02x %08x", code[7:0], posit_out);
         end
         $finish;
     end
