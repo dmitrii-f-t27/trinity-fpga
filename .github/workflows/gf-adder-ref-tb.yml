@@ -1,10 +1,9 @@
-name: GF adder parametric ref-TB
+name: GF compute core ref-TB (ADD + MUL)
 
-# Functional regression gate for gf_adder_param.v (the parametric ADD core that
-# EVERY compute-HW cell depends on). Runs the independent integer-scaled
-# reference TB (formal/gf_adder_ref_tb.v) for all 7 GF widths: GF4/6/8 exhaustive,
-# GF12/16/20/24 sample. This TB caught the GF4 BIAS=0 bug and validates the
-# family — gating CI on it prevents any regression to the core.
+# Functional regression gate for the parametric GF compute primitives:
+# gf_adder_param.v (ADD) and gf_mul_param.v (MUL). Runs the independent
+# integer-scaled reference TBs for GF4/6/8 exhaustive + GF12/16 sample. The ADD
+# TB caught the GF4 BIAS=0 bug; both validate the family. CI runs iverilog 12.0.
 
 on:
   workflow_dispatch:
@@ -12,12 +11,16 @@ on:
     branches: [main]
     paths:
       - 'fpga/openxc7-synth/gf_adder_param.v'
+      - 'fpga/openxc7-synth/gf_mul_param.v'
       - 'formal/gf_adder_ref_tb.v'
+      - 'formal/gf_mul_ref_tb.v'
       - '.github/workflows/gf-adder-ref-tb.yml'
   pull_request:
     paths:
       - 'fpga/openxc7-synth/gf_adder_param.v'
+      - 'fpga/openxc7-synth/gf_mul_param.v'
       - 'formal/gf_adder_ref_tb.v'
+      - 'formal/gf_mul_ref_tb.v'
 
 jobs:
   ref-tb:
@@ -47,4 +50,19 @@ jobs:
           run_width 3 4 0       # GF8 exhaustive (65536) — HW-proven width
           run_width 4 7 0 30000 # GF12 sample
           run_width 6 9 1 30000 # GF16 sample (HAS_INF)
-          echo "GF compute core ref-TB: PASS (GF4/6/8/12/16; GF20/24 locally validated)"
+          # ---- MUL core (gf_mul_param) ----
+          run_mul() {
+            local E=$1 M=$2 N=$3 D=""
+            [ -n "$N" ] && D="-DGF_SAMPLE_N=$N"
+            iverilog -g2012 -DGF_EXP_BITS=$E -DGF_MANT_BITS=$M $D \
+              -o /tmp/mtb.vvp formal/gf_mul_ref_tb.v fpga/openxc7-synth/gf_mul_param.v
+            vvp /tmp/mtb.vvp | tee /tmp/mtb.out
+            grep -q "errors=0" /tmp/mtb.out || { echo "::error::GF MUL E=$E M=$M ref-TB has errors"; exit 1; }
+            echo "PASS GF MUL E=$E M=$M $([ -n "$N" ] && echo sample=$N || echo exhaustive)"
+          }
+          run_mul 1 2       # GF4 exhaustive
+          run_mul 2 3       # GF6 exhaustive
+          run_mul 3 4       # GF8 exhaustive
+          run_mul 4 7 30000 # GF12 sample
+          run_mul 6 9 30000 # GF16 sample
+          echo "GF compute core ref-TB (ADD+MUL): PASS"
