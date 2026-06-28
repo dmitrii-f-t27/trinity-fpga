@@ -18,6 +18,15 @@
 import argparse, sys
 
 FMT_BF16, FMT_FP8, FMT_INT8, FMT_NF4, FMT_POSIT8 = 0, 1, 2, 3, 4
+FMT_FP8_E5M2, FMT_FP4, FMT_INT4, FMT_FP6_E2M3, FMT_FP6_E3M2 = 5, 6, 7, 8, 9
+
+# FP4 E2M1 (OCP MX) codebook -> fp32 bits (16-entry LUT, mirrors fp4_decode.v).
+FP4_TABLE = {
+    0x0: 0x00000000, 0x1: 0x3F000000, 0x2: 0x3F800000, 0x3: 0x3FC00000,
+    0x4: 0x40000000, 0x5: 0x40400000, 0x6: 0x40800000, 0x7: 0x40C00000,
+    0x8: 0x80000000, 0x9: 0xBF000000, 0xA: 0xBF800000, 0xB: 0xBFC00000,
+    0xC: 0xC0000000, 0xD: 0xC0400000, 0xE: 0xC0800000, 0xF: 0xC0C00000,
+}
 
 # NF4 codebook (standard NormalFloat-4, 16 values) -> fp32 bits.
 NF4_TABLE = [
@@ -70,6 +79,78 @@ def _posit8(code):
     return (sign << 31) | (fp32_exp << 23) | (fraction << 17)
 
 
+def _fp8_e5m2(code):
+    """FP8 E5M2 (OCP MX / IEEE-like) -> FP32. bias=15, sign=bit7, exp=bits6:2, mant=bits1:0.
+    Has Inf (exp=0x1F,mant=0) and NaN (exp=0x1F,mant!=0). Mirrors fp8_e5m2_decode.v."""
+    sign = (code >> 7) & 1
+    exp = (code >> 2) & 0x1F
+    mant = code & 0x3
+    if exp == 0x1F:
+        if mant == 0:                       # Inf
+            return (sign << 31) | (0xFF << 23)
+        return (sign << 31) | (0xFF << 23) | 0x400000   # quiet NaN
+    if exp == 0 and mant == 0:              # zero
+        return sign << 31
+    if exp == 0:                            # subnormal: value = 2^-14 * (0.mant)
+        if mant & 0x2:                      # 1x -> normalized 2^-15
+            fe, fm = 112, (mant & 0x1) << 22
+        else:                               # 01 -> normalized 2^-16
+            fe, fm = 111, 0
+        return (sign << 31) | (fe << 23) | fm
+    # normal: value = (1+M/4) * 2^(E-15); fp32 exp = E-15+127 = E+112
+    return (sign << 31) | ((exp + 112) << 23) | (mant << 21)
+
+
+def _fp4(code):
+    """FP4 E2M1 (OCP MX) -> FP32. 16-entry LUT (mirrors fp4_decode.v)."""
+    return FP4_TABLE[code & 0xF]
+
+
+def _int4(code):
+    """INT4 signed (two's complement) -> INT32 sign-extension (mirrors int4_decode.v)."""
+    c = code & 0xF
+    v = c - 16 if (c & 0x8) else c          # [-8, +7]
+    return v & 0xFFFFFFFF
+
+
+def _fp6_e2m3(code):
+    """FP6 E2M3 (Blackwell) -> FP32. bias=1, sign=bit5, exp=bits4:3, mant=bits2:0.
+    No Inf/NaN. Mirrors fp6_e2m3_decode.v."""
+    sign = (code >> 5) & 1
+    exp = (code >> 3) & 0x3
+    mant = code & 0x7
+    if exp == 0 and mant == 0:              # zero
+        return sign << 31
+    if exp == 0:                            # subnormal: value = 0.mmm
+        if mant & 0x4:                      # 1xx -> normalized 1.xx * 2^-1
+            fe, fm = 126, (mant & 0x3) << 21
+        elif mant & 0x2:                    # 01x -> normalized 1.x * 2^-2
+            fe, fm = 125, (mant & 0x1) << 22
+        else:                               # 001 -> 1.0 * 2^-3
+            fe, fm = 124, 0
+        return (sign << 31) | (fe << 23) | fm
+    # normal: value = (1+M/8) * 2^(E-1); fp32 exp = E-1+127 = E+126
+    return (sign << 31) | ((exp + 126) << 23) | (mant << 20)
+
+
+def _fp6_e3m2(code):
+    """FP6 E3M2 (OCP MX) -> FP32. bias=3, sign=bit5, exp=bits4:2, mant=bits1:0.
+    No Inf/NaN. Mirrors fp6_e3m2_decode.v."""
+    sign = (code >> 5) & 1
+    exp = (code >> 2) & 0x7
+    mant = code & 0x3
+    if exp == 0 and mant == 0:              # zero
+        return sign << 31
+    if exp == 0:                            # subnormal: value = 2^-2 * (0.mant)
+        if mant & 0x2:                      # 1x
+            fe, fm = 124, (mant & 0x1) << 22
+        else:                               # 01
+            fe, fm = 123, 0
+        return (sign << 31) | (fe << 23) | fm
+    # normal: value = (1+M/4) * 2^(E-3); fp32 exp = E-3+127 = E+124
+    return (sign << 31) | ((exp + 124) << 23) | (mant << 21)
+
+
 def golden(fmt, code):
     """Independent decode golden (32-bit result), matching Corona RTL — 5/5 formats."""
     if fmt == FMT_INT8:
@@ -83,6 +164,16 @@ def golden(fmt, code):
         return _fp8_e4m3_fnuz(code & 0xFF)
     if fmt == FMT_POSIT8:
         return _posit8(code & 0xFF)
+    if fmt == FMT_FP8_E5M2:
+        return _fp8_e5m2(code & 0xFF)
+    if fmt == FMT_FP4:
+        return _fp4(code & 0xF)
+    if fmt == FMT_INT4:
+        return _int4(code & 0xF)
+    if fmt == FMT_FP6_E2M3:
+        return _fp6_e2m3(code & 0x3F)
+    if fmt == FMT_FP6_E3M2:
+        return _fp6_e3m2(code & 0x3F)
     return None
 
 
@@ -104,12 +195,34 @@ def self_test():
         (FMT_BF16, 0x3F80, 0x3F800000), # 1.0
         (FMT_BF16, 0xBF80, 0xBF800000), # -1.0
         (FMT_BF16, 0x0000, 0x00000000), # +0
-        (FMT_NF4,  0x0D, 0x3F800000),   # nf4 code 13 -> 1.0
+        (FMT_NF4,  0x0F, 0x3F800000),   # nf4 code 15 -> +1.0 (last entry of codebook)
         (FMT_FP8,  0x40, 0x3F800000),   # fp8 e4m3 0x40 (exp=8) -> 1.0
         (FMT_FP8,  0x44, 0x3FC00000),   # fp8 0x44 -> 1.5
         (FMT_FP8,  0x80, 0x7FC00000),   # fp8 NaN
         (FMT_POSIT8, 0x40, 0x3F800000), # posit8 0x40 -> 1.0
         (FMT_POSIT8, 0x80, 0x7FC00000), # posit8 NaR -> NaN
+        (FMT_FP8_E5M2, 0x3C, 0x3F800000), # 1.0
+        (FMT_FP8_E5M2, 0x40, 0x40000000), # 2.0
+        (FMT_FP8_E5M2, 0x7C, 0x7F800000), # +Inf
+        (FMT_FP8_E5M2, 0xFC, 0xFF800000), # -Inf
+        (FMT_FP8_E5M2, 0x7F, 0x7FC00000), # NaN
+        (FMT_FP8_E5M2, 0x01, 0x37800000), # subnormal 2^-16
+        (FMT_FP8_E5M2, 0x03, 0x38400000), # subnormal 1.5*2^-15
+        (FMT_FP8_E5M2, 0x80, 0x80000000), # -0
+        (FMT_FP4, 0x2, 0x3F800000),       # 1.0
+        (FMT_FP4, 0xA, 0xBF800000),       # -1.0
+        (FMT_FP4, 0x7, 0x40C00000),       # 6.0
+        (FMT_FP4, 0x0, 0x00000000),       # +0
+        (FMT_INT4, 0x5, 0x00000005),      # +5
+        (FMT_INT4, 0xF, 0xFFFFFFFF),      # -1
+        (FMT_INT4, 0x8, 0xFFFFFFF8),      # -8
+        (FMT_FP6_E2M3, 0x10, 0x40000000), # 2.0
+        (FMT_FP6_E2M3, 0x18, 0x40800000), # 4.0
+        (FMT_FP6_E2M3, 0x20, 0x80000000), # -0
+        (FMT_FP6_E2M3, 0x01, 0x3E000000), # subnormal 1.0*2^-3
+        (FMT_FP6_E3M2, 0x14, 0x40800000), # 4.0
+        (FMT_FP6_E3M2, 0x1C, 0x41800000), # 16.0
+        (FMT_FP6_E3M2, 0x20, 0x80000000), # -0
     ]
     bad = 0
     for fmt, code, exp in checks:
@@ -132,6 +245,11 @@ def run_hw(port, baud, fmt_filter=None):
     cases += [(FMT_NF4, c) for c in range(16)]
     cases += [(FMT_FP8, c) for c in range(256)]            # fp8 e4m3 fnuz exhaustive
     cases += [(FMT_POSIT8, c) for c in range(256)]         # posit8 exhaustive
+    cases += [(FMT_FP8_E5M2, c) for c in range(256)]       # fp8 e5m2 exhaustive
+    cases += [(FMT_FP4, c) for c in range(16)]             # fp4 e2m1 exhaustive
+    cases += [(FMT_INT4, c) for c in range(16)]            # int4 exhaustive
+    cases += [(FMT_FP6_E2M3, c) for c in range(64)]        # fp6 e2m3 exhaustive
+    cases += [(FMT_FP6_E3M2, c) for c in range(64)]        # fp6 e3m2 exhaustive
     for fmt, code in cases:
         if fmt_filter is not None and fmt != fmt_filter:
             continue
@@ -154,7 +272,7 @@ def main():
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--port", default="/dev/cu.usbserial-120")
     ap.add_argument("--baud", type=int, default=160000)
-    ap.add_argument("--fmt", type=int, default=None, help="only test this format (0-4), None=all")
+    ap.add_argument("--fmt", type=int, default=None, help="only test this format (0-9), None=all")
     a = ap.parse_args()
     if a.self_test:
         sys.exit(0 if self_test() else 1)
