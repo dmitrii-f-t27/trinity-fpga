@@ -19,6 +19,10 @@ import argparse, sys
 
 FMT_BF16, FMT_FP8, FMT_INT8, FMT_NF4, FMT_POSIT8 = 0, 1, 2, 3, 4
 FMT_FP8_E5M2, FMT_FP4, FMT_INT4, FMT_FP6_E2M3, FMT_FP6_E3M2 = 5, 6, 7, 8, 9
+FMT_LNS8 = 10
+
+# LNS8 antilog fractional LUT: 2^(i/16) scaled to Q0.8 (256 = 1.0). Mirrors lns8_decode.v.
+LNS8_FRAC_LUT = [256, 267, 279, 292, 304, 318, 332, 347, 362, 378, 395, 412, 431, 450, 470, 490]
 
 # FP4 E2M1 (OCP MX) codebook -> fp32 bits (16-entry LUT, mirrors fp4_decode.v).
 FP4_TABLE = {
@@ -151,6 +155,20 @@ def _fp6_e3m2(code):
     return (sign << 31) | ((exp + 124) << 23) | (mant << 21)
 
 
+def _lns8(code):
+    """8-bit LNS (base-2) decode. PACKING: bit31=sign, bits[15:0]=16-bit Q8.8 magnitude,
+    bits[30:16]=0 (NOT fp32). Mirrors lns8_decode.v exactly."""
+    sign = (code >> 7) & 1
+    log_val = code & 0x7F                       # 7-bit Q3.4
+    if code == 0x00:                            # is_zero
+        magnitude = 0
+    else:
+        int_part = (log_val >> 4) & 0x7         # log_val[6:4]
+        frac_part = log_val & 0xF               # log_val[3:0]
+        magnitude = (LNS8_FRAC_LUT[frac_part] << int_part) & 0xFFFF
+    return (sign << 31) | magnitude
+
+
 def golden(fmt, code):
     """Independent decode golden (32-bit result), matching Corona RTL — 5/5 formats."""
     if fmt == FMT_INT8:
@@ -174,6 +192,8 @@ def golden(fmt, code):
         return _fp6_e2m3(code & 0x3F)
     if fmt == FMT_FP6_E3M2:
         return _fp6_e3m2(code & 0x3F)
+    if fmt == FMT_LNS8:
+        return _lns8(code & 0xFF)
     return None
 
 
@@ -223,6 +243,12 @@ def self_test():
         (FMT_FP6_E3M2, 0x14, 0x40800000), # 4.0
         (FMT_FP6_E3M2, 0x1C, 0x41800000), # 16.0
         (FMT_FP6_E3M2, 0x20, 0x80000000), # -0
+        (FMT_LNS8, 0x00, 0x00000000),     # zero (sign0, mag0)
+        (FMT_LNS8, 0x10, 0x00000200),     # 256<<1
+        (FMT_LNS8, 0x01, 0x0000010B),     # 267 (2^(1/16))
+        (FMT_LNS8, 0x7F, 0x0000F500),     # 490<<7 (max log)
+        (FMT_LNS8, 0x80, 0x80000100),     # sign1, log0 -> -1.0 mag
+        (FMT_LNS8, 0xFF, 0x8000F500),     # sign1, max log
     ]
     bad = 0
     for fmt, code, exp in checks:
@@ -250,6 +276,7 @@ def run_hw(port, baud, fmt_filter=None):
     cases += [(FMT_INT4, c) for c in range(16)]            # int4 exhaustive
     cases += [(FMT_FP6_E2M3, c) for c in range(64)]        # fp6 e2m3 exhaustive
     cases += [(FMT_FP6_E3M2, c) for c in range(64)]        # fp6 e3m2 exhaustive
+    cases += [(FMT_LNS8, c) for c in range(256)]           # lns8 exhaustive
     for fmt, code in cases:
         if fmt_filter is not None and fmt != fmt_filter:
             continue
