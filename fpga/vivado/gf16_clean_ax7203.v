@@ -4,10 +4,10 @@
 // gf16_clean_ax7203 — clean GF16 ADD HW-conformance engine (replaces buggy smoke-test)
 // =============================================================================
 // Built from PROVEN components: RX FSM from rx_echo_hb (verified clean 0x55 echo),
-// TX pattern from uart_tx_probe (verified monotonic cnt stream), gf16_adder
-// submodule. All on CFGMCLK (~70 MHz, STARTUPE2→BUFG). BAUD_DIV 434 (~161290).
+// TX pattern from uart_tx_probe (verified monotonic cnt stream), gf_adder_param
+// #(EXP_BITS=6, MANT_BITS=9, HAS_INF=1) core. All on CFGMCLK (~70 MHz, STARTUPE2→BUFG). BAUD_DIV 434 (~161290).
 //
-// Protocol (matches conformance/gf16_conformance_ax7203.py):
+// Protocol (matches conformance/gf16_add_conformance_ax7203.py):
 //   Host -> FPGA: [0xAA][0x55][a_lo][a_hi][b_lo][b_hi][cmd]
 //   FPGA -> Host: [0xA5][res_lo][res_hi][0x00]
 // =============================================================================
@@ -94,17 +94,18 @@ module gf16_clean_ax7203 (
         end
     end
 
-    // ===== GF16 adder (existing submodule) =====
-    wire [14:0] add_a15 = op_a[15:1];
-    wire [14:0] add_b15 = op_b[15:1];
+    // ===== GF16 adder (PARAMETRIC: gf_adder_param, HAS_INF=1 -> overflow -> Inf) =====
+    // Field layout: sign=bit15, exp=bits14:9 (6b), mant=bits8:0 (9b), BIAS=31.
+    // Same parametric core proven on HW for GF6/GF8/GF12; full 16-bit operands
+    // (replaces the non-parametric gf16_adder + {add_out_y15, op_a[0]} recombine).
     wire add_in_ready, add_out_valid;
-    wire [14:0] add_out_y15;
-    gf16_adder u_add (
+    wire [15:0] add_out_y16;
+    gf_adder_param #(.EXP_BITS(6), .MANT_BITS(9), .HAS_INF(1)) u_add (
         .clk(mclk), .rst(rst),
-        .in_valid(frame_valid), .in_a(add_a15), .in_b(add_b15),
+        .in_valid(frame_valid), .in_a(op_a[15:0]), .in_b(op_b[15:0]),
         .in_ready(add_in_ready), .out_valid(add_out_valid),
-        .out_y(add_out_y15), .out_ready(1'b1));
-    wire [15:0] result_y = {add_out_y15, op_a[0]};
+        .out_y(add_out_y16), .out_ready(1'b1));
+    wire [15:0] result_y = add_out_y16;
 
     assign led[1] = frame_valid;
     assign led[2] = add_out_valid;
