@@ -6,7 +6,12 @@ module gf_adder_param #(
     parameter EXP_BITS  = 6,
     parameter MANT_BITS = 8,
     parameter TOTAL     = 1 + EXP_BITS + MANT_BITS,  // total operand width
-    parameter BIAS      = (1 << (EXP_BITS - 1)) - 1
+    parameter BIAS      = (1 << (EXP_BITS - 1)) - 1,
+    // HAS_INF=1 only for formats where exp=all-ones is reserved as SPECIAL
+    //   (Inf/NaN): currently GF16 (gf16.t27:25,35,131). For GF6/8/12/20
+    //   exp=all-ones is a FINITE max_value (gf8.t27:115-119) -> HAS_INF=0,
+    //   overflow saturates to max-finite.
+    parameter HAS_INF   = 0
 )(
     input  wire                    clk,
     input  wire                    rst,
@@ -85,8 +90,15 @@ module gf_adder_param #(
     integer i;
 
     always @(*) begin
-        if (a_zero)      result_packed = in_b;
-        else if (b_zero) result_packed = in_a;
+        // ----- zero-passthrough with IEEE zero-sign (gf16.t27:219, RNE) -----
+        // (+/-0)+(+/-0): -0 only if BOTH operands are -0, else +0.
+        // x + (+/-0) = x for nonzero x (passthrough preserves sign of x).
+        if (a_zero && b_zero)
+            result_packed = (sa && sb) ? {1'b1, {(TOTAL-1){1'b0}}} : {TOTAL{1'b0}};
+        else if (a_zero)
+            result_packed = in_b;
+        else if (b_zero)
+            result_packed = in_a;
         else begin
             sg = sr; mw = mant_raw; ew = {1'b0, er}; underflow = 1'b0;
             // Add overflow (preserve sticky: capture old bit[0], OR into new sticky after >>1)
@@ -127,9 +139,16 @@ module gf_adder_param #(
                 ew = {EXP_BITS{1'b0}};  // force denormal packing
             // Pack
             if (mw == 0 || underflow)
-                result_packed = {TOTAL{1'b0}};
-            else if (ew[EXP_BITS])
-                result_packed = {sg, {EXP_BITS{1'b1}}, {MANT_BITS{1'b1}}};
+                result_packed = {TOTAL{1'b0}};   // cancellation/zero -> +0 (sg=0)
+            // OVERFLOW per spec (family-split):
+            //  HAS_INF (gf16): exp=all-ones reserved -> overflow on carry-out
+            //    OR ew_field==all-ones -> Inf {sg, all-ones-exp, 0...0}
+            //  no-Inf (gf6/8/12/20): exp=all-ones is finite max -> overflow only
+            //    on carry-out -> saturate {sg, all-ones-exp, all-ones-mant}
+            else if (HAS_INF && (ew[EXP_BITS] || (ew[EXP_BITS-1:0] == {EXP_BITS{1'b1}})))
+                result_packed = {sg, {EXP_BITS{1'b1}}, {MANT_BITS{1'b0}}};   // +/-Inf
+            else if (!HAS_INF && ew[EXP_BITS])
+                result_packed = {sg, {EXP_BITS{1'b1}}, {MANT_BITS{1'b1}}};   // max-finite
             else if (ew == {EXP_BITS{1'b0}})
                 result_packed = {sg, {EXP_BITS{1'b0}}, mant_rounded[MANT_BITS-1:0]};
             else

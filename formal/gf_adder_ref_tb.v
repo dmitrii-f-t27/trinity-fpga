@@ -18,8 +18,12 @@ module gf_adder_ref_tb;
 `ifndef GF_MANT_BITS
 `define GF_MANT_BITS 4
 `endif
+`ifndef GF_HAS_INF
+`define GF_HAS_INF 0
+`endif
     localparam EXP_BITS  = `GF_EXP_BITS;
     localparam MANT_BITS = `GF_MANT_BITS;
+    localparam HAS_INF   = `GF_HAS_INF;
     localparam TOTAL     = 1 + EXP_BITS + MANT_BITS;
     localparam BIAS      = (1 << (EXP_BITS - 1)) - 1;
 
@@ -35,7 +39,7 @@ module gf_adder_ref_tb;
     integer c_diff_flush = 0, c_diff_other = 0, c_same = 0;
     reg [TOTAL-1:0] expv;
 
-    gf_adder_param #(.EXP_BITS(EXP_BITS), .MANT_BITS(MANT_BITS)) dut (
+    gf_adder_param #(.EXP_BITS(EXP_BITS), .MANT_BITS(MANT_BITS), .HAS_INF(HAS_INF)) dut (
         .clk(clk), .rst(rst), .in_valid(in_valid), .in_a(in_a), .in_b(in_b),
         .in_ready(in_ready), .out_valid(out_valid), .out_y(out_y), .out_ready(out_ready)
     );
@@ -64,7 +68,8 @@ module gf_adder_ref_tb;
             bdn = (BIAS > 0) && (eb == {EXP_BITS{1'b0}}) && (mb != {MANT_BITS{1'b0}});
             same_in = (ra == rb);
             res = {TOTAL{1'b0}};
-            if (az)          res = b;
+            if (az && bz)    res = (ra && rb) ? {1'b1, {(TOTAL-1){1'b0}}} : {TOTAL{1'b0}};
+            else if (az)     res = b;
             else if (bz)     res = a;
             else begin
                 base_a = (adn ? 0 : (1 << MANT_BITS)) + ma;
@@ -91,8 +96,10 @@ module gf_adder_ref_tb;
                             if (frac == (1 << MANT_BITS)) begin frac = 0; exp_field = exp_field + 1; end
                         end
                     end
-                    if (exp_field >= (1 << EXP_BITS))
-                        res = {sg, {EXP_BITS{1'b1}}, {MANT_BITS{1'b1}}};
+                    if (HAS_INF && (exp_field >= ((1 << EXP_BITS) - 1)))
+                        res = {sg, {EXP_BITS{1'b1}}, {MANT_BITS{1'b0}}};   // Inf
+                    else if (!HAS_INF && (exp_field >= (1 << EXP_BITS)))
+                        res = {sg, {EXP_BITS{1'b1}}, {MANT_BITS{1'b1}}};   // max-finite
                     else if (exp_field <= 0) begin
                         // subnormal RESULT: exact (sum is an integer multiple of the
                         // unit), so mantissa = mag for BOTH add and sub. No flush.
