@@ -35,9 +35,13 @@ module gf_adder_param #(
     wire                        a_zero = (ea == {EXP_BITS{1'b0}}) && (ma == {MANT_BITS{1'b0}});
     wire                        b_zero = (eb == {EXP_BITS{1'b0}}) && (mb == {MANT_BITS{1'b0}});
 
-    // Denormal detection: exp_field==0 && mant!=0 && bias>0 (only exists for EXP_BITS>=2)
-    wire a_denorm = (BIAS > 0) && (ea == {EXP_BITS{1'b0}}) && (ma != {MANT_BITS{1'b0}});
-    wire b_denorm = (BIAS > 0) && (eb == {EXP_BITS{1'b0}}) && (mb != {MANT_BITS{1'b0}});
+    // Denormal detection: exp_field==0 && mant!=0. (Dropped the bias>0 guard: per the
+    // gf_ref.py golden, exp=0,mant!=0 is a DENORMAL for ALL widths including GF4 (bias=0) —
+    // value = mant/2^MANT * 2^(1-bias). The old guard sent GF4 exp=0,mant!=0 to the normal
+    // path with sh=ea-1=-1 => negative shift (undefined). No-op for BIAS>0 formats where the
+    // guard was always true, so GF6/8/12/16 netlists are unchanged.)
+    wire a_denorm = (ea == {EXP_BITS{1'b0}}) && (ma != {MANT_BITS{1'b0}});
+    wire b_denorm = (eb == {EXP_BITS{1'b0}}) && (mb != {MANT_BITS{1'b0}});
 
     // Effective exponent: denormals use 1 (not 0) for alignment — their real_exp = 1-BIAS
     wire [EXP_BITS-1:0] ea_eff = a_denorm ? {{(EXP_BITS-1){1'b0}}, 1'b1} : ea;
