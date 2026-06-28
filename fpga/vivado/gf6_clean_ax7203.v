@@ -1,7 +1,7 @@
 `default_nettype wire
 `timescale 1ns / 1ps
-// gf6_clean_ax7203 — GF6 ADD compute-conformance (GoldenFloat8: 1S+2E+3M).
-// gf_adder_param #(3,4) for 8-bit GF6 operands (low 8 bits of 16-bit protocol word).
+// gf6_clean_ax7203 — GF6 ADD compute-conformance (GoldenFloat6: 1S+2E+3M).
+// gf_adder_param #(.EXP_BITS(2),.MANT_BITS(3)) for 6-bit GF6 operands (low 6 bits of 16-bit protocol word).
 module gf6_clean_ax7203 (
     input wire rst_n, input wire uart_rx, output reg uart_tx, output wire [3:0] led
 );
