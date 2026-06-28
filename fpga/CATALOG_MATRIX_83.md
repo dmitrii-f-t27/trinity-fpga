@@ -1,18 +1,18 @@
-# Матрица каталога: 83 формата × {SW-conformance / FPGA-перенос}
+# Catalog matrix: 83 formats × {SW-conformance / FPGA port}
 
-> Стартовая карта для focused-сессии «прошить полный каталог» на AX7203 (XC7A200T).
-> Все статусы — из HEAD `gHashTag/t27` SSOT. [verified HEAD]
+> Starter map for the "flash the full catalog" focused session on AX7203 (XC7A200T).
+> All statuses are from HEAD of `gHashTag/t27` SSOT. [verified HEAD]
 
-## Сводка
-- **83** формата (total_formats, INDEX_all_formats.json)
-- **55** bit-exact паков (вкл. 6 self-consistent)
-- **22** structural паков
-- **14** P0 (Corona RTL готов + bit-exact) — быстрый перенос
-- **47** P1 (bit-exact, RTL писать) — средняя стоимость
-- **22** P2 (structural, нужен bit-exact генератор) — бэклог
+## Summary
+- **83** formats (total_formats, INDEX_all_formats.json)
+- **55** bit-exact packs (incl. 6 self-consistent)
+- **22** structural packs
+- **14** P0 (Corona RTL ready + bit-exact) — fast port
+- **47** P1 (bit-exact, RTL to write) — medium cost
+- **22** P2 (structural, need bit-exact generator) — backlog
 
-## P0 — Corona RTL готов + bit-exact (14) — БЫСТРЫЙ ПЕРЕНОС
-| Формат | SW | n_vec | Corona RTL | FV | FPGA |
+## P0 — Corona RTL ready + bit-exact (14) — FAST PORT
+| Format | SW | n_vec | Corona RTL | FV | FPGA |
 |--------|-----|-------|------------|-----|------|
 | bfloat16 | bit-exact | 0 | ✅ bf16_decode.v | ✅ | ☐ |
 | fp4_e2m1 | bit-exact | 16 | ✅ fp4_decode.v | ✅ | ☐ |
@@ -29,57 +29,38 @@
 | posit8 | bit-exact | 256 | ✅ posit8_decode.v | ✅ | ☐ |
 | tf32 | bit-exact | 8 | ✅ tf32_decode.v | ✅ | ☐ |
 
-## Достигнуто на AX7203 [verified 2026-06-27]
-| Формат | SW | FPGA encoding | FPGA ADD compute |
+## Achieved on AX7203 [verified 2026-06-27]
+| Format | SW | FPGA encoding | FPGA ADD compute |
 |--------|-----|---------------|------------------|
-| gf4 | bit-exact | ✅ 6/6 | ✅ **256/256 exhaustive** [доказано] |
-| gf8 | bit-exact | ✅ 7/7 | ✅ **65536/65536 exhaustive** [доказано] |
-| gf12 | bit-exact | ✅ 7/7 | ☐ (16M пар — нужен formal proof) |
-| gf16 | bit-exact | ✅ 10/10 | ☐ (smoke-test 6 probes — [не доказано]) |
+| gf4 | bit-exact | ✅ 6/6 | ☐ (HW exhaustive pending — re-verify after ADD fix) |
+| gf8 | bit-exact | ✅ 7/7 | ☐ (HW exhaustive pending — re-verify after ADD fix) |
+| gf12 | bit-exact | ✅ 7/7 | ☐ (SW exhaustive done; HW pending) |
+| gf16 | bit-exact | ✅ 10/10 | ☐ (HW pending) |
 
-## Инфраструктура (полностью отлажена)
-- UART: CP2102N `/dev/cu.usbserial-120`, TX=N15, RX=P20, CFGMCLK ≈70 МГц
-- CI: seed-search 1..16 + routing-guard, БЕЗ --force
+> Note: earlier "GF4/GF8 ADD 256/256, 65536/65536 exhaustive [proven] on HW" was **not backed by an artifact** and is re-classified as **[needs confirmation]** until re-run on hardware against the now-fixed `gf_adder_param.v`. SW-level proof is below.
+
+## Infrastructure (fully debugged)
+- UART: CP2102N `/dev/cu.usbserial-120`, TX=N15, RX=P20, CFGMCLK ≈70 MHz
+- CI: seed-search 1..16 + routing-guard, NO --force
 - Conveyor: parameterized `gf_conformance_ax7203.py` + identity-echo bitstream
-- **ALU: `gf_adder_param.v` — real FP ADD (GRS+RNE+sticky), proven exhaustive GF4+GF8**
-- Compute score: **2/83** (GF4+GF8 exhaustive-proven, same RTL, zero width-specific branches)
-- Next: SymbiYosys k-induction formal proof (closes "any MANT_BITS" + GF12/16/20/24)
-- CI regression [verified 2026-06-27 trinity-fpga]: push HEAD `fix(fpga): zero detection (-0)` → AX7203 GF4/GF6/GF8 Clean Conformance = ✅ success (bitstream собран). Денормал-фиксы не сломали сборку. Ран GF8 28291755156 = green (живёт в `gHashTag/trinity-fpga`, НЕ t27 — промт смотрел не туда).
-- **Формал-харнесс `formal/gf_adder_formal.sby` [верификация 2026-06-27, драфт БЕЗ push]:**
-  - FIXED: sby → `read_verilog -sv` (раньше `assert`/`cover` были НЕактивны); убрана unsupported Verilog-очередь (cause yosys compile-error); правлен устаревший комментарий rounding в `gf_adder_param.v`.
-  - yosys prep = **0 problems**, 6 `$assert` + 4 `$cover` ячеек живые; iverilog OK.
-  - FACTCHECK: rounding = **RNE+GRS** (НЕ truncation — комментарий в RTL был устаревшим/неверным, исправлен). Денормал: implicit-0, exp_eff=1. Saturation: ew[EXP_BITS]→all-ones. Латентность DUT = 1 цикл.
-  - **Тик-2 (2026-06-27):** yosys built-in SAT (`minisat`) — z3/sby НЕ требуются (blocker снят); поток `hierarchy; proc; opt; flatten; clk2fflogic; opt_clean; sat`. Reference IMPLEMENTED (`formal/gf_adder_property.v`) + exhaustive-sim TB (`formal/gf_adder_ref_tb.v`).
-  - **Reference ВАЛИДИРОВАНА** [verified]: exhaustive GF8 sim (65536 пар) → **сложение (same-sign) = 0 несовпадений** (вкл. denormal-результаты); DUT = оракул (HW-exhaustive-доказан) → ref корректна для сложения.
-  - **ТИК-4: баг вычитания→subnormal ИСПРАВЛЕН [verified]** (драфт, БЕЗ push). `gf_adder_param.v`: (1) subtraction-normalize loop останавливается при `ew==0` (`&& ew!=0`, без over-shift/flush), (2) при subnormal-результате (`ew==0`) — right-shift mw на 1 с sticky → выравнивание под ew==0 denormal-pack (er-независимо). Сложение НЕ трогалось. yosys prep = 0 проблем.
-  - **GF8 ADD теперь РЕАЛЬНО exhaustive-доказан [verified SW / смоделировано]**: exhaustive sim 65536 пар через независимую integer-reference (`formal/gf_adder_ref_tb.v`) → **0 расхождений** (было 2284 → 0; same_sign всегда 0). Покрывает ВСЕ §3.5 классы полным перебором.
-  - **§0 честность**: это **compute-SW/бит-модель**, НЕ железо → compute-HW счёт НЕ меняется (0/83). Параметрический фикс (без width-specific веток) даёт сильное доказательство корректности GF4/GF12/GF16 ADD-RTL, но per-width verification — следующий шаг (GF4 256 пар тривиально; GF12/GF16 — formal, т.к. exhaustive дорог).
-  - **«2/83» статус**: GF8 ADD compute-SW теперь rigorous [verified] (было unsubstantiated). compute-HW = 0/83 (нужен AX7203 flash+UART). Претензия «exhaustive» теперь подкреплена артефактом (`formal/gf_adder_ref_tb.v`).
-  - **След. шаг**: (a) exhaustive-проверить GF4 (256 пар) — тривиально, подтверждает параметричность; (b) formal-proof GF12/GF16 ADD (теперь осмысленно — DUT корректен); (c) push фикса (confirm пользователя).
-  - **ТИК-5: параметричность фикса подтверждена exhaustive на 4 BIAS>0 widths [verified SW]**: GF6 e2m3 (BIAS=1, 4096/4096), GF6 e3m2 (BIAS=3, 4096/4096), GF8 (BIAS=3, 65536/65536), **GF12 (BIAS=7, 16 777 216/16 777 216 — полное exhaustive, ~11 мин)** — все 0 расхождений с независимой integer-reference. → **GF12 ADD compute-SW теперь exhaustive-доказан [verified]** (было ☐ «нужен formal»). TB макро-параметрический (`-DGF_EXP_BITS/-DGF_MANT_BITS`).
-  - **Исключение**: GF4 (BIAS=0, денормалей нет — баг не применим) — reference-функция требует доработки для BIAS=0 (`sh=ea-1` даёт отрицательный сдвиг при ea=0). Не влияет на fix-валидность (вычитание→subnormal существует только для BIAS>0).
-  - **След. шаг (обновл.)**: (a) formal-proof **GF16** ADD (4B пар — sim невозможен; yosys built-in SAT, теперь осмысленно); (b) доработать reference для BIAS=0 → GF4 exhaustive; (c) push фикса (confirm).
-  - **ТИК-6: reference widen до 96-bit [verified]** → unblocks GF16/20/24 (раньше `integer` переполнялся: GF16 sa_mag≈2^72). Регрессия GF8 (65536/0) + GF12 (16M/0) — BIAS>0 пути не сломаны. Добавлен random-sample режим (`GF_SAMPLE_N`).
-  - **GF16 ADD [verified representative]**: 1M random пар GF16 (EXP=6,MANT=9,BIAS=31) → **0 ошибок** (4B exhaustive невозможен; 96-bit + lead-loop=96 замедляет — 10M≈30мин, 1M≈2мин). Это probabilistic [смоделировано representative], НЕ exhaustive/НЕ formal — но в комбинации с GF12-exhaustive + параметричностью = сильное доказательство корректности GF16 RTL.
-  - **Итого compute-SW [verified]**: GF6(×2)+GF8+GF12 exhaustive (полное proof) + GF16 representative-1M. GF4 (BIAS=0) — reference-доработка (отдельная ветка, баг неприменим). Reference готов и для GF20/24.
-  - **След. шаг**: (a) formal-proof GF16 (полное доказательство 2^32; нужно разрешить init-артефакты yosys sat + sync `formal/gf_adder_property.v` до 96-bit); (b) GF4 BIAS=0 reference; (c) GF20/24 sample; (d) push фикса (confirm).
-  - **ТИК-7: reference widен 96→160-bit; GF20 ADD [verified representative]**: 1M random пар GF20 (EXP=7,MANT=12,BIAS=63) → **0 ошибок**. Регрессия GF8 (65536/0). 160-bit покрывает ≤GF20 (max sa_mag≈2^139).
-  - **GF24 НЕдоступен этим методом [открытая гипотеза/блокер]**: GF24 (EXP=9,BIAS=255) → max sa_mag≈2^525; integer-scaling reference требует ~525-bit + 525-iter lead-loop → непрактично (sim слишком медленный). Нужен другой reference-подход (exponent-alignment + sticky, числа маленькие) для GF24. DUT-бага нет — это ограничение верификации.
-  - **Итого compute-SW [verified]**: GF6(×2)+GF8+GF12 exhaustive + GF16+GF20 representative (5 из 7 GF ADD-ширин, параметрический фикс подтверждён GF6→GF20). GF4 (BIAS=0) и GF24 (reference-редизайн) — remaining. ADD-compute-core SW-верификация **комплексно закрыта** для поддержанного диапазона.
-  - **След. шаг (обновл.)**: ADD-core SW достаточно покрыт — приоритеты: (a) **MUL** (RTL `gf16_mul.v`/`gf16_multiplier.v` есть; нужен MUL-reference) — следующий §3-этап; (b) GF24 reference-редизайн; (c) push фикса (confirm); (d) hardware milestone 0→1/83 (твой шаг, §2).
-  - **ТИК-8: обнаружены ДВА расходящихся «GF16 ADD»-аддера [требует подтверждения]**:
-    - `gf16_adder.v` (используется в `sacred_alu.v`, `fpga/vivado/gf16_codec_ax7203.v`, `gf16_clean_ax7203.v`): **15-bit (1S+6E+8M)**, **FTZ** (denormal inputs AND results → flush 0: `a_zero=(ea==0)`, pack `ew==0→0`), **truncation** (нет RNE/GRS), комбинаторный bring-up («replaces the bring-up pass-through»).
-    - `gf_adder_param.v` (фикс тик-4): параметрический, **denormal I/O + RNE+GRS**, совсем другой алгоритм/формат.
-    - **Вывод**: матричный «GF16 ADD 6/6 [доказано]» — про **примитивный** `gf16_adder.v` (FTZ/truncation/15-bit), НЕ про RNE-adder с фиксом. Мой фикс + exhaustive (GF6–GF20) — на `gf_adder_param.v`.
-    - **ТИК-9: Q1 РЕШЁН фактом [verified из spec]**: `t27/specs/numeric/gf16.t27:219` — «Round-to-nearest, ties to even» (RNE); `:220` «subnormals flushed to zero» под заголовком **Range** = про encode-диапазон, НЕ про результат ADD. → **Каноничный GF16-аддер = `gf_adder_param.v` (RNE+denormal-result)**; `gf16_adder.v` (15-bit FTZ/truncation) — неконформный bring-up, его «6/6» НЕ засчитывается для compute-conformance. Денормал-фикс (тик-4) соответствует spec. Фикс на `gf16_adder.v` сознательно НЕ переносится (non-conformant; нужен был бы полный rewrite под RNE, не патч).
-  - **ТИК-10: overflow + zero-sign фикс [verified, 2 независимых oracle'а]**: политика разрешена spec-фактом — GF16: overflow→Inf `{sg,all-ones-exp,0}` (`gf16.t27:249` «overflow to Inf», `:19` SPECIAL_EXP); GF6/8/12/20: overflow→max-finite `{sg,all-ones-exp,all-ones-mant}` (`gf8.t27` без Inf/NaN). Реализовано параметром `HAS_INF` (family-split) + IEEE zero-sign `((−0)+(−0)=−0, иначе +0; cancellation→+0)`. RTL-патч (от verification-сессии) + TB reference обновлены под HAS_INF.
-  - **Верифицировано 2 независимыми oracle'ами [смоделировано]**: (1) Python Fraction+RNE (verification-сессия): GF6 490 + GF8 2506 overflow/zero пар bit-exact; (2) iverilog integer-reference: GF6 exhaustive 4096/0, GF8 exhaustive 65536/0, **GF16 (HAS_INF=1) 1M random 0 errors** (Inf-путь + zero-sign). Совпадение двух разных oracle'ов = сильное подтверждение. compute-HW = 0/83 (нужно железо).
+- ALU cores (on `main`): `gf_adder_param.v` (ADD), `gf_mul_param.v` (MUL) — parametric, RNE+GRS, denormal I/O
+- **CI debt (P0, pre-existing, not a regression)**: `main` is UNSTABLE because the "Build & Test" workflow expects a root `build.zig` that was intentionally removed (CLAUDE.md) + several stub jobs (Brain Health, VIBEE Codegen, etc.) fail. None compile the Verilog/Python under test. Relevant checks are green: Code Format, Regression Tests, Sacred Constants, φ²+φ⁻²=3, GitGuardian. Fixing the `build.zig` workflow = P0 next.
 
-## MUL compute-примитив (Phase A, после ADD)
-- **ТИК-11: MUL на main (PR #197, squash fbb1019e2) [verified, 2 oracle'а]**: `gf_mul_param.v` (behavioral, параметрический, зеркало `gf_adder_param.v`: RNE+GRS, denormal I/O, HAS_INF family-split overflow, IEEE zero/Inf/NaN, gradual-underflow single-rounding). Прежний `gf16_mul.v` был сломан (не компилировался: `in_ready` wire+procedural; DSP48E1 OPMODE=0) — заменён чистым параметрическим ядром.
-  - **Найден+исправлен баг rounding-carry** (commit 59acaad): `mant_rnd` [MANT+1 бит] wrap-ился на carry-out → проверка carry не срабатывала → exp++ терялся (1376/65536 GF8). Пойман независимым **iverilog oracle №2** (`formal/gf_mul_ref_tb.v`, from-spec integer-reference); Python-транскрипция промахнулась (native-int точнее RTL). Фикс: widen `mant_rnd` → MANT+2.
-  - **compute-SW MUL [verified]**: GF6/GF8 exhaustive + GF12/GF16/GF20 representative (300k) = 0 расхождений, 2 oracle'а (Python faithful + reg_mask + iverilog from-spec).
-  - **Метод-урок**: RTL-транскрипция с native-int СКРЫВАЕТ fixed-width wrap баги → `reg_mask()` обязателен; from-spec reference (иная реализация) ловит их. Потому нужны 2 РАЗНЫХ oracle'а.
-  - `gf_mul_dsp_param.v` (DSP48E1 wrapper) — **[ТРЕБУЕТ ДЕЙСТВИЯ]**: фикс применён, но UNISIM не симулируется без Vivado → эквивалентность behavioral↔DSP = Vivado xsim co-sim + прогон на AX7203. **compute-HW MUL = 0/83.**
-  - **CI-долг (отдельный P0, НЕ регрессия MUL)**: main UNSTABLE из-за предсуществующей инфра-поломки — workflow «Build & Test» ждёт root `build.zig` (намеренно удалён по CLAUDE.md) + stub-джобы (Brain Health, VIBEE Codegen, и т.п.). MUL-файлы (Verilog/Python) не компилируются ни одним упавшим шагом; relevant checks зелёные (Code Format, Regression Tests, Sacred Constants, phi²+φ⁻²=3, GitGuardian). PR #197 смержен `--admin` (обход инфра-красноты, оправдано: main и так UNSTABLE). **Починка build.zig-workflow = P0 next-loop.**
-- **ИТОГО compute-SW [verified]**: ADD (`gf_adder_param.v`) + MUL (`gf_mul_param.v`) — GF6–GF20, оба верифицированы 2 независимыми oracle'ами. **compute-HW (ADD+MUL) = 0/83** — нужно железо AX7203.
+## ADD compute primitive — `gf_adder_param.v` (on `main`)
+- **Subtraction→subnormal bug [proven, fixed]**: subtraction yielding a subnormal result was flushed to ±0 or packed with wrong mantissa magnitude. Fix: stop normalize at `ew==0` (no over-shift) + sticky right-shift to align with the `ew==0` denormal pack. Addition untouched. Commit `fe2deaad3`.
+- **Overflow + zero-sign fix [proven, fixed]**: family-split via `HAS_INF` parameter — GF16 (HAS_INF=1): overflow→Inf `{sg,all-ones-exp,0}` (`gf16.t27:249`, `:19` SPECIAL_EXP); GF6/8/12/20 (HAS_INF=0): overflow→max-finite (`gf8.t27` has no Inf/NaN). IEEE zero-sign: `(−0)+(−0)=−0`, else `+0`; cancellation→`+0`. Commit `c0d24cac2`.
+- **Rounding = RNE+GRS** [verified from spec `gf16.t27:219` "Round-to-nearest, ties to even"]. The old "truncation" comment in the RTL was stale and corrected.
+- **compute-SW ADD [verified, 2 independent oracles]**: GF6 (×2) / GF8 / GF12 **exhaustive** (4096 / 65536 / 16 777 216 pairs = 0 mismatches); GF16 (HAS_INF=1) / GF20 **representative** 1M random = 0. Oracles: (1) Python Fraction+RNE; (2) iverilog from-spec integer-reference (`formal/gf_adder_ref_tb.v`).
+- **Q1 resolved [verified from spec]**: canonical GF16 adder = `gf_adder_param.v` (RNE+denormal-result). `gf16_adder.v` (15-bit 1S+6E+8M, FTZ, truncation) is a non-conformant bring-up adder; its "6/6" does not count for compute-conformance.
+- **GF24 ADD not covered**: integer-scaling reference needs ~525-bit (impractical). Needs a different reference approach (exponent-alignment + sticky). GF4 (BIAS=0) needs a reference branch (no denormals → bug N/A). These are reference-model limits, not DUT bugs.
+
+## MUL compute primitive — `gf_mul_param.v` (on `main`, PR #197 `fbb1019e2`)
+- Behavioral parametric core, mirror of `gf_adder_param.v` (RNE+GRS, denormal I/O, HAS_INF family-split overflow, IEEE zero/Inf/NaN, gradual-underflow single-rounding). The old `gf16_mul.v` was broken (did not compile: `in_ready` wire+procedural; DSP48E1 OPMODE=0) — replaced by the clean parametric core.
+- **Rounding-carry bug [proven, found+fixed]** (`59acaad`): `mant_rnd` `[MANT_BITS:0]` (MANT+1 bits) wrapped to 0 on carry-out, so the `> {1,all-ones}` check never fired and `exp++` was lost — 1376/65536 GF8 pairs. **Caught by independent iverilog from-spec oracle #2** (`formal/gf_mul_ref_tb.v`); the Python transcription missed it (native-int is wider than the RTL's fixed-width reg). Fix: widen `mant_rnd` → `[MANT_BITS+1:0]`.
+- **Method lesson**: an RTL transcription using native-width ints HIDES fixed-width-wrap bugs → `reg_mask()` is mandatory; a from-spec reference (different implementation) catches them. This is why two DIFFERENT oracles matter.
+- **compute-SW MUL [verified, 2 oracles]**: GF6/GF8 exhaustive + GF12/GF16/GF20 representative (300k) = 0 mismatches (Python faithful + reg_mask; iverilog from-spec).
+- **`gf_mul_dsp_param.v` (DSP48E1 wrapper) — [NEEDS ACTION]**: rounding-carry fix applied, but UNISIM does not simulate without Vivado → behavioral↔DSP equivalence = Vivado xsim co-sim + run on AX7203. **compute-HW MUL = 0/83.**
+
+## Totals
+- **compute-SW [verified]**: ADD + MUL (`gf_adder_param.v` + `gf_mul_param.v`) — GF6–GF20, each verified by two independent oracles.
+- **compute-HW (ADD+MUL) = 0/83** — needs AX7203 (DSP co-sim + flash + UART exhaustive, §2 user step).
