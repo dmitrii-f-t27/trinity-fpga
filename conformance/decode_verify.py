@@ -57,7 +57,9 @@ def oracle(fmt, code):
     if fmt == 'fp8_e5m2':       # bias=15, has Inf (exp=0x1F)
         exp = (code >> 2) & 0x1F
         if exp == 0x1F:
-            return ((code >> 7) & 1) << 31 | (0xFF << 23) | ((code & 3) << 21), True
+            if (code & 3) == 0:                                     # Inf
+                return ((code >> 7) & 1) << 31 | (0xFF << 23), False
+            return ((code >> 7) & 1) << 31 | (0xFF << 23) | 0x400000, False  # NaN canonical (matches RTL)
         return _fp((code >> 7) & 1, exp, code & 3, 5, 2, 15, code, 0x1F, True), False
     if fmt == 'fp6_e2m3':       # bias=1
         return _fp((code >> 5) & 1, (code >> 3) & 3, code & 7, 2, 3, 1, code, 3, False), False
