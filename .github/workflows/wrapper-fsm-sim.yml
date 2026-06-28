@@ -33,6 +33,14 @@ jobs:
             fpga/openxc7-synth/STARTUPE2_mock.v
           vvp /tmp/a.vvp | tee /tmp/a.out
           grep -q ": 0 errors" /tmp/a.out
+      - name: Decode 7-byte/3-code frame FSM (tf32)
+        run: |
+          set -eo pipefail
+          iverilog -g2012 -o /tmp/d.vvp formal/tf32_wrapper_sim_tb.v \
+            fpga/openxc7-synth/corona_decode_tf32_ax7203.v fpga/openxc7-synth/tf32_decode.v \
+            fpga/openxc7-synth/STARTUPE2_mock.v
+          vvp /tmp/d.vvp | tee /tmp/d.out
+          grep -q ": 0 errors" /tmp/d.out
       - name: Compute 7-byte frame FSM (gf16, migrated, HAS_INF=1)
         run: |
           set -eo pipefail
