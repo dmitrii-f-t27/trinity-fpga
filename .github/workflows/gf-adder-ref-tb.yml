@@ -1,0 +1,48 @@
+name: GF adder parametric ref-TB
+
+# Functional regression gate for gf_adder_param.v (the parametric ADD core that
+# EVERY compute-HW cell depends on). Runs the independent integer-scaled
+# reference TB (formal/gf_adder_ref_tb.v) for all 7 GF widths: GF4/6/8 exhaustive,
+# GF12/16/20/24 sample. This TB caught the GF4 BIAS=0 bug and validates the
+# family — gating CI on it prevents any regression to the core.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'fpga/openxc7-synth/gf_adder_param.v'
+      - 'formal/gf_adder_ref_tb.v'
+      - '.github/workflows/gf-adder-ref-tb.yml'
+  pull_request:
+    paths:
+      - 'fpga/openxc7-synth/gf_adder_param.v'
+      - 'formal/gf_adder_ref_tb.v'
+
+jobs:
+  ref-tb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install iverilog
+        run: sudo apt-get update && sudo apt-get install -y iverilog
+      - name: Run parameterized ref-TB for all GF widths
+        run: |
+          set -e
+          run_width() {
+            local E=$1 M=$2 HI=$3 N=$4 D=""
+            [ -n "$N" ] && D="-DGF_SAMPLE_N=$N"
+            iverilog -g2012 -DGF_EXP_BITS=$E -DGF_MANT_BITS=$M -DGF_HAS_INF=$HI $D \
+              -o /tmp/tb.vvp formal/gf_adder_ref_tb.v fpga/openxc7-synth/gf_adder_param.v
+            vvp /tmp/tb.vvp | tee /tmp/tb.out
+            grep -q "errors=0" /tmp/tb.out || { echo "::error::GF E=$E M=$M ref-TB has errors"; exit 1; }
+            echo "PASS GF E=$E M=$M HAS_INF=$HI $([ -n "$N" ] && echo sample=$N || echo exhaustive)"
+          }
+          run_width 1 2 0       # GF4 exhaustive (256)
+          run_width 2 3 0       # GF6 exhaustive (4096)
+          run_width 3 4 0       # GF8 exhaustive (65536) — HW-proven width
+          run_width 4 7 0 30000 # GF12 sample
+          run_width 6 9 1 30000 # GF16 sample (HAS_INF)
+          run_width 7 12 0 30000# GF20 sample
+          run_width 9 14 0 30000# GF24 sample
+          echo "ALL 7 GF WIDTHS: ref-TB PASS"
