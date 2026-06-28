@@ -34,4 +34,6 @@ jobs:
           done
           echo "== golden consistency (host goldens vs decode_verify oracles, all codes) =="
           python3 conformance/golden_consistency.py
+          echo "== compute golden consistency (gf6/gf8/gf12 self-refs vs gf_ref.py) =="
+          python3 conformance/compute_golden_consistency.py
           echo "ALL CONFORMANCE GOLDEN SELF-TESTS: PASS"
