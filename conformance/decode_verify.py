@@ -83,6 +83,15 @@ def oracle(fmt, code):
         val = (2.0 ** k) * (1.0 + frac / (2.0 ** fb)) if fb > 0 else 2.0 ** k
         val = -val if sign else val
         return _enc(val), False
+    if fmt == 'lns8':          # 8-bit LNS: magnitude = round(256*2^(frac/16)) << int
+        if code == 0x00:
+            return 0x0000, False                       # is_zero
+        log_val = code & 0x7F
+        int_part = log_val >> 4
+        frac_part = log_val & 0xF
+        frac = round(256 * (2.0 ** (frac_part / 16.0)))
+        mag = (frac << int_part) & 0xFFFF
+        return mag, False
     raise SystemExit(f"unknown format: {fmt}")
 
 
