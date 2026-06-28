@@ -20,6 +20,7 @@ import argparse, sys
 FMT_BF16, FMT_FP8, FMT_INT8, FMT_NF4, FMT_POSIT8 = 0, 1, 2, 3, 4
 FMT_FP8_E5M2, FMT_FP4, FMT_INT4, FMT_FP6_E2M3, FMT_FP6_E3M2 = 5, 6, 7, 8, 9
 FMT_LNS8 = 10
+FMT_TF32 = 11   # NOTE: tf32 uses a 7-byte frame (3 code bytes) — see hw_exchange_tf32
 
 # LNS8 antilog fractional LUT: 2^(i/16) scaled to Q0.8 (256 = 1.0). Mirrors lns8_decode.v.
 LNS8_FRAC_LUT = [256, 267, 279, 292, 304, 318, 332, 347, 362, 378, 395, 412, 431, 450, 470, 490]
@@ -169,6 +170,16 @@ def _lns8(code):
     return (sign << 31) | magnitude
 
 
+def _tf32(code):
+    """TF32 (1+8+10 = 19-bit) -> FP32. Pure wiring: zero-extend mantissa 10->23.
+    sign=bit18, exp=bits17:10, mant=bits9:0. Mirrors tf32_decode.v."""
+    code &= 0x7FFFF
+    sign = (code >> 18) & 1
+    exp = (code >> 10) & 0xFF
+    mant = code & 0x3FF
+    return (sign << 31) | (exp << 23) | (mant << 13)
+
+
 def golden(fmt, code):
     """Independent decode golden (32-bit result), matching Corona RTL — 5/5 formats."""
     if fmt == FMT_INT8:
@@ -194,11 +205,23 @@ def golden(fmt, code):
         return _fp6_e3m2(code & 0x3F)
     if fmt == FMT_LNS8:
         return _lns8(code & 0xFF)
+    if fmt == FMT_TF32:
+        return _tf32(code & 0x7FFFF)
     return None
 
 
 def hw_exchange(ser, fmt, code):
     pkt = bytes([0xAA, 0x55, fmt, code & 0xFF, (code >> 8) & 0xFF, 0x00])
+    ser.write(pkt)
+    resp = ser.read(5)
+    if len(resp) != 5 or resp[0] != 0xA5:
+        return None
+    return resp[1] | (resp[2] << 8) | (resp[3] << 16) | (resp[4] << 24)
+
+
+def hw_exchange_tf32(ser, code):
+    # tf32 uses a 7-byte frame: AA 55 fmt lo mid hi trig (19-bit code in 3 bytes).
+    pkt = bytes([0xAA, 0x55, FMT_TF32, code & 0xFF, (code >> 8) & 0xFF, (code >> 16) & 0x7, 0x00])
     ser.write(pkt)
     resp = ser.read(5)
     if len(resp) != 5 or resp[0] != 0xA5:
@@ -249,6 +272,13 @@ def self_test():
         (FMT_LNS8, 0x7F, 0x0000F500),     # 490<<7 (max log)
         (FMT_LNS8, 0x80, 0x80000100),     # sign1, log0 -> -1.0 mag
         (FMT_LNS8, 0xFF, 0x8000F500),     # sign1, max log
+        (FMT_TF32, 0x00000, 0x00000000),  # +0
+        (FMT_TF32, 0x40000, 0x80000000),  # -0
+        (FMT_TF32, 0x1FC00, 0x3F800000),  # 1.0
+        (FMT_TF32, 0x5FC00, 0xBF800000),  # -1.0
+        (FMT_TF32, 0x3FC00, 0x7F800000),  # +Inf
+        (FMT_TF32, 0x3FC01, 0x7F802000),  # NaN
+        (FMT_TF32, 0x0FC01, 0x1F802000),  # normal exp=63, mant=1
     ]
     bad = 0
     for fmt, code, exp in checks:
@@ -277,13 +307,15 @@ def run_hw(port, baud, fmt_filter=None):
     cases += [(FMT_FP6_E2M3, c) for c in range(64)]        # fp6 e2m3 exhaustive
     cases += [(FMT_FP6_E3M2, c) for c in range(64)]        # fp6 e3m2 exhaustive
     cases += [(FMT_LNS8, c) for c in range(256)]           # lns8 exhaustive
+    cases += [(FMT_TF32, c) for c in                      # tf32 corners (19-bit, not exhaustive)
+              [0x00000, 0x40000, 0x1FC00, 0x5FC00, 0x3FC00, 0x3FC01, 0x0FC01, 0x3FBFF]]
     for fmt, code in cases:
         if fmt_filter is not None and fmt != fmt_filter:
             continue
         g = golden(fmt, code)
         if g is None:
             continue
-        hw = hw_exchange(ser, fmt, code)
+        hw = hw_exchange_tf32(ser, code) if fmt == FMT_TF32 else hw_exchange(ser, fmt, code)
         checked += 1
         if hw is None or hw != g:
             fails += 1
