@@ -124,7 +124,7 @@ module gf_adder_param #(
             // mantissa sits one bit high; right-shift by 1 (sticky-preserving) to
             // align with the ew==0 denormal pack path. (er-independent: the offset
             // is GRS_width+1 regardless of exponent/MANT_BITS.)
-            if (!same_sign && BIAS > 0 && mw != 0 && ew == 0) begin
+            if (!same_sign && mw != 0 && ew == 0) begin
                 old_sticky = mw[0];
                 mw = mw >> 1;
                 mw[0] = mw[0] | old_sticky;
@@ -138,8 +138,10 @@ module gf_adder_param #(
                 mant_rounded = mant_rounded >> 1;
                 ew = ew + 1;
             end
-            // Denormal result detection (addition only, same_sign)
-            if (same_sign && BIAS > 0 && !mw[MANT_BITS+3] && ew <= 1'b1)
+            // Denormal result detection (addition only, same_sign). Applies to ALL
+            // widths incl. GF4 (BIAS=0): a same-sign sum whose leading bit sits below
+            // the implicit position (mw[MANT_BITS+3]==0) with ew<=1 is a denormal result.
+            if (same_sign && !mw[MANT_BITS+3] && ew <= 1'b1)
                 ew = {EXP_BITS{1'b0}};  // force denormal packing
             // Pack
             if (mw == 0 || underflow)
