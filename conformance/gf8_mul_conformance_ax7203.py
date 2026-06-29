@@ -23,7 +23,7 @@ CORNERS = [0x00, 0x80, 0x01, 0x0F, 0x70, 0x71, 0x7F, 0x38]
 
 def hw_exchange(ser, a, b):
     # 6-byte frame: AA 55 a_lo a_hi b_lo b_hi (operand = low byte; high byte ignored).
-    pkt = FRAME + bytes([a & 0xFF, 0x00, b & 0xFF, 0x00])
+    pkt = FRAME + bytes([a & 0xFF, 0x00, b & 0xFF, 0x00, 0x00])  # +trigger byte
     ser.write(pkt)
     resp = ser.read(4)
     if len(resp) != 4 or resp[0] != 0xA5:
