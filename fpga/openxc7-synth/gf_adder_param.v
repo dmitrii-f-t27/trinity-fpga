@@ -43,6 +43,12 @@ module gf_adder_param #(
     wire a_denorm = (ea == {EXP_BITS{1'b0}}) && (ma != {MANT_BITS{1'b0}});
     wire b_denorm = (eb == {EXP_BITS{1'b0}}) && (mb != {MANT_BITS{1'b0}});
 
+    // NaN input detection (HAS_INF only — GF16): exp=all-ones && mant!=0.
+    // Without this, NaN inputs fall into the normal path and produce Inf (overflow),
+    // violating IEEE 754 (NaN+x = NaN). Caught by HW flash burst (fire #56).
+    wire a_nan = (HAS_INF != 0) && (ea == {EXP_BITS{1'b1}}) && (ma != {MANT_BITS{1'b0}});
+    wire b_nan = (HAS_INF != 0) && (eb == {EXP_BITS{1'b1}}) && (mb != {MANT_BITS{1'b0}});
+
     // Effective exponent: denormals use 1 (not 0) for alignment — their real_exp = 1-BIAS
     wire [EXP_BITS-1:0] ea_eff = a_denorm ? {{(EXP_BITS-1){1'b0}}, 1'b1} : ea;
     wire [EXP_BITS-1:0] eb_eff = b_denorm ? {{(EXP_BITS-1){1'b0}}, 1'b1} : eb;
@@ -103,6 +109,9 @@ module gf_adder_param #(
             result_packed = in_b;
         else if (b_zero)
             result_packed = in_a;
+        // NaN input → quiet NaN (IEEE 754: NaN propagates through ADD)
+        else if (a_nan || b_nan)
+            result_packed = {1'b0, {EXP_BITS{1'b1}}, 1'b1, {(MANT_BITS-1){1'b0}}};
         else begin
             sg = sr; mw = mant_raw; ew = {1'b0, er}; underflow = 1'b0;
             // Add overflow (preserve sticky: capture old bit[0], OR into new sticky after >>1)
