@@ -47,13 +47,15 @@ jobs:
             # exits, not a hang. --freq dropped: timing is irrelevant (UART @160000
             # baud off CFGMCLK) and the 50 MHz target thrashed router1 on this wider
             # MANT_BITS=12 netlist. (Same pipeline routes gf16 in ~8 min.)
+            # Placer sa→heap: `sa` converged 0/2 seeds (run 28361831238); `heap` is the
+            # nextpnr-xilinx default analytical placer and the next single-variable try.
             timeout 20m docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 nextpnr-xilinx \
               --chipdb /work/build/gf20_clean/chipdb/xc7a200tfbg484-2.bin \
               --xdc /work/specs/fpga/constraints/gf16_clean_ax7203.xdc \
               --json /work/build/gf20_clean/gf20_clean_ax7203.json \
               --write /work/build/gf20_clean/gf20_clean_ax7203_routed.json \
               --fasm /work/build/gf20_clean/gf20_clean_ax7203.fasm \
-              --seed $s --placer sa --router router1 --timing-allow-fail > /tmp/np_$s.log 2>&1 || true
+              --seed $s --placer heap --router router1 --timing-allow-fail > /tmp/np_$s.log 2>&1 || true
             if grep -q "Failed to find a route" /tmp/np_$s.log || [ ! -f build/gf20_clean/gf20_clean_ax7203.fasm ]; then continue; fi
             cp /tmp/np_$s.log /tmp/np.log; CLEAN=$s; break
           done
