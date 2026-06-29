@@ -39,7 +39,7 @@ jobs:
               --json /work/build/gf4_mul/gf4_mul_ax7203.json \
               --write /work/build/gf4_mul/gf4_mul_ax7203_routed.json \
               --fasm /work/build/gf4_mul/gf4_mul_ax7203.fasm \
-              --seed $s --placer heap --router router1 --timing-allow-fail > /tmp/np_$s.log 2>&1 || true
+              --freq 50.0 --seed $s --placer sa --router router1 --timing-allow-fail > /tmp/np_$s.log 2>&1 || true
             if grep -q "Failed to find a route" /tmp/np_$s.log || [ ! -f build/gf4_mul/gf4_mul_ax7203.fasm ]; then continue; fi
             cp /tmp/np_$s.log /tmp/np.log; CLEAN=$s; break
           done; [ "$CLEAN" = "0" ] && { echo "::error::no clean seed"; exit 1; }; echo "seed=$CLEAN"
