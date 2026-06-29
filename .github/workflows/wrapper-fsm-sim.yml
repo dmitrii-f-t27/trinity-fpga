@@ -25,6 +25,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install iverilog
         run: sudo apt-get update && sudo apt-get install -y iverilog
+      - name: Structural FSM audit (all 20 wrappers)
+        run: python3 conformance/wrapper_fsm_audit.py
       - name: Decode 6-byte frame FSM (fp4, 16 codes)
         run: |
           set -eo pipefail
