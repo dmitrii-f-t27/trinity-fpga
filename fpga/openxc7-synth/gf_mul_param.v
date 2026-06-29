@@ -63,9 +63,12 @@ module gf_mul_param #(
     // ----- классификация -----
     wire a_zero = (ea == {EXP_BITS{1'b0}}) && (ma == {MANT_BITS{1'b0}});
     wire b_zero = (eb == {EXP_BITS{1'b0}}) && (mb == {MANT_BITS{1'b0}});
-    // denormal: exp_field==0 && mant!=0 && bias>0
-    wire a_denorm = (BIAS > 0) && (ea == {EXP_BITS{1'b0}}) && (ma != {MANT_BITS{1'b0}});
-    wire b_denorm = (BIAS > 0) && (eb == {EXP_BITS{1'b0}}) && (mb != {MANT_BITS{1'b0}});
+    // denormal: exp_field==0 && mant!=0. (BIAS>0) guard REMOVED — matches the
+    // gf_adder_param fix: GF4 has BIAS=0, so the guard skipped GF4 denormals →
+    // ma_f used implicit-1 (1.x) instead of 0.x → HW a*denorm≈a (caught on silicon,
+    // bug-equals-bug in the Python transcription). Only GF4 (BIAS=0) was affected.
+    wire a_denorm = (ea == {EXP_BITS{1'b0}}) && (ma != {MANT_BITS{1'b0}});
+    wire b_denorm = (eb == {EXP_BITS{1'b0}}) && (mb != {MANT_BITS{1'b0}});
     // спец exp=all-ones (только если HAS_INF): Inf при mant==0, NaN при mant!=0
     wire a_special = (HAS_INF != 0) && (ea == {EXP_BITS{1'b1}});
     wire b_special = (HAS_INF != 0) && (eb == {EXP_BITS{1'b1}});
