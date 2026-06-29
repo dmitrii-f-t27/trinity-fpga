@@ -42,13 +42,18 @@ jobs:
           CLEAN=0
           for s in $(seq 1 16); do
             rm -f build/gf20_clean/gf20_clean_ax7203.fasm
-            docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 nextpnr-xilinx \
+            # Per-seed timeout (the historical gf20 blocker): a hung/deadlocked seed
+            # must be killed so the loop advances — `|| true` only catches non-zero
+            # exits, not a hang. --freq dropped: timing is irrelevant (UART @160000
+            # baud off CFGMCLK) and the 50 MHz target thrashed router1 on this wider
+            # MANT_BITS=12 netlist. (Same pipeline routes gf16 in ~8 min.)
+            timeout 20m docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 nextpnr-xilinx \
               --chipdb /work/build/gf20_clean/chipdb/xc7a200tfbg484-2.bin \
               --xdc /work/specs/fpga/constraints/gf16_clean_ax7203.xdc \
               --json /work/build/gf20_clean/gf20_clean_ax7203.json \
               --write /work/build/gf20_clean/gf20_clean_ax7203_routed.json \
               --fasm /work/build/gf20_clean/gf20_clean_ax7203.fasm \
-              --freq 50.0 --seed $s --placer sa --router router1 --timing-allow-fail > /tmp/np_$s.log 2>&1 || true
+              --seed $s --placer sa --router router1 --timing-allow-fail > /tmp/np_$s.log 2>&1 || true
             if grep -q "Failed to find a route" /tmp/np_$s.log || [ ! -f build/gf20_clean/gf20_clean_ax7203.fasm ]; then continue; fi
             cp /tmp/np_$s.log /tmp/np.log; CLEAN=$s; break
           done
