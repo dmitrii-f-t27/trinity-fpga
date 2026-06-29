@@ -70,7 +70,7 @@ module gf_adder_ref_tb;
             res = {TOTAL{1'b0}};
             // NaN input → quiet NaN (HAS_INF only — GF16). IEEE 754: NaN propagates.
             if (HAS_INF != 0 && ((ea == {EXP_BITS{1'b1}} && ma != 0) || (eb == {EXP_BITS{1'b1}} && mb != 0)))
-                res = {1'b0, {EXP_BITS{1'b1}}, 1'b1, {(MANT_BITS-1){1'b0}}};
+                res = {1'b0, {EXP_BITS{1'b1}}, {(MANT_BITS-1){1'b0}}, 1'b1};
             else if (az && bz)    res = (ra && rb) ? {1'b1, {(TOTAL-1){1'b0}}} : {TOTAL{1'b0}};
             else if (az)     res = b;
             else if (bz)     res = a;
