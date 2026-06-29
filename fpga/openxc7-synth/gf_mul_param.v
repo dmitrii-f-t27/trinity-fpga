@@ -206,9 +206,7 @@ module gf_mul_param #(
         reg gd, st, lsbf;
         reg [MANT_BITS+1:0]  mant_out;
         begin
-            if (BIAS == 0) begin
-                pack_denorm = sgn ? CODE_NZERO : CODE_PZERO;  // GF4 вырожден — отдельное ядро
-            end else begin
+            begin   // (BIAS==0 short-circuit REMOVED: the assumed "separate gf4 core" doesn't exist — gf_mul_param serves all widths, so gf4 denormal MUL must use the general pack path. Was flushing all gf4 denormal results to ±0 = 60/256 HW fails.)
                 p_sh = er_real - MANT_BITS + BIAS - 1;
                 if (p_sh >= 0) begin
                     // точный left-shift (без округления)
