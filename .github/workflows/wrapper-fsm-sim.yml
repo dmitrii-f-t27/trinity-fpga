@@ -43,6 +43,14 @@ jobs:
             fpga/openxc7-synth/STARTUPE2_mock.v
           vvp /tmp/d.vvp | tee /tmp/d.out
           grep -q ": 0 errors" /tmp/d.out
+      - name: lns8 tuple packing (decode 6-byte, non-fp32 result)
+        run: |
+          set -eo pipefail
+          iverilog -g2012 -o /tmp/e.vvp formal/lns8_wrapper_sim_tb.v \
+            fpga/openxc7-synth/corona_decode_lns8_ax7203.v fpga/openxc7-synth/lns8_decode.v \
+            fpga/openxc7-synth/STARTUPE2_mock.v
+          vvp /tmp/e.vvp | tee /tmp/e.out
+          grep -q ": 0 errors" /tmp/e.out
       - name: Compute 7-byte frame FSM (gf16, migrated, HAS_INF=1)
         run: |
           set -eo pipefail
