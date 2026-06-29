@@ -15,6 +15,7 @@
 // conformance/gf20_add_conformance_ax7203.py.
 // =============================================================================
 
+// build trigger: push-initiated CI test
 module gf20_clean_ax7203 (
     input  wire rst_n,
     input  wire uart_rx,
