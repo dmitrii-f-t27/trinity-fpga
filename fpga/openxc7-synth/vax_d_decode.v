@@ -12,10 +12,10 @@ module vax_d_decode (
     wire        sign      = vax_in[63];
     wire [7:0]  exp_field = vax_in[62:55];   // excess-128
     wire [54:0] mant      = vax_in[54:0];     // 55-bit (explicit leading 1 at bit 54)
-    wire [22:0] mant_pre  = mant[53:31];    // top 23 bits after leading 1
-    wire        guard     = mant[30];
-    wire        round_b   = mant[29];
-    wire        sticky    = |mant[28:0];
+    wire [22:0] mant_pre  = mant[54:32];    // top 23 bits (VAX explicit-1 → FP32 MSB)
+    wire        guard     = mant[31];
+    wire        round_b   = mant[30];
+    wire        sticky    = |mant[29:0];
     wire        round_up  = guard & (round_b | sticky | mant_pre[0]);
     wire [23:0] mant_rnd  = {1'b0, mant_pre} + (round_up ? 24'd1 : 24'd0);
     wire        mant_carry = mant_rnd[23];

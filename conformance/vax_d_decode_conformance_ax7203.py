@@ -14,8 +14,8 @@ def golden_vax_d(code):
     sign = (code >> 63) & 1; exp_field = (code >> 55) & 0xFF
     mant = code & 0x7FFFFFFFFFFFFF
     if exp_field <= 1: return sign << 31
-    mant_pre = (mant >> 31) & 0x7FFFFF; guard = (mant >> 30) & 1; rnd = (mant >> 29) & 1
-    sticky = 1 if (mant & 0x1FFFFFF) else 0
+    mant_pre = (mant >> 32) & 0x7FFFFF; guard = (mant >> 31) & 1; rnd = (mant >> 30) & 1
+    sticky = 1 if (mant & 0x3FFFFFF) else 0
     round_up = guard & (rnd | sticky | (mant_pre & 1))
     mant_rnd = mant_pre + (1 if round_up else 0); carry = 1 if mant_rnd >= 0x800000 else 0
     exp_final = exp_field - 1 + (1 if carry else 0)
