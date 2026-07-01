@@ -1,0 +1,98 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# FPGA FORMAL (COMBINATIONAL MITER) — clockless yosys-sat proof of GF adder/mul
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Complementary to fpga-formal.yml (cloud's sby/smtbmc z3 track). This gate uses
+# the CLOCKLESS COMBINATIONAL MITER (formal/gf_*_comb_miter.v): holds clk=0,rst=0
+# so the DUT reduces to its combinational core, then `yosys sat -prove mismatch 0`.
+# No sby/smtbmc/oss-cad-suite needed — just yosys `sat` (in the regymm/openxc7
+# image already used for synthesis).
+#
+# WHY THIS GATE ADDS VALUE over fpga-formal.yml:
+#   - PROVES adder gf8/gf12 (all input pairs, seconds) that sby BMC marks SOFT
+#     (depth-20 timeout). Combinational single-step SAT ≫ sequential BMC here.
+#   - Independent engine (yosys minisat vs sby/z3) — cross-checks the cloud track.
+#
+# PROVEN cells (hard gate, must stay green):
+#   adder gf4 (BIAS=0) / gf6 / gf8 / gf12   — all input pairs
+#   mul   gf4 / gf6                          — all input pairs
+# (gf8 mul is sim-confirmed-correct but yosys mis-elaborates pack_denorm — left
+#  to fpga-formal.yml's note + the iverilog ref-TB. gf20/gf24 = SAT-intractable.)
+#
+# NOTE: yosys `sat` exits 0 even on FAIL — the step greps for the SUCCESS string.
+# φ² + 1/φ² = 3 = TRINITY
+# ═══════════════════════════════════════════════════════════════════════════════
+name: FPGA Formal (Comb Miter)
+
+on:
+  push:
+    branches: [main, "fix/**", "feat/**"]
+    paths:
+      - 'fpga/openxc7-synth/gf_adder_param.v'
+      - 'fpga/openxc7-synth/gf_mul_param.v'
+      - 'formal/gf_adder_comb_miter.v'
+      - 'formal/gf_mul_comb_miter.v'
+      - '.github/workflows/fpga-formal-comb.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'fpga/openxc7-synth/gf_adder_param.v'
+      - 'fpga/openxc7-synth/gf_mul_param.v'
+      - 'formal/gf_adder_comb_miter.v'
+      - 'formal/gf_mul_comb_miter.v'
+      - '.github/workflows/fpga-formal-comb.yml'
+  workflow_dispatch:
+
+jobs:
+  comb-miter:
+    name: "🔬 yosys sat — ${{ matrix.op }} ${{ matrix.task }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { op: adder, task: gf4,  eb: 1, mb: 2, dut: gf_adder_param, miter: gf_adder_comb_miter }
+          - { op: adder, task: gf6,  eb: 2, mb: 3, dut: gf_adder_param, miter: gf_adder_comb_miter }
+          - { op: adder, task: gf8,  eb: 3, mb: 4, dut: gf_adder_param, miter: gf_adder_comb_miter }
+          - { op: adder, task: gf12, eb: 4, mb: 7, dut: gf_adder_param, miter: gf_adder_comb_miter }
+          - { op: mul,   task: gf4,  eb: 1, mb: 2, dut: gf_mul_param,   miter: gf_mul_comb_miter }
+          - { op: mul,   task: gf6,  eb: 2, mb: 3, dut: gf_mul_param,   miter: gf_mul_comb_miter }
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker pull regymm/openxc7:latest
+      - name: "Prove ${{ matrix.op }} ${{ matrix.task }} (yosys sat)"
+        run: |
+          set -o pipefail
+          echo "::group::comb-miter ${{ matrix.op }} ${{ matrix.task }} (EXP=${{ matrix.eb }} MANT=${{ matrix.mb }})"
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
+            read_verilog -sv -DFORMAL fpga/openxc7-synth/${{ matrix.dut }}.v;
+            read_verilog -sv formal/${{ matrix.miter }}.v;
+            chparam -set EXP_BITS ${{ matrix.eb }} -set MANT_BITS ${{ matrix.mb }} ${{ matrix.miter }};
+            hierarchy -top ${{ matrix.miter }}; proc; opt; flatten; opt;
+            sat -prove mismatch 1'b0" 2>&1 | tee comb_${{ matrix.op }}_${{ matrix.task }}.log
+          echo "::endgroup::"
+          # yosys sat exits 0 even on FAIL — detect via the result string.
+          if grep -q "no model found: SUCCESS" comb_${{ matrix.op }}_${{ matrix.task }}.log; then
+            echo "✅ PROVEN: ${{ matrix.op }} ${{ matrix.task }} (all input pairs)"
+          else
+            echo "::error::PROOF FAILED for ${{ matrix.op }} ${{ matrix.task }} — see log"; exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: comb-${{ matrix.op }}-${{ matrix.task }}
+          path: comb_${{ matrix.op }}_${{ matrix.task }}.log
+          if-no-files-found: ignore
+
+  comb-summary:
+    name: "📊 Comb-Miter Summary"
+    needs: comb-miter
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+      - name: Result
+        run: |
+          echo "Comb-miter formal gate finished."
+          echo "All 6 cells (adder gf4/6/8/12 + mul gf4/6) are HARD gates (must prove green)."
+          echo "If any failed, the GF compute core REGRESSED — investigate before merge."
