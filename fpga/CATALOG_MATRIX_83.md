@@ -19,11 +19,15 @@
 > (no external libtakum oracle = no 2nd witness). takum defining cite =
 > arXiv:2404.18603 (CoNGA 2024), NOT 2412.20273.
 
-## HW progress to global goal [verified 2026-07-01]
-- **SW-bitexact: 62/83** (t27 master, above).
-- **decode-HW: 18/83** Tier E — measured on AX7203 (UART @160000). Cells: bf16, int8, nf4, fp8_e4m3, fp8_e5m2, fp4_e2m1, int4, fp6_e2m3, fp6_e3m2, lns8, posit8, tf32, binary16 (65536/65536 exhaustive), e8m0 (256/256), + **Phase B (Corona-ported 2026-07-01):** bcd (100/100), bitnet (256/256), mxfp8_e4m3 (256/256), mxint8 (256/256). UART logs on #199. 83-catalog mapping for the Phase B 4 is provisional (SSOT `INDEX_all_formats.json` not in local t27; mxfp8/mxint8 are OCP MX like e8m0).
-- **compute-HW: 21/83** Tier E — measured on AX7203. ADD 7/7 (GF4,6,8,12,16,20,24) + MUL 7/7 (same widths) + **SUB 7/7** (all widths; gf16-sub fixed via gf_adder_param NaN-precedence, gf20-sub fixed via heap placer). UART logs on #199.
-- decode-HW / compute-HW cells close ONLY after a real synth+flash+UART run on the board — **39/83 now closed** (operator flash-burst + v2 RTL fixes + Phase B decode wave, 2026-07-01). gf16-sub/gf20-sub fixed (SUB 7/7); Phase B added 4 Corona decoders (bcd, bitnet, mxfp8_e4m3, mxint8).
+## HW progress to global goal [synced to #199 EPIC body, 2026-07-02]
+> Live source of truth = #199 EPIC body (top table). The earlier 18/21/39 figures
+> below were the 2026-07-01 snapshot; superseded by the counts here.
+- **SW-bitexact: 62/83** (t27 master 92f3506). 15 structural remain → 77+ target.
+- **decode-HW: 31/83** Tier E (per #199 top table; UART @160000 on AX7203, IDCODE `0x13636093`). Named Tier-E decoders: bf16, int8, nf4, fp8_e4m3, fp8_e5m2, fp4_e2m1, int4, fp6_e2m3, fp6_e3m2, lns8, posit8, tf32, binary16, e8m0 + Phase B (bcd, bitnet, mxfp8_e4m3, mxint8) + int16/posit16/gf14/gf10/lns16/takum8/binary32/int32.
+- **compute-HW: 30/83** Tier E — **ADD 10/10 + MUL 10/10 + SUB 10/10** (GF4–GF32 ALL COMPLETE; GF4 bias=0 fix, GF16 NaN-precedence fix, GF32-mul `-nodsp` fix).
+- **Total Tier-E HW: 61/83 ≈ 73.5%** → ~22 cells / ~26.5% left.
+- **2026-07-02 new decode cores — built + CI bitstream ready, FLASH-PENDING (JTAG/AL321 not attached in build session, sudo not passwordless):** `vax_g` (64-bit VAX G_floating, bias-897, RNE; VAX has no inf/nan sentinel), `ibm_hfp64` (64-bit IBM hex float, base-16 leading-1 normalize), `binary128` (FP128→FP32 narrow, NEW 128-bit frame). Bitstreams: vax_g run 28540940028, ibm_hfp64 run 28541409616, binary128 run 28541409622 — all CI success. Once flashed + UART PASS → decode-HW 31→34.
+- **Remaining catalog formats are NOT cheap-shift clones** (need dedicated conversion blocks or t27 LUT vectors not present locally): decimal32/64/128 (decimal→binary, ~wide datapath), takum16/32/64 (log-domain 2^x; takum8 sidesteps via 256-entry LUT from t27 vectors), double_double / quad_double (multi-component). `INDEX_all_formats.json` (83 SSOT) still not in the local t27 checkout.
 
 ## P0 — Corona RTL ready + bit-exact (14) — FAST PORT
 | Format | SW | n_vec | Corona RTL | FV | FPGA |
