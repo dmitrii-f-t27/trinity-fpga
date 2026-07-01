@@ -106,6 +106,7 @@ FORMATS = {
     "gf16": GFFormat("gf16", exp_bits=6, mant_bits=9, bias=31),
     "gf20": GFFormat("gf20", exp_bits=7, mant_bits=12, bias=63),
     "gf24": GFFormat("gf24", exp_bits=9, mant_bits=14, bias=255),
+    "gf32": GFFormat("gf32", exp_bits=12, mant_bits=19, bias=2047),
 }
 
 
