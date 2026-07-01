@@ -19,11 +19,11 @@
 > (no external libtakum oracle = no 2nd witness). takum defining cite =
 > arXiv:2404.18603 (CoNGA 2024), NOT 2412.20273.
 
-## HW progress to global goal [verified 2026-06-28]
+## HW progress to global goal [verified 2026-07-01]
 - **SW-bitexact: 62/83** (t27 master, above).
-- **decode-HW: 0/83** — design ready on trinity-fpga main (#208 `corona_decode_top_ax7203.v`, CFGMCLK, 5 Corona decoders) + 2-oracle SW cross-check (Python golden == Corona RTL, fp8_e4m3_fnuz + posit8: 512/0) [verified SW]. NOT run on AX7203 yet. `encoding != compute != FPGA`.
-- **compute-HW: 0/83** — ADD (`gf_adder_param.v`) + MUL (`gf_mul_param.v`) cores on main, GF6-GF20 verified by 2 independent SW oracles. NOT run on AX7203 yet.
-- decode-HW / compute-HW cells close ONLY after a real synth+flash+UART run on the board — **[REQUIRES USER HARDWARE ACTION]**.
+- **decode-HW: 18/83** Tier E — measured on AX7203 (UART @160000). Cells: bf16, int8, nf4, fp8_e4m3, fp8_e5m2, fp4_e2m1, int4, fp6_e2m3, fp6_e3m2, lns8, posit8, tf32, binary16 (65536/65536 exhaustive), e8m0 (256/256), + **Phase B (Corona-ported 2026-07-01):** bcd (100/100), bitnet (256/256), mxfp8_e4m3 (256/256), mxint8 (256/256). UART logs on #199. 83-catalog mapping for the Phase B 4 is provisional (SSOT `INDEX_all_formats.json` not in local t27; mxfp8/mxint8 are OCP MX like e8m0).
+- **compute-HW: 21/83** Tier E — measured on AX7203. ADD 7/7 (GF4,6,8,12,16,20,24) + MUL 7/7 (same widths) + **SUB 7/7** (all widths; gf16-sub fixed via gf_adder_param NaN-precedence, gf20-sub fixed via heap placer). UART logs on #199.
+- decode-HW / compute-HW cells close ONLY after a real synth+flash+UART run on the board — **39/83 now closed** (operator flash-burst + v2 RTL fixes + Phase B decode wave, 2026-07-01). gf16-sub/gf20-sub fixed (SUB 7/7); Phase B added 4 Corona decoders (bcd, bitnet, mxfp8_e4m3, mxint8).
 
 ## P0 — Corona RTL ready + bit-exact (14) — FAST PORT
 | Format | SW | n_vec | Corona RTL | FV | FPGA |
@@ -77,4 +77,4 @@
 
 ## Totals
 - **compute-SW [verified]**: ADD + MUL (`gf_adder_param.v` + `gf_mul_param.v`) — GF6–GF20, each verified by two independent oracles.
-- **compute-HW (ADD+MUL) = 0/83** — needs AX7203 (DSP co-sim + flash + UART exhaustive, §2 user step).
+- **compute-HW (ADD+MUL+SUB) = 21/83** Tier E — ADD 7/7 + MUL 7/7 + SUB 7/7 measured on AX7203 (2026-07-01). Live source of truth = #199 EPIC body.
