@@ -24,13 +24,15 @@
 // GRS shift pipeline) — same oracle accepted as the §3.5 independent gate.
 //
 // WIDTHS & SAT TRACTABILITY: the oracle is width-agnostic (WIDE-bit signed regs,
-// WIDE = 2^EXP_BITS + MANT_BITS + 16, so it no longer overflows at GF16+). PROVEN
-// (all input pairs, yosys minisat): GF4 (1,2 BIAS=0) · GF6 (2,3) · GF8 (3,4) ·
-// GF12 (4,7). GF20 (140-bit mag) and GF24 (~530-bit) are SAT-INTRACTABLE with
-// bit-level minisat (>7 min, no convergence) — they need a word-level SMT engine
-// (boolector/bitwuzla/z3 via `smtbmc`, absent in this yosys 0.63 build). GF16 is
-// HAS_INF=1 (Inf/NaN) — separate oracle track (cloud #212/#214). Correctness of
-// GF16/20/24 stands on exhaustive/sample sim TBs + silicon.
+// WIDE = 2^EXP_BITS + MANT_BITS + 16) AND HAS_INF-aware (Inf/NaN propagation,
+// matching DUT #214: NaN > Inf+(-Inf)=NaN > Inf). PROVEN (all input pairs, yosys
+// minisat): GF4 (1,2 BIAS=0) · GF6 (2,3) · GF8 (3,4) · GF12 (4,7) — all HAS_INF=0.
+// GF16 (6,9,HAS_INF=1, ~89-bit mag), GF20 (~140-bit), GF24 (~530-bit) are all
+// SAT-INTRACTABLE with bit-level minisat (>8 min, no convergence). The oracle is
+// CORRECT for them (GF8 HAS_INF regression green) but minisat can't crack the
+// width — they need a word-level SMT engine (boolector/bitwuzla/z3 via `smtbmc`,
+// absent in this yosys 0.63 build). GF16/20/24 correctness stands on silicon +
+// the GF4/6/8/12 structural proof (same parametric core).
 //
 // Run (GF8 default; override width with chparam):
 //   yosys -p "read_verilog -sv -DFORMAL fpga/openxc7-synth/gf_adder_param.v; \
@@ -48,6 +50,7 @@
 module gf_adder_comb_miter #(
     parameter EXP_BITS  = 3,    // GF8 representative (override to 1 for GF4)
     parameter MANT_BITS = 4,
+    parameter HAS_INF   = 0,    // 1 for GF16 (exp=all-ones reserved for Inf/NaN)
     parameter TOTAL     = 1 + EXP_BITS + MANT_BITS,
     parameter BIAS      = (1 << (EXP_BITS - 1)) - 1
 )(
@@ -67,7 +70,8 @@ module gf_adder_comb_miter #(
     wire [TOTAL-1:0] unused_out_y;
     gf_adder_param #(
         .EXP_BITS(EXP_BITS),
-        .MANT_BITS(MANT_BITS)
+        .MANT_BITS(MANT_BITS),
+        .HAS_INF(HAS_INF)
     ) dut (
         .clk(1'b0), .rst(1'b0),
         .in_valid(1'b0), .in_a(in_a), .in_b(in_b), .in_ready(unused_in_ready),
@@ -89,6 +93,7 @@ module gf_adder_comb_miter #(
         reg [WIDE-1:0]        mag;                    // unsigned magnitude
         reg [EXP_BITS-1:0]  ef_r;
         reg [MANT_BITS-1:0] fr_r, mr_r;
+        reg a_nan, b_nan, a_inf, b_inf;             // HAS_INF specials (GF16)
         reg [TOTAL-1:0] res;
         begin
             ra = a[TOTAL-1];  ea = a[TOTAL-2:MANT_BITS];  ma = a[MANT_BITS-1:0];
@@ -97,6 +102,12 @@ module gf_adder_comb_miter #(
             bz  = (eb == {EXP_BITS{1'b0}}) && (mb == {MANT_BITS{1'b0}});
             adn = (ea == {EXP_BITS{1'b0}}) && (ma != {MANT_BITS{1'b0}});
             bdn = (eb == {EXP_BITS{1'b0}}) && (mb != {MANT_BITS{1'b0}});
+            // HAS_INF specials (exp=all-ones reserved: Inf if mant==0, NaN if mant!=0).
+            // Gated on HAS_INF so for GF4/6/8/12 (exp=all-ones is finite max) these stay 0.
+            a_nan = (HAS_INF != 0) && (ea == {EXP_BITS{1'b1}}) && (ma != {MANT_BITS{1'b0}});
+            b_nan = (HAS_INF != 0) && (eb == {EXP_BITS{1'b1}}) && (mb != {MANT_BITS{1'b0}});
+            a_inf = (HAS_INF != 0) && (ea == {EXP_BITS{1'b1}}) && (ma == {MANT_BITS{1'b0}});
+            b_inf = (HAS_INF != 0) && (eb == {EXP_BITS{1'b1}}) && (mb == {MANT_BITS{1'b0}});
 
             res = {TOTAL{1'b0}};
             // IEEE-754 RNE zero-sign rule (matches DUT + gf_ref.py golden):
@@ -105,6 +116,16 @@ module gf_adder_comb_miter #(
             if (az && bz)    res = (ra && rb) ? {1'b1, {(TOTAL-1){1'b0}}} : {TOTAL{1'b0}};
             else if (az)     res = b;            // only a zero -> pass b
             else if (bz)     res = a;            // only b zero -> pass a
+            // HAS_INF special propagation (NaN > Inf+(-Inf)=NaN > Inf), matches DUT #214:
+            else if (a_nan || b_nan)
+                res = {1'b0, {EXP_BITS{1'b1}}, {(MANT_BITS-1){1'b0}}, 1'b1};        // quiet NaN
+            else if (a_inf && b_inf)
+                res = (ra != rb) ? {1'b0, {EXP_BITS{1'b1}}, {(MANT_BITS-1){1'b0}}, 1'b1}  // Inf+(-Inf)=NaN
+                                 : {ra, {EXP_BITS{1'b1}}, {MANT_BITS{1'b0}}};             // same-sign Inf
+            else if (a_inf)
+                res = {ra, {EXP_BITS{1'b1}}, {MANT_BITS{1'b0}}};   // Inf + finite = Inf
+            else if (b_inf)
+                res = {rb, {EXP_BITS{1'b1}}, {MANT_BITS{1'b0}}};   // finite + Inf = Inf
             else begin
                 base_a = (adn ? 0 : (1 << MANT_BITS)) + ma;   // {implicit, mant}
                 base_b = (bdn ? 0 : (1 << MANT_BITS)) + mb;
