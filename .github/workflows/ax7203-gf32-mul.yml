@@ -41,7 +41,7 @@ jobs:
               --json /work/build/gf32_mul/gf32_mul_ax7203.json \
               --write /work/build/gf32_mul/gf32_mul_ax7203_routed.json \
               --fasm /work/build/gf32_mul/gf32_mul_ax7203.fasm \
-              --seed $s --placer $PLACER --router router1 --timing-allow-fail > /tmp/np_$trial.log 2>&1 || true
+              --seed $s --placer $PLACER --router router2 --timing-allow-fail > /tmp/np_$trial.log 2>&1 || true
             if grep -q "Failed to find a route" /tmp/np_$trial.log || [ ! -f build/gf32_mul/gf32_mul_ax7203.fasm ]; then continue; fi
             cp /tmp/np_$trial.log /tmp/np.log; CLEAN="$trial($PLACER,seed=$s)"; break
           done; [ "$CLEAN" = "0" ] && { echo "::error::no clean seed (16 attempts, heap+sa)"; exit 1; }; echo "clean=$CLEAN"
