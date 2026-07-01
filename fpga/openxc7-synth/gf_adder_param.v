@@ -22,6 +22,15 @@ module gf_adder_param #(
     output reg                     out_valid,
     output reg  [TOTAL-1:0]        out_y,
     input  wire                    out_ready
+`ifdef FORMAL
+    // Formal-only observation tap: exposes the combinational core (result_packed)
+    // so a clockless miter (formal/gf_adder_comb_miter.v) can prove
+    // result_packed == independent RNE oracle for ALL input pairs without the
+    // reset/init-state artifact of a sequential harness. Production synthesis
+    // never defines FORMAL -> this port is absent -> zero impact on the datapath.
+    ,
+    output wire [TOTAL-1:0]        result_comb
+`endif
 );
     // Field extraction
     wire                        sa = in_a[TOTAL-1];
@@ -210,4 +219,7 @@ module gf_adder_param #(
     assign in_ready  = ~out_valid_reg | out_ready;
     assign out_valid = out_valid_reg;
     assign out_y     = out_reg;
+`ifdef FORMAL
+    assign result_comb = result_packed;   // combinational core tap (formal only)
+`endif
 endmodule
