@@ -117,18 +117,24 @@ module gf_adder_param #(
     integer i;
 
     always @(*) begin
+        // NaN input → canonical quiet NaN (IEEE 754: NaN propagates through ADD).
+        // MUST precede zero-passthrough: 0+NaN and NaN+0 must yield canonical qNaN
+        // ({0,all-ones-exp,0..0,1}), NOT the raw NaN operand. Previously the
+        // a_zero/b_zero branch returned in_b/in_a verbatim, so a zero paired with a
+        // NaN leaked the non-canonical NaN payload (gf16-sub 4/512 fail, all four
+        // vectors had one zero + one NaN operand). No-op for HAS_INF=0 formats
+        // (a_nan/b_nan are then tied to 0).
+        if (a_nan || b_nan)
+            result_packed = {1'b0, {EXP_BITS{1'b1}}, {(MANT_BITS-1){1'b0}}, 1'b1};
         // ----- zero-passthrough with IEEE zero-sign (gf16.t27:219, RNE) -----
         // (+/-0)+(+/-0): -0 only if BOTH operands are -0, else +0.
         // x + (+/-0) = x for nonzero x (passthrough preserves sign of x).
-        if (a_zero && b_zero)
+        else if (a_zero && b_zero)
             result_packed = (sa && sb) ? {1'b1, {(TOTAL-1){1'b0}}} : {TOTAL{1'b0}};
         else if (a_zero)
             result_packed = in_b;
         else if (b_zero)
             result_packed = in_a;
-        // NaN input → quiet NaN (IEEE 754: NaN propagates through ADD)
-        else if (a_nan || b_nan)
-            result_packed = {1'b0, {EXP_BITS{1'b1}}, {(MANT_BITS-1){1'b0}}, 1'b1};
         // Inf input (WV-22 fix, NaN already handled above so neither is NaN here):
         //   Inf + (-Inf) = NaN; Inf(+/-) + Inf(same) = Inf(same); Inf + finite = Inf.
         else if (a_inf && b_inf)
