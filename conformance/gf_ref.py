@@ -102,6 +102,7 @@ FORMATS = {
     "gf4":  GFFormat("gf4",  exp_bits=1, mant_bits=2, bias=0),
     "gf6":  GFFormat("gf6",  exp_bits=2, mant_bits=3, bias=1),
     "gf8":  GFFormat("gf8",  exp_bits=3, mant_bits=4, bias=3),
+    "gf10": GFFormat("gf10", exp_bits=3, mant_bits=6, bias=3),
     "gf12": GFFormat("gf12", exp_bits=4, mant_bits=7, bias=7),
     "gf14": GFFormat("gf14", exp_bits=5, mant_bits=8, bias=15),
     "gf16": GFFormat("gf16", exp_bits=6, mant_bits=9, bias=31),
