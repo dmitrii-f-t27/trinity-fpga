@@ -45,6 +45,13 @@ module gf_mul_param #(
     output reg                 out_valid,
     output reg  [TOTAL-1:0]    out_y,
     input  wire                out_ready
+`ifdef FORMAL
+    // Formal-only observation tap (mirror of gf_adder_param): exposes the
+    // combinational core (result_packed) for the clockless miter
+    // formal/gf_mul_comb_miter.v. Production synthesis never defines FORMAL.
+    ,
+    output wire [TOTAL-1:0]    result_comb
+`endif
 );
     // ----- ширины -----
     localparam PW = 2*(MANT_BITS+1);          // ширина произведения значащих [erratum 2M+2]
@@ -263,4 +270,7 @@ module gf_mul_param #(
     assign in_ready  = ~out_valid_reg | out_ready;
     assign out_valid = out_valid_reg;
     always @(*) out_y = out_reg;
+`ifdef FORMAL
+    assign result_comb = result_packed;   // combinational core tap (formal only)
+`endif
 endmodule
