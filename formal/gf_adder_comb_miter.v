@@ -15,17 +15,22 @@
 //   proves it for ALL 2^(2*TOTAL) input pairs or finds a REAL counterexample.
 //   No clock, no reset, no sequential state -> no init artifact.
 //
-// NO DUT MODIFICATION: the reference is to the internal `result_packed` via a
-// hierarchical name (dut.result_packed). Production synthesis is untouched.
+// NO DUT MODIFICATION (since the wide-int update): result_packed is exposed via
+// an `ifdef FORMAL`-guarded `result_comb` port tap on the DUT. Production
+// synthesis never defines FORMAL -> the tap is absent -> zero datapath impact.
 //
-// INDEPENDENT ORACLE: ref_fpadd uses exact integer arithmetic + a single
+// INDEPENDENT ORACLE: ref_fpadd uses exact WIDE integer arithmetic + a single
 // mathematical round-half-to-even step (NOT a re-implementation of the DUT's
 // GRS shift pipeline) — same oracle accepted as the §3.5 independent gate.
 //
-// WIDTHS: GF4 (1,2, BIAS=0 — the degenerate edge) and GF8 (3,4 — representative)
-// fit in Verilog 32-bit `integer`. GF16/GF20/GF24 overflow 32-bit and need a
-// wide-int ref (documented as future work; their correctness stands on the
-// exhaustive/sample simulation TBs + the structural proof here).
+// WIDTHS & SAT TRACTABILITY: the oracle is width-agnostic (WIDE-bit signed regs,
+// WIDE = 2^EXP_BITS + MANT_BITS + 16, so it no longer overflows at GF16+). PROVEN
+// (all input pairs, yosys minisat): GF4 (1,2 BIAS=0) · GF6 (2,3) · GF8 (3,4) ·
+// GF12 (4,7). GF20 (140-bit mag) and GF24 (~530-bit) are SAT-INTRACTABLE with
+// bit-level minisat (>7 min, no convergence) — they need a word-level SMT engine
+// (boolector/bitwuzla/z3 via `smtbmc`, absent in this yosys 0.63 build). GF16 is
+// HAS_INF=1 (Inf/NaN) — separate oracle track (cloud #212/#214). Correctness of
+// GF16/20/24 stands on exhaustive/sample sim TBs + silicon.
 //
 // Run (GF8 default; override width with chparam):
 //   yosys -p "read_verilog -sv -DFORMAL fpga/openxc7-synth/gf_adder_param.v; \
@@ -51,6 +56,11 @@ module gf_adder_comb_miter #(
     // ---- FREE unconstrained operands (the SAT solver chooses every bit) ----
     reg [TOTAL-1:0] in_a, in_b;
 
+    // Wide-int oracle width: max magnitude needs (2^EXP_BITS)-1 shift + (MANT+1)
+    // significand bits + guard. 32-bit `integer` overflows for GF16+ (GF24 needs
+    // ~530 bits), so the oracle's magnitude/sum regs are WIDE-bit.
+    localparam WIDE = (1 << EXP_BITS) + MANT_BITS + 16;
+
     // ---- DUT reduced to its combinational core: clk=0, rst=0 ----
     // The posedge block never triggers; result_packed = f(in_a, in_b) purely.
     wire        unused_in_ready, unused_out_valid;
@@ -73,8 +83,10 @@ module gf_adder_comb_miter #(
         reg            ra, rb, az, bz, adn, bdn, sg;
         reg [EXP_BITS-1:0]  ea, eb;
         reg [MANT_BITS-1:0] ma, mb;
-        integer base_a, base_b, sh_a, sh_b, sa_mag, sb_mag, ssum, mag;
+        integer base_a, base_b, sh_a, sh_b;
         integer lead, k, i, exp_field, frac, gb, tailnz, lsb_bit;
+        reg signed [WIDE-1:0] sa_mag, sb_mag, ssum;   // wide signed (2^EXP shift range)
+        reg [WIDE-1:0]        mag;                    // unsigned magnitude
         reg [EXP_BITS-1:0]  ef_r;
         reg [MANT_BITS-1:0] fr_r, mr_r;
         reg [TOTAL-1:0] res;
@@ -106,7 +118,7 @@ module gf_adder_comb_miter #(
                 else begin
                     sg  = (ssum < 0);
                     mag = sg ? -ssum : ssum;
-                    lead = 0;  for (i = 0; i < 32; i = i + 1) if ((mag >> i) & 1) lead = i;
+                    lead = 0;  for (i = 0; i < WIDE; i = i + 1) if ((mag >> i) & 1) lead = i;
                     exp_field = lead - MANT_BITS + 1;          // biased field for normal form
                     if (exp_field >= 1) begin
                         k    = lead - MANT_BITS;
