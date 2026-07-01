@@ -32,6 +32,19 @@ Every hardware-verified ("Tier E") cell is produced by a single reproducible pip
 - **Target:** ALINX AX7203, `xc7a200tfbg484-2`, IDCODE `0x13636093`. Clock: CFGMCLK via STARTUPE2 (~69–70 MHz, measured) — the proven-stable clock for all designs (a 200 MHz differential clock was UART-unstable).
 - **Independent golden oracle:** `conformance/gf_ref.py` — exact rational arithmetic (`fractions.Fraction`), deliberately *distinct* in implementation from the reference testbench (`formal/gf_adder_ref_tb.v`). This separation is what lets hardware catch "bug-equals-bug" defects (§5).
 - **Formal proof (clockless combinational miter).** The DUT's `result_packed` is a purely combinational function of its operands (only the output is registered). We expose it via an `` `ifdef FORMAL``-guarded port tap, hold `clk=0, rst=0` (the register never fires, reducing the DUT to its combinational core), and prove `result_packed == ref(a,b)` — an *independent* integer RNE oracle, not a re-implementation of the GRS shift pipeline — for **all** input pairs with `yosys sat -prove mismatch 1'b0`. No clock/reset ⇒ no init-state artifact (which stalled a sequential harness). PROVEN: GF4/6/8/12 ADD, GF4/6 MUL. Wider formats (GF16/20/24) hit a bit-level-SAT tractability ceiling and need a word-level SMT engine.
+
+  ```
+            ┌──────────────── gf_adder_param (DUT, clk=0,rst=0) ───────────────┐
+   in_a ──▶│  field extract → align → eff add/sub → normalize → RNE → result_packed  │── result_comb
+   in_b ──▶│  (always @(*) — purely combinational; the output REGISTER is inert)     │       │
+            └──────────────────────────────────────────────────────────────────────── ┘       ▼
+                                                                                  ┌─────────────┐
+   in_a ──▶ ── independent integer RNE oracle (exact arithmetic, NOT a          │   miter:    │
+   in_b ──▶     re-impl of the GRS shift pipeline) ── ref(a,b) ───────────────▶ │  mismatch   │ ── sat -prove 0
+                                                                                └─────────────┘
+   Free symbolic inputs (solver-chosen). `sat -prove mismatch 1'b0` ⇒ no assignment makes mismatch=1
+   ⇒ result_packed == ref(a,b) for ALL 2^(2·TOTAL) input pairs. No clock ⇒ no reset/init artifact.
+  ```
 - **Five CI regression gates** (all green): (i) GF ADD+MUL reference testbench, all 7 widths; (ii) golden self-tests + host↔oracle consistency; (iii) decode-RTL exhaustive verification (10 formats); (iv) wrapper FSM/UART structural audit (20 wrappers) + 5 runtime simulations; **(v) comb-miter formal proof (`fpga-formal-comb.yml`) — HARD gate for ADD GF4/6/8/12 + MUL GF4/6.**
 - **Tier distinction:** Tier E = CI run + bitstream SHA + UART log published; Tier C = self-report only. **Zero Tier C remaining.**
 
@@ -97,7 +110,40 @@ A naïve reading of "20/83 hardware, 62/83 software" implies 64 remaining unifor
 
 ## 9. Reproducibility
 
-Every Tier-E cell cites a CI run ID + bitstream SHA-256 + UART log on EPIC #199. Toolchain is fully open (openXC7). Golden oracle (`gf_ref.py`) uses exact rational arithmetic, independent of the DUT-derived reference testbench. `encoding ≠ compute ≠ FPGA`.
+Every Tier-E cell cites a CI run ID + bitstream SHA-256 + UART log on EPIC #199. The toolchain is fully open; no vendor licenses are required.
+
+**Evidence chain (one cell):**
+```
+ .v RTL → openXC7 CI synth (yosys → nextpnr-xilinx → fasm2frames → xc7frames2bit)
+        → bitstream (.bit) + SHA-256        [CI artifact, downloadable via gh api]
+        → JTAG flash (openocd AL321, IDCODE 0x13636093, passwordless sudo)
+        → UART verify (CP2102N /dev/cu.usbserial-120 @160000 baud) vs gf_ref.py golden
+```
+
+**Formal proof — reproduces in seconds, no special toolchain (yosys `sat` only):**
+```bash
+yosys -p "read_verilog -sv -DFORMAL fpga/openxc7-synth/gf_adder_param.v; \
+  read_verilog -sv formal/gf_adder_comb_miter.v; \
+  chparam -set EXP_BITS 3 -set MANT_BITS 4 gf_adder_comb_miter; \
+  hierarchy -top gf_adder_comb_miter; proc; opt; flatten; opt; \
+  sat -prove mismatch 1'b0"
+# expect:  SAT proof finished - no model found: SUCCESS!
+```
+CI-hard-gated by `.github/workflows/fpga-formal-comb.yml` (matrix: ADD gf4/6/8/12, MUL gf4/6). Override the width via `chparam`.
+
+**Synthesize + flash + verify one compute cell (operator, on the AX7203 host):**
+```bash
+# 1. bitstream from CI: gh api repos/gHashTag/trinity-fpga/actions/artifacts/<id>/zip
+# 2. flash
+sudo openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
+  -c "init" -c "pld load 0 build/gfN_sub/gfN_sub_ax7203.bit" -c "runtest 200000" -c "shutdown"
+# 3. verify (golden = gf_ref.gf_add)
+python3 conformance/gfN_sub_conformance_ax7203.py --port /dev/cu.usbserial-120 --baud 160000
+```
+
+**Tool versions (measured):** yosys 0.63, z3 4.16 (Homebrew); CI uses `regymm/openxc7:latest` (yosys + nextpnr-xilinx + Project X-Ray) and `YosysHQ/setup-oss-cad-suite@v3` (for the cloud's sby/z3 formal gate). Board: ALINX AX7203, `xc7a200tfbg484-2`.
+
+**Golden oracle.** `conformance/gf_ref.py` — exact rational arithmetic (`fractions.Fraction`), deliberately *distinct* in implementation from `formal/gf_adder_ref_tb.v` (the DUT-derived reference). This separation is what lets silicon catch "bug-equals-bug" defects (§5). `encoding ≠ compute ≠ FPGA`.
 
 ---
-*v0.2 — draft. Updated from v0.1 with: compute-MUL 7/7 silicon (Tier E), the SUB op family 7/7 (prepared), the parametric comb-miter formal proof (ADD GF4/6/8/12 + MUL GF4/6, CI-hard-gated), and the 27/83 Tier-E total. Next: figures (pipeline diagram, GF ladder, comb-miter), §9 reproducibility detail, target-venue formatting (ISFPGA 2026 / ARITH 2026). All numbers sourced from EPIC #199 evidence chains.*
+*v0.2 — draft. Updated from v0.1 with: compute-MUL 7/7 silicon (Tier E), the SUB op family 7/7 (prepared), the parametric comb-miter formal proof (ADD GF4/6/8/12 + MUL GF4/6, CI-hard-gated), the 27/83 Tier-E total, a comb-miter methodology figure (§3), and a full §9 reproducibility section (commands + tool versions). Next: §4 results figures (pipeline diagram, GF ladder), target-venue formatting (ISFPGA 2026 / ARITH 2026). All numbers sourced from EPIC #199 evidence chains.*
