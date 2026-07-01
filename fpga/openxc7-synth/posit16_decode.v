@@ -65,7 +65,11 @@ module posit16_decode (
     wire [14:0] frac_field    = after_regime << 2;        // fraction left-aligned to bit 14
 
     // Step 5: FP32 exponent = 4*k + e + 127 (useed=16 -> 4 bits of exp per regime k).
-    wire signed [7:0] exp_raw = $signed(regime_k <<< 2) + $signed({6'b0, e_field}) + 8'sd127;
+    //         Compute in 9-bit signed: 4*k (up to 52) + 127 lands at ~179, which OVERFLOWS
+    //         signed-8-bit at 128 (that overflow mis-flushed valid values like 3.0 to zero
+    //         and 0.5 to Inf on the first silicon run — bug, not algorithm).
+    wire signed [8:0] four_k  = $signed(regime_k) * 9'sd4;
+    wire signed [8:0] exp_raw = four_k + $signed({7'b0, e_field}) + 9'sd127;
 
     // Step 6: assemble FP32 (clamp out-of-range exponents to Inf / zero).
     always @(*) begin
@@ -73,9 +77,9 @@ module posit16_decode (
             fp32_out = 32'h00000000;
         else if (is_nar)
             fp32_out = 32'h7FC00000;                       // NaR -> qNaN
-        else if (exp_raw > 8'sd254)
+        else if (exp_raw > 9'sd254)
             fp32_out = {sign, 8'hFF, 23'h000000};          // overflow -> Inf
-        else if (exp_raw < 8'sd1)
+        else if (exp_raw < 9'sd1)
             fp32_out = {sign, 8'h00, 23'h000000};          // underflow -> zero (flush)
         else
             fp32_out = {sign, exp_raw[7:0], frac_field[14:0], 8'b0};  // fraction MSB at mant[22]
