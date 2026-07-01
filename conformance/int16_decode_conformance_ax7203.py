@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+# int16_decode_conformance_ax7203.py — INT16 decode on AX7203.
+# 16-bit signed 2's complement -> 32-bit sign-extension. Core: int16_decode.v.
+# Self-contained golden (sign-extend). Frame: AA 55 fmt code_lo code_hi trig -> A5 r[4].
+import argparse, sys, struct, serial, random
+
+FRAME = bytes([0xAA, 0x55])
+FMT_INT16 = 0x14  # ignored by the single-decoder build; sent for protocol parity
+
+
+def golden_int16(code):
+    code &= 0xFFFF
+    return (code | 0xFFFF0000) if (code & 0x8000) else code
+
+
+def hw_exchange(ser, code):
+    pkt = FRAME + bytes([FMT_INT16 & 0xFF, code & 0xFF, (code >> 8) & 0xFF, 0x00])
+    ser.write(pkt)
+    resp = ser.read(5)
+    if len(resp) != 5 or resp[0] != 0xA5:
+        return None
+    return struct.unpack("<I", resp[1:5])[0]
+
+
+def self_test():
+    # 0=0, 1=1, 0x7FFF=max-pos, 0x8000=min-neg, 0xFFFF=-1, 0x0100=256
+    cases = {0x0000: 0x00000000, 0x0001: 0x00000001, 0x7FFF: 0x00007FFF,
+             0x8000: 0xFFFF8000, 0xFFFF: 0xFFFFFFFF, 0x0100: 0x00000100}
+    bad = 0
+    for code, exp in cases.items():
+        if golden_int16(code) != exp:
+            bad += 1
+    print(f"self-test: golden spot-check {len(cases)} values, {bad} failures")
+    return bad == 0
+
+
+def run_hw(port, baud, n):
+    import serial
+    ser = serial.Serial(port, baud, timeout=2)
+    fails = 0; checked = 0
+    rnd = random.Random(42)
+    corners = [0x0000, 0x0001, 0x7FFF, 0x8000, 0xFFFF, 0x0100, 0x7E00, 0x8001]
+    sample = corners + [rnd.randint(0, 0xFFFF) for _ in range(max(0, n - len(corners)))]
+    for code in sample:
+        hw = hw_exchange(ser, code)
+        gold = golden_int16(code)
+        checked += 1
+        if hw is None or hw != gold:
+            fails += 1
+            if fails <= 10:
+                print(f"MISMATCH code=0x{code:04x} hw=0x{hw if hw is not None else 0:08x} gold=0x{gold:08x}")
+    ser.close()
+    print(f"HW RESULT: {checked - fails}/{checked} bit-exact (fails={fails})")
+    return fails == 0
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--port", default="/dev/cu.usbserial-120")
+    ap.add_argument("--baud", type=int, default=160000)
+    ap.add_argument("--n", type=int, default=64)
+    a = ap.parse_args()
+    if a.self_test:
+        sys.exit(0 if self_test() else 1)
+    sys.exit(0 if run_hw(a.port, a.baud, a.n) else 1)
+
+
+if __name__ == "__main__":
+    main()
