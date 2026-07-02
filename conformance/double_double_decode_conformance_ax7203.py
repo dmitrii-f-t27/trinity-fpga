@@ -34,19 +34,13 @@ def to_f32(val):
     sign = 0
     if val < 0:
         sign = 1; val = -val
-    # find e with 2^e <= val < 2^(e+1) via binary search (val = num/den, exact)
+    # find e with 2^e <= val < 2^(e+1) (val = num/den, exact). Fraction(2)**k handles k<0.
     num, den = val.numerator, val.denominator
-    e = 0
-    # binary search for e with 2^e <= num/den < 2^(e+1)
-    hi = max(1, num.bit_length())
-    lo = -max(1, den.bit_length())
-    while lo < hi:
-        mid = (lo + hi + 1) // 2
-        if (1 << mid) * den <= num:      # 2^mid <= val
-            lo = mid
-        else:
-            hi = mid - 1
-    e = lo
+    e = num.bit_length() - den.bit_length()
+    while val < Fraction(2) ** e:
+        e -= 1
+    while val >= Fraction(2) ** (e + 1):
+        e += 1
     if e > 127:
         return (sign << 31) | 0x7F800000
     if e < -150:
