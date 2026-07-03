@@ -44,10 +44,11 @@ jobs:
           CLEAN=0
           for placer in heap sa; do for s in $(seq 1 8); do
             rm -f build/corona_decode_takum32/corona_decode_ax7203.fasm
-            # per-seed 30min timeout -- nextpnr can hang on BRAM+wide-multiply
-            # netlists; without this, a hang on seed 1 blocks the whole 32-seed
-            # search and only the 6h job-timeout ends it.
-            timeout 1800 docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 nextpnr-xilinx \
+            # per-seed 30min timeout -- INSIDE the container with --signal=KILL.
+            # Host-level 'timeout docker run' sends SIGTERM that docker doesn't
+            # forward to nextpnr -> hang never breaks (root cause of stuck runs).
+            # SIGKILL on nextpnr directly is the only reliable kill.
+            docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
               --chipdb /work/build/corona_decode_takum32/chipdb/xc7a200tfbg484-2.bin \
               --xdc /work/fpga/openxc7-synth/corona_decode_ax7203.xdc \
               --json /work/build/corona_decode_takum32/corona_decode_ax7203.json \
