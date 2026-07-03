@@ -277,13 +277,25 @@ So the RTL is 1 ulp short in corr, and the downstream chain (`corr_q2`, `tp`,
 | `round_both` | both roundings | 9 mism |
 | `wider_corr` | keep corr at full width (no 32-bit mask) | 8 mism (no-op here — fits in 32) |
 | `wider_corr_round` | wider + round | 9 mism |
+| `cubic` *(tested iter 3)* | add `corr³/6` to `corr_q2` | 8 mism (no change — `0x40000010` still wrong) |
+
+**Refined root cause (iter 3 trace).** For `0x40000010`, the EXACT
+`mant = 2⁴⁷·2^frac = 2⁴⁷ + 2²³ + 0.5 + ε` — i.e. the true mantissa sits a
+*fractional* 0.5 ulp above the `2⁴⁷ + 2²³` halfway. The integer-Q48 `corr`
+(= 16 777 215.9, floored to 16 777 215) **cannot represent that 0.5 fractional
+ulp** — even un-truncated `corr_true = 16 777 215.9` yields
+`mant = 2⁴⁷ + 2²³ − 1` (below halfway), because the Q48 grid resolves the 2²³
+magnitude to whole units and drops the 0.5. This is why every rounding variant
+and the cubic Taylor term all fail: the precision loss is *structural* to the
+Q48 corr format at this magnitude, not a fixable truncation point.
 
 **Conclusion.** No single-rounding-point fix recovers the missing ulp. The
 correction path needs a structural change. Three candidate approaches for the
 next loop (Option B), in increasing effort:
 
-1. **Cubic Taylor term.** Add `corr³/6` to `corr_q2`. The `x²/2` term currently
-   contributes ~2⁻⁴⁸ at this scale (below the truncation), but a properly-scaled
+1. ~~**Cubic Taylor term.**~~ **(TESTED iter 3 — negative result.)** Adding
+   `corr³/6` changes nothing (8 mism unchanged); the cubic magnitude (~2⁻⁹⁷)
+   is far below the Q48 grid. **Skip this approach.**
    cubic might shift the boundary cases. Cheapest to try; re-run the 22k sweep.
 2. **Guarded correction path.** Widen `corr` to 40-bit and `tp` intermediate to
    88-bit, with rounding at BOTH shifts. Restores sub-ulp precision. Adds ~8 bits
