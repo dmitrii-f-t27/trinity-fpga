@@ -36,7 +36,7 @@ jobs:
       - name: nextpnr (seed search, heap+sa x8)
         run: |
           CLEAN=0
-          for placer in heap sa; do for s in $(seq 1 8); do
+          for placer in heap sa; do for s in $(seq 1 16); do
             rm -f build/corona_decode_takum64/corona_decode_ax7203.fasm
             docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 nextpnr-xilinx \
               --chipdb /work/build/corona_decode_takum64/chipdb/xc7a200tfbg484-2.bin \
