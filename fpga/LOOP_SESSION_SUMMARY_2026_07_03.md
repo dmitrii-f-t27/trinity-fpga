@@ -15,18 +15,21 @@ iterations, 22 commits). Points to the detailed docs below.
 - **No catalog-wide subnormal-flush bug** (an earlier "6 suspects" claim was
   retracted honestly — all 6 goldens flush too; lns16 is the sole confirmed case).
 
-## Commits by category (22 total, chronological within each)
+## Commits by category (24 total, chronological within each)
 
-### RTL correctness fixes (3)
+### RTL correctness fixes (5)
 - `b537d0336` takum64 routing-opt (119+140→94+72-bit) + subnormal (e2=-150)
 - `399bb0cf8` takum32 subnormal fix (e2=-150)
 - `12850fc7a` takum32 routing-opt (107→72-bit f_lo)
 - `bffc7a2ab` lns16 subnormal-rounding (flush→1-ULP, 5× reduction)
 - `89135c37e` lns16 yosys-compat (module-level regs) → **CI GREEN bitstream**
 
-### Infrastructure (2)
+### Infrastructure (3)
 - `9ff4e7ea8` docker-pull retry (6× backoff) across all 85 openXC7 workflows
-- `5b6878ebb` per-seed 30min nextpnr timeout (anti-hang for BRAM+wide-multiply netlists)
+- `5b6878ebb` per-seed 30min nextpnr timeout (first attempt — outer `timeout docker run`)
+- `6448ae520` **per-seed timeout INSIDE container** (`--signal=KILL` on nextpnr) — the
+  outer wrapper didn't propagate SIGTERM into the container, so the first attempt
+  was ineffective (takum CI stuck 6.5h). This is the working version.
 
 ### Conformance methodology (2)
 - `5e63b519a` takum32/64 `--extended` (subnormal band) + `--strict`
@@ -49,12 +52,13 @@ iterations, 22 commits). Points to the detailed docs below.
 | run | head | result | meaning |
 |-----|------|--------|---------|
 | `28668900768` lns16 fixed | `89135c37` | **SUCCESS** ✅ | bitstream ready for flash |
-| `28666152468` TAKUM64 opt | `5b6878eb` | in_progress (~6h) | per-seed timeout will resolve |
-| `28666152309` TAKUM32 opt | `5b6878eb` | in_progress (~6h) | per-seed timeout will resolve |
+| `28670353297` TAKUM64 opt | `6448ae52` | in_progress (step 4) | inner-SIGKILL timeout will resolve |
+| `28670353291` TAKUM32 opt | `6448ae52` | in_progress (step 4) | inner-SIGKILL timeout will resolve |
+| ~~`28666152468`/`28666152309`~~ | `5b6878eb` | cancelled | broken outer-timeout; superseded |
 
 ## Exact next actions (priority order)
 
-1. **takum routing** — `gh run view 28666152468 --json conclusion`:
+1. **takum routing** — `gh run view 28670353297 --json conclusion` (inner-SIGKILL-timeout run):
    - `success` → download artifact → flash → `--extended` Tier-E → **decode-HW 71→73/83**.
    - `failure` (clean `::error::no clean seed`) → openXC7 cannot route the takum
      BRAM+wide-multiply structure even at 94+72-bit. Strategic choice: accept
