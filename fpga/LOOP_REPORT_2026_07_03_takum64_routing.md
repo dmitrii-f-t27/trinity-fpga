@@ -296,15 +296,22 @@ next loop (Option B), in increasing effort:
 1. ~~**Cubic Taylor term.**~~ **(TESTED iter 3 — negative result.)** Adding
    `corr³/6` changes nothing (8 mism unchanged); the cubic magnitude (~2⁻⁹⁷)
    is far below the Q48 grid. **Skip this approach.**
-   cubic might shift the boundary cases. Cheapest to try; re-run the 22k sweep.
 2. **Guarded correction path.** Widen `corr` to 40-bit and `tp` intermediate to
    88-bit, with rounding at BOTH shifts. Restores sub-ulp precision. Adds ~8 bits
    to the `tp` multiply (still far below decimal128's 336-bit routable width).
-3. **Near-unity special-case.** Detect `f_hi == 0` (frac < 2⁻¹⁶) and use a
-   separate high-precision path (or a direct 1+frac×ln2 Q48 computation without
-   the BRAM roundtrip). Eliminates the class entirely.
+   **(Untested — the recommended next try.)**
+3. ~~**Near-unity special-case (`f_hi == 0`).**~~ **(TESTED iter 4 — negative
+   result.)** Direct `Δmant = (f_lo×LN2_Q48)>>76` bypassing the BRAM roundtrip.
+   Linear-only: 97 mism (much worse — misses the quadratic term at the upper end
+   of `f_hi==0`). With quadratic `+ (f_lo×LN2_Q48)²>>200`: 9 mism (still wrong on
+   `0x40000010` — the scaling of the combined formula is off by a sub-ulp). The
+   special-case needs its own careful precision budget; not the quick win it
+   appeared. **Skip unless willing to do a full rescale.**
 
-Recommended: try (1) first (5-line change, re-verify), then (3) if (1) fails.
+**Revised recommendation:** approach **(2) guarded wider correction path** is
+the remaining principled fix. Conformance-64 passes either way (the near-unity
+class is outside the 64-vector sample), so this is *polish for Option B*, NOT a
+blocker for Tier-E.
 Approach (2) is the most principled but the widest change.
 
 **Reproducibility:** `/tmp/tk/debug_nearunity.py` (the trace),
