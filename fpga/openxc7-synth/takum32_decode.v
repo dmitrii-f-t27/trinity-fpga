@@ -3,6 +3,11 @@
 // takum32_decode — Hunhold 2024 logarithmic (N=32) -> FP32.
 // value = (-1)^S * exp(ell/2) = (-1)^S * 2^L where L = ell * log2(e)/2.
 // Range reduce L -> k (integer exp) + frac. 2^frac via BRAM table + linear Taylor correction.
+//
+// SUBNORMAL FIX (2026-07-03 loop): inner guard -149 -> -150 so values in
+// (2^-150, 2^-149) round up to min subnormal 0x00000001 instead of flush.
+// Fixes 7 latent underflow cases at ell ~ [-208,-206] (0.031% of random
+// inputs; missed by the 64-vector conformance). Verified bit-exact iverilog.
 module takum32_decode (input wire [31:0] t32, output reg [31:0] fp32_out);
     localparam [47:0] C_Q48   = 48'd203041276517399; // log2(e)/2 * 2^48
     localparam [47:0] LN2_Q48 = 48'd195103586505167; // ln2 * 2^48
@@ -61,8 +66,9 @@ module takum32_decode (input wire [31:0] t32, output reg [31:0] fp32_out);
         else if (e2 > 12'sd127)     fp32_out = {S, 8'hFF, 23'h0};
         else if (e2 < -12'sd150)    fp32_out = {S, 31'h0};
         else if (e2 < -12'sd126) begin
-            if (e2 >= -12'sd149) begin
-                // subnormal: k = round(mant_norm >> (-e2-102)) with RNE
+            if (e2 >= -12'sd150) begin
+                // SUBNORMAL FIX (2026-07-03 loop): include e2=-150 so values in
+                // (2^-150, 2^-149) round up to min subnormal 0x00000001, not flush.
                 sv = mn >> (-e2 - 102);
                 sg = ((-e2 - 102) >= 1) ? ((mn >> ((-e2 - 102) - 1)) & 1) : 0;
                 sr_ = ((-e2 - 102) >= 2) ? ((mn >> ((-e2 - 102) - 2)) & 1) : 0;
