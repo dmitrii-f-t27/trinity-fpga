@@ -14,7 +14,13 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
-      - run: docker pull regymm/openxc7:latest
+      - name: Docker pull regymm/openxc7 (retry on transient 5xx)
+        run: |
+          for i in 1 2 3 4 5 6; do
+            docker pull regymm/openxc7:latest && break
+            echo "::warning::docker pull attempt $i failed, sleeping $((i*20))s"; sleep $((i*20))
+          done
+          docker image inspect regymm/openxc7:latest >/dev/null 2>&1 || { echo "::error::docker pull failed after 6 retries"; exit 1; }
       - name: Yosys
         run: |
           mkdir -p build/corona_decode_int8
