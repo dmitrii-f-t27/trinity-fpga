@@ -42,7 +42,7 @@ jobs:
       - name: nextpnr (seed search, heap+sa x8)
         run: |
           CLEAN=0
-          for placer in heap sa; do for s in $(seq 1 8); do
+          for placer in heap sa; do for s in $(seq 1 4); do
             rm -f build/corona_decode_takum32/corona_decode_ax7203.fasm
             # per-seed 30min timeout -- INSIDE the container with --signal=KILL.
             # Host-level 'timeout docker run' sends SIGTERM that docker doesn't

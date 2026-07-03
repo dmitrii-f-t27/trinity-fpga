@@ -42,7 +42,7 @@ jobs:
       - name: nextpnr (seed search, heap+sa x8)
         run: |
           CLEAN=0
-          for placer in heap sa; do for s in $(seq 1 16); do
+          for placer in heap sa; do for s in $(seq 1 4); do
             rm -f build/corona_decode_takum64/corona_decode_ax7203.fasm
             # per-seed 30min timeout -- nextpnr can hang on BRAM+wide-multiply
             # netlists. The timeout must be INSIDE the container with --signal=KILL:
