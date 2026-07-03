@@ -74,6 +74,16 @@ pattern) to localise before patching.
 
 ## Do NOT
 - Push RTL without local `iverilog` bit-exact verification first (report §5).
+- Push RTL without a `yosys` synth dry-run — yosys is stricter than iverilog
+  on SystemVerilog-only features (e.g. `reg` declarations inside unnamed always
+  blocks are rejected: "Local declaration in unnamed block is only supported in
+  SystemVerilog mode!"). iverilog `-g2012` accepts them and masks the issue.
+  CI's yosys step doesn't fail on the error (tee+grep), so a malformed JSON
+  reaches nextpnr and all seeds crash in ~1.5s -> "::error::no clean seed"
+  (learned on lns16, commit 89135c37e). Declare all `reg` at module level.
 - Cancel the control runs (28650506195, 28643503442) — they're useful signals.
 - Edit `.sh` files (PreToolUse hook blocks them; use `.py` or `tri` subcommands).
 - Transcribe SHA by hand — use `shasum` + sed placeholder (HANDOFF lesson 5).
+- Trust a fast CI "no clean seed" failure — if step 7 ends in <60s, nextpnr
+  crashed on a malformed netlist (check step 4 yosys log for errors), not a
+  genuine routing failure. Real routing attempts take minutes per seed.
