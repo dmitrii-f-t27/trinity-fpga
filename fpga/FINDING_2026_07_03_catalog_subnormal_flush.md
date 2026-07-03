@@ -83,3 +83,40 @@ python3 tools/fpga_subnormal_audit.py        # golden-side scan
 The audit tool has a known sampling gap for large-range formats — a targeted
 follow-up should construct each format's subnormal-band inputs explicitly
 (analogous to lns16's 0x4000+ sweep) to definitively confirm the 6 suspects.
+
+## CORRECTION (loop iter 12) — retraction of the "6 suspects"
+
+**The "6 suspected cells" claim above is RETRACTED.** Follow-up verification
+showed all 6 are CLEAN. The audit methodology (RTL-pattern-only) was insufficient.
+
+The definitive test is whether the GOLDEN itself flushes subnormals. Cross-check
+of each conformance golden:
+
+| format | golden flushes subnormals? | verdict |
+|--------|---------------------------|---------|
+| binary64 | YES (`exp < 1 -> return 0`) | CLEAN (HW matches golden) |
+| binary128 | YES | CLEAN |
+| ibm_hfp32 | YES (line 30) | CLEAN |
+| ibm_hfp64 | YES | CLEAN |
+| vax_g | YES | CLEAN |
+| posit32 | YES | CLEAN |
+| **lns16** | **NO (produces real subnormals)** | **the ONLY confirmed bug (fixed bffc7a2ab/89135c37e)** |
+
+The project's convention for binary64/128, ibm_hfp32/64, vax_g, posit32 is to
+flush FP32 subnormals (the golden defines it that way; the HW implements the
+same convention). There is no HW-vs-golden mismatch there.
+
+**The subnormal-flush bug class is UNIQUE to lns16** in this catalog -- it was
+the only format where the golden produces real FP32 subnormals but the HW
+flushed them. The fix (commits bffc7a2ab + 89135c37e yosys-compat) stands and
+is the sole correctness improvement from this audit.
+
+## Methodology lesson for the audit tool
+
+`tools/fpga_subnormal_audit.py` currently flags "golden produces subnormals" --
+which is necessary but NOT sufficient. The correct test is the INTERSECTION:
+(golden produces subnormals) AND (HW flushes them). For 6 of 7 candidates the
+golden flushes too, so there is no mismatch. The tool should be extended to
+read the golden's flush behavior (or run golden-vs-HW-model on the subnormal
+band) before flagging. The ibm_hfp32 fix attempt (779 regressions, reverted)
+was the costly demonstration of this gap.
