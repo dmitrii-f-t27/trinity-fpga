@@ -52,7 +52,7 @@ module corona_decode_takum64_ax7203 (
         end
     end
     assign led[1]=frame_valid;
-    takum64_decode u_dec (.fp64_in(code_r[63:0]), .fp32_out(result));
+    takum64_decode u_dec (.t64(code_r[63:0]), .fp32_out(result));
     assign led[2] = |result;
     reg responding; reg [2:0] tx_idx; reg [7:0] tx_buf0,tx_buf1,tx_buf2,tx_buf3,tx_buf4;
     reg [8:0] tcnt; reg [3:0] tbi; reg [9:0] tsr;
