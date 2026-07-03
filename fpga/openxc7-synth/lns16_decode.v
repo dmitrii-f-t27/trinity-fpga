@@ -157,13 +157,40 @@ module lns16_decode (
     // FP32 exponent = 127 + int_part (9-bit to catch overflow/underflow).
     wire signed [8:0] fp32_exp = $signed(int_part) + 9'sd127;
 
+    // Full mantissa with implicit leading 1 ({1'b1, frac_mant} as 24-bit).
+    // For subnormal results (fp32_exp <= 0), this is shifted right with RNE
+    // rounding to produce the FP32 subnormal field (FIX 2026-07-03 loop;
+    // previously flushed ALL subnormals to signed zero -- see
+    // fpga/FINDING_2026_07_03_lns16_subnormal_flush.md).
+    wire [23:0] full_mant = {1'b1, frac_mant};
+
     always @(*) begin
         if (is_zero)
             fp32_out = 32'h00000000;
         else if (fp32_exp > 9'sd254)
             fp32_out = {sign, 8'hFF, 23'h000000};       // overflow -> Inf
-        else if (fp32_exp < 9'sd1)
-            fp32_out = {sign, 8'h00, 23'h000000};       // underflow -> zero
+        else if (fp32_exp < 9'sd1) begin
+            // SUBNORMAL (FIX 2026-07-03): round full_mant into the 23-bit
+            // subnormal field. lns16's int_part is 8-bit signed [-128,127] so
+            // fp32_exp >= -1 -> only two subnormal cases: fp32_exp=0 (sh=1)
+            // and fp32_exp=-1 (sh=2). Previously flushed ALL to signed zero.
+            // See fpga/FINDING_2026_07_03_lns16_subnormal_flush.md.
+            reg [23:0] sv;
+            reg g, r_b, stb, ru;
+            reg [23:0] sk;
+            case (fp32_exp)
+                9'sd0:  begin sv = full_mant >> 1; g = full_mant[0]; r_b = 1'b0; stb = 1'b0; end
+                default: begin sv = full_mant >> 2; g = full_mant[1]; r_b = full_mant[0]; stb = 1'b0; end
+            endcase
+            ru = g & (r_b | stb | sv[0]);
+            sk = sv + (ru ? 24'd1 : 24'd0);
+            if (sk >= 24'h800000)
+                fp32_out = {sign, 8'h01, 23'h000000};   // rounded up to min normal
+            else if (sk == 0)
+                fp32_out = {sign, 24'h0};               // rounded to signed zero
+            else
+                fp32_out = {sign, 8'h00, sk[22:0]};     // subnormal field
+        end
         else
             fp32_out = {sign, fp32_exp[7:0], frac_mant};
     end
