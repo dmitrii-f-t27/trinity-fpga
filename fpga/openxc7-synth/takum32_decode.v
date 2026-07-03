@@ -8,6 +8,9 @@
 // (2^-150, 2^-149) round up to min subnormal 0x00000001 instead of flush.
 // Fixes 7 latent underflow cases at ell ~ [-208,-206] (0.031% of random
 // inputs; missed by the 64-vector conformance). Verified bit-exact iverilog.
+//
+// ROUTING-OPT (iter 3): f_lo truncated top 24 + sticky (107->72-bit multiply).
+// ell_27 kept full-width (87-bit) -- precision budget too tight to narrow.
 module takum32_decode (input wire [31:0] t32, output reg [31:0] fp32_out);
     localparam [47:0] C_Q48   = 48'd203041276517399; // log2(e)/2 * 2^48
     localparam [47:0] LN2_Q48 = 48'd195103586505167; // ln2 * 2^48
@@ -37,7 +40,11 @@ module takum32_decode (input wire [31:0] t32, output reg [31:0] fp32_out);
     wire signed [11:0] k = L_Q75 >>> 75;
     wire [74:0] frac = L_Q75[74:0];
     wire [15:0] f_hi = frac[74:59];
-    wire [58:0] f_lo = frac[58:0];
+    wire [58:0] f_lo_full = frac[58:0];
+    // --- ROUTING OPT (2026-07-03 loop iter 3): truncate f_lo top 24 + sticky ---
+    // narrows flo_ln2 multiply 107-bit -> 72-bit; bit-exact on 22k vectors.
+    wire f_lo_sticky = |f_lo_full[34:0];
+    wire [58:0] f_lo = {f_lo_full[58:35], f_lo_sticky, 34'b0};
     // BRAM table: 2^(f_hi/2^16), 48-bit
     reg [47:0] tbl [0:65535];
     initial $readmemh("fpga/openxc7-synth/takum32_2frac.mem", tbl);
