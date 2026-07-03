@@ -238,3 +238,62 @@ discriminator is step 7 (nextpnr), still pending at session end.
   - `399bb0cf8` — `takum32_decode.v` subnormal fix.
 - **Analysis artefacts:** `/tmp/tk/*.py` (faithful model, truncation sweep,
   subnormal fix verifier, large-vector head-to-head). Reproducible from this report.
+
+---
+
+## Appendix A — Near-unity Taylor-precision root-cause (Option B prep)
+
+A focused numerical trace of the residual 1-ULP misses (`0x40000010` takum32
+family; `f10c717b…`, `b11d9208…` takum64), to give the next loop a running start.
+
+**The failing input.** `t32 = 0x40000010` decodes to `ell = +2⁻²³` exactly.
+`value = exp(ell/2) = exp(2⁻²⁴) = 1 + 2⁻²⁴ + 1.78×10⁻¹⁵`. This sits a hair
+**above** the FP32 halfway point `2⁻²⁴` between `1.0 (0x3f800000)` and
+`1+2⁻²³ (0x3f800001)` → golden rounds UP. RTL rounds DOWN. Off by 1 ULP.
+
+**RTL trace (full-width, takum32):**
+```
+frac (Q75) = 8.599×10⁻⁸   (= ell × log₂(e)/2)
+f_hi = 0   → BRAM[0] = 0x800000000000 (= 1.0 exactly)
+corr       = (f_lo × LN2_Q48) >> 75  =  16 777 215   (= 2²⁴ − 1)
+mant       = tval + (tval × corr) >> 48
+            = 2⁴⁷ + (2⁴⁷ × (2²⁴−1)) >> 48
+            = 2⁴⁷ + 2²³ − 1                     ← one ulp BELOW the halfway 2⁴⁷ + 2²³
+→ guard bit mn[23] = 0 → no round-up → result 0x3f800000 (WRONG, golden wants +1)
+```
+
+**Root cause.** The exact `corr` before the `>> 75` truncation is
+`16 777 215.9…`; the shift floors it to `2²⁴ − 1`. The ideal correction needs
+`2²⁴` (the value that puts mant exactly at the `2⁴⁷ + 2²³` halfway) or one above.
+So the RTL is 1 ulp short in corr, and the downstream chain (`corr_q2`, `tp`,
+`mant`) — all further truncations — cannot recover it.
+
+**Variants tested, all FAIL to fix it (negative result):**
+| variant | what it changes | takum32 22 288-vec result |
+|---------|-----------------|---------------------------|
+| `trunc` (current) | — | 8 mism (7 subnormal + **1 near-unity**) |
+| `round_corr` | add `+2⁷⁴` before `>> 75` | 9 mism (broke another boundary case) |
+| `round_tp` | add `+2⁴⁷` before `tp >> 48` | 9 mism |
+| `round_both` | both roundings | 9 mism |
+| `wider_corr` | keep corr at full width (no 32-bit mask) | 8 mism (no-op here — fits in 32) |
+| `wider_corr_round` | wider + round | 9 mism |
+
+**Conclusion.** No single-rounding-point fix recovers the missing ulp. The
+correction path needs a structural change. Three candidate approaches for the
+next loop (Option B), in increasing effort:
+
+1. **Cubic Taylor term.** Add `corr³/6` to `corr_q2`. The `x²/2` term currently
+   contributes ~2⁻⁴⁸ at this scale (below the truncation), but a properly-scaled
+   cubic might shift the boundary cases. Cheapest to try; re-run the 22k sweep.
+2. **Guarded correction path.** Widen `corr` to 40-bit and `tp` intermediate to
+   88-bit, with rounding at BOTH shifts. Restores sub-ulp precision. Adds ~8 bits
+   to the `tp` multiply (still far below decimal128's 336-bit routable width).
+3. **Near-unity special-case.** Detect `f_hi == 0` (frac < 2⁻¹⁶) and use a
+   separate high-precision path (or a direct 1+frac×ln2 Q48 computation without
+   the BRAM roundtrip). Eliminates the class entirely.
+
+Recommended: try (1) first (5-line change, re-verify), then (3) if (1) fails.
+Approach (2) is the most principled but the widest change.
+
+**Reproducibility:** `/tmp/tk/debug_nearunity.py` (the trace),
+`/tmp/tk/test_corr_variants.py` (the 6-variant sweep).
