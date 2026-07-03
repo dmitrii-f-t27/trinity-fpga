@@ -34,8 +34,24 @@ def find_golden(module):
             return getattr(module, name)
     return None
 
-print(f"{'format':<14} {'N':>4} {'golden?':>7} {'sampled':>8} {'subnormal-prod':>16} {'status':>22}")
-print("-" * 78)
+def golden_flushes_subnormals(modname):
+    """Static check: does the golden SOURCE flush subnormals to zero?
+    Reads the conformance .py and greps for the flush pattern
+    ('exp.*< 1 -> return sign-shifted-zero'). If yes, the format is CLEAN
+    by definition (HW matches golden; see FINDING_2026_07_03_catalog retraction)."""
+    import os, re
+    path = os.path.join("conformance", modname + ".py")
+    if not os.path.exists(path):
+        return None  # unknown
+    with open(path) as f:
+        src = f.read()
+    # common flush patterns in the goldens
+    if re.search(r"exp_final\s*<\s*1\b.*return|exp\s*<\s*1'sd1|<\s*-?149\b.*return.*0|return\s+sign\s*<<\s*31", src):
+        return True
+    return False
+
+print(f"{'format':<14} {'N':>4} {'golden?':>7} {'golden-flush?':>14} {'sub-prod':>9} {'verdict':>34}")
+print("-" * 92)
 rnd = random.Random(2026)
 results = []
 for fmt, modname, N in CANDIDATES:
@@ -43,11 +59,12 @@ for fmt, modname, N in CANDIDATES:
         m = importlib.import_module(modname)
         g = find_golden(m)
         if g is None:
-            print(f"{fmt:<14} {N:>4} {'no':>7} {'-':>8} {'-':>16} {'SKIP (no golden)':>22}")
+            print(f"{fmt:<14} {N:>4} {'no':>7} {'-':>14} {'-':>9} {'SKIP (no golden)':>34}")
             continue
+        # golden-side static check: does the golden definition itself flush?
+        gflush = golden_flushes_subnormals(modname)
         # sample across the format's range (biased toward small-magnitude for subnormal hunting)
         sample = [rnd.getrandbits(N) for _ in range(3000)]
-        # add small-magnitude codes (likely to produce small FP32 values)
         sample += list(range(0, 512))
         if N >= 64:
             sample += [0x0010_0000_0000_0000 + i for i in range(0, 512)]
@@ -63,17 +80,27 @@ for fmt, modname, N in CANDIDATES:
             mant = fp & 0x7FFFFF
             if exp_field == 0 and mant != 0:
                 sub_count += 1
-        status = "AFFECTED (has subnormal class)" if sub_count > 0 else "clean (no subnormals in range)"
-        print(f"{fmt:<14} {N:>4} {'yes':>7} {checked:>8} {sub_count:>16} {status:>22}")
-        results.append((fmt, sub_count))
+        # COMBINED verdict (the lesson from the ibm_hfp32 retraction):
+        #   affected ONLY if golden produces subnormals (sampled > 0) AND golden
+        #   does NOT itself flush (else HW matches golden -> CLEAN by definition).
+        if gflush:
+            verdict = "CLEAN (golden flushes -> HW matches)"
+        elif sub_count > 0:
+            verdict = "*** AFFECTED -- check HW flush ***"
+        else:
+            verdict = "inconclusive (sampling gap; golden keeps subnormals)"
+        gf_str = "yes" if gflush else ("no" if gflush is False else "?")
+        print(f"{fmt:<14} {N:>4} {'yes':>7} {gf_str:>14} {sub_count:>9} {verdict:>34}")
+        results.append((fmt, sub_count, gflush))
     except ImportError as e:
-        print(f"{fmt:<14} {N:>4} {'err':>7} {'-':>8} {'-':>16} {'no module':>22}")
+        print(f"{fmt:<14} {N:>4} {'err':>7} {'-':>14} {'-':>9} {'no module':>34}")
 
-print("\n== PRIORITY for subnormal-fix loops ==")
-affected = [(f, c) for f, c in results if c > 0]
-affected.sort(key=lambda x: -x[1])
-if not affected:
-    print("  (none found -- all clean)")
+print("\n== PRIORITY for subnormal-fix loops (true bugs only) ==")
+# truly affected = golden keeps subnormals (gflush is False) AND sampling found some
+true_aff = [(f, c) for f, c, gf in results if gf is False and c > 0]
+true_aff.sort(key=lambda x: -x[1])
+if not true_aff:
+    print("  (none found -- all formats either flush by convention or sampling-gap)")
 else:
-    for f, c in affected:
-        print(f"  {f:<14} {c} subnormal-producing inputs in sample (fix mirrors lns16 commit bffc7a2ab)")
+    for f, c in true_aff:
+        print(f"  {f:<14} {c} subnormal-producing inputs, golden does NOT flush -> check HW (fix mirrors lns16 bffc7a2ab)")
