@@ -193,13 +193,47 @@ P1 formats and any future HW-format requests.
 
 ---
 
-## 7. Git state at end of loop
+## 7. Addendum — takum32 preemptive analysis + CI experiments launched
 
-- **Committed + pushed:** `9ff4e7ea8 ci(fpga): add docker-pull retry (6x backoff)
-  to all 85 openXC7 workflows` — CI re-triggered, all workflows now retry-resilient.
-- **Installed locally, verified, not yet pushed:** `fpga/openxc7-synth/takum64_decode.v`
-  (routing-optimized + subnormal-fixed). Held for the next loop's explicit "ship"
-  decision per Option A — push triggers the TAKUM64 workflow on its own YAML+RTL
-  path filter.
+After the report body was written, the same methodology was applied to
+`takum32_decode.v` (its in-flight CI run `28643503442` was in nextpnr >2 h).
+
+**takum32 findings:**
+- Same latent subnormal-underflow bug (7 cases at `ell ∈ [-208,-206]`).
+- `ell_27` truncation is **NOT viable** for takum32 (precision budget too tight:
+  `ell_keep=32` already gives 23.9 % mismatches vs 0.036 % for takum64 at the same
+  drop). The 87-bit `L` multiply stays full-width — but 87 < 119, so takum32's
+  routing case is inherently easier than takum64's.
+- The subnormal fix **is** viable and strictly beneficial. iverilog on 3840 vectors:
+  original 20 fails → fixed 9 fails (removes 11, adds 0). Remaining 9 are a
+  pre-existing near-unity Taylor-precision bug in the `0x400000xx` band.
+- Committed as `399bb0cf8 fix(fpga): takum32 subnormal-underflow fix`.
+
+**CI experiments in flight at end of loop (the melt):**
+
+| run ID | workflow | head | what it tests |
+|--------|----------|------|---------------|
+| `28651683990` | TAKUM64 | `b537d033` | optimized 94+72-bit RTL — the routing unlock |
+| `28651957022` | TAKUM32 | `399bb0cf` | subnormal-fixed RTL (correctness; routing unchanged) |
+| `28650506195` | TAKUM64 | `9ff4e7ea` | docker-retry control on ORIGINAL RTL (expected: routes-fail) |
+| `28643503442` | TAKUM32 | `92eafad5` | original RTL, in nextpnr since 06:56 (long-running) |
+
+The decisive one is **`28651683990`**: if the optimized 94+72-bit datapath routes
+where the 119+140-bit original failed across 32 seeds, the EPIC ceiling moves from
+~71/83 to **73/83** after flash + host conformance.
+
+**Observation (anecdotal but on-point):** local `yosys synth_xilinx` of the
+*original* `takum64_decode.v` ran >10 min without producing stat output, while
+the optimized version's narrower multiplies are expected to synth in a fraction
+of that. The slow original synth is itself evidence of the complexity that broke
+routing.
+
+## 8. Git state at end of loop
+
+- **Committed + pushed (4 commits):**
+  - `9ff4e7ea8` — docker-pull retry across all 85 openXC7 workflows.
+  - `ba38d25c0` — this loop report.
+  - `b537d0336` — `takum64_decode.v` routing-optimized + subnormal fix.
+  - `399bb0cf8` — `takum32_decode.v` subnormal fix.
 - **Analysis artefacts:** `/tmp/tk/*.py` (faithful model, truncation sweep,
-  subnormal fix, large-vector verifier). Reproducible from this report.
+  subnormal fix verifier, large-vector head-to-head). Reproducible from this report.
