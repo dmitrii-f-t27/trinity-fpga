@@ -222,11 +222,12 @@ The decisive one is **`28651683990`**: if the optimized 94+72-bit datapath route
 where the 119+140-bit original failed across 32 seeds, the EPIC ceiling moves from
 ~71/83 to **73/83** after flash + host conformance.
 
-**Observation (anecdotal but on-point):** local `yosys synth_xilinx` of the
-*original* `takum64_decode.v` ran >10 min without producing stat output, while
-the optimized version's narrower multiplies are expected to synth in a fraction
-of that. The slow original synth is itself evidence of the complexity that broke
-routing.
+**Local yosys note (corrected):** a bounded local `yosys synth_xilinx -abc9` run
+timed out at 180 s for **both** the original and the optimized RTL — so local
+slowdown is a toolchain/build characteristic, not RTL-specific evidence. The
+reliable synth signal is CI's `regymm/openxc7` Docker, which passed the optimized
+RTL cleanly (step 4 "Yosys" = success on `28651683990`). The actual routing-yield
+discriminator is step 7 (nextpnr), still pending at session end.
 
 ## 8. Git state at end of loop
 
