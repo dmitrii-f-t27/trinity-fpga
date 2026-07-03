@@ -164,6 +164,12 @@ module lns16_decode (
     // fpga/FINDING_2026_07_03_lns16_subnormal_flush.md).
     wire [23:0] full_mant = {1'b1, frac_mant};
 
+    // subnormal-rounding temporaries (declared at module level -- yosys rejects
+    // block-local reg declarations outside SystemVerilog mode).
+    reg [23:0] sv_sub;
+    reg g_sub, r_sub, stb_sub, ru_sub;
+    reg [23:0] sk_sub;
+
     always @(*) begin
         if (is_zero)
             fp32_out = 32'h00000000;
@@ -175,21 +181,18 @@ module lns16_decode (
             // fp32_exp >= -1 -> only two subnormal cases: fp32_exp=0 (sh=1)
             // and fp32_exp=-1 (sh=2). Previously flushed ALL to signed zero.
             // See fpga/FINDING_2026_07_03_lns16_subnormal_flush.md.
-            reg [23:0] sv;
-            reg g, r_b, stb, ru;
-            reg [23:0] sk;
             case (fp32_exp)
-                9'sd0:  begin sv = full_mant >> 1; g = full_mant[0]; r_b = 1'b0; stb = 1'b0; end
-                default: begin sv = full_mant >> 2; g = full_mant[1]; r_b = full_mant[0]; stb = 1'b0; end
+                9'sd0:  begin sv_sub = full_mant >> 1; g_sub = full_mant[0]; r_sub = 1'b0; stb_sub = 1'b0; end
+                default: begin sv_sub = full_mant >> 2; g_sub = full_mant[1]; r_sub = full_mant[0]; stb_sub = 1'b0; end
             endcase
-            ru = g & (r_b | stb | sv[0]);
-            sk = sv + (ru ? 24'd1 : 24'd0);
-            if (sk >= 24'h800000)
+            ru_sub = g_sub & (r_sub | stb_sub | sv_sub[0]);
+            sk_sub = sv_sub + (ru_sub ? 24'd1 : 24'd0);
+            if (sk_sub >= 24'h800000)
                 fp32_out = {sign, 8'h01, 23'h000000};   // rounded up to min normal
-            else if (sk == 0)
+            else if (sk_sub == 0)
                 fp32_out = {sign, 24'h0};               // rounded to signed zero
             else
-                fp32_out = {sign, 8'h00, sk[22:0]};     // subnormal field
+                fp32_out = {sign, 8'h00, sk_sub[22:0]};  // subnormal field
         end
         else
             fp32_out = {sign, fp32_exp[7:0], frac_mant};
