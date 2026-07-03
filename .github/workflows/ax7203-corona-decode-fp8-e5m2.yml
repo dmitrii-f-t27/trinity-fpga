@@ -43,7 +43,7 @@ jobs:
         run: |
           CLEAN=0; for s in $(seq 1 8); do
             rm -f build/corona_decode_fp8_e5m2/corona_decode_ax7203.fasm
-            docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 nextpnr-xilinx \
+            docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
               --chipdb /work/build/corona_decode_fp8_e5m2/chipdb/xc7a200tfbg484-2.bin \
               --xdc /work/fpga/openxc7-synth/corona_decode_ax7203.xdc \
               --json /work/build/corona_decode_fp8_e5m2/corona_decode_ax7203.json \

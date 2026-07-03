@@ -41,7 +41,7 @@ jobs:
           for trial in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
             if [ "$trial" -le 8 ]; then s=$trial; PLACER=heap; else s=$((trial-8)); PLACER=sa; fi
             rm -f build/gf32_mul/gf32_mul_ax7203.fasm
-            docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 nextpnr-xilinx \
+            docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
               --chipdb /work/build/gf32_mul/chipdb/xc7a200tfbg484-2.bin \
               --xdc /work/specs/fpga/constraints/gf16_clean_ax7203.xdc \
               --json /work/build/gf32_mul/gf32_mul_ax7203.json \
