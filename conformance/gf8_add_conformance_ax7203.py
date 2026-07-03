@@ -116,18 +116,20 @@ def self_test():
     return bad == 0 and gf8_add(0x10, 0x90) == 0
 
 
-def run_hw(port, baud, n):
+def run_hw(port, baud, n, exhaustive=False):
     import serial
     ser = serial.Serial(port, baud, timeout=2)
     fails = 0
     checked = 0
-    # representative sample: corners + random
     import random
     rnd = random.Random(42)
-    sample = [0x00, 0x01, 0x7F, 0xFF, 0x10, 0x40, 0x80, 0x90]
-    sample += [rnd.randint(0, 255) for _ in range(n - len(sample))]
+    if exhaustive:
+        sample = list(range(256))
+    else:
+        sample = [0x00, 0x01, 0x7F, 0xFF, 0x10, 0x40, 0x80, 0x90]
+        sample += [rnd.randint(0, 255) for _ in range(n - len(sample))]
     for a in sample:
-        for b in sample[:8]:
+        for b in (sample if exhaustive else sample[:8]):
             hw = hw_exchange(ser, a, b)
             gold = gf8_add(a, b)
             checked += 1
@@ -146,11 +148,12 @@ def main():
     ap.add_argument("--port", default="/dev/cu.usbserial-120")
     ap.add_argument("--baud", type=int, default=160000)
     ap.add_argument("--n", type=int, default=64)
+    ap.add_argument("--exhaustive", action="store_true", help="all 256x256=65536")
     a = ap.parse_args()
     if a.self_test:
         ok = self_test()
         sys.exit(0 if ok else 1)
-    ok = run_hw(a.port, a.baud, a.n)
+    ok = run_hw(a.port, a.baud, a.n, a.exhaustive)
     sys.exit(0 if ok else 1)
 
 

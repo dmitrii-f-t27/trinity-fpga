@@ -1,8 +1,10 @@
 # nf4-kernel issue draft (for `gh issue create` in gHashTag/trios-trainer-igla)
 
-> **English-only** per PR #65. Save this verbatim; promote via
-> `gh issue create --repo gHashTag/trios-trainer-igla --title "..." --body "..."`.
-> Body is the English text below (TITLE and BODY separated for CLI use).
+> **PROMOTED → https://github.com/gHashTag/trios-trainer-igla/issues/217** (2026-07-03)
+> Created via gh CLI (no sandbox needed). Do NOT recreate. Sandbox-return batch
+> reduced 4 → 3 actions (only schedule_cron + 2× save_custom_skill remain).
+>
+> **English-only** per PR #65. Original draft preserved below for reference.
 
 ---
 
