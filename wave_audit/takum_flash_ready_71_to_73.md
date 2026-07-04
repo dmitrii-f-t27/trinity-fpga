@@ -2,7 +2,7 @@
 
 > **⚠️ RETRACTED 2026-07-03.** takum64/32 CI runs 28675516786 / 28675516794 both
 > ended `conclusion=failure` — yosys OK, nextpnr all 8 seeds timed out unrouted on
-> Artix-7 100T. **takum will NOT go GREEN on this part.** The 71→72→73 procedure
+> Artix-7 200T (XC7A200T). **takum will NOT go GREEN on this part.** The 71→72→73 procedure
 > below will NEVER execute on AX7203. Achievable ceiling = 71/83 (TERMINAL).
 > See #199 body (revised) + comment issuecomment-4880596167.
 >
