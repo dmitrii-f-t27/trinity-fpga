@@ -1,0 +1,10 @@
+bf16 | 35d80446a6391e6f30fa08dd124e53f02e1047f0187eb92d41679383bef24f93 | HW RESULT: 8/8 bit-exact (decode-HW); fails=0 
+fp8_e4m3 | 4034f5768322bfe5e66abe14c49938076400dd2a645be9e4aee186e93d1b9009 | HW RESULT: 256/256 bit-exact (decode-HW); fails=0 
+int8 | b434d558996c73b4fc07f4725ad3057739607d62c0dcb207d753875a2ae1a542 | HW RESULT: 256/256 bit-exact (decode-HW); fails=0 
+nf4 | bb5f97693e995fb13f17d377233a97892af4f15ce4ff708f867b493d42c6503c | HW RESULT: 16/16 bit-exact (decode-HW); fails=0 
+posit8 | 7d807e58fff05a6914c9260e12a7e6ac8a1fc65779b97a7b0b880f046a5c03b7 | HW RESULT: 256/256 bit-exact (decode-HW); fails=0 
+fp8_e5m2 | e39a3dd9ef97c85db263bf4c5e6029ac6467b622916b15b5d3769bc52a4409f0 | HW RESULT: 256/256 bit-exact (decode-HW); fails=0 
+fp4_e2m1 | 32f73ba9987505973c8b3a69b62cdf988ba8ed05ead126ddd1c16dc56a8a7ef5 | HW RESULT: 16/16 bit-exact (decode-HW); fails=0 
+int4 | 1f5434c924885f64f98806cc3a6194782a6cdaf465a49eda0d755bedcf854984 | HW RESULT: 16/16 bit-exact (decode-HW); fails=0 
+fp6_e2m3 | 9256bb8136820f6aaaf70c85e98703f545b2adbb2ba129c8d5d1c48570e0eb82 | HW RESULT: 64/64 bit-exact (decode-HW); fails=0 
+fp6_e3m2 | 60aec5726340853078e18fd1f82764417012a77e35eb97721f9b327fdc43afff | HW RESULT: 64/64 bit-exact (decode-HW); fails=0 
