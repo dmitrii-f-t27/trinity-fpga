@@ -1,4 +1,19 @@
-# Flash-ready: takum64 (71→72) + takum32 (72→73) + lns16 re-flash
+# RETRACTED — takum64/32 routing FAILED (ceiling is 71, not 73)
+
+> **⚠️ RETRACTED 2026-07-03.** takum64/32 CI runs 28675516786 / 28675516794 both
+> ended `conclusion=failure` — yosys OK, nextpnr all 8 seeds timed out unrouted on
+> Artix-7 100T. **takum will NOT go GREEN on this part.** The 71→72→73 procedure
+> below will NEVER execute on AX7203. Achievable ceiling = 71/83 (TERMINAL).
+> See #199 body (revised) + comment issuecomment-4880596167.
+>
+> **Do NOT act on the flash steps below for takum** — they are moot. Retained only
+> as a record of what WAS pre-staged. The lns16 re-flash section (correctness-fix,
+> count-neutral) is still valid IF a re-flash is ever wanted, but it does NOT move
+> the count (stays 71).
+
+---
+
+# [RETRACTED] Flash-ready: takum64 (71→72) + takum32 (72→73) + lns16 re-flash
 
 > Pre-staged materials for the local-agent queue. The moment a takum run goes
 > GREEN, execute the matching section below end-to-end. lns16 bitstream is
