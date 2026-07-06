@@ -9,6 +9,7 @@ Golden: struct.pack('>f', float(int64_value)) — standard C library RNE roundin
 import serial, struct, time, random, sys, argparse
 
 def int64_to_fp32(raw):
+    raw &= (1 << 64) - 1  # mask to 64-bit unsigned
     """int64 raw bits → FP32 bits via Python float (RNE rounding)."""
     # Interpret as signed 64-bit
     if raw >= (1 << 63):
@@ -16,6 +17,8 @@ def int64_to_fp32(raw):
     else:
         val = raw
     f = float(val)
+    if abs(f) > 3.4028235e38:
+        return 0xFF800000 if f < 0 else 0x7F800000
     return struct.unpack('>I', struct.pack('>f', f))[0]
 
 def make_codes():
