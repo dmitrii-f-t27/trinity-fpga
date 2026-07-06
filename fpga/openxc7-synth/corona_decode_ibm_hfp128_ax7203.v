@@ -1,0 +1,93 @@
+`default_nettype wire
+`timescale 1ns / 1ps
+// corona_decode_ibm_hfp128_ax7203 — IBM HFP128 → FP32 decode on AX7203.
+// 16-byte code frame (128-bit input).
+module corona_decode_ibm_hfp128_ax7203 (
+    input  wire rst_n, input wire uart_rx, output reg uart_tx, output wire [3:0] led
+);
+    wire mclk, eos;
+    STARTUPE2 #(.PROG_USR("FALSE"), .SIM_CCLK_FREQ(0.0)) u_startup (
+        .CFGCLK(), .CFGMCLK(mclk), .EOS(eos),
+        .CLK(1'b0),.GSR(1'b0),.GTS(1'b0),.KEYCLEARB(1'b0),.PACK(1'b0),
+        .USRCCLKO(1'b0),.USRCCLKTS(1'b0),.USRDONEO(1'b0),.USRDONETS(1'b0));
+    wire rst = ~rst_n | ~eos;
+    localparam [8:0] BAUD_DIV = 9'd434;
+    reg [26:0] cnt_c;
+    always @(posedge mclk or posedge rst) if (rst) cnt_c<=0; else cnt_c<=cnt_c+1;
+    assign led[0]=cnt_c[25]; assign led[3]=~rst;
+    reg [2:0] rsync;
+    always @(posedge mclk or posedge rst) if(rst) rsync<=3'b111; else rsync<={rsync[1:0],uart_rx};
+    wire rxd=rsync[2];
+    reg [1:0] rxs; reg [9:0] rxcnt; reg [2:0] rbi; reg [7:0] rxsr; reg [7:0] rx_byte; reg rx_new;
+    always @(posedge mclk or posedge rst) begin
+        if(rst) begin rxs<=0;rxcnt<=0;rbi<=0;rxsr<=0;rx_byte<=0;rx_new<=0; end
+        else begin rx_new<=0;
+            case(rxs)
+                2'd0: if(~rxd) begin rxcnt<=(BAUD_DIV+(BAUD_DIV>>1))-1;rxs<=1;rbi<=0; end
+                2'd1: begin if(rxcnt==0) begin rxsr<={rxd,rxsr[7:1]}; if(rbi==7) begin rxs<=2;rxcnt<=BAUD_DIV-1; end else begin rbi<=rbi+1;rxcnt<=BAUD_DIV-1; end end else rxcnt<=rxcnt-1; end
+                2'd2: begin if(rxcnt==0) begin rx_byte<=rxsr;rx_new<=1;rxs<=0; end else rxcnt<=rxcnt-1; end
+                default: rxs<=0;
+            endcase
+        end
+    end
+    // Frame: AA 55 fmt b0..b15 trig (20 bytes total)
+    reg [4:0] frm; reg [7:0] fmt_r; reg [127:0] code_r; reg frame_valid;
+    always @(posedge mclk or posedge rst) begin
+        if(rst) begin frm<=0;fmt_r<=0;code_r<=0;frame_valid<=0; end
+        else begin frame_valid<=0;
+            if(rx_new) begin case(frm)
+                5'd0:  frm<=(rx_byte==8'hAA)?5'd1:5'd0;
+                5'd1:  frm<=(rx_byte==8'h55)?5'd2:5'd0;
+                5'd2:  begin fmt_r<=rx_byte;frm<=3; end
+                5'd3:  begin code_r[7:0]<=rx_byte;frm<=4; end
+                5'd4:  begin code_r[15:8]<=rx_byte;frm<=5; end
+                5'd5:  begin code_r[23:16]<=rx_byte;frm<=6; end
+                5'd6:  begin code_r[31:24]<=rx_byte;frm<=7; end
+                5'd7:  begin code_r[39:32]<=rx_byte;frm<=8; end
+                5'd8:  begin code_r[47:40]<=rx_byte;frm<=9; end
+                5'd9:  begin code_r[55:48]<=rx_byte;frm<=10; end
+                5'd10: begin code_r[63:56]<=rx_byte;frm<=11; end
+                5'd11: begin code_r[71:64]<=rx_byte;frm<=12; end
+                5'd12: begin code_r[79:72]<=rx_byte;frm<=13; end
+                5'd13: begin code_r[87:80]<=rx_byte;frm<=14; end
+                5'd14: begin code_r[95:88]<=rx_byte;frm<=15; end
+                5'd15: begin code_r[103:96]<=rx_byte;frm<=16; end
+                5'd16: begin code_r[111:104]<=rx_byte;frm<=17; end
+                5'd17: begin code_r[119:112]<=rx_byte;frm<=18; end
+                5'd18: begin code_r[127:120]<=rx_byte;frm<=19; end
+                5'd19: begin frame_valid<=1;frm<=0; end
+                default: frm<=0;
+            endcase end
+        end
+    end
+    assign led[1]=frame_valid;
+    wire [31:0] result;
+    wire zero_flag, inf_flag;
+    ibm_hfp128_decode u_dec (.ibm_in(code_r), .fp32_out(result), .is_zero(zero_flag));
+    assign led[2] = |result;
+    reg responding; reg [3:0] tx_idx; reg [7:0] tx_buf0,tx_buf1,tx_buf2,tx_buf3,tx_buf4;
+    reg [8:0] tcnt; reg [3:0] tbi; reg [9:0] tsr;
+    always @(posedge mclk or posedge rst) begin
+        if(rst) begin responding<=0;tx_idx<=0;tcnt<=BAUD_DIV-1;tbi<=0;tsr<=10'h3FF;uart_tx<=1;
+            tx_buf0<=8'hFF;tx_buf1<=8'hFF;tx_buf2<=8'hFF;tx_buf3<=8'hFF;tx_buf4<=8'hFF; end
+        else begin uart_tx<=tsr[0];
+            if(frame_valid) begin
+                tx_buf0<=8'hA5; tx_buf1<=result[7:0]; tx_buf2<=result[15:8];
+                tx_buf3<=result[23:16]; tx_buf4<=result[31:24]; responding<=1; tx_idx<=0;
+            end
+            if(tcnt==0) begin tcnt<=BAUD_DIV-1;
+                if(tbi==9) begin tbi<=0;
+                    if(responding) begin
+                        case(tx_idx)
+                            4'd0: tsr<={1'b1,tx_buf0,1'b0}; 4'd1: tsr<={1'b1,tx_buf1,1'b0};
+                            4'd2: tsr<={1'b1,tx_buf2,1'b0}; 4'd3: tsr<={1'b1,tx_buf3,1'b0};
+                            4'd4: tsr<={1'b1,tx_buf4,1'b0};
+                        endcase
+                        if(tx_idx==4) responding<=0; else tx_idx<=tx_idx+1;
+                    end else tsr<=10'h3FF;
+                end else begin tbi<=tbi+1;tsr<={1'b1,tsr[9:1]}; end
+            end else tcnt<=tcnt-1;
+        end
+    end
+endmodule
+`default_nettype wire
