@@ -1,10 +1,7 @@
 `default_nettype wire
 `timescale 1ns / 1ps
-// corona_decode_lns32_ax7203 — IEEE 754 LNS32 (half) decode on AX7203.
-// lns32_decode is authored in-repo and EXHAUSTIVELY verified (65536/65536 vs
-// the C-library LNS32 via struct 'e'). Single-decoder build: CFGMCLK clock,
-// BAUD_DIV 434. Frame: AA 55 fmt code_lo code_hi trig -> A5 r0 r1 r2 r3.
-// Identical infra to corona_decode_fp8_ax7203; only the decoder differs.
+// corona_decode_lns32_ax7203 — LNS32 decode on AX7203 (32-bit decode frame).
+// Same 32-bit decode frame as binary32 (4 code bytes). LNS32 = identity (already 32-bit).
 module corona_decode_lns32_ax7203 (
     input  wire rst_n, input wire uart_rx, output reg uart_tx, output wire [3:0] led
 );
@@ -33,7 +30,7 @@ module corona_decode_lns32_ax7203 (
             endcase
         end
     end
-    reg [2:0] frm; reg [7:0] fmt_r; reg [15:0] code_r; reg frame_valid;
+    reg [2:0] frm; reg [7:0] fmt_r; reg [31:0] code_r; reg frame_valid;
     always @(posedge mclk or posedge rst) begin
         if(rst) begin frm<=0;fmt_r<=0;code_r<=0;frame_valid<=0; end
         else begin frame_valid<=0;
@@ -43,13 +40,16 @@ module corona_decode_lns32_ax7203 (
                 3'd2: begin fmt_r<=rx_byte;frm<=3; end
                 3'd3: begin code_r[7:0]<=rx_byte;frm<=4; end
                 3'd4: begin code_r[15:8]<=rx_byte;frm<=5; end
-                3'd5: begin frame_valid<=1;frm<=0; end
+                3'd5: begin code_r[23:16]<=rx_byte;frm<=6; end
+                3'd6: begin code_r[31:24]<=rx_byte;frm<=7; end
+                3'd7: begin frame_valid<=1;frm<=0; end
             endcase end
         end
     end
     assign led[1]=frame_valid;
     wire [31:0] result;
-    lns32_decode u_dec (.lns_in(code_r), .fp32_out(result), .is_zero(zero_flag));
+    wire        is_zero;
+    lns32_decode u_dec (.lns_in(code_r), .int32_out(result), .is_zero(zero_flag));
     assign led[2] = |result;
     reg responding; reg [2:0] tx_idx; reg [7:0] tx_buf0,tx_buf1,tx_buf2,tx_buf3,tx_buf4;
     reg [8:0] tcnt; reg [3:0] tbi; reg [9:0] tsr;
