@@ -5,10 +5,13 @@ SCALE = 128
 def decode(raw):
     raw &= 0xFFFFFFFF
     sign = raw >> 31
-    if raw == 0 or (raw & 0x7FFFFFFF) == 0: return sign << 31
+    if raw == 0: return 0
     signed_log = raw & 0x7FFFFFFF
     if signed_log & 0x40000000: signed_log -= 0x80000000  # sign-extend 31-bit
-    val = (-1)**sign * 2.0**(signed_log / SCALE)
+    exp_val = signed_log / SCALE
+    if exp_val > 127: return 0xFF800000 if sign else 0x7F800000
+    if exp_val < -126: return sign << 31
+    val = (-1)**sign * 2.0**exp_val
     if abs(val) > 3.4e38: return 0xFF800000 if val < 0 else 0x7F800000
     if abs(val) < 1.2e-38: return sign << 31
     return struct.unpack(">I", struct.pack(">f", val))[0]
