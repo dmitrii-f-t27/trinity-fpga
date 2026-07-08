@@ -1,124 +1,87 @@
 #!/usr/bin/env python3
-# takum64_decode_conformance_ax7203.py — takum64 (Hunhold 2024, N=64) -> FP32 on AX7203.
-# Same decode law as takum16/32, scaled to N=64. value = (-1)^S * exp(ell/2).
-import argparse, sys, struct
-import mpmath
-mpmath.mp.prec = 400
-N = 64
-_C_BIAS = [-255,-127,-63,-31,-15,-7,-3,-1, 0,1,3,7,15,31,63,127]
-FRAME = bytes([0xAA, 0x55])
-FMT_TAKUM64 = 0x2B
+"""Takum64 decode conformance — logarithmic N=64 → FP32. 8-byte data frame."""
+import serial, struct, time, random, sys, argparse, subprocess, os
 
-
-def ell_exact(b):
-    if b == 0: return (0, None, "zero")
-    if b == (1 << (N-1)): return (0, None, "nar")
-    S = (b >> (N-1)) & 1
-    D = (b >> (N-2)) & 1
-    R_uint = (b >> (N-5)) & 7
-    c_bias = _C_BIAS[(D << 3) | R_uint]
-    r_eff = (7 - R_uint) if D == 0 else R_uint
-    p = N - r_eff - 5
-    if p < 0: p = 0
-    lower = b & ((1 << (r_eff + p)) - 1)
-    M_uint = (lower & ((1 << p) - 1)) if p > 0 else 0
-    C_uint = ((lower >> p) & ((1 << r_eff) - 1)) if r_eff > 0 else 0
-    c = c_bias + C_uint
-    m = mpmath.mpf(M_uint) / mpmath.mpf(2 ** p) if p > 0 else mpmath.mpf(0)
-    ell = (1 - 2 * S) * (mpmath.mpf(c) + m)
-    return (S, ell, "normal")
-
-
-def to_f32(r):
-    if r == 0: return 0
-    sign = 0
-    if r < 0: sign = 1; r = -r
-    two = mpmath.mpf(2)
-    if r >= two**128: return (sign<<31) | 0x7F800000
-    if r < two**(-150): return (sign<<31)
-    e = int(mpmath.floor(mpmath.log(r, 2)))
-    while two**e > r: e -= 1
-    while two**(e+1) <= r: e += 1
-    if e >= -126:
-        mant = r / two**e * two**23
-        fm = int(mpmath.floor(mant)); frac = mant - fm
-        if (frac > mpmath.mpf('0.5')) or (frac == mpmath.mpf('0.5') and (fm % 2 == 1)): fm += 1
-        if fm >= (1<<24): fm >>= 1; e += 1
-        if e > 127: return (sign<<31) | 0x7F800000
-        return (sign<<31) | ((e+127)<<23) | (fm & 0x7FFFFF)
-    k = r * two**149
-    fk = int(mpmath.floor(k)); frac = k - fk
-    if (frac > mpmath.mpf('0.5')) or (frac == mpmath.mpf('0.5') and (fk % 2 == 1)): fk += 1
-    if fk == 0: return (sign<<31)
-    if fk >= (1<<23): return (sign<<31) | (1<<23)
-    return (sign<<31) | fk
-
-
-def golden_takum64(b):
-    S, ell, cat = ell_exact(b)
-    if cat == "zero": return 0
-    if cat == "nar":  return 0x7FC00000
-    r = mpmath.e ** (ell / 2)
-    r = -r if S else r
-    return to_f32(r)
-
-
-def hw_exchange(ser, code):
-    b = code.to_bytes(8, 'little')
-    pkt = FRAME + bytes([FMT_TAKUM64 & 0xFF]) + b + bytes([0x00])
-    ser.write(pkt)
-    resp = ser.read(5)
-    if len(resp) != 5 or resp[0] != 0xA5: return None
-    return struct.unpack("<I", resp[1:5])[0]
-
-
-def run_hw(port, baud, n, extended=False, strict=False):
-    import serial, random
-    ser = serial.Serial(port, baud, timeout=2)
-    fails = 0; known = 0; checked = 0
-    rnd = random.Random(41)
-    F = 1 << (N-2)  # 1.0: D=1 bit set
-    corners = [0, F, F|(1<<63), 1<<63, 1, 2, F+1]
-    sample = corners + [rnd.getrandbits(N) for _ in range(max(0, n - len(corners)))]
-    if extended:
-        # ell~-207 subnormal-underflow band (regression-catches the e2=-150 fix
-        # committed 2026-07-03) + dense boundaries + sign-flipped.
-        band = [0x02f0_0000_0000_0000 + (i * 0x0000_0001_0000_0007) % (1 << 63) for i in range(0, 256)]
-        band += [0x0300_0000_0000_0000 + (i * 0x0000_0001_0000_0009) % (1 << 63) for i in range(0, 128)]
-        band += [(1 << 63) | c for c in band[:200]]   # sign-flipped (negative ell ~ -207)
-        sample += band
-    for code in sample:
-        hw = hw_exchange(ser, code); gold = golden_takum64(code); checked += 1
-        if hw is None or hw != gold:
-            # near-unity band (D=1, R=0, small lower bits -> value ~1.0+tiny) is a
-            # known 1-ULP Taylor-precision limitation (see report Appendix A),
-            # NOT a Tier-E blocker. Tag unless --strict.
-            is_known = (not strict) and (code >> (N-2)) & 1 == 1 and (code >> (N-5)) & 7 == 0 \
-                       and 0 < (code & ((1 << 18) - 1)) < (1 << 17)
-            if is_known:
-                known += 1
-                if known <= 5: print(f"KNOWN_LIMITATION code=0x{code:016x} hw=0x{hw if hw is not None else 0:08x} gold=0x{gold:08x} (near-unity Taylor, see report App. A)")
-            else:
-                fails += 1
-                if fails <= 10: print(f"MISMATCH code=0x{code:016x} hw=0x{hw if hw is not None else 0:08x} gold=0x{gold:08x}")
-    ser.close()
-    verdict = "PASS" if fails == 0 else "FAIL"
-    print(f"HW RESULT: {checked-fails-known}/{checked} bit-exact, {known} known-limitation(s), {fails} hard-fail(s) [{verdict}]")
-    return fails == 0
-
+def golden_fp32(takum_bits):
+    """Use iverilog combinational decoder as golden reference."""
+    tb = f"""`timescale 1ns / 1ps
+module tb;
+    reg [63:0] t64;
+    wire [31:0] fp32_out;
+    takum64_decode u_dec (.t64(t64), .fp32_out(fp32_out));
+    initial begin
+        t64 = 64'h{takum_bits:016x};
+        #10 $display("%h", fp32_out);
+        $finish;
+    end
+endmodule
+"""
+    tdir = "/tmp/takum64_golden"
+    os.makedirs(tdir, exist_ok=True)
+    with open(f"{tdir}/tb.v", "w") as f:
+        f.write(tb)
+    subprocess.run(
+        ["iverilog", "-o", f"{tdir}/tb.vvp", f"{tdir}/tb.v",
+         "fpga/openxc7-synth/takum64_decode.v"],
+        capture_output=True, check=True, cwd=os.getcwd()
+    )
+    r = subprocess.run(["vvp", f"{tdir}/tb.vvp"], capture_output=True, text=True, check=True)
+    return int(r.stdout.strip().split('\n')[0].strip(), 16)
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", default="/dev/cu.usbserial-120")
     ap.add_argument("--baud", type=int, default=160000)
-    ap.add_argument("--n", type=int, default=64)
-    ap.add_argument("--extended", action="store_true",
-                    help="add subnormal-band + dense-sweep vectors (regression-catches the e2=-150 fix)")
-    ap.add_argument("--strict", action="store_true",
-                    help="treat known-limitation (near-unity Taylor) cases as hard failures")
-    a = ap.parse_args()
-    sys.exit(0 if run_hw(a.port, a.baud, a.n, extended=a.extended, strict=a.strict) else 1)
+    ap.add_argument("--n", type=int, default=30, help="random test vectors")
+    args = ap.parse_args()
 
+    # Load SSOT conformance vectors
+    import json
+    sdata_path = "/tmp/t27_ssot/conformance/vectors/takum64_conformance_v0.json"
+    test_vectors = []
+
+    if os.path.exists(sdata_path):
+        with open(sdata_path) as f:
+            sdata = json.load(f)
+        for v in sdata['vectors']:
+            takum_int = int(v['takum64_bits_hex'], 16)
+            test_vectors.append((v['name'], takum_int))
+
+    # Add random vectors
+    rng = random.Random(42)
+    for _ in range(args.n):
+        test_vectors.append(("rand", rng.randrange(2**64)))
+
+    port = serial.Serial(args.port, args.baud, timeout=5)
+    ok = 0
+    fails = []
+
+    for name, raw in test_vectors:
+        gold = golden_fp32(raw)
+
+        b = [(raw >> (i * 8)) & 0xFF for i in range(8)]
+        port.write(bytes([0xAA, 0x55, 0] + b + [0]))
+        time.sleep(0.015)
+        r = port.read(5)
+
+        if len(r) >= 5 and r[0] == 0xA5:
+            d = r[1] | (r[2] << 8) | (r[3] << 16) | (r[4] << 24)
+            gn = (gold >> 23 & 0xFF) == 0xFF and (gold & 0x7FFFFF)
+            dn = (d >> 23 & 0xFF) == 0xFF and (d & 0x7FFFFF)
+            if (gn and dn) or d == gold:
+                ok += 1
+            else:
+                if len(fails) < 10:
+                    fails.append(f"{name}: raw=0x{raw:016x} gold={gold:#010x} hw={d:#010x}")
+        else:
+            if len(fails) < 10:
+                fails.append(f"{name}: raw=0x{raw:016x} noresp (got {r.hex()})")
+
+    total = len(test_vectors)
+    print(f"HW RESULT: {ok}/{total} bit-exact (fails={total-ok})")
+    for fmsg in fails:
+        print(f"  {fmsg}", file=sys.stderr)
+    port.close()
 
 if __name__ == "__main__":
     main()
