@@ -14,17 +14,18 @@ def golden_bf16(raw):
 
 def golden_fp8_e4m3_fnuz(raw):
     raw &= 0xFF
+    # FP8 E4M3 FN-UZ: 1s+4e+3m, bias=8, 0x00=+0, 0x80=NaN, no inf
     s = (raw >> 7) & 1
     e = (raw >> 3) & 0xF
     m = raw & 7
+    if raw == 0x80: return 0x7FC00000  # NaN
     if e == 0 and m == 0: return (s << 31)
     if e == 0:
-        v = (m / 8.0) * (2.0 ** -6)
+        v = (m / 8.0) * (2.0 ** (1 - 8))  # bias=8
     else:
-        v = (1 + m / 8.0) * (2.0 ** (e - 7))
+        v = (1 + m / 8.0) * (2.0 ** (e - 8))  # bias=8
     if s: v = -v
     if abs(v) > 3.4e38: return 0xFF800000 if s else 0x7F800000
-    if abs(v) < 1.2e-38: return (s << 31)
     return struct.unpack(">I", struct.pack(">f", v))[0]
 
 def golden_int8(raw):
@@ -34,12 +35,13 @@ def golden_int8(raw):
 
 def golden_nf4(raw):
     raw &= 0xF
-    # NF4 (NormalFloat4) LUT per the Qwen / Dettmers spec
-    nf4_lut = [0.0, 0.2920847535133362, 0.5773502691896257, 0.8726779962499655,
-               1.1832159566199232, 1.5192524327104326, 1.8938714503112775, 2.339816143369586]
-    v = nf4_lut[raw & 7]
-    if (raw >> 3) & 1: v = -v
-    return struct.unpack(">I", struct.pack(">f", v))[0]
+    # NF4 RTL uses two's-complement style encoding (NOT Dettmers unsigned+sign):
+    # 0x0=-1.0, ..., 0x7=0.0, ..., 0xF=+1.0 (values from nf4_decode.v LUT)
+    nf4_lut = [0xBF800000, 0xBF3239B1, 0xBF066B30, 0xBECA32A0,
+               0xBE91A24D, 0xBE3D353F, 0xBDBA7871, 0x00000000,
+               0x3DA2FAFF, 0x3E24CAE3, 0x3E7C04DD, 0x3EAD033A,
+               0x3EE1A4B8, 0x3F1007AB, 0x3F3913B3, 0x3F800000]
+    return nf4_lut[raw]
 
 def golden_posit8(raw):
     raw &= 0xFF
