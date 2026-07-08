@@ -6,6 +6,9 @@ on:
     paths:
       - 'fpga/openxc7-synth/corona_decode_takum64_ax7203.v'
       - 'fpga/openxc7-synth/takum64_decode.v'
+      - 'fpga/openxc7-synth/takum64_decode_pipelined.v'
+      - 'fpga/openxc7-synth/takum32_coarse.mem'
+      - 'fpga/openxc7-synth/takum32_fine.mem'
       - 'fpga/openxc7-synth/corona_decode_ax7203.xdc'
       - '.github/workflows/ax7203-corona-decode-takum64.yml'
 jobs:
