@@ -42,7 +42,7 @@ module corona_decode_top_ax7203 (
     end
 
     // ---- frame FSM: AA 55 fmt code_lo code_hi <trigger> ----
-    reg [2:0] frm; reg [7:0] fmt_r; reg [15:0] code_r; reg frame_valid;
+    reg [2:0] frm; reg [7:0] fmt_r; (* dont_touch = "true" *) reg [15:0] code_r; reg frame_valid;
     always @(posedge mclk or posedge rst) begin
         if(rst) begin frm<=0;fmt_r<=0;code_r<=0;frame_valid<=0; end
         else begin frame_valid<=0;
