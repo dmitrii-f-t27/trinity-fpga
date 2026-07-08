@@ -24,13 +24,12 @@ module takum64_decode_pipelined (
     localparam [47:0] LN2_Q48 = 48'd195103586505167;
     localparam PMAX = 59;
 
-    reg [47:0] tbl [0:65535];
-    initial $readmemh("fpga/openxc7-synth/takum32_2frac.mem", tbl);
+    // Split tables: each 256×48 fits in single RAMB36E1 (avoids multi-cell interleaving)
 
     // ============================================================
     // Stage 1: extract fields, compute ell_59
     // ============================================================
-    wire S1_S = t64[63]; wire S1_D = t64[62]; wire S1_R = t64[61:59];
+    wire S1_S = t64[63]; wire S1_D = t64[62]; wire [2:0] S1_R = t64[61:59];
     wire [3:0] S1_cidx = {S1_D, S1_R};
     reg signed [8:0] S1_cbias;
     always @* case (S1_cidx)
@@ -91,9 +90,19 @@ module takum64_decode_pipelined (
     end
 
     // ============================================================
-    // Stage 3: BRAM lookup + flo_ln2 multiply -> corr
+    // Stage 3: Split BRAM lookup (256×48 each) + flo_ln2 multiply -> corr
     // ============================================================
-    wire [47:0] S3_tval = tbl[f_hi_q2];
+    reg [47:0] coarse_tbl [0:255];
+    reg [47:0] fine_tbl   [0:255];
+    initial begin
+        $readmemh("fpga/openxc7-synth/takum32_coarse.mem", coarse_tbl);
+        $readmemh("fpga/openxc7-synth/takum32_fine.mem", fine_tbl);
+    end
+
+    wire [47:0] S3_coarse_val = coarse_tbl[f_hi_q2[15:8]];
+    wire [47:0] S3_fine_val   = fine_tbl[f_hi_q2[7:0]];
+    wire [95:0] S3_product    = S3_coarse_val * S3_fine_val;
+    wire [47:0] S3_tval       = S3_product[94:47];
     wire signed [139:0] S3_flo_ln2 = $signed({49'b0, f_lo_q2}) * $signed({1'b0, LN2_Q48});
     wire [31:0] S3_corr = S3_flo_ln2 >>> 107;
 
