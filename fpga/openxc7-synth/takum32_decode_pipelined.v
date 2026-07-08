@@ -25,18 +25,12 @@ module takum32_decode_pipelined (
     localparam [47:0] C_Q48   = 48'd203041276517399; // log2(e)/2 * 2^48
     localparam [47:0] LN2_Q48 = 48'd195103586505167; // ln2 * 2^48
 
-    // BRAM table: 2^(f_hi/2^16), 48-bit (same as combinational version)
-    // NOTE: (* ram_style="distributed" *) was tried but yosys fails with
-    // "no valid mapping found for memory" — 65536×48-bit exceeds LUT capacity.
-    // Using default BRAM mapping. Init via $readmemh works in iverilog but may
-    // not propagate through openXC7's prjxray flow — HW debug pending.
-    reg [47:0] tbl [0:65535];
-    initial $readmemh("fpga/openxc7-synth/takum32_2frac.mem", tbl);
+    // Split tables declared in Stage 3 below (each fits in single RAMB36E1)
 
     // ============================================================
     // Stage 1: extract fields, compute ell_27
     // ============================================================
-    wire S1_S = t32[31]; wire S1_D = t32[30]; wire S1_R = t32[29:27];
+    wire S1_S = t32[31]; wire S1_D = t32[30]; wire [2:0] S1_R = t32[29:27];
     wire [3:0] S1_cidx = {S1_D, S1_R};
     reg signed [8:0] S1_cbias;
     always @* case (S1_cidx)
@@ -120,9 +114,21 @@ module takum32_decode_pipelined (
     end
 
     // ============================================================
-    // Stage 3: BRAM lookup tval (synchronous read, 1 cycle) + flo_ln2 multiply
+    // Stage 3: Split BRAM lookup (256×48 each, single RAMB36E1 per table)
+    // 2^(x/65536) = 2^(x[15:8]/256) × 2^(x[7:0]/65536)
+    // Each table fits in ONE RAMB36E1 — avoids multi-cell interleaving bug
     // ============================================================
-    wire [47:0] S3_tval = tbl[f_hi_q2];   // synchronous BRAM read (1 cycle)
+    reg [47:0] coarse_tbl [0:255];
+    reg [47:0] fine_tbl   [0:255];
+    initial begin
+        $readmemh("fpga/openxc7-synth/takum32_coarse.mem", coarse_tbl);
+        $readmemh("fpga/openxc7-synth/takum32_fine.mem", fine_tbl);
+    end
+
+    wire [47:0] S3_coarse_val = coarse_tbl[f_hi_q2[15:8]];
+    wire [47:0] S3_fine_val   = fine_tbl[f_hi_q2[7:0]];
+    wire [95:0] S3_product    = S3_coarse_val * S3_fine_val;
+    wire [47:0] S3_tval       = S3_product[94:47];  // Q1.47 normalize: >>47
     wire signed [107:0] S3_flo_ln2 = $signed({49'b0, f_lo_q2}) * $signed({1'b0, LN2_Q48});
     wire [31:0] S3_corr = S3_flo_ln2 >>> 75;
 
