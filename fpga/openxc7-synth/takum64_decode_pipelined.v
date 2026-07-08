@@ -24,7 +24,7 @@ module takum64_decode_pipelined (
     localparam [47:0] LN2_Q48 = 48'd195103586505167;
     localparam PMAX = 59;
 
-    (* ram_style="distributed" *) reg [47:0] tbl [0:65535];
+    reg [47:0] tbl [0:65535];
     initial $readmemh("fpga/openxc7-synth/takum32_2frac.mem", tbl);
 
     // ============================================================
