@@ -26,9 +26,11 @@ module takum32_decode_pipelined (
     localparam [47:0] LN2_Q48 = 48'd195103586505167; // ln2 * 2^48
 
     // BRAM table: 2^(f_hi/2^16), 48-bit (same as combinational version)
-    // (* ram_style="distributed" *) forces LUT-based RAM: combinational read,
-    // reliable $readmemh init (avoids synchronous BRAM latency / init issues).
-    (* ram_style="distributed" *) reg [47:0] tbl [0:65535];
+    // NOTE: (* ram_style="distributed" *) was tried but yosys fails with
+    // "no valid mapping found for memory" — 65536×48-bit exceeds LUT capacity.
+    // Using default BRAM mapping. Init via $readmemh works in iverilog but may
+    // not propagate through openXC7's prjxray flow — HW debug pending.
+    reg [47:0] tbl [0:65535];
     initial $readmemh("fpga/openxc7-synth/takum32_2frac.mem", tbl);
 
     // ============================================================
