@@ -26,7 +26,9 @@ module takum32_decode_pipelined (
     localparam [47:0] LN2_Q48 = 48'd195103586505167; // ln2 * 2^48
 
     // BRAM table: 2^(f_hi/2^16), 48-bit (same as combinational version)
-    reg [47:0] tbl [0:65535];
+    // (* ram_style="distributed" *) forces LUT-based RAM: combinational read,
+    // reliable $readmemh init (avoids synchronous BRAM latency / init issues).
+    (* ram_style="distributed" *) reg [47:0] tbl [0:65535];
     initial $readmemh("fpga/openxc7-synth/takum32_2frac.mem", tbl);
 
     // ============================================================
