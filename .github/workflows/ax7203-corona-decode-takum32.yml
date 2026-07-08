@@ -59,9 +59,33 @@ jobs:
             cp /tmp/np_${placer}_$s.log /tmp/np.log; CLEAN="$placer/$s"; break 2
           done; done
           [ "$CLEAN" = "0" ] && { echo "::error::no clean seed"; exit 1; }; echo "seed=$CLEAN"
+      - name: Patch BRAM INIT data
+        run: |
+          python3 scripts/patch_bram_init.py \
+            build/corona_decode_takum32/corona_decode_ax7203.json \
+            build/corona_decode_takum32/corona_decode_ax7203.fasm \
+            build/corona_decode_takum32/corona_decode_ax7203_patched.fasm \
+            build/corona_decode_takum32/corona_decode_ax7203_routed.json
+          # Use patched fasm if it's different (larger)
+          if [ -f build/corona_decode_takum32/corona_decode_ax7203_patched.fasm ]; then
+            ORIG=$(wc -c < build/corona_decode_takum32/corona_decode_ax7203.fasm)
+            PATCHED=$(wc -c < build/corona_decode_takum32/corona_decode_ax7203_patched.fasm)
+            echo "fasm sizes: orig=$ORIG patched=$PATCHED"
+            if [ "$PATCHED" -gt "$ORIG" ]; then
+              cp build/corona_decode_takum32/corona_decode_ax7203_patched.fasm \
+                 build/corona_decode_takum32/corona_decode_ax7203.fasm
+              echo "Patched fasm activated (INIT data injected)"
+            else
+              echo "Patched fasm not larger — keeping original"
+            fi
+          fi
       - name: fasm2bit
         run: |
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 bash -c "
             source /prjxray/env/bin/activate && fasm2frames --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --part xc7a200tfbg484-2 /work/build/corona_decode_takum32/corona_decode_ax7203.fasm /work/build/corona_decode_takum32/corona_decode_ax7203.frames && /prjxray/build/tools/xc7frames2bit --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.yaml --part_name xc7a200tfbg484-2 --frm_file /work/build/corona_decode_takum32/corona_decode_ax7203.frames --output_file /work/build/corona_decode_takum32/corona_decode_ax7203.bit"
       - uses: actions/upload-artifact@v4
-        with: {name: corona-decode-takum32-bitstream, path: build/corona_decode_takum32/corona_decode_ax7203.bit}
+        with:
+          name: corona-decode-takum32-bitstream
+          path: |
+            build/corona_decode_takum32/corona_decode_ax7203.bit
+            build/corona_decode_takum32/corona_decode_ax7203.fasm
