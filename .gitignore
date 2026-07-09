@@ -12,6 +12,7 @@ zig-out/
 # Build artifacts
 /build/
 **/.build/
+**/witness/**/build/
 
 # Never commit accidental root clutter (use zig-out/bin, hardware/rtl-root)
 /a.out
