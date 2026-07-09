@@ -9,7 +9,7 @@ module takum16_decode (
     input  wire [15:0] takum16_in,
     output reg  [31:0] fp32_out
 );
-    reg [31:0] lut [0:65535];
+    (* ram_style="block" *) reg [31:0] lut [0:65535];
     initial $readmemh("fpga/openxc7-synth/takum16_lut.mem", lut);
     always @* fp32_out = lut[takum16_in];
 endmodule
