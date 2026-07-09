@@ -19,8 +19,8 @@ depth 20
 smtbmc z3
 
 [script]
-read_verilog -sv fpga/openxc7-synth/gf_adder_param.v
-read_verilog -sv formal/gf_adder_cover_property.v
+read_verilog -sv gf_adder_param.v
+read_verilog -sv gf_adder_cover_property.v
 gf16_cover: chparam -set EXP_BITS 6 -set MANT_BITS 9 -set HAS_INF 1 gf_adder_cover_property
 async2sync
 prep -top gf_adder_cover_property
