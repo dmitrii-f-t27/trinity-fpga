@@ -33,6 +33,8 @@ on:
       - 'formal/gf_mul_formal.sby'
       - 'formal/gf_mul_cover_property.v'
       - 'formal/gf_mul_cover.sby'
+      - 'formal/gf_adder_cover_property.v'
+      - 'formal/gf_adder_cover.sby'
       - '.github/workflows/fpga-formal.yml'
   pull_request:
     branches: [main]
@@ -45,6 +47,8 @@ on:
       - 'formal/gf_mul_formal.sby'
       - 'formal/gf_mul_cover_property.v'
       - 'formal/gf_mul_cover.sby'
+      - 'formal/gf_adder_cover_property.v'
+      - 'formal/gf_adder_cover.sby'
       - '.github/workflows/fpga-formal.yml'
   workflow_dispatch:
 
@@ -96,6 +100,8 @@ jobs:
           - { op: mul,   sby: formal/gf_mul_formal.sby,   task: gf24, wide: true  }
           # ---- MUL COVER (gf16 reachability — companion to mul bmc proof) ----
           - { op: mul-cover, sby: formal/gf_mul_cover.sby, task: gf16_cover, wide: false }
+          # ---- ADDER COVER (gf16 reachability — companion to adder bmc proof) ----
+          - { op: adder-cover, sby: formal/gf_adder_cover.sby, task: gf16_cover, wide: false }
     steps:
       - name: Checkout
         uses: actions/checkout@v4
