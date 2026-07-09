@@ -6,6 +6,7 @@ on:
     paths:
       - 'fpga/openxc7-synth/corona_decode_decimal128_ax7203.v'
       - 'fpga/openxc7-synth/decimal128_decode.v'
+      - 'fpga/openxc7-synth/decimal128_wide_decode.v'
       - 'fpga/openxc7-synth/corona_decode_ax7203.xdc'
       - '.github/workflows/ax7203-corona-decode-decimal128.yml'
 jobs:
@@ -25,7 +26,7 @@ jobs:
         run: |
           mkdir -p build/corona_decode_decimal128
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
-            read_verilog fpga/openxc7-synth/corona_decode_decimal128_ax7203.v fpga/openxc7-synth/decimal128_decode.v;
+            read_verilog fpga/openxc7-synth/corona_decode_decimal128_ax7203.v fpga/openxc7-synth/decimal128_wide_decode.v;
             synth_xilinx -abc9 -nocarry -arch xc7 -top corona_decode_decimal128_ax7203;
             setundef -zero -params; write_json build/corona_decode_decimal128/corona_decode_ax7203.json" 2>&1 | tee /tmp/yosys.log
           grep -E "Estimated|ERROR" /tmp/yosys.log

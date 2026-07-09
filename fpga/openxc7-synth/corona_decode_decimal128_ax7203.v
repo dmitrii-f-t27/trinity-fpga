@@ -49,7 +49,7 @@ module corona_decode_decimal128_ax7203 (
     end
     assign led[1]=frame_valid;
     wire [31:0] result;
-    decimal128_decode u_dec (.bid128(code_r[127:0]), .fp32_out(result));
+    decimal128_wide_decode u_dec (.bid128(code_r[127:0]), .fp32_out(result));
     assign led[2] = |result;
     reg responding; reg [2:0] tx_idx; reg [7:0] tx_buf0,tx_buf1,tx_buf2,tx_buf3,tx_buf4;
     reg [8:0] tcnt; reg [3:0] tbi; reg [9:0] tsr;
