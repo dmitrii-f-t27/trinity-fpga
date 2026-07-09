@@ -64,7 +64,7 @@ module corona_compute_gf8_fma_ax7203 (
     wire mul_in_ready, mul_out_valid;
     wire [7:0] mul_result;
 
-    gf_mul_param #(.EXP_BITS(4), .MANT_BITS(3), .HAS_INF(0)) u_mul (
+    gf_mul_param #(.EXP_BITS(3), .MANT_BITS(4), .HAS_INF(0)) u_mul (
         .clk(mclk), .rst(rst),
         .in_valid(mul_trigger), .in_a(a_reg), .in_b(b_reg), .in_ready(mul_in_ready),
         .out_valid(mul_out_valid), .out_y(mul_result), .out_ready(1'b1)
@@ -76,7 +76,7 @@ module corona_compute_gf8_fma_ax7203 (
     wire add_in_ready, add_out_valid;
     wire [7:0] add_result;
 
-    gf_adder_param #(.EXP_BITS(4), .MANT_BITS(3), .HAS_INF(0)) u_add (
+    gf_adder_param #(.EXP_BITS(3), .MANT_BITS(4), .HAS_INF(0)) u_add (
         .clk(mclk), .rst(rst),
         .in_valid(add_trigger), .in_a(mul_result), .in_b(c_reg), .in_ready(add_in_ready),
         .out_valid(add_out_valid), .out_y(add_result), .out_ready(1'b1)

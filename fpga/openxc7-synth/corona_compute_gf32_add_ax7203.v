@@ -69,7 +69,7 @@ module corona_compute_gf32_add_ax7203 (
     wire comp_in_ready, comp_out_valid;
     wire [31:0] comp_result;
 
-    gf_adder_param #(.EXP_BITS(8), .MANT_BITS(23), .HAS_INF(1)) u_comp (
+    gf_adder_param #(.EXP_BITS(12), .MANT_BITS(19), .HAS_INF(0)) u_comp (
         .clk(mclk), .rst(rst),
         .in_valid(comp_trigger), .in_a(a_reg), .in_b(b_reg), .in_ready(comp_in_ready),
         .out_valid(comp_out_valid), .out_y(comp_result), .out_ready(1'b1)

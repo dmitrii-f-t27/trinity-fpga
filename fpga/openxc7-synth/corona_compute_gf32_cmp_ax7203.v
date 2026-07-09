@@ -1,7 +1,7 @@
 `default_nettype wire
 `timescale 1ns / 1ps
 // corona_compute_gf32_cmp_ax7203 — GoldenFloat32 comparison on AX7203.
-// GF32: [S:1][E:8][M:23] = 32 bits, BIAS=127, HAS_INF=1.
+// GF32: [S:1][E:12][M:19] = 32 bits, BIAS=2047, HAS_INF=0.
 //
 // Frame protocol (12 bytes TX):
 //   AA 55 fmt op a0 a1 a2 a3 b0 b1 b2 b3 trig
@@ -71,16 +71,16 @@ module corona_compute_gf32_cmp_ax7203 (
     reg comp_trigger;
 
     wire        sa = a_reg[31];
-    wire [7:0]  ea = a_reg[30:23];
-    wire [22:0]  ma = a_reg[22:0];
+    wire [11:0]  ea = a_reg[30:19];
+    wire [18:0]  ma = a_reg[18:0];
     wire        sb = b_reg[31];
-    wire [7:0]  eb = b_reg[30:23];
-    wire [22:0]  mb = b_reg[22:0];
+    wire [11:0]  eb = b_reg[30:19];
+    wire [18:0]  mb = b_reg[18:0];
 
     wire a_zero = (ea == 0) && (ma == 0);
     wire b_zero = (eb == 0) && (mb == 0);
-    wire a_nan = (ea == {8{1'b1}}) && (ma != 0);
-    wire b_nan = (eb == {8{1'b1}}) && (mb != 0);
+    wire a_nan = 1'b0;
+    wire b_nan = 1'b0;
 
     wire [30:0] abs_a = {ea, ma};
     wire [30:0] abs_b = {eb, mb};
@@ -88,7 +88,7 @@ module corona_compute_gf32_cmp_ax7203 (
     wire mag_eq = (abs_a == abs_b);
 
     wire cmp_eq = (a_zero && b_zero) ||
-                  (~(a_nan | b_nan) && (sa == sb) && ((a_zero && b_zero) || mag_eq));
+                  ((sa == sb) && ((a_zero && b_zero) || mag_eq));
 
     wire both_neg = sa && sb && ~(a_zero && b_zero);
 

@@ -1,7 +1,7 @@
 `default_nettype wire
 `timescale 1ns / 1ps
 // corona_compute_gf12_cmp_ax7203 — GoldenFloat12 comparison on AX7203.
-// GF12: [S:1][E:5][M:6] = 12 bits, BIAS=15, HAS_INF=0.
+// GF12: [S:1][E:4][M:7] = 12 bits, BIAS=7, HAS_INF=0.
 //
 // Frame protocol (8 bytes TX):
 //   AA 55 fmt op a0 a1 b0 b1 trig
@@ -67,11 +67,11 @@ module corona_compute_gf12_cmp_ax7203 (
     reg comp_trigger;
 
     wire        sa = a_reg[11];
-    wire [4:0]  ea = a_reg[10:6];
-    wire [5:0]  ma = a_reg[5:0];
+    wire [3:0]  ea = a_reg[10:7];
+    wire [6:0]  ma = a_reg[6:0];
     wire        sb = b_reg[11];
-    wire [4:0]  eb = b_reg[10:6];
-    wire [5:0]  mb = b_reg[5:0];
+    wire [3:0]  eb = b_reg[10:7];
+    wire [6:0]  mb = b_reg[6:0];
 
     wire a_zero = (ea == 0) && (ma == 0);
     wire b_zero = (eb == 0) && (mb == 0);

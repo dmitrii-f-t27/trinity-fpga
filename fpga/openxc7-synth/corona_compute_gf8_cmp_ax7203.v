@@ -1,13 +1,13 @@
 `default_nettype wire
 `timescale 1ns / 1ps
 // corona_compute_gf8_cmp_ax7203 — GoldenFloat8 comparison on AX7203.
-// GF8: [S:1][E:4][M:3] = 8 bits, BIAS=7, HAS_INF=0 (no NaN).
+// GF8: [S:1][E:3][M:4] = 8 bits, BIAS=3, HAS_INF=0.
 //
-// Frame protocol (7 bytes TX):
-//   AA 55 fmt op a b trig
+// Frame protocol (6 bytes TX):
+//   AA 55 fmt op a0 b0 trig
 //   op: 0x00=EQ, 0x01=LT, 0x02=LE
 // Response (5 bytes RX):
-//   A5 result 00 00 00 (result = 0x01 true, 0x00 false)
+//   A5 r0 00 00 00
 
 module corona_compute_gf8_cmp_ax7203 (
     input  wire rst_n, input wire uart_rx, output reg uart_tx, output wire [3:0] led
@@ -40,18 +40,18 @@ module corona_compute_gf8_cmp_ax7203 (
         end
     end
 
-    // ---- Frame FSM: AA 55 fmt op a b trig (7 bytes) ----
+    // ---- Frame FSM ----
     reg [2:0] frm; reg [7:0] fmt_r, op_r; reg [7:0] a_r, b_r; reg frame_valid;
     always @(posedge mclk or posedge rst) begin
         if(rst) begin frm<=0;fmt_r<=0;op_r<=0;a_r<=0;b_r<=0;frame_valid<=0; end
         else begin frame_valid<=0;
             if(rx_new) begin case(frm)
                 3'd0: frm<=(rx_byte==8'hAA)?3'd1:3'd0;
-                3'd1: frm<=(rx_byte==8'h55)?3'd2:3'd0;
-                3'd2: begin fmt_r<=rx_byte;frm<=3; end
-                3'd3: begin op_r<=rx_byte;frm<=4; end
-                3'd4: begin a_r<=rx_byte;frm<=5; end
-                3'd5: begin b_r<=rx_byte;frm<=6; end
+                3'd1: frm<=(rx_byte==8'h55)?3'd2:3'd1;
+                3'd2: begin fmt_r<=rx_byte;frm<=3'd3; end
+                3'd3: begin op_r<=rx_byte;frm<=3'd4; end
+                3'd4: begin a_r[7:0]<=rx_byte;frm<=3'd5; end
+                3'd5: begin b_r[7:0]<=rx_byte;frm<=3'd6; end
                 3'd6: begin frame_valid<=1;frm<=0; end
                 default: frm<=0;
             endcase end
@@ -65,14 +65,16 @@ module corona_compute_gf8_cmp_ax7203 (
     reg comp_trigger;
 
     wire        sa = a_reg[7];
-    wire [3:0]  ea = a_reg[6:3];
-    wire [2:0]  ma = a_reg[2:0];
+    wire [2:0]  ea = a_reg[6:4];
+    wire [3:0]  ma = a_reg[3:0];
     wire        sb = b_reg[7];
-    wire [3:0]  eb = b_reg[6:3];
-    wire [2:0]  mb = b_reg[2:0];
+    wire [2:0]  eb = b_reg[6:4];
+    wire [3:0]  mb = b_reg[3:0];
 
     wire a_zero = (ea == 0) && (ma == 0);
     wire b_zero = (eb == 0) && (mb == 0);
+    wire a_nan = 1'b0;
+    wire b_nan = 1'b0;
 
     wire [6:0] abs_a = {ea, ma};
     wire [6:0] abs_b = {eb, mb};
@@ -84,7 +86,8 @@ module corona_compute_gf8_cmp_ax7203 (
 
     wire both_neg = sa && sb && ~(a_zero && b_zero);
 
-    wire cmp_lt = (a_zero && b_zero) ? 1'b0 :
+    wire cmp_lt = (a_nan | b_nan) ? 1'b0 :
+                  (a_zero && b_zero) ? 1'b0 :
                   (sa && ~sb) ? 1'b1 :
                   (~sa && sb) ? 1'b0 :
                   both_neg ? (abs_a > abs_b) :
@@ -123,8 +126,12 @@ module corona_compute_gf8_cmp_ax7203 (
             tx_buf0<=8'hFF;tx_buf1<=8'hFF;tx_buf2<=8'hFF;tx_buf3<=8'hFF;tx_buf4<=8'hFF; end
         else begin uart_tx<=tsr[0];
             if(result_ready) begin
-                tx_buf0<=8'hA5; tx_buf1<=result_reg; tx_buf2<=8'h00;
-                tx_buf3<=8'h00; tx_buf4<=8'h00; responding<=1; tx_idx<=0;
+                tx_buf0<=8'hA5;
+                tx_buf1<=result_reg[7:0];
+                tx_buf2<=8'h00;
+                tx_buf3<=8'h00;
+                tx_buf4<=8'h00;
+                responding<=1; tx_idx<=0;
             end
             if(tcnt==0) begin tcnt<=BAUD_DIV-1;
                 if(tbi==9) begin tbi<=0;
