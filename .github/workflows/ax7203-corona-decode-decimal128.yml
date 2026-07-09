@@ -55,7 +55,7 @@ jobs:
             if grep -q "Failed to find a route" /tmp/np_${placer}_$s.log || [ ! -f build/corona_decode_decimal128/corona_decode_ax7203.fasm ]; then continue; fi
             cp /tmp/np_${placer}_$s.log /tmp/np.log; CLEAN="$placer/$s"; break 2
           done; done
-          [ "$CLEAN" = "0" ] && { echo "::error::no clean seed"; exit 1; }; echo "seed=$CLEAN"
+          [ "$CLEAN" = "0" ] && { echo "::error::no clean seed"; echo "=== Last nextpnr log (np_heap_1) ==="; cat /tmp/np_heap_1.log 2>/dev/null | tail -80; exit 1; }; echo "seed=$CLEAN"
       - name: fasm2bit
         run: |
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 bash -c "
