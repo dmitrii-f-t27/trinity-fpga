@@ -1,0 +1,30 @@
+# =============================================================================
+# gf_mul_cover.sby — REACHABILITY cover for gf_mul_param special cases.
+#
+# Companion to gf_mul_formal.sby (bmc proof). Proves that Inf/NaN/0 inputs
+# are reachable by the solver, ensuring the bmc assert is non-vacuous.
+#
+# gf16 only (HAS_INF=1 — the only width with Inf/NaN special cases).
+# PASS = all 8 cover points reachable within depth 20.
+# =============================================================================
+
+[tasks]
+gf16_cover  gf16_cover
+
+[options]
+mode cover
+depth 20
+
+[engines]
+smtbmc z3
+
+[script]
+read_verilog -sv fpga/openxc7-synth/gf_mul_param.v
+read_verilog -sv formal/gf_mul_cover_property.v
+gf16_cover: chparam -set EXP_BITS 6 -set MANT_BITS 9 -set HAS_INF 1 gf_mul_cover_property
+async2sync
+prep -top gf_mul_cover_property
+
+[files]
+fpga/openxc7-synth/gf_mul_param.v
+formal/gf_mul_cover_property.v

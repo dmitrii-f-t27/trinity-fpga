@@ -1,0 +1,503 @@
+{
+  "title": "Trinity FPGA Decode-HW Bitstream Witness Catalog",
+  "target_device": "ALINX AX7203 (XC7A200T-FBG484-2)",
+  "idcode": "0x13636093",
+  "toolchain": "openXC7 (Yosys + nextpnr-xilinx + prjxray)",
+  "synth_flags": "-abc9 -nocarry -arch xc7 (some formats add -nodsp)",
+  "ci_proven": "77/77",
+  "conformance_scripts": "77/77",
+  "hw_tested": "pending",
+  "generated": "2026-07-09T12:06:38Z",
+  "categories": {
+    "standard_float": [
+      "binary16",
+      "binary32",
+      "binary64",
+      "binary128",
+      "binary256",
+      "bf16",
+      "tf32",
+      "x87_fp80"
+    ],
+    "decimal": [
+      "decimal32",
+      "decimal64",
+      "decimal128"
+    ],
+    "posit": [
+      "posit8",
+      "posit16",
+      "posit32",
+      "posit64"
+    ],
+    "takum": [
+      "takum8",
+      "takum16",
+      "takum32",
+      "takum64"
+    ],
+    "lns": [
+      "lns8",
+      "lns16",
+      "lns32",
+      "lns64"
+    ],
+    "integer": [
+      "int4",
+      "int8",
+      "int16",
+      "int32",
+      "int64",
+      "int128"
+    ],
+    "minifloat": [
+      "minifloat",
+      "fp4",
+      "fp6_e2m3",
+      "fp6_e3m2",
+      "fp8_e5m2",
+      "e8m0"
+    ],
+    "mx_block": [
+      "mxfp4",
+      "mxfp4_block",
+      "mxfp6",
+      "mxfp8_e4m3",
+      "mxint8",
+      "mxgf4",
+      "mxgf6"
+    ],
+    "galois_field": [
+      "gf4",
+      "gf6",
+      "gf8",
+      "gf10",
+      "gf12",
+      "gf14",
+      "gf16",
+      "gf20",
+      "gf24",
+      "gf32",
+      "gf48",
+      "gf64",
+      "gf96",
+      "gf128",
+      "gf256",
+      "gf8_bfp",
+      "gf_lns_hybrid",
+      "gfternary"
+    ],
+    "legacy_vendor": [
+      "vax_f",
+      "vax_d",
+      "vax_g",
+      "vax_h",
+      "cray_float",
+      "ms_mbf32",
+      "ms_mbf64"
+    ],
+    "ibm_industry": [
+      "ibm_hfp32",
+      "ibm_hfp64",
+      "ibm_hfp128",
+      "bcd",
+      "afp"
+    ],
+    "extended_precision": [
+      "double_double",
+      "quad_double",
+      "q-format"
+    ],
+    "ml_ai": [
+      "nf4",
+      "bitnet"
+    ]
+  },
+  "formats": {
+    "binary16": {
+      "sha256": "0947b89ba5f8a5ea04083f4ce9065e9698a4e375ad9ec03540724f2ddb733c2c",
+      "bitstream_size": 9730806,
+      "category": "standard_float"
+    },
+    "binary32": {
+      "sha256": "519d8333642feba45937cb102aeb8abb03ddc70d75ef9f5fb14e1a985fc443ec",
+      "bitstream_size": 9730806,
+      "category": "standard_float"
+    },
+    "binary64": {
+      "sha256": "5f29906628ce6ed07bcd4d32bf24f46e9804bc4be4617868538f0747f2ef0a3e",
+      "bitstream_size": 9730806,
+      "category": "standard_float"
+    },
+    "binary128": {
+      "sha256": "58f6151f2d26699254844e059dd116859a099c9c49f32f2507d939f3711b6f00",
+      "bitstream_size": 9730807,
+      "category": "standard_float"
+    },
+    "binary256": {
+      "sha256": "57d1d1c751d16d526d7466601438a8348438b287b811a35aa39760313648de00",
+      "bitstream_size": 9730807,
+      "category": "standard_float"
+    },
+    "bf16": {
+      "sha256": "15947702a7d72bce355babd7a7644cb8204444709195e741a2d25a09823591d0",
+      "bitstream_size": 9730802,
+      "category": "standard_float"
+    },
+    "tf32": {
+      "sha256": "c7d372812828d40d3ca33504169c1cc31221c847c46a27d8fedee5b62241004c",
+      "bitstream_size": 9730802,
+      "category": "standard_float"
+    },
+    "x87_fp80": {
+      "sha256": "fef6d8e4b75482232a89b831fcb75c29a49322fb4105edf173c169cb75dd5d05",
+      "bitstream_size": 9730806,
+      "category": "standard_float"
+    },
+    "decimal32": {
+      "sha256": "80ef8ee0f0062a8ccec3da32d2b9d670061b9c071131f4c673ace2859eb2cf5c",
+      "bitstream_size": 9730807,
+      "category": "decimal"
+    },
+    "decimal64": {
+      "sha256": "e1a3f165c0eab5c08d1d3777e608c1364204db11ae04b81413db02fbc0908cc6",
+      "bitstream_size": 9730807,
+      "category": "decimal"
+    },
+    "decimal128": {
+      "sha256": "40edc4642731117eea159ace6a6ab5c01db4f8193f035868dc415d295a10c4c5",
+      "bitstream_size": 9730808,
+      "category": "decimal"
+    },
+    "posit8": {
+      "sha256": "f816d6b82f49d6aae8935fa1ed31c7efe4d10cb59e11d02469656a121cf8b963",
+      "bitstream_size": 9730804,
+      "category": "posit"
+    },
+    "posit16": {
+      "sha256": "179a7194edd80fcf9440bcb53b7a4496aeeede6350a864bb31bd1a43d5d95cee",
+      "bitstream_size": 9730805,
+      "category": "posit"
+    },
+    "posit32": {
+      "sha256": "cc60feaac29ba99446d3a586ac4d1991bc159e41f312616756a345433853f672",
+      "bitstream_size": 9730805,
+      "category": "posit"
+    },
+    "posit64": {
+      "sha256": "61c2e50fa822ba17c72c671eef82b68651c13da7f52ded027fe1099d34e364ac",
+      "bitstream_size": 9730805,
+      "category": "posit"
+    },
+    "takum8": {
+      "sha256": "022570f07cf1aeb5c3f510b4349a621ad993b21dcaa1567dd9edaffa3f3e2cb6",
+      "bitstream_size": 9730804,
+      "category": "takum"
+    },
+    "takum16": {
+      "sha256": "8ffa4e8df5518b3b2d32ba69d3d88cef3040294f3143ac2e1ce708ecac0ea3b8",
+      "bitstream_size": 9730805,
+      "category": "takum"
+    },
+    "takum32": {
+      "sha256": "eb402381aa458979cca9c1a3b646888d16bdf6ea14c54af67ac5e13f170b0e48",
+      "bitstream_size": 9730805,
+      "category": "takum"
+    },
+    "takum64": {
+      "sha256": "e486019acae5cd2ffcf2b3045b640a38a1c3b36981e7cc68040249a162b730d3",
+      "bitstream_size": 9730805,
+      "category": "takum"
+    },
+    "lns8": {
+      "sha256": "de9af0fe4ffa698dbff77fe6888bf4223b43450294c33726d0915b6817d91d0d",
+      "bitstream_size": 9730802,
+      "category": "lns"
+    },
+    "lns16": {
+      "sha256": "71745ccc9d541ba064bbe0250b6ba21d119e6e3189cde4549f259e73e303b683",
+      "bitstream_size": 9730803,
+      "category": "lns"
+    },
+    "lns32": {
+      "sha256": "54d172d422526de46452e134983041253ed83db2d1d77d5364eb53e888c5f961",
+      "bitstream_size": 9730803,
+      "category": "lns"
+    },
+    "lns64": {
+      "sha256": "c1406b39c99028f9ec6fd5ab5cbecc06f78f515949835ff8cd3141818e8c584c",
+      "bitstream_size": 9730803,
+      "category": "lns"
+    },
+    "int4": {
+      "sha256": "48ec5da1d3b6c9ad5ffe69173f24aac9bafb52b75838d115001aff9be9ce1eec",
+      "bitstream_size": 9730802,
+      "category": "integer"
+    },
+    "int8": {
+      "sha256": "3d3205f7b01858af1d6022fc760d9f961754772f31d6df6f446915fa2cd36ae1",
+      "bitstream_size": 9730802,
+      "category": "integer"
+    },
+    "int16": {
+      "sha256": "d830d90a29054f0e11f82b02953b2a58175b97159ea4404c5ce9b3d4b5f4178c",
+      "bitstream_size": 9730803,
+      "category": "integer"
+    },
+    "int32": {
+      "sha256": "8dbba7e307fa4b3180a7bd3b66adfa475e0a048c9f0ff5b92ee76840dac1c1c9",
+      "bitstream_size": 9730803,
+      "category": "integer"
+    },
+    "int64": {
+      "sha256": "15471252969d3c5e2c4a31ae6204d800b616429b0eb785e0daea8eee214024fe",
+      "bitstream_size": 9730803,
+      "category": "integer"
+    },
+    "int128": {
+      "sha256": "2d5f9ed82c52bbd2d6028d2cffbf75e0307700db73fab6eb3957a443f87c52e4",
+      "bitstream_size": 9730804,
+      "category": "integer"
+    },
+    "minifloat": {
+      "sha256": "fae5348d71de201a644df881af2b20bebe242eb32a614f607d5621b2e389b780",
+      "bitstream_size": 9730807,
+      "category": "minifloat"
+    },
+    "fp4": {
+      "sha256": "ace0347baf47130c96f24e0ac49fc3eaa1aa36611ea3f01b6bef8ecc85e7de00",
+      "bitstream_size": 9730801,
+      "category": "minifloat"
+    },
+    "fp6_e2m3": {
+      "sha256": "f85345599e3ba58a5b753cadbd0b76b7532fac73f076319d327b77013636670a",
+      "bitstream_size": 9730806,
+      "category": "minifloat"
+    },
+    "fp6_e3m2": {
+      "sha256": "c95ec1a7895d3243048f453580860fa18ee080cff9fdc949bee76cfea11c82c8",
+      "bitstream_size": 9730806,
+      "category": "minifloat"
+    },
+    "fp8_e5m2": {
+      "sha256": "c57cf24e1e2c63f169e2a25fcadbd4a9e5469c0a6558095b1679f5b5bafaf2d4",
+      "bitstream_size": 9730806,
+      "category": "minifloat"
+    },
+    "e8m0": {
+      "sha256": "33fd7721f9e3cccbeb48fbcf33f6dc256b6f5715c4821856f9a987e044c3f38a",
+      "bitstream_size": 9730802,
+      "category": "minifloat"
+    },
+    "mxfp4": {
+      "sha256": "66238d7712e6ac9ab8f591bfeda3a524a071ea11052fcc0e89549d15f06e5071",
+      "bitstream_size": 9730803,
+      "category": "mx_block"
+    },
+    "mxfp4_block": {
+      "sha256": "4768fd387e808411a99216c854c71b59d447f77457d119014012e6e353597472",
+      "bitstream_size": 9730809,
+      "category": "mx_block"
+    },
+    "mxfp6": {
+      "sha256": "4938383a15cb1472a24431fa3c5a7416bec297b4a77b99bf6cdd71c9862929cd",
+      "bitstream_size": 9730803,
+      "category": "mx_block"
+    },
+    "mxfp8_e4m3": {
+      "sha256": "b163e49872ac25f535b7eaf6fc404732b20f81745fd383a2bfead78a50bc4721",
+      "bitstream_size": 9730808,
+      "category": "mx_block"
+    },
+    "mxint8": {
+      "sha256": "7c0c4850dceaf3cb69d2f37b5e65958af635b82e355bc08645ae3fe6aa01032c",
+      "bitstream_size": 9730804,
+      "category": "mx_block"
+    },
+    "mxgf4": {
+      "sha256": "f4af7ecd44e635585e51df20d1f089c1301051c0edf3109efeebc653b8de377c",
+      "bitstream_size": 9730803,
+      "category": "mx_block"
+    },
+    "mxgf6": {
+      "sha256": "ba192d1c0e10bd5f938d16e101a7456e02ad49519b99b7c71c8f06fafa8d5903",
+      "bitstream_size": 9730803,
+      "category": "mx_block"
+    },
+    "gf4": {
+      "sha256": "0483eba4898f7c782312e5de5ed2ab8446fa7607df54dfa57cfe39255a1ee31c",
+      "bitstream_size": 9730801,
+      "category": "galois_field"
+    },
+    "gf6": {
+      "sha256": "08cf136f03e5ee1d1f340fe1939809c08191346a23c10a34a48eeaaeee622095",
+      "bitstream_size": 9730801,
+      "category": "galois_field"
+    },
+    "gf8": {
+      "sha256": "3f95ad7170102d9b84fb5c23ed252a7703a6f28d5b1344463e0a09e5d5f19e41",
+      "bitstream_size": 9730801,
+      "category": "galois_field"
+    },
+    "gf10": {
+      "sha256": "3f58d2aa051478239ee0d79a66db5315e54f38841ff83c1d00dd079092ecb715",
+      "bitstream_size": 9730802,
+      "category": "galois_field"
+    },
+    "gf12": {
+      "sha256": "f4dc1fb6f0720bde1acfef4d37609e133534f90ec6542248e45008ff51d7bdba",
+      "bitstream_size": 9730802,
+      "category": "galois_field"
+    },
+    "gf14": {
+      "sha256": "add2680a312712a5baf5d587f2c785ee6586d1cc83c8c431bc33ea5c3f6b9fee",
+      "bitstream_size": 9730802,
+      "category": "galois_field"
+    },
+    "gf16": {
+      "sha256": "a99f73b70c0563cbab7c5687a704478de1c749c332ce83e3a3b76f33a9d6621b",
+      "bitstream_size": 9730802,
+      "category": "galois_field"
+    },
+    "gf20": {
+      "sha256": "e90c0257e3c19fb2af35412ff9d84d2b4d271285aff70d4f60cbc901a4e6d209",
+      "bitstream_size": 9730802,
+      "category": "galois_field"
+    },
+    "gf24": {
+      "sha256": "0c51a48da8f9bd070a8753a19db6bd0d16df685c255d4d6dc8f1a97510e6d3cc",
+      "bitstream_size": 9730802,
+      "category": "galois_field"
+    },
+    "gf32": {
+      "sha256": "ebb2517b694f226b2aa2302f119fa4182a424a808fbf99ee3d1c2daf0453d006",
+      "bitstream_size": 9730802,
+      "category": "galois_field"
+    },
+    "gf48": {
+      "sha256": "f4b03bc6fce9b783bcc7b215cc30d6b0576f2058935f89254d3cfaa67b03e378",
+      "bitstream_size": 9730802,
+      "category": "galois_field"
+    },
+    "gf64": {
+      "sha256": "833703113e5da60ec8685407874aea348024769eec12295388c0ce099718625a",
+      "bitstream_size": 9730802,
+      "category": "galois_field"
+    },
+    "gf96": {
+      "sha256": "63a8c2a2be996bb1abf7cbdb80f467534593a825d37bcaf22e04d52172fc9dbf",
+      "bitstream_size": 9730802,
+      "category": "galois_field"
+    },
+    "gf128": {
+      "sha256": "ccc4e5ae1497e97840d4c0f47632a3d185db85709ff388c677340879983cca00",
+      "bitstream_size": 9730803,
+      "category": "galois_field"
+    },
+    "gf256": {
+      "sha256": "73893f07b79f50efc239d44dd30c356efc834a5747793ec1f6fd4dd466c1d5b1",
+      "bitstream_size": 9730803,
+      "category": "galois_field"
+    },
+    "gf8_bfp": {
+      "sha256": "83f545d76c8fc76783d8a4c074050ea493f437f3f47c3efb55e2a15a8baf6ccc",
+      "bitstream_size": 9730805,
+      "category": "galois_field"
+    },
+    "gf_lns_hybrid": {
+      "sha256": "bd69386f2cb41a70a20d61df627ee3a3ce239c4064379be810145fd7c7b6c5bc",
+      "bitstream_size": 9730811,
+      "category": "galois_field"
+    },
+    "gfternary": {
+      "sha256": "22ba9375cab04bb606019b1f370d0c1d21cd2e0521c57fde5bdf23cddbbb83fa",
+      "bitstream_size": 9730807,
+      "category": "galois_field"
+    },
+    "vax_f": {
+      "sha256": "4f05390dbcb726c5fdc8c4020624a19832c629d3b11f3803bf43d0e74e683d7d",
+      "bitstream_size": 9730803,
+      "category": "legacy_vendor"
+    },
+    "vax_d": {
+      "sha256": "41d371e13b864dfae616fe82c4331a7b6a6e1fb8b6e727e62136acab3c3dea5b",
+      "bitstream_size": 9730803,
+      "category": "legacy_vendor"
+    },
+    "vax_g": {
+      "sha256": "f15c6ec0241b1bc1cf5bf512cce0299bbc2e52f710fcedda13c41560c99db690",
+      "bitstream_size": 9730803,
+      "category": "legacy_vendor"
+    },
+    "vax_h": {
+      "sha256": "22352a72a7ae5cd27686df32b9d20dd127a489c86359a4392792a0f96988447e",
+      "bitstream_size": 9730803,
+      "category": "legacy_vendor"
+    },
+    "cray_float": {
+      "sha256": "c1935c2165d241d6e3814cdbcfa9ea540dc122619884a264e34cb7ee8f73e240",
+      "bitstream_size": 9730808,
+      "category": "legacy_vendor"
+    },
+    "ms_mbf32": {
+      "sha256": "ad2561dc920d1cf9392ef02de6afe3ff9b3c3e4b924eb370773a8ed7a599230c",
+      "bitstream_size": 9730806,
+      "category": "legacy_vendor"
+    },
+    "ms_mbf64": {
+      "sha256": "94c71717af1417d6bc1582421d81d90e11452653e1292c3b7b58b99eaeb82332",
+      "bitstream_size": 9730806,
+      "category": "legacy_vendor"
+    },
+    "ibm_hfp32": {
+      "sha256": "8f626abbe8d2196808d6eea3ef6fe8afbfea229b153b353649eb2dd734464df0",
+      "bitstream_size": 9730807,
+      "category": "ibm_industry"
+    },
+    "ibm_hfp64": {
+      "sha256": "28334de8ac1b26391c5c804774870cee00bf1f9fdacb9b9f89e14d2060667c2b",
+      "bitstream_size": 9730807,
+      "category": "ibm_industry"
+    },
+    "ibm_hfp128": {
+      "sha256": "77c86673f4e689979617ed11c14c06732d5d03308e2118a1fbc266a6d3593ee8",
+      "bitstream_size": 9730808,
+      "category": "ibm_industry"
+    },
+    "bcd": {
+      "sha256": "1e573bf8d2c459ac3fc26b7924ccbea1bc6db6f2d98261b22ee9f57e301560fa",
+      "bitstream_size": 9730801,
+      "category": "ibm_industry"
+    },
+    "afp": {
+      "sha256": "b22a9cd1c200ee6a4e288ee4fab51b409854f398e314899bf4ef167877ef920c",
+      "bitstream_size": 9730801,
+      "category": "ibm_industry"
+    },
+    "double_double": {
+      "sha256": "2af218f845a805838e4b8d7e8a753a336002891181b763d840222db19c09fb56",
+      "bitstream_size": 9730811,
+      "category": "extended_precision"
+    },
+    "quad_double": {
+      "sha256": "8f7493d0903eb9aae7b760c739e1abab21495b5c7e606a9df9a872dc69b2f830",
+      "bitstream_size": 9730809,
+      "category": "extended_precision"
+    },
+    "q-format": {
+      "sha256": "2555ca270012898c0dbd0f064315303b079b879fe174bae83957b2c9e3743ae1",
+      "bitstream_size": 9730806,
+      "category": "extended_precision"
+    },
+    "nf4": {
+      "sha256": "38ebff46df1bbed780fdb3110594b7353cab70c89966562e331d597efb2f2c09",
+      "bitstream_size": 9730801,
+      "category": "ml_ai"
+    },
+    "bitnet": {
+      "sha256": "a4db32485d46917e9ff24064fbeef1949f7b0960a1c72035d4828d489776c354",
+      "bitstream_size": 9730804,
+      "category": "ml_ai"
+    }
+  }
+}
