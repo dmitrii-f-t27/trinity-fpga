@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Install iverilog
         run: sudo apt-get update && sudo apt-get install -y iverilog
       - name: iverilog version
@@ -24,10 +26,10 @@ jobs:
         run: |
           set -eo pipefail
           iverilog -g2012 -o /tmp/dec.vvp formal/decode_tb.v \
-            fpga/openxc7-synth/fp8_e4m3_fnuz_decode.v fpga/openxc7-synth/fp6_e2m3_decode.v \
-            fpga/openxc7-synth/fp6_e3m2_decode.v fpga/openxc7-synth/fp4_decode.v \
-            fpga/openxc7-synth/int4_decode.v fpga/openxc7-synth/posit8_decode.v \
-            fpga/openxc7-synth/lns8_decode.v fpga/openxc7-synth/int8_decode.v
+            external/tt-trinity-corona/src/rtl/fp8_e4m3_fnuz_decode.v external/tt-trinity-corona/src/rtl/fp6_e2m3_decode.v \
+            external/tt-trinity-corona/src/rtl/fp6_e3m2_decode.v external/tt-trinity-corona/src/rtl/fp4_decode.v \
+            external/tt-trinity-corona/src/rtl/int4_decode.v external/tt-trinity-corona/src/rtl/posit8_decode.v \
+            external/tt-trinity-corona/src/rtl/lns8_decode.v external/tt-trinity-corona/src/rtl/int8_decode.v
           vvp /tmp/dec.vvp | python3 conformance/decode_verify.py
       - name: binary16 (exhaustive 65536, struct 'e' oracle)
         run: |
@@ -37,6 +39,6 @@ jobs:
       - name: fp8_e5m2 (exhaustive 256)
         run: |
           set -eo pipefail
-          iverilog -g2012 -o /tmp/f8.vvp formal/fp8_e5m2_decode_tb.v fpga/openxc7-synth/fp8_e5m2_decode.v
+          iverilog -g2012 -o /tmp/f8.vvp formal/fp8_e5m2_decode_tb.v external/tt-trinity-corona/src/rtl/fp8_e5m2_decode.v
           vvp /tmp/f8.vvp | python3 conformance/decode_verify.py --format fp8_e5m2
       - run: echo "DECODE RTL VERIFY PASS (10 formats)"

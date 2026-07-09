@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'fpga/openxc7-synth/corona_decode_e8m0_ax7203.v'
-      - 'fpga/openxc7-synth/e8m0_decode.v'
+      - 'external/tt-trinity-corona/src/rtl/e8m0_decode.v'
       - 'fpga/openxc7-synth/corona_decode_ax7203.xdc'
       - '.github/workflows/ax7203-corona-decode-e8m0.yml'
 jobs:
@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Docker pull regymm/openxc7 (retry on transient 5xx)
         run: |
           for i in 1 2 3 4 5 6; do
@@ -25,7 +27,7 @@ jobs:
         run: |
           mkdir -p build/corona_decode_e8m0
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
-            read_verilog fpga/openxc7-synth/corona_decode_e8m0_ax7203.v fpga/openxc7-synth/e8m0_decode.v;
+            read_verilog fpga/openxc7-synth/corona_decode_e8m0_ax7203.v external/tt-trinity-corona/src/rtl/e8m0_decode.v;
             synth_xilinx -flatten -abc9 -nocarry -arch xc7 -top corona_decode_e8m0_ax7203;
             setundef -zero -params; write_json build/corona_decode_e8m0/corona_decode_ax7203.json" 2>&1 | tee /tmp/yosys.log
           grep -E "Estimated|ERROR" /tmp/yosys.log

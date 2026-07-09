@@ -1,3 +1,6 @@
 [submodule "external/zig-golden-float"]
 	path = external/zig-golden-float
 	url = https://github.com/gHashTag/zig-golden-float
+[submodule "external/tt-trinity-corona"]
+	path = external/tt-trinity-corona
+	url = https://github.com/gHashTag/tt-trinity-corona.git

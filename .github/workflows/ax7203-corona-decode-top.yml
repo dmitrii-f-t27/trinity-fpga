@@ -6,11 +6,11 @@ on:
     branches: [main]
     paths:
       - 'fpga/openxc7-synth/corona_decode_top_ax7203.v'
-      - 'fpga/openxc7-synth/bf16_decode.v'
-      - 'fpga/openxc7-synth/fp8_e4m3_fnuz_decode.v'
-      - 'fpga/openxc7-synth/int8_decode.v'
-      - 'fpga/openxc7-synth/nf4_decode.v'
-      - 'fpga/openxc7-synth/posit8_decode.v'
+      - 'external/tt-trinity-corona/src/rtl/bf16_decode.v'
+      - 'external/tt-trinity-corona/src/rtl/fp8_e4m3_fnuz_decode.v'
+      - 'external/tt-trinity-corona/src/rtl/int8_decode.v'
+      - 'external/tt-trinity-corona/src/rtl/nf4_decode.v'
+      - 'external/tt-trinity-corona/src/rtl/posit8_decode.v'
       - 'fpga/openxc7-synth/corona_decode_ax7203.xdc'
       - '.github/workflows/ax7203-corona-decode-top.yml'
 jobs:
@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Docker pull regymm/openxc7 (retry on transient 5xx)
         run: |
           for i in 1 2 3 4 5 6; do
@@ -30,7 +32,7 @@ jobs:
         run: |
           mkdir -p build/corona_decode_top
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
-            read_verilog fpga/openxc7-synth/corona_decode_top_ax7203.v fpga/openxc7-synth/bf16_decode.v fpga/openxc7-synth/fp8_e4m3_fnuz_decode.v fpga/openxc7-synth/int8_decode.v fpga/openxc7-synth/nf4_decode.v fpga/openxc7-synth/posit8_decode.v;
+            read_verilog fpga/openxc7-synth/corona_decode_top_ax7203.v external/tt-trinity-corona/src/rtl/bf16_decode.v external/tt-trinity-corona/src/rtl/fp8_e4m3_fnuz_decode.v external/tt-trinity-corona/src/rtl/int8_decode.v external/tt-trinity-corona/src/rtl/nf4_decode.v external/tt-trinity-corona/src/rtl/posit8_decode.v;
             synth_xilinx -abc9 -arch xc7 -top corona_decode_top_ax7203;
             setundef -zero -params; write_json build/corona_decode_top/corona_decode_ax7203.json" 2>&1 | tee /tmp/yosys.log
           grep -E "Estimated|ERROR" /tmp/yosys.log

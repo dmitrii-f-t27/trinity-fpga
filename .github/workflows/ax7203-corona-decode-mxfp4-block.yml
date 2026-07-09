@@ -10,7 +10,7 @@ on:
     paths:
       - 'fpga/openxc7-synth/corona_decode_mxfp4_block_ax7203.v'
       - 'fpga/openxc7-synth/mxfp4_block_scale.v'
-      - 'fpga/openxc7-synth/fp4_decode.v'
+      - 'external/tt-trinity-corona/src/rtl/fp4_decode.v'
       - 'fpga/openxc7-synth/corona_decode_ax7203.xdc'
       - '.github/workflows/ax7203-corona-decode-mxfp4-block.yml'
 jobs:
@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Docker pull regymm/openxc7 (retry on transient 5xx)
         run: |
           for i in 1 2 3 4 5 6; do
@@ -30,7 +32,7 @@ jobs:
         run: |
           mkdir -p build/corona_decode_mxfp4_block
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
-            read_verilog fpga/openxc7-synth/corona_decode_mxfp4_block_ax7203.v fpga/openxc7-synth/mxfp4_block_scale.v fpga/openxc7-synth/fp4_decode.v;
+            read_verilog fpga/openxc7-synth/corona_decode_mxfp4_block_ax7203.v fpga/openxc7-synth/mxfp4_block_scale.v external/tt-trinity-corona/src/rtl/fp4_decode.v;
             synth_xilinx -abc9 -arch xc7 -top corona_decode_mxfp4_block_ax7203;
             setundef -zero -params; write_json build/corona_decode_mxfp4_block/corona_decode_ax7203.json" 2>&1 | tee /tmp/yosys.log
           grep -E "Estimated|ERROR" /tmp/yosys.log
