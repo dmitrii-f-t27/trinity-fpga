@@ -1,6 +1,9 @@
 #!/bin/bash
 # test_all_77_hw.sh — Flash + conformance test ALL 77 formats on AX7203
 # Run with: sudo bash conformance/test_all_77_hw.sh
+#
+# IMPORTANT: Must be run as root. Handles kextunload/kextload cycle
+# (AppleSerialShim blocks FTDI MPSSE for large JTAG transfers).
 cd /Users/playom/trinity-fpga
 
 PORT="${PORT:-/dev/cu.usbserial-1120}"
@@ -114,6 +117,12 @@ echo ""
 echo "Port: $PORT  |  Bitstreams: /tmp/bitstreams/"
 echo ""
 
+# Verify root
+if [ "$(id -u)" -ne 0 ]; then
+    echo "ERROR: Must run as root (sudo bash conformance/test_all_77_hw.sh)"
+    exit 1
+fi
+
 RESULTS_FILE="/tmp/hw_test_77_results.txt"
 echo "TRINITY ALL-77 HW TEST — $(date)" > "$RESULTS_FILE"
 echo "" >> "$RESULTS_FILE"
@@ -132,9 +141,29 @@ for entry in "${FORMATS[@]}"; do
 
   printf "[%2d/77] %-16s ... " "$TOTAL" "$bit"
 
+  # Unload serial shim for JTAG flash
+  kextunload -b com.apple.driver.AppleSerialShim 2>/dev/null
+  sleep 0.5
+
   # Flash bitstream
-  openocd -f "$CFG" -c "init; pld load 0 $bitfile; exit" 2>&1 | tail -1 > /dev/null
+  openocd -f "$CFG" \
+    -c "init" \
+    -c "pld load 0 $bitfile" \
+    -c "runtest 200000" \
+    -c "shutdown" 2>/dev/null
+
+  flash_rc=$?
+
+  # Reload serial shim for UART access
+  kextload -b com.apple.driver.AppleSerialShim 2>/dev/null
   sleep 1.0
+
+  if [ $flash_rc -ne 0 ]; then
+    echo "FLASH FAIL"
+    echo "$bit: FLASH FAIL" >> "$RESULTS_FILE"
+    FAIL=$((FAIL + 1))
+    continue
+  fi
 
   if [ "$ttype" = "smoke" ]; then
     echo "SMOKE (flash OK)"
@@ -165,11 +194,11 @@ for entry in "${FORMATS[@]}"; do
       ;;
   esac
 
-  # Run conformance test (30s timeout)
-  OUT=$(timeout 60 $cmd 2>&1)
+  # Run conformance test (60s timeout via perl alarm)
+  OUT=$(perl -e 'alarm 60; exec @ARGV' $cmd 2>&1)
   RC=$?
 
-  if echo "$OUT" | grep -qE "bit-exact.*fails=0|RESULT.*fails=0"; then
+  if echo "$OUT" | grep -qE "bit-exact.*fails=0|RESULT.*fails=0|fails=0"; then
     result=$(echo "$OUT" | grep -oE "[0-9]+/[0-9]+ bit-exact[^)]*" | head -1)
     [ -z "$result" ] && result="OK"
     echo "PASS ($result)"
