@@ -1,0 +1,377 @@
+`default_nettype wire
+`timescale 1ns / 1ps
+// corona_compute_lns64_fma_ax7203 — LNS64 FMA on AX7203.
+module corona_compute_lns64_fma_ax7203 (
+    input wire rst_n, input wire uart_rx, output reg uart_tx, output wire [3:0] led
+);
+    wire mclk, eos;
+    STARTUPE2 #(.PROG_USR("FALSE"), .SIM_CCLK_FREQ(0.0)) u_startup (
+        .CFGCLK(), .CFGMCLK(mclk), .EOS(eos),
+        .CLK(1'b0),.GSR(1'b0),.GTS(1'b0),.KEYCLEARB(1'b0),.PACK(1'b0),
+        .USRCCLKO(1'b0),.USRCCLKTS(1'b0),.USRDONEO(1'b0),.USRDONETS(1'b0));
+    wire rst = ~rst_n | ~eos;
+    localparam [8:0] BAUD_DIV = 9'd434;
+    reg [26:0] cnt_c;
+    always @(posedge mclk or posedge rst) if(rst) cnt_c<=0; else cnt_c<=cnt_c+1;
+    assign led[0]=cnt_c[25]; assign led[3]=~rst;
+    reg [2:0] rsync;
+    always @(posedge mclk or posedge rst) if(rst) rsync<=3'b111; else rsync<={rsync[1:0],uart_rx};
+    wire rxd=rsync[2];
+    reg [1:0] rxs; reg [8:0] rxcnt; reg [3:0] rbi; reg [7:0] rxsr; reg [7:0] rx_byte; reg rx_new;
+    always @(posedge mclk or posedge rst) begin
+        if(rst) begin rxs<=0;rxcnt<=0;rbi<=0;rxsr<=0;rx_byte<=0;rx_new<=0; end
+        else begin rx_new<=0;
+            case(rxs)
+                2'd0: if(~rxd) begin rxcnt<=(BAUD_DIV+(BAUD_DIV>>1))-1;rxs<=1;rbi<=0; end
+                2'd1: begin if(rxcnt==0) begin rxsr<={rxd,rxsr[7:1]}; if(rbi==7) begin rxs<=2;rxcnt<=BAUD_DIV-1; end else begin rbi<=rbi+1;rxcnt<=BAUD_DIV-1; end end else rxcnt<=rxcnt-1; end
+                2'd2: begin if(rxcnt==0) begin rx_byte<=rxsr;rx_new<=1;rxs<=0; end else rxcnt<=rxcnt-1; end
+                default: rxs<=0;
+            endcase
+        end
+    end
+
+    reg [4:0] frm; reg [7:0] fmt_r; reg [63:0] a_r,b_r,c_r; reg frame_valid;
+    always @(posedge mclk or posedge rst) begin
+        if(rst) begin frm<=0;fmt_r<=0;a_r<=0;b_r<=0;c_r<=0;frame_valid<=0; end
+        else begin frame_valid<=0;
+            if(rx_new) begin case(frm)
+                5'd0: frm<=(rx_byte==8'hAA)?5'd1:5'd0;
+                5'd1: frm<=(rx_byte==8'h55)?5'd2:5'd0;
+                5'd2: begin fmt_r<=rx_byte;frm<=5'd3; end
+                5'd3: begin a_r[7:0]<=rx_byte;frm<=5'd4; end
+                5'd4: begin a_r[15:8]<=rx_byte;frm<=5'd5; end
+                5'd5: begin a_r[23:16]<=rx_byte;frm<=5'd6; end
+                5'd6: begin a_r[31:24]<=rx_byte;frm<=5'd7; end
+                5'd7: begin a_r[39:32]<=rx_byte;frm<=5'd8; end
+                5'd8: begin a_r[47:40]<=rx_byte;frm<=5'd9; end
+                5'd9: begin a_r[55:48]<=rx_byte;frm<=5'd10; end
+                5'd10: begin a_r[63:56]<=rx_byte;frm<=5'd11; end
+                5'd11: begin b_r[7:0]<=rx_byte;frm<=5'd12; end
+                5'd12: begin b_r[15:8]<=rx_byte;frm<=5'd13; end
+                5'd13: begin b_r[23:16]<=rx_byte;frm<=5'd14; end
+                5'd14: begin b_r[31:24]<=rx_byte;frm<=5'd15; end
+                5'd15: begin b_r[39:32]<=rx_byte;frm<=5'd16; end
+                5'd16: begin b_r[47:40]<=rx_byte;frm<=5'd17; end
+                5'd17: begin b_r[55:48]<=rx_byte;frm<=5'd18; end
+                5'd18: begin b_r[63:56]<=rx_byte;frm<=5'd19; end
+                5'd19: begin c_r[7:0]<=rx_byte;frm<=5'd20; end
+                5'd20: begin c_r[15:8]<=rx_byte;frm<=5'd21; end
+                5'd21: begin c_r[23:16]<=rx_byte;frm<=5'd22; end
+                5'd22: begin c_r[31:24]<=rx_byte;frm<=5'd23; end
+                5'd23: begin c_r[39:32]<=rx_byte;frm<=5'd24; end
+                5'd24: begin c_r[47:40]<=rx_byte;frm<=5'd25; end
+                5'd25: begin c_r[55:48]<=rx_byte;frm<=5'd26; end
+                5'd26: begin c_r[63:56]<=rx_byte;frm<=5'd27; end
+                5'd27: begin frame_valid<=1;frm<=0; end
+            endcase end
+        end
+    end
+    assign led[1]=frame_valid;
+
+    reg [63:0] a_reg,b_reg,c_reg; reg comp_trigger;
+    wire [63:0] fmt_a=a_reg, fmt_b=b_reg, fmt_c=c_reg;
+    wire l64_sign_a = fmt_a[63];
+    wire [62:0] l64_log_a = fmt_a[62:0];
+    wire l64_zero_a = (fmt_a == 64'd0);
+    wire signed [62:0] l64_slog_a = $signed(l64_log_a);
+    wire signed [23:0] l64_int_a = l64_slog_a >>> 7;
+    wire [6:0] l64_frac_a = l64_log_a[6:0];
+    reg [22:0] l64_fm_a;
+    always @(*) begin
+        case(l64_frac_a)
+            7'd0: l64_fm_a=23'h000000; 7'd1: l64_fm_a=23'h00b1ed;
+            7'd2: l64_fm_a=23'h0164d2; 7'd3: l64_fm_a=23'h0218af;
+            7'd4: l64_fm_a=23'h02cd87; 7'd5: l64_fm_a=23'h038359;
+            7'd6: l64_fm_a=23'h043a4c; 7'd7: l64_fm_a=23'h04f20f;
+            7'd8: l64_fm_a=23'h05aab4; 7'd9: l64_fm_a=23'h066456;
+            7'd10: l64_fm_a=23'h071f5a; 7'd11: l64_fm_a=23'h07db45;
+            7'd12: l64_fm_a=23'h089838; 7'd13: l64_fm_a=23'h095636;
+            7'd14: l64_fm_a=23'h0a154a; 7'd15: l64_fm_a=23'h0ad576;
+            7'd16: l64_fm_a=23'h0b96c1; 7'd17: l64_fm_a=23'h0c5931;
+            7'd18: l64_fm_a=23'h0d1cdf; 7'd19: l64_fm_a=23'h0de1c4;
+            7'd20: l64_fm_a=23'h0ea7f0; 7'd21: l64_fm_a=23'h0f6f70;
+            7'd22: l64_fm_a=23'h103845; 7'd23: l64_fm_a=23'h11027f;
+            7'd24: l64_fm_a=23'h11ce26; 7'd25: l64_fm_a=23'h129b3f;
+            7'd26: l64_fm_a=23'h1369d3; 7'd27: l64_fm_a=23'h1439e6;
+            7'd28: l64_fm_a=23'h150b7d; 7'd29: l64_fm_a=23'h15dea6;
+            7'd30: l64_fm_a=23'h16b362; 7'd31: l64_fm_a=23'h1789c0;
+            7'd32: l64_fm_a=23'h1861c3; 7'd33: l64_fm_a=23'h193b73;
+            7'd34: l64_fm_a=23'h1a16d5; 7'd35: l64_fm_a=23'h1af3ea;
+            7'd36: l64_fm_a=23'h1bd2b9; 7'd37: l64_fm_a=23'h1cb349;
+            7'd38: l64_fm_a=23'h1d959f; 7'd39: l64_fm_a=23'h1e79c1;
+            7'd40: l64_fm_a=23'h1f5fb6; 7'd41: l64_fm_a=23'h204789;
+            7'd42: l64_fm_a=23'h213144; 7'd43: l64_fm_a=23'h221cf3;
+            7'd44: l64_fm_a=23'h230aa1; 7'd45: l64_fm_a=23'h23fa57;
+            7'd46: l64_fm_a=23'h24ec1f; 7'd47: l64_fm_a=23'h25e004;
+            7'd48: l64_fm_a=23'h26d613; 7'd49: l64_fm_a=23'h27ce5b;
+            7'd50: l64_fm_a=23'h28c8ec; 7'd51: l64_fm_a=23'h29c5c2;
+            7'd52: l64_fm_a=23'h2ac4e7; 7'd53: l64_fm_a=23'h2bc657;
+            7'd54: l64_fm_a=23'h2cca1c; 7'd55: l64_fm_a=23'h2dd03d;
+            7'd56: l64_fm_a=23'h2ed8c0; 7'd57: l64_fm_a=23'h2fe3b6;
+            7'd58: l64_fm_a=23'h30f121; 7'd59: l64_fm_a=23'h320109;
+            7'd60: l64_fm_a=23'h331366; 7'd61: l64_fm_a=23'h34284a;
+            7'd62: l64_fm_a=23'h353fc4; 7'd63: l64_fm_a=23'h3659e3;
+            7'd64: l64_fm_a=23'h3776b2; 7'd65: l64_fm_a=23'h38963d;
+            7'd66: l64_fm_a=23'h39b88b; 7'd67: l64_fm_a=23'h3adda6;
+            7'd68: l64_fm_a=23'h3c059b; 7'd69: l64_fm_a=23'h3d3074;
+            7'd70: l64_fm_a=23'h3e5e38; 7'd71: l64_fm_a=23'h3f8ef1;
+            7'd72: l64_fm_a=23'h40c2b4; 7'd73: l64_fm_a=23'h41f983;
+            7'd74: l64_fm_a=23'h433370; 7'd75: l64_fm_a=23'h44707e;
+            7'd76: l64_fm_a=23'h45b0bd; 7'd77: l64_fm_a=23'h46f438;
+            7'd78: l64_fm_a=23'h483b58; 7'd79: l64_fm_a=23'h49862c;
+            7'd80: l64_fm_a=23'h4ad4c4; 7'd81: l64_fm_a=23'h4c2737;
+            7'd82: l64_fm_a=23'h4d7da1; 7'd83: l64_fm_a=23'h4ed80a;
+            7'd84: l64_fm_a=23'h503682; 7'd85: l64_fm_a=23'h519914;
+            7'd86: l64_fm_a=23'h52ffd1; 7'd87: l64_fm_a=23'h546ad6;
+            7'd88: l64_fm_a=23'h55da36; 7'd89: l64_fm_a=23'h574e09;
+            7'd90: l64_fm_a=23'h58c662; 7'd91: l64_fm_a=23'h5a4357;
+            7'd92: l64_fm_a=23'h5bc504; 7'd93: l64_fm_a=23'h5d4b73;
+            7'd94: l64_fm_a=23'h5ed6cd; 7'd95: l64_fm_a=23'h60671f;
+            7'd96: l64_fm_a=23'h61fc7c; 7'd97: l64_fm_a=23'h6396f4;
+            7'd98: l64_fm_a=23'h6536a2; 7'd99: l64_fm_a=23'h66dbab;
+            7'd100: l64_fm_a=23'h688626; 7'd101: l64_fm_a=23'h6a3624;
+            7'd102: l64_fm_a=23'h6bebb9; 7'd103: l64_fm_a=23'h6da704;
+            7'd104: l64_fm_a=23'h6f681a; 7'd105: l64_fm_a=23'h712f0d;
+            7'd106: l64_fm_a=23'h72fbff; 7'd107: l64_fm_a=23'h74ce10;
+            7'd108: l64_fm_a=23'h76a65f; 7'd109: l64_fm_a=23'h7884b4;
+            7'd110: l64_fm_a=23'h7a692c; 7'd111: l64_fm_a=23'h7c53e4;
+            7'd112: l64_fm_a=23'h7e4500; 7'd113: l64_fm_a=23'h3FE484;
+            7'd114: l64_fm_a=23'h402AB8; 7'd115: l64_fm_a=23'h407204;
+            7'd116: l64_fm_a=23'h40BC81; 7'd117: l64_fm_a=23'h410D33;
+            7'd118: l64_fm_a=23'h416028; 7'd119: l64_fm_a=23'h41B56E;
+            7'd120: l64_fm_a=23'h420D09; 7'd121: l64_fm_a=23'h426801;
+            7'd122: l64_fm_a=23'h42C55F; 7'd123: l64_fm_a=23'h432528;
+            7'd124: l64_fm_a=23'h438767; 7'd125: l64_fm_a=23'h43EC2A;
+            7'd126: l64_fm_a=23'h445381; 7'd127: l64_fm_a=23'h44BE72;
+            default: l64_fm_a=23'h000000;
+        endcase
+    end
+    wire [9:0] l64_exp32_a = {1'b0, {1'b0, l64_int_a[6:0]}} + 10'd127;
+    reg [31:0] fp32_a;
+    always @(*) begin
+        if(l64_zero_a) fp32_a=32'h00000000;
+        else fp32_a={l64_sign_a, l64_exp32_a[7:0], l64_fm_a};
+    end
+    wire l64_sign_b = fmt_b[63];
+    wire [62:0] l64_log_b = fmt_b[62:0];
+    wire l64_zero_b = (fmt_b == 64'd0);
+    wire signed [62:0] l64_slog_b = $signed(l64_log_b);
+    wire signed [23:0] l64_int_b = l64_slog_b >>> 7;
+    wire [6:0] l64_frac_b = l64_log_b[6:0];
+    reg [22:0] l64_fm_b;
+    always @(*) begin
+        case(l64_frac_b)
+            7'd0: l64_fm_b=23'h000000; 7'd1: l64_fm_b=23'h00b1ed;
+            7'd2: l64_fm_b=23'h0164d2; 7'd3: l64_fm_b=23'h0218af;
+            7'd4: l64_fm_b=23'h02cd87; 7'd5: l64_fm_b=23'h038359;
+            7'd6: l64_fm_b=23'h043a4c; 7'd7: l64_fm_b=23'h04f20f;
+            7'd8: l64_fm_b=23'h05aab4; 7'd9: l64_fm_b=23'h066456;
+            7'd10: l64_fm_b=23'h071f5a; 7'd11: l64_fm_b=23'h07db45;
+            7'd12: l64_fm_b=23'h089838; 7'd13: l64_fm_b=23'h095636;
+            7'd14: l64_fm_b=23'h0a154a; 7'd15: l64_fm_b=23'h0ad576;
+            7'd16: l64_fm_b=23'h0b96c1; 7'd17: l64_fm_b=23'h0c5931;
+            7'd18: l64_fm_b=23'h0d1cdf; 7'd19: l64_fm_b=23'h0de1c4;
+            7'd20: l64_fm_b=23'h0ea7f0; 7'd21: l64_fm_b=23'h0f6f70;
+            7'd22: l64_fm_b=23'h103845; 7'd23: l64_fm_b=23'h11027f;
+            7'd24: l64_fm_b=23'h11ce26; 7'd25: l64_fm_b=23'h129b3f;
+            7'd26: l64_fm_b=23'h1369d3; 7'd27: l64_fm_b=23'h1439e6;
+            7'd28: l64_fm_b=23'h150b7d; 7'd29: l64_fm_b=23'h15dea6;
+            7'd30: l64_fm_b=23'h16b362; 7'd31: l64_fm_b=23'h1789c0;
+            7'd32: l64_fm_b=23'h1861c3; 7'd33: l64_fm_b=23'h193b73;
+            7'd34: l64_fm_b=23'h1a16d5; 7'd35: l64_fm_b=23'h1af3ea;
+            7'd36: l64_fm_b=23'h1bd2b9; 7'd37: l64_fm_b=23'h1cb349;
+            7'd38: l64_fm_b=23'h1d959f; 7'd39: l64_fm_b=23'h1e79c1;
+            7'd40: l64_fm_b=23'h1f5fb6; 7'd41: l64_fm_b=23'h204789;
+            7'd42: l64_fm_b=23'h213144; 7'd43: l64_fm_b=23'h221cf3;
+            7'd44: l64_fm_b=23'h230aa1; 7'd45: l64_fm_b=23'h23fa57;
+            7'd46: l64_fm_b=23'h24ec1f; 7'd47: l64_fm_b=23'h25e004;
+            7'd48: l64_fm_b=23'h26d613; 7'd49: l64_fm_b=23'h27ce5b;
+            7'd50: l64_fm_b=23'h28c8ec; 7'd51: l64_fm_b=23'h29c5c2;
+            7'd52: l64_fm_b=23'h2ac4e7; 7'd53: l64_fm_b=23'h2bc657;
+            7'd54: l64_fm_b=23'h2cca1c; 7'd55: l64_fm_b=23'h2dd03d;
+            7'd56: l64_fm_b=23'h2ed8c0; 7'd57: l64_fm_b=23'h2fe3b6;
+            7'd58: l64_fm_b=23'h30f121; 7'd59: l64_fm_b=23'h320109;
+            7'd60: l64_fm_b=23'h331366; 7'd61: l64_fm_b=23'h34284a;
+            7'd62: l64_fm_b=23'h353fc4; 7'd63: l64_fm_b=23'h3659e3;
+            7'd64: l64_fm_b=23'h3776b2; 7'd65: l64_fm_b=23'h38963d;
+            7'd66: l64_fm_b=23'h39b88b; 7'd67: l64_fm_b=23'h3adda6;
+            7'd68: l64_fm_b=23'h3c059b; 7'd69: l64_fm_b=23'h3d3074;
+            7'd70: l64_fm_b=23'h3e5e38; 7'd71: l64_fm_b=23'h3f8ef1;
+            7'd72: l64_fm_b=23'h40c2b4; 7'd73: l64_fm_b=23'h41f983;
+            7'd74: l64_fm_b=23'h433370; 7'd75: l64_fm_b=23'h44707e;
+            7'd76: l64_fm_b=23'h45b0bd; 7'd77: l64_fm_b=23'h46f438;
+            7'd78: l64_fm_b=23'h483b58; 7'd79: l64_fm_b=23'h49862c;
+            7'd80: l64_fm_b=23'h4ad4c4; 7'd81: l64_fm_b=23'h4c2737;
+            7'd82: l64_fm_b=23'h4d7da1; 7'd83: l64_fm_b=23'h4ed80a;
+            7'd84: l64_fm_b=23'h503682; 7'd85: l64_fm_b=23'h519914;
+            7'd86: l64_fm_b=23'h52ffd1; 7'd87: l64_fm_b=23'h546ad6;
+            7'd88: l64_fm_b=23'h55da36; 7'd89: l64_fm_b=23'h574e09;
+            7'd90: l64_fm_b=23'h58c662; 7'd91: l64_fm_b=23'h5a4357;
+            7'd92: l64_fm_b=23'h5bc504; 7'd93: l64_fm_b=23'h5d4b73;
+            7'd94: l64_fm_b=23'h5ed6cd; 7'd95: l64_fm_b=23'h60671f;
+            7'd96: l64_fm_b=23'h61fc7c; 7'd97: l64_fm_b=23'h6396f4;
+            7'd98: l64_fm_b=23'h6536a2; 7'd99: l64_fm_b=23'h66dbab;
+            7'd100: l64_fm_b=23'h688626; 7'd101: l64_fm_b=23'h6a3624;
+            7'd102: l64_fm_b=23'h6bebb9; 7'd103: l64_fm_b=23'h6da704;
+            7'd104: l64_fm_b=23'h6f681a; 7'd105: l64_fm_b=23'h712f0d;
+            7'd106: l64_fm_b=23'h72fbff; 7'd107: l64_fm_b=23'h74ce10;
+            7'd108: l64_fm_b=23'h76a65f; 7'd109: l64_fm_b=23'h7884b4;
+            7'd110: l64_fm_b=23'h7a692c; 7'd111: l64_fm_b=23'h7c53e4;
+            7'd112: l64_fm_b=23'h7e4500; 7'd113: l64_fm_b=23'h3FE484;
+            7'd114: l64_fm_b=23'h402AB8; 7'd115: l64_fm_b=23'h407204;
+            7'd116: l64_fm_b=23'h40BC81; 7'd117: l64_fm_b=23'h410D33;
+            7'd118: l64_fm_b=23'h416028; 7'd119: l64_fm_b=23'h41B56E;
+            7'd120: l64_fm_b=23'h420D09; 7'd121: l64_fm_b=23'h426801;
+            7'd122: l64_fm_b=23'h42C55F; 7'd123: l64_fm_b=23'h432528;
+            7'd124: l64_fm_b=23'h438767; 7'd125: l64_fm_b=23'h43EC2A;
+            7'd126: l64_fm_b=23'h445381; 7'd127: l64_fm_b=23'h44BE72;
+            default: l64_fm_b=23'h000000;
+        endcase
+    end
+    wire [9:0] l64_exp32_b = {1'b0, {1'b0, l64_int_b[6:0]}} + 10'd127;
+    reg [31:0] fp32_b;
+    always @(*) begin
+        if(l64_zero_b) fp32_b=32'h00000000;
+        else fp32_b={l64_sign_b, l64_exp32_b[7:0], l64_fm_b};
+    end
+    wire l64_sign_c = fmt_c[63];
+    wire [62:0] l64_log_c = fmt_c[62:0];
+    wire l64_zero_c = (fmt_c == 64'd0);
+    wire signed [62:0] l64_slog_c = $signed(l64_log_c);
+    wire signed [23:0] l64_int_c = l64_slog_c >>> 7;
+    wire [6:0] l64_frac_c = l64_log_c[6:0];
+    reg [22:0] l64_fm_c;
+    always @(*) begin
+        case(l64_frac_c)
+            7'd0: l64_fm_c=23'h000000; 7'd1: l64_fm_c=23'h00b1ed;
+            7'd2: l64_fm_c=23'h0164d2; 7'd3: l64_fm_c=23'h0218af;
+            7'd4: l64_fm_c=23'h02cd87; 7'd5: l64_fm_c=23'h038359;
+            7'd6: l64_fm_c=23'h043a4c; 7'd7: l64_fm_c=23'h04f20f;
+            7'd8: l64_fm_c=23'h05aab4; 7'd9: l64_fm_c=23'h066456;
+            7'd10: l64_fm_c=23'h071f5a; 7'd11: l64_fm_c=23'h07db45;
+            7'd12: l64_fm_c=23'h089838; 7'd13: l64_fm_c=23'h095636;
+            7'd14: l64_fm_c=23'h0a154a; 7'd15: l64_fm_c=23'h0ad576;
+            7'd16: l64_fm_c=23'h0b96c1; 7'd17: l64_fm_c=23'h0c5931;
+            7'd18: l64_fm_c=23'h0d1cdf; 7'd19: l64_fm_c=23'h0de1c4;
+            7'd20: l64_fm_c=23'h0ea7f0; 7'd21: l64_fm_c=23'h0f6f70;
+            7'd22: l64_fm_c=23'h103845; 7'd23: l64_fm_c=23'h11027f;
+            7'd24: l64_fm_c=23'h11ce26; 7'd25: l64_fm_c=23'h129b3f;
+            7'd26: l64_fm_c=23'h1369d3; 7'd27: l64_fm_c=23'h1439e6;
+            7'd28: l64_fm_c=23'h150b7d; 7'd29: l64_fm_c=23'h15dea6;
+            7'd30: l64_fm_c=23'h16b362; 7'd31: l64_fm_c=23'h1789c0;
+            7'd32: l64_fm_c=23'h1861c3; 7'd33: l64_fm_c=23'h193b73;
+            7'd34: l64_fm_c=23'h1a16d5; 7'd35: l64_fm_c=23'h1af3ea;
+            7'd36: l64_fm_c=23'h1bd2b9; 7'd37: l64_fm_c=23'h1cb349;
+            7'd38: l64_fm_c=23'h1d959f; 7'd39: l64_fm_c=23'h1e79c1;
+            7'd40: l64_fm_c=23'h1f5fb6; 7'd41: l64_fm_c=23'h204789;
+            7'd42: l64_fm_c=23'h213144; 7'd43: l64_fm_c=23'h221cf3;
+            7'd44: l64_fm_c=23'h230aa1; 7'd45: l64_fm_c=23'h23fa57;
+            7'd46: l64_fm_c=23'h24ec1f; 7'd47: l64_fm_c=23'h25e004;
+            7'd48: l64_fm_c=23'h26d613; 7'd49: l64_fm_c=23'h27ce5b;
+            7'd50: l64_fm_c=23'h28c8ec; 7'd51: l64_fm_c=23'h29c5c2;
+            7'd52: l64_fm_c=23'h2ac4e7; 7'd53: l64_fm_c=23'h2bc657;
+            7'd54: l64_fm_c=23'h2cca1c; 7'd55: l64_fm_c=23'h2dd03d;
+            7'd56: l64_fm_c=23'h2ed8c0; 7'd57: l64_fm_c=23'h2fe3b6;
+            7'd58: l64_fm_c=23'h30f121; 7'd59: l64_fm_c=23'h320109;
+            7'd60: l64_fm_c=23'h331366; 7'd61: l64_fm_c=23'h34284a;
+            7'd62: l64_fm_c=23'h353fc4; 7'd63: l64_fm_c=23'h3659e3;
+            7'd64: l64_fm_c=23'h3776b2; 7'd65: l64_fm_c=23'h38963d;
+            7'd66: l64_fm_c=23'h39b88b; 7'd67: l64_fm_c=23'h3adda6;
+            7'd68: l64_fm_c=23'h3c059b; 7'd69: l64_fm_c=23'h3d3074;
+            7'd70: l64_fm_c=23'h3e5e38; 7'd71: l64_fm_c=23'h3f8ef1;
+            7'd72: l64_fm_c=23'h40c2b4; 7'd73: l64_fm_c=23'h41f983;
+            7'd74: l64_fm_c=23'h433370; 7'd75: l64_fm_c=23'h44707e;
+            7'd76: l64_fm_c=23'h45b0bd; 7'd77: l64_fm_c=23'h46f438;
+            7'd78: l64_fm_c=23'h483b58; 7'd79: l64_fm_c=23'h49862c;
+            7'd80: l64_fm_c=23'h4ad4c4; 7'd81: l64_fm_c=23'h4c2737;
+            7'd82: l64_fm_c=23'h4d7da1; 7'd83: l64_fm_c=23'h4ed80a;
+            7'd84: l64_fm_c=23'h503682; 7'd85: l64_fm_c=23'h519914;
+            7'd86: l64_fm_c=23'h52ffd1; 7'd87: l64_fm_c=23'h546ad6;
+            7'd88: l64_fm_c=23'h55da36; 7'd89: l64_fm_c=23'h574e09;
+            7'd90: l64_fm_c=23'h58c662; 7'd91: l64_fm_c=23'h5a4357;
+            7'd92: l64_fm_c=23'h5bc504; 7'd93: l64_fm_c=23'h5d4b73;
+            7'd94: l64_fm_c=23'h5ed6cd; 7'd95: l64_fm_c=23'h60671f;
+            7'd96: l64_fm_c=23'h61fc7c; 7'd97: l64_fm_c=23'h6396f4;
+            7'd98: l64_fm_c=23'h6536a2; 7'd99: l64_fm_c=23'h66dbab;
+            7'd100: l64_fm_c=23'h688626; 7'd101: l64_fm_c=23'h6a3624;
+            7'd102: l64_fm_c=23'h6bebb9; 7'd103: l64_fm_c=23'h6da704;
+            7'd104: l64_fm_c=23'h6f681a; 7'd105: l64_fm_c=23'h712f0d;
+            7'd106: l64_fm_c=23'h72fbff; 7'd107: l64_fm_c=23'h74ce10;
+            7'd108: l64_fm_c=23'h76a65f; 7'd109: l64_fm_c=23'h7884b4;
+            7'd110: l64_fm_c=23'h7a692c; 7'd111: l64_fm_c=23'h7c53e4;
+            7'd112: l64_fm_c=23'h7e4500; 7'd113: l64_fm_c=23'h3FE484;
+            7'd114: l64_fm_c=23'h402AB8; 7'd115: l64_fm_c=23'h407204;
+            7'd116: l64_fm_c=23'h40BC81; 7'd117: l64_fm_c=23'h410D33;
+            7'd118: l64_fm_c=23'h416028; 7'd119: l64_fm_c=23'h41B56E;
+            7'd120: l64_fm_c=23'h420D09; 7'd121: l64_fm_c=23'h426801;
+            7'd122: l64_fm_c=23'h42C55F; 7'd123: l64_fm_c=23'h432528;
+            7'd124: l64_fm_c=23'h438767; 7'd125: l64_fm_c=23'h43EC2A;
+            7'd126: l64_fm_c=23'h445381; 7'd127: l64_fm_c=23'h44BE72;
+            default: l64_fm_c=23'h000000;
+        endcase
+    end
+    wire [9:0] l64_exp32_c = {1'b0, {1'b0, l64_int_c[6:0]}} + 10'd127;
+    reg [31:0] fp32_c;
+    always @(*) begin
+        if(l64_zero_c) fp32_c=32'h00000000;
+        else fp32_c={l64_sign_c, l64_exp32_c[7:0], l64_fm_c};
+    end
+    wire mul_irdy,mul_ovld; wire [31:0] mul_result;
+    wire add_irdy,add_ovld; wire [31:0] add_result;
+    gf_mul_param #(.EXP_BITS(8),.MANT_BITS(23),.HAS_INF(1)) u_mul (
+        .clk(mclk),.rst(rst),.in_valid(comp_trigger),.in_a(fp32_a),.in_b(fp32_b),
+        .in_ready(mul_irdy),.out_valid(mul_ovld),.out_y(mul_result),.out_ready(1'b1));
+    gf_adder_param #(.EXP_BITS(8),.MANT_BITS(23),.HAS_INF(1)) u_add (
+        .clk(mclk),.rst(rst),.in_valid(mul_ovld),.in_a(mul_result),.in_b(fp32_c),
+        .in_ready(add_irdy),.out_valid(add_ovld),.out_y(add_result),.out_ready(1'b1));
+    always @(posedge mclk or posedge rst) begin
+        if(rst) begin a_reg<=0;b_reg<=0;c_reg<=0;comp_trigger<=0; end
+        else begin comp_trigger<=frame_valid;
+            if(frame_valid) begin a_reg<=a_r;b_reg<=b_r;c_reg<=c_r; end
+        end
+    end
+    wire [31:0] q_in=add_result;
+    wire q_sign=q_in[31]; wire [7:0] q_exp=q_in[30:23]; wire [22:0] q_mant=q_in[22:0];
+    wire q_nan=(q_in==32'h7FC00000); wire q_zero=(q_in==32'h00000000);
+    wire signed [7:0] q_logint = $signed({1'b0,q_exp}) - 8'sd127;
+    wire [62:0] q_logval = {q_logint[6:0], q_mant[22:16], 8'b0, 24'b0};
+    reg [63:0] q_result;
+    always @(*) begin
+        if(q_nan) q_result=64'h0;
+        else if(q_zero) q_result=64'h0;
+        else q_result={q_sign, q_logval};
+    end
+    reg [63:0] result_reg; reg result_ready;
+    always @(posedge mclk or posedge rst) begin
+        if(rst) begin result_reg<=0;result_ready<=0; end
+        else begin result_ready<=add_ovld;
+            if(add_ovld) result_reg<=q_result;
+        end
+    end
+    assign led[2]=|result_reg;
+    localparam [3:0] TX_LEN = 9;
+    reg responding; reg [3:0] tx_cnt;
+    reg [71:0] tx_shift;
+    wire [71:0] tx_load = {result_reg, 8'hA5};
+    reg [8:0] tcnt; reg [3:0] tbi; reg [9:0] tsr;
+    wire [7:0] cur_byte;
+    always @(*) begin
+        if(!responding) cur_byte=8'hFF; else cur_byte=tx_shift[7:0];
+    end
+    always @(posedge mclk or posedge rst) begin
+        if(rst) begin responding<=0;tx_cnt<=0;tcnt<=BAUD_DIV-1;tbi<=0;tsr<=10'h3FF;uart_tx<=1; end
+        else begin uart_tx<=tsr[0];
+            if(result_ready) begin tx_shift<=tx_load;tx_cnt<=0;responding<=1; end
+            if(tcnt==0) begin tcnt<=BAUD_DIV-1;
+                if(tbi==9) begin tbi<=0;
+                    if(responding) begin
+                        tsr<={1'b1,cur_byte,1'b0};
+                        tx_shift<={8'h00,tx_shift[71:8]};
+                        if(tx_cnt==TX_LEN-1) responding<=0; else tx_cnt<=tx_cnt+1;
+                    end else tsr<=10'h3FF;
+                end else begin tbi<=tbi+1;tsr<={1'b1,tsr[9:1]}; end
+            end else tcnt<=tcnt-1;
+        end
+    end
+endmodule
+`default_nettype wire
