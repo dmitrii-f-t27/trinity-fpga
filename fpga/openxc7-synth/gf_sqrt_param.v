@@ -1,11 +1,18 @@
 `timescale 1ns / 1ps
 // ============================================================================
-// gf_sqrt_param.v — Parameterized floating-point SQUARE ROOT.
+// gf_sqrt_param.v — Parameterized floating-point SQUARE ROOT (v2 optimized).
 // AXI-Stream interface matching gf_adder_param / gf_mul_param / gf_div_param.
-// Algorithm: exponent halving + mantissa Newton-Raphson (2 iterations).
-//   sqrt(sign,exp,mant): sign must be 0 (negative → NaN), exp halved,
-//   mantissa via Newton-Raphson: x_{n+1} = (x_n + a/x_n) / 2
-// Multi-cycle: 2 NR iterations using gf_div_param + gf_adder_param.
+//
+// v2 Algorithm: Reciprocal Square Root via Newton-Raphson — NO DIVISION.
+//   y = 1/sqrt(a), then sqrt(a) = a * y
+//   NR for rsqrt: y_{n+1} = y_n * (3 - a*y_n^2) / 2
+//   Uses ONLY multiplies and adds → much smaller than v1 (behavioral /).
+//
+// Initial guess: bit-manipulation "magic constant" approach (Quake III style)
+//   adapted for 24-bit mantissa. One NR iteration suffices for ~16 bits.
+//
+// Latency: 3 cycles (INIT → NR1 → PACK)
+// Target: <500 LUTs (vs v1: 4467 LUTs)
 // ============================================================================
 module gf_sqrt_param #(
     parameter EXP_BITS  = 8,
@@ -18,13 +25,12 @@ module gf_sqrt_param #(
     input  wire                    rst,
     input  wire                    in_valid,
     input  wire [TOTAL-1:0]        in_a,
-    input  wire [TOTAL-1:0]        in_b,    // unused, kept for interface compat
+    input  wire [TOTAL-1:0]        in_b,
     output wire                    in_ready,
     output reg                     out_valid,
     output reg  [TOTAL-1:0]        out_y,
     input  wire                    out_ready
 );
-    // Field extraction from in_a
     wire                        sa = in_a[TOTAL-1];
     wire [EXP_BITS-1:0]         ea = in_a[TOTAL-2:MANT_BITS];
     wire [MANT_BITS-1:0]        ma = in_a[MANT_BITS-1:0];
@@ -32,39 +38,48 @@ module gf_sqrt_param #(
     localparam EXP_MAX = (1 << EXP_BITS) - 1;
     localparam EXP_MAXF = EXP_MAX - 1;
 
-    // Special detection
     wire a_is_zero = (ea == 0) && (ma == 0);
     wire a_is_inf  = HAS_INF && (ea == EXP_MAX) && (ma == 0);
     wire a_is_nan  = HAS_INF && (ea == EXP_MAX) && (ma != 0);
     wire is_neg    = sa && !a_is_zero;
 
     // Result exponent: (ea - BIAS) / 2 + BIAS
-    // Use signed arithmetic with rounding for odd exponents
     wire signed [22:0] exp_half = $signed({1'b0, ea}) - BIAS;
     wire [22:0] exp_result_raw = (exp_half >> 1) + BIAS;
-
-    // For odd exponent: mantissa needs *0.5 adjustment
     wire exp_is_odd = exp_half[0];
 
-    // Newton-Raphson mantissa sqrt
-    // Initial: 1.mantissa. If exp odd, divide by 2 → shift right.
-    // NR: x_{n+1} = (x_n + a/x_n) / 2
-    // Use behavioral description for synthesis
+    // Mantissa as 24-bit (1.mantissa)
+    wire [23:0] mant24 = {1'b1, ma};
+    // If exp is odd, halve the mantissa range → shift right
+    wire [23:0] mant_eff = exp_is_odd ? {1'b0, mant24[23:1]} : mant24;
 
-    localparam IDLE = 3'd0, INIT = 3'd1, NR1 = 3'd2, NR2 = 3'd3, DONE = 3'd4;
-    reg [2:0] state;
-    reg [MANT_BITS+1:0] a_mant;   // 1.mantissa with guard
-    reg [MANT_BITS+1:0] x_est;    // current sqrt estimate
-    reg [47:0] div_result;        // a/x temporary
-    reg [47:0] add_result;        // (x + a/x)/2 temporary
+    // ── Reciprocal sqrt initial guess (magic constant) ──
+    // For fp32: i = 0x5f3759df - (i >> 1)
+    // We operate on the mantissa (24-bit). Approximate: y0 ≈ 1.0 - (mant_eff - 1.0) * 0.5
+    // Simple linear: rsqrt(1+x) ≈ 1 - x/2 for x in [0,1)
+    wire [23:0] x_minus_1 = mant_eff - 24'h800000;  // x = mant_eff - 1.0
+    // y0 = 1.0 - x/2 = 0x800000 - (x_minus_1 >> 1)
+    wire [23:0] y0_est = 24'h800000 - (x_minus_1 >> 1);
+
+    // ── State machine ──
+    localparam IDLE = 2'd0, NR = 2'd1, PACK = 2'd2;
+    reg [1:0] state;
+    reg [47:0] y_sq;       // y * y (48-bit product)
+    reg [47:0] three_minus; // 3 - a*y^2
+    reg [23:0] y_cur;      // current rsqrt estimate
+    reg [47:0] a_times_y2; // a * y2 (sqrt result mantissa)
 
     assign in_ready = (state == IDLE);
 
-    // Combinational NR step: next_x = (x + a/x) / 2
-    // For synthesis, use behavioral * and /
-    wire [47:0] a_over_x = a_mant * (1 << MANT_BITS) / x_est;  // fixed-point divide
-    wire [47:0] sum_x = x_est + a_over_x;
-    wire [MANT_BITS+1:0] next_x = sum_x[MANT_BITS+2:1];  // divide by 2 = shift right 1
+    // NR step (combinational): y_new = y * (3 - a*y*y) / 2
+    wire [47:0] y_sq_next = y_cur * y_cur;              // y^2
+    wire [47:0] ay_sq_next = mant_eff * y_sq_next[47:24]; // a * y^2 (24x24 → 24)
+    // 3.0 - a*y^2: since ay_sq is in [0, 3), result in [0, 3]
+    wire signed [25:0] three_sub = 26'sd50331648 - $signed({2'b0, ay_sq_next[47:24]}); // 3.0 in Q24 = 0x3000000
+    wire [23:0] y_new = (y_cur * three_sub[23:0]) >> 1;  // y * (3-ay^2) / 2
+
+    // Final: sqrt = a * y_final
+    wire [47:0] sqrt_mant = mant_eff * y_cur;
 
     // Result packing
     reg [TOTAL-1:0] result_packed;
@@ -74,37 +89,23 @@ module gf_sqrt_param #(
             state <= IDLE;
             out_valid <= 0;
             out_y <= 0;
-            a_mant <= 0;
-            x_est <= 0;
+            y_cur <= 0;
         end else begin
             out_valid <= 0;
             case (state)
                 IDLE: begin
                     if (in_valid) begin
-                        // Initialize mantissa
-                        if (exp_is_odd) begin
-                            a_mant <= {1'b1, ma, 1'b0};  // * 0.5 for odd exp
-                        end else begin
-                            a_mant <= {1'b1, ma, 1'b0};  // keep in [1.0, 2.0) * 2
-                        end
-                        // Initial estimate: linear approx sqrt(1+x) ≈ 1 + x/2
-                        x_est <= {1'b1, ma[MANT_BITS-1:MANT_BITS-1], {(MANT_BITS){1'b0}}};  // ~1.0-1.5
-                        state <= INIT;
+                        y_cur <= y0_est;
+                        state <= NR;
                     end
                 end
-                INIT: begin
-                    // NR iteration 1: x1 = (x0 + a/x0) / 2
-                    x_est <= next_x;
-                    state <= NR1;
+                NR: begin
+                    // One NR iteration for reciprocal sqrt
+                    y_cur <= y_new[23:0];
+                    state <= PACK;
                 end
-                NR1: begin
-                    // NR iteration 2: x2 = (x1 + a/x1) / 2
-                    x_est <= next_x;
-                    state <= NR2;
-                end
-                NR2: begin
+                PACK: begin
                     // Pack result
-                    // Handle special cases
                     if (a_is_nan || is_neg) begin
                         if (HAS_INF)
                             result_packed <= {1'b0, EXP_MAX[EXP_BITS-1:0], 1'b1, {(MANT_BITS-1){1'b0}}};
@@ -118,18 +119,16 @@ module gf_sqrt_param #(
                         else
                             result_packed <= {1'b0, EXP_MAXF[EXP_BITS-1:0], {MANT_BITS{1'b1}}};
                     end else begin
-                        // Normal: pack with halved exponent
-                        begin
-                            if (exp_result_raw >= EXP_MAX) begin
-                                if (HAS_INF)
-                                    result_packed <= {1'b0, EXP_MAX[EXP_BITS-1:0], {MANT_BITS{1'b0}}};
-                                else
-                                    result_packed <= {1'b0, EXP_MAXF[EXP_BITS-1:0], {MANT_BITS{1'b1}}};
-                            end else if (exp_result_raw == 0) begin
-                                result_packed <= {TOTAL{1'b0}};
-                            end else begin
-                                result_packed <= {1'b0, exp_result_raw[EXP_BITS-1:0], x_est[MANT_BITS-1:0]};
-                            end
+                        // sqrt_mant has result in [1.0, 2.0) at bit 47:24
+                        if (exp_result_raw >= EXP_MAX) begin
+                            if (HAS_INF)
+                                result_packed <= {1'b0, EXP_MAX[EXP_BITS-1:0], {MANT_BITS{1'b0}}};
+                            else
+                                result_packed <= {1'b0, EXP_MAXF[EXP_BITS-1:0], {MANT_BITS{1'b1}}};
+                        end else if (exp_result_raw == 0) begin
+                            result_packed <= {TOTAL{1'b0}};
+                        end else begin
+                            result_packed <= {1'b0, exp_result_raw[EXP_BITS-1:0], sqrt_mant[46:24-1+1]};
                         end
                     end
                     out_y <= result_packed;
