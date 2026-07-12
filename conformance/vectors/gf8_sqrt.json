@@ -1,0 +1,391 @@
+{
+  "format": "gf8",
+  "op": "sqrt",
+  "count": 64,
+  "vectors": [
+    {
+      "a": 0,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 1,
+      "b": 0,
+      "op": "sqrt",
+      "result": 32
+    },
+    {
+      "a": 255,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 128,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 128,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 64,
+      "b": 0,
+      "op": "sqrt",
+      "result": 54
+    },
+    {
+      "a": 57,
+      "b": 0,
+      "op": "sqrt",
+      "result": 52
+    },
+    {
+      "a": 12,
+      "b": 0,
+      "op": "sqrt",
+      "result": 32
+    },
+    {
+      "a": 140,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 125,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 114,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 71,
+      "b": 0,
+      "op": "sqrt",
+      "result": 59
+    },
+    {
+      "a": 52,
+      "b": 0,
+      "op": "sqrt",
+      "result": 49
+    },
+    {
+      "a": 44,
+      "b": 0,
+      "op": "sqrt",
+      "result": 45
+    },
+    {
+      "a": 216,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 16,
+      "b": 0,
+      "op": "sqrt",
+      "result": 32
+    },
+    {
+      "a": 15,
+      "b": 0,
+      "op": "sqrt",
+      "result": 32
+    },
+    {
+      "a": 47,
+      "b": 0,
+      "op": "sqrt",
+      "result": 47
+    },
+    {
+      "a": 111,
+      "b": 0,
+      "op": "sqrt",
+      "result": 79
+    },
+    {
+      "a": 119,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 13,
+      "b": 0,
+      "op": "sqrt",
+      "result": 32
+    },
+    {
+      "a": 101,
+      "b": 0,
+      "op": "sqrt",
+      "result": 73
+    },
+    {
+      "a": 214,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 112,
+      "b": 0,
+      "op": "sqrt",
+      "result": 112
+    },
+    {
+      "a": 229,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 142,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 3,
+      "b": 0,
+      "op": "sqrt",
+      "result": 32
+    },
+    {
+      "a": 81,
+      "b": 0,
+      "op": "sqrt",
+      "result": 64
+    },
+    {
+      "a": 216,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 174,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 142,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 79,
+      "b": 0,
+      "op": "sqrt",
+      "result": 63
+    },
+    {
+      "a": 110,
+      "b": 0,
+      "op": "sqrt",
+      "result": 78
+    },
+    {
+      "a": 172,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 52,
+      "b": 0,
+      "op": "sqrt",
+      "result": 49
+    },
+    {
+      "a": 47,
+      "b": 0,
+      "op": "sqrt",
+      "result": 47
+    },
+    {
+      "a": 194,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 49,
+      "b": 0,
+      "op": "sqrt",
+      "result": 48
+    },
+    {
+      "a": 183,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 176,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 135,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 22,
+      "b": 0,
+      "op": "sqrt",
+      "result": 34
+    },
+    {
+      "a": 235,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 63,
+      "b": 0,
+      "op": "sqrt",
+      "result": 54
+    },
+    {
+      "a": 193,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 40,
+      "b": 0,
+      "op": "sqrt",
+      "result": 43
+    },
+    {
+      "a": 150,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 185,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 98,
+      "b": 0,
+      "op": "sqrt",
+      "result": 72
+    },
+    {
+      "a": 35,
+      "b": 0,
+      "op": "sqrt",
+      "result": 40
+    },
+    {
+      "a": 23,
+      "b": 0,
+      "op": "sqrt",
+      "result": 35
+    },
+    {
+      "a": 116,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 148,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 40,
+      "b": 0,
+      "op": "sqrt",
+      "result": 43
+    },
+    {
+      "a": 119,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 51,
+      "b": 0,
+      "op": "sqrt",
+      "result": 49
+    },
+    {
+      "a": 194,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 142,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 232,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 186,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 83,
+      "b": 0,
+      "op": "sqrt",
+      "result": 65
+    },
+    {
+      "a": 189,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 181,
+      "b": 0,
+      "op": "sqrt",
+      "result": 0
+    },
+    {
+      "a": 107,
+      "b": 0,
+      "op": "sqrt",
+      "result": 77
+    }
+  ]
+}

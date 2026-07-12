@@ -1,0 +1,391 @@
+{
+  "format": "gf4",
+  "op": "quire",
+  "count": 64,
+  "vectors": [
+    {
+      "a": 0,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 1,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 15,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 8,
+      "b": 0,
+      "op": "quire",
+      "result": 8
+    },
+    {
+      "a": 8,
+      "b": 0,
+      "op": "quire",
+      "result": 8
+    },
+    {
+      "a": 4,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 3,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 0,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 8,
+      "b": 0,
+      "op": "quire",
+      "result": 8
+    },
+    {
+      "a": 7,
+      "b": 0,
+      "op": "quire",
+      "result": 7
+    },
+    {
+      "a": 7,
+      "b": 0,
+      "op": "quire",
+      "result": 7
+    },
+    {
+      "a": 4,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 3,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 2,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 13,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 1,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 0,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 2,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 6,
+      "b": 0,
+      "op": "quire",
+      "result": 6
+    },
+    {
+      "a": 7,
+      "b": 0,
+      "op": "quire",
+      "result": 7
+    },
+    {
+      "a": 0,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 6,
+      "b": 0,
+      "op": "quire",
+      "result": 6
+    },
+    {
+      "a": 13,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 7,
+      "b": 0,
+      "op": "quire",
+      "result": 7
+    },
+    {
+      "a": 14,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 8,
+      "b": 0,
+      "op": "quire",
+      "result": 8
+    },
+    {
+      "a": 0,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 5,
+      "b": 0,
+      "op": "quire",
+      "result": 5
+    },
+    {
+      "a": 13,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 10,
+      "b": 0,
+      "op": "quire",
+      "result": 10
+    },
+    {
+      "a": 8,
+      "b": 0,
+      "op": "quire",
+      "result": 8
+    },
+    {
+      "a": 4,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 6,
+      "b": 0,
+      "op": "quire",
+      "result": 6
+    },
+    {
+      "a": 10,
+      "b": 0,
+      "op": "quire",
+      "result": 10
+    },
+    {
+      "a": 3,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 2,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 12,
+      "b": 0,
+      "op": "quire",
+      "result": 12
+    },
+    {
+      "a": 3,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 11,
+      "b": 0,
+      "op": "quire",
+      "result": 11
+    },
+    {
+      "a": 11,
+      "b": 0,
+      "op": "quire",
+      "result": 11
+    },
+    {
+      "a": 8,
+      "b": 0,
+      "op": "quire",
+      "result": 8
+    },
+    {
+      "a": 1,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 14,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 3,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 12,
+      "b": 0,
+      "op": "quire",
+      "result": 12
+    },
+    {
+      "a": 2,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 9,
+      "b": 0,
+      "op": "quire",
+      "result": 9
+    },
+    {
+      "a": 11,
+      "b": 0,
+      "op": "quire",
+      "result": 11
+    },
+    {
+      "a": 6,
+      "b": 0,
+      "op": "quire",
+      "result": 6
+    },
+    {
+      "a": 2,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 1,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 7,
+      "b": 0,
+      "op": "quire",
+      "result": 7
+    },
+    {
+      "a": 9,
+      "b": 0,
+      "op": "quire",
+      "result": 9
+    },
+    {
+      "a": 2,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 7,
+      "b": 0,
+      "op": "quire",
+      "result": 7
+    },
+    {
+      "a": 3,
+      "b": 0,
+      "op": "quire",
+      "result": 4
+    },
+    {
+      "a": 12,
+      "b": 0,
+      "op": "quire",
+      "result": 12
+    },
+    {
+      "a": 8,
+      "b": 0,
+      "op": "quire",
+      "result": 8
+    },
+    {
+      "a": 14,
+      "b": 0,
+      "op": "quire",
+      "result": 0
+    },
+    {
+      "a": 11,
+      "b": 0,
+      "op": "quire",
+      "result": 11
+    },
+    {
+      "a": 5,
+      "b": 0,
+      "op": "quire",
+      "result": 5
+    },
+    {
+      "a": 11,
+      "b": 0,
+      "op": "quire",
+      "result": 11
+    },
+    {
+      "a": 11,
+      "b": 0,
+      "op": "quire",
+      "result": 11
+    },
+    {
+      "a": 6,
+      "b": 0,
+      "op": "quire",
+      "result": 6
+    }
+  ]
+}

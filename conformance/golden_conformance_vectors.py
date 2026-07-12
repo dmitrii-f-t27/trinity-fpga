@@ -22,6 +22,11 @@ FORMATS = {
     "gf24": (24, 6, 17, 31),
     "gf32": (32, 7, 25, 63),
     "bf16": (16, 8, 7, 127),
+    "fp16_e6m9":    (16, 6, 9, 31),
+    "fp24_7m16":    (24, 7, 16, 63),
+    "fp32_e8m23":   (32, 8, 23, 127),
+    "binary64":     (64, 11, 52, 1023),
+    "fp128_e15m112":(128, 15, 112, 16383),
 }
 
 def to_fp32(val, fmt_name):
@@ -63,6 +68,10 @@ def from_fp32(f, fmt_name):
         return 0
     if f == 0.0:
         return 0
+    # Clamp overflow before packing to fp32
+    if abs(f) > 3.4e38:
+        s = 1 if f < 0 else 0
+        return (s << sign_bit) | (e_max << exp_lo)
     bits = struct.unpack('<I', struct.pack('<f', f))[0]
     s = (bits >> 31) & 1
     exp32 = (bits >> 23) & 0xFF
