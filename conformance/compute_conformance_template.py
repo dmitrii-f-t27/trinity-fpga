@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """compute_conformance_template.py — generalized compute-host for AX7203.
-Tests ADD and MUL (and optionally DIV) for any format that has a compute bitstream.
+Tests ADD, MUL, DIV, SQRT, QUIRE for any format that has a compute bitstream.
 
 Usage:
   python3 compute_conformance_template.py --port /dev/cu.usbserial-1120 --fmt gf16 --op add
   python3 compute_conformance_template.py --port /dev/cu.usbserial-1120 --fmt gf8 --op mul
   python3 compute_conformance_template.py --port /dev/cu.usbserial-1120 --fmt gf16 --op div
+  python3 compute_conformance_template.py --port /dev/cu.usbserial-1120 --fmt gf16 --op sqrt
+  python3 compute_conformance_template.py --port /dev/cu.usbserial-1120 --fmt gf16 --op quire
 
-Supports: gf4, gf6, gf8, gf10, gf12, gf14, gf16, gf20, gf24, gf32
-Operations: add, mul, div
+Supports: gf4, gf6, gf8, gf10, gf12, gf14, gf16, gf20, gf24, gf32, bf16
+Operations: add, mul, div, sqrt, quire
 """
 import argparse, sys, struct, random
 
@@ -99,6 +101,15 @@ def golden_fp32(a_bits, b_bits, fmt_name, op):
         if b == 0.0:
             return (1 << sign_bit) | (e_max << exp_lo)  # Inf
         result = a / b
+    elif op == "sqrt":
+        import math
+        if a < 0:
+            return 0  # NaN -> 0
+        result = math.sqrt(a)
+    elif op == "quire":
+        # Quire: accumulate a into running sum, b selects op (0=add)
+        # For golden: just return a (single accumulate test)
+        result = a
     else:
         raise ValueError(f"Unknown op: {op}")
     return from_fp32(result)
@@ -151,7 +162,7 @@ if __name__ == "__main__":
     ap.add_argument("--port", default="/dev/cu.usbserial-1120")
     ap.add_argument("--baud", type=int, default=160000)
     ap.add_argument("--fmt", required=True, choices=list(FORMATS.keys()))
-    ap.add_argument("--op", required=True, choices=["add", "mul", "div"])
+    ap.add_argument("--op", required=True, choices=["add", "mul", "div", "sqrt", "quire"])
     ap.add_argument("--n", type=int, default=64)
     args = ap.parse_args()
     sys.exit(0 if run_hw(args.port, args.baud, args.fmt, args.op, args.n) else 1)
