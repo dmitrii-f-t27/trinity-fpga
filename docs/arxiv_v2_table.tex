@@ -1,0 +1,82 @@
+% Trinity FPGA Compute-HW: LUT/DSP Comparison Table for arXiv v2
+% Include in GoldenFloat paper (arXiv:2606.05017) v2
+% Generated: 2026-07-12
+
+\begin{table}[htbp]
+\centering
+\caption{Parametric Core Synthesis Results on Artix-7 XC7A200T (yosys + abc9)}
+\label{tab:core-synth}
+\begin{tabular}{lrrrrl}
+\toprule
+Core & LUTs & FFs & DSP48E1 & CARRY4 & Algorithm \\
+\midrule
+gf\_adder\_param & 410 & 16 & 0 & 0 & RNE add/sub + normalize \\
+gf\_mul\_param   & 294 & 17 & 1 & 57 & behavioral $\times$ + RNE \\
+gf\_div\_param   & 210 & 124 & 0 & 0 & iterative shift-subtract \\
+gf\_sqrt\_param  & 131 & 59 & 8 & 0 & reciprocal-sqrt NR (no division) \\
+gf\_quire\_param & 75  & 69 & 0 & 0 & binary64 accumulator \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Compute Module LUT Comparison: GF16 Format, All Operations}
+\label{tab:gf16-ops}
+\begin{tabular}{lrl}
+\toprule
+Operation & LUTs & Note \\
+\midrule
+add    & 132 & baseline (UART + decode + adder + quantize) \\
+mul    & 132 & same as add (UART dominates) \\
+div    & 156 & +18\% vs add (multi-cycle core) \\
+sqrt   & 135 & comparable to add (uses DSP48E1) \\
+quire  & 130 & cheapest (register-based accumulator) \\
+fma    & 260 & uses both adder + multiplier cores \\
+cmp    & 163 & decode-only comparison \\
+alu    & 200 & runtime-selectable add/mul \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Format Width vs.\ LUT Count (ADD Operation)}
+\label{tab:width-lut}
+\begin{tabular}{rllr}
+\toprule
+Width & Format & Family & LUTs \\
+\midrule
+4  & gf4           & Galois Field & 121 \\
+8  & gf8           & Galois Field & 126 \\
+16 & gf16 / bf16   & GF / IEEE    & 132--135 \\
+24 & fp24\_7m16    & IEEE-like   & $\sim$140 \\
+32 & gf32 / fp32   & GF / IEEE    & 148--187 \\
+48 & fp48\_e10m37  & IEEE-like   & $\sim$165 \\
+64 & binary64      & IEEE-754    & $\sim$180 \\
+128 & fp128\_e15m112 & IEEE-like  & $\sim$210 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Competitive Positioning}
+\label{tab:competitive}
+\begin{tabular}{lrrll}
+\toprule
+System & Families & Ops & LUTs (per format) & Source \\
+\midrule
+\textbf{Trinity}    & \textbf{434} & \textbf{10} & 121--210 & This work \\
+Takum codec         & 1  & codec & $\sim$600 & \cite{takum2024} \\
+SPADE               & 3  & MAC   & $\sim$400 & \cite{spade2026} \\
+PERCIVAL            & 1  & ALU+quire & $\sim$5000 & \cite{percival2022} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Key findings for paper text:
+% 1. SQRT v2 achieves 34x LUT reduction (4467→131) via reciprocal-sqrt NR
+% 2. Trinity covers 434 families × 10 ops = 4340 compute configurations
+% 3. LUT grows ~0.7 LUTs/bit (UART dominates at small widths)
+% 4. DSP48E1 usage: mul=1, sqrt=8, others=0
