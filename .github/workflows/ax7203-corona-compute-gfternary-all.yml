@@ -1,0 +1,28 @@
+name: AX7203 Compute gfternary (All Ops)
+on:
+  push:
+    paths:
+      - 'fpga/openxc7-synth/corona_compute_gfternary_*_ax7203.v'
+      - 'fpga/openxc7-synth/gf_adder_param.v'
+      - 'fpga/openxc7-synth/gf_mul_param.v'
+  workflow_dispatch:
+
+jobs:
+  synth:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        op: [add, mul, fma, cmp, alu]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Yosys synthesis gfternary_${{ matrix.op }}
+        uses: docker://regymm/openxc7:latest
+        with:
+          args: bash -c "cd fpga/openxc7-synth && yosys -p 'read_verilog gf_adder_param.v gf_mul_param.v corona_compute_gfternary_${{ matrix.op }}_ax7203.v; synth_xilinx -abc9 -nocarry -arch xc7; write_json gfternary_${{ matrix.op }}.json'"
+      - name: Upload synth artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gfternary_${{ matrix.op }}_synth
+          path: fpga/openxc7-synth/gfternary_${{ matrix.op }}.json
