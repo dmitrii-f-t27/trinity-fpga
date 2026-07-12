@@ -7,6 +7,35 @@ allowed-tools: Bash(docker *), Bash(cargo *), Bash(curl *), Bash(ls *), Read, Gr
 
 # FPGA Synthesis + Flash Pipeline
 
+## Compute-HW Catalog (440 families, 10 ops)
+- **440 format families** × 10 operations (add/mul/div/sqrt/quire/fma/cmp/alu/to_fp32/fp32_to)
+- **5 parametric cores**: gf_adder_param(410 LUT), gf_mul_param(294 LUT+1 DSP), gf_div_param(210 LUT), gf_sqrt_param(131 LUT+8 DSP), gf_quire_param(75 LUT)
+- **Full bit-width coverage 3-128** with ≥2 E/M variants per width
+- **16,640 conformance vectors** in `conformance/vectors/`
+- **SW conformance**: `python3 conformance/gen_sw_conformance.py` (25/25 PASS)
+- **HW conformance**: `sudo bash conformance/hw_silicon_sprint.sh` (needs sudo + board)
+- **Catalog manifest**: `docs/catalog_manifest.json` (machine-readable index)
+- **Paper materials**: `docs/arxiv_v2_table.tex`, `docs/arxiv_v2_comparison.md`
+
+### Silicon Sprint (HW verification)
+```bash
+# Prep: check bitstream availability
+bash conformance/prep_silicon_sprint.sh
+
+# Full sprint: decode 77 + compute 25
+sudo bash conformance/hw_silicon_sprint.sh
+
+# Single format/op conformance
+python3 conformance/compute_conformance_template.py --port /dev/cu.usbserial-1120 --fmt gf16 --op div
+```
+
+### FTDI MPSSE Fix (macOS)
+AppleSerialShim kext blocks FTDI MPSSE for large JTAG transfers. Fix:
+```bash
+sudo kextunload -b com.apple.driver.AppleSerialShim   # before flash
+sudo kextload -b com.apple.driver.AppleSerialShim      # after flash (for UART)
+```
+
 Supported boards:
 - **QMTECH XC7A100T-FGG676** (legacy)
 - **ALINX AX7203 (XC7A200T-FBG484-2)** — new primary target
