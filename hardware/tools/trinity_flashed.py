@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+"""
+trinity_flashed.py — Root daemon for FPGA flashing without repeated sudo.
+Runs as a launchd service (root). Listens on Unix socket.
+Client (trinity_flash) sends bitstream path → daemon flashes it.
+
+Protocol (newline-delimited JSON):
+  Request:  {"cmd": "flash", "bitstream": "/path/to/file.bit"}
+  Request:  {"cmd": "kextunload"}
+  Request:  {"cmd": "kextload"}
+  Request:  {"cmd": "jtag_scan"}
+  Response: {"ok": true/false, "msg": "...", "data": "..."}
+
+Install:
+  sudo python3 trinity_flashed.py --install
+  sudo launchctl load /Library/LaunchDaemons/com.trinity.flashed.plist
+
+Use:
+  python3 trinity_flash.py /tmp/bitstreams/bf16.bit
+"""
+import socket, json, os, sys, subprocess, threading, tempfile, time
+
+SOCKET_PATH = "/tmp/trinity_flashed.sock"
+OPENOCD = "/opt/homebrew/bin/openocd"
+KEXT_UNLOAD = "/usr/sbin/kextunload"
+KEXT_LOAD = "/usr/sbin/kextload"
+APPLE_SERIAL = "com.apple.driver.AppleSerialShim"
+CFG = "/Users/playom/trinity-fpga/fpga/openxc7-synth/ax7203_al321.cfg"
+
+def run_cmd(cmd, timeout=300):
+    """Run command, return (rc, stdout, stderr)."""
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.returncode, r.stdout, r.stderr
+    except subprocess.TimeoutExpired:
+        return -1, "", "timeout"
+    except Exception as e:
+        return -2, "", str(e)
+
+def handle_flash(bitstream):
+    """Flash bitstream: kextunload → openocd → kextload."""
+    if not os.path.exists(bitstream):
+        return {"ok": False, "msg": f"bitstream not found: {bitstream}"}
+
+    # Step 1: Unload serial shim
+    rc, out, err = run_cmd([KEXT_UNLOAD, "-b", APPLE_SERIAL], timeout=10)
+    # Ignore errors — kext might already be unloaded
+
+    # Step 2: Flash via openocd
+    rc2, out2, err2 = run_cmd([
+        OPENOCD, "-f", CFG,
+        "-c", "adapter speed 100",
+        "-c", "init",
+        "-c", f"pld load 0 {bitstream}",
+        "-c", "runtest 200000",
+        "-c", "shutdown"
+    ], timeout=600)
+
+    # Step 3: Reload serial shim for UART
+    run_cmd([KEXT_LOAD, "-b", APPLE_SERIAL], timeout=10)
+
+    if rc2 == 0:
+        return {"ok": True, "msg": f"flashed {bitstream}"}
+    else:
+        return {"ok": False, "msg": f"openocd failed (rc={rc2})", "data": err2[-500:] if err2 else ""}
+
+def handle_jtag_scan():
+    """Quick JTAG scan."""
+    rc, out, err = run_cmd([KEXT_UNLOAD, "-b", APPLE_SERIAL], timeout=10)
+    rc2, out2, err2 = run_cmd([
+        OPENOCD, "-f", CFG,
+        "-c", "adapter speed 100",
+        "-c", "init",
+        "-c", "scan_chain",
+        "-c", "shutdown"
+    ], timeout=30)
+    run_cmd([KEXT_LOAD, "-b", APPLE_SERIAL], timeout=10)
+    combined = out2 + err2
+    return {"ok": rc2 == 0, "msg": combined[-500:]}
+
+def handle_client(conn):
+    """Handle one client connection."""
+    try:
+        data = conn.recv(65536).decode().strip()
+        req = json.loads(data)
+
+        if req["cmd"] == "flash":
+            resp = handle_flash(req["bitstream"])
+        elif req["cmd"] == "jtag_scan":
+            resp = handle_jtag_scan()
+        elif req["cmd"] == "kextunload":
+            rc, _, _ = run_cmd([KEXT_UNLOAD, "-b", APPLE_SERIAL], timeout=10)
+            resp = {"ok": rc == 0, "msg": "kext unloaded"}
+        elif req["cmd"] == "kextload":
+            rc, _, _ = run_cmd([KEXT_LOAD, "-b", APPLE_SERIAL], timeout=10)
+            resp = {"ok": rc == 0, "msg": "kext loaded"}
+        elif req["cmd"] == "ping":
+            resp = {"ok": True, "msg": "pong"}
+        else:
+            resp = {"ok": False, "msg": f"unknown cmd: {req['cmd']}"}
+
+        conn.sendall((json.dumps(resp) + "\n").encode())
+    except Exception as e:
+        try:
+            conn.sendall((json.dumps({"ok": False, "msg": str(e)}) + "\n").encode())
+        except:
+            pass
+    finally:
+        conn.close()
+
+def server_loop():
+    """Main server loop."""
+    if os.path.exists(SOCKET_PATH):
+        os.unlink(SOCKET_PATH)
+
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server.bind(SOCKET_PATH)
+    server.listen(5)
+    os.chmod(SOCKET_PATH, 0o666)  # world read/write
+    print(f"trinity_flashed listening on {SOCKET_PATH}")
+
+    while True:
+        conn, _ = server.accept()
+        t = threading.Thread(target=handle_client, args=(conn,))
+        t.daemon = True
+        t.start()
+
+PLIST = """<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.trinity.flashed</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>{script}</string>
+        <string>--serve</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/trinity_flashed.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/trinity_flashed.log</string>
+</dict>
+</plist>
+"""
+
+def install():
+    """Install as launchd daemon."""
+    script = os.path.abspath(__file__)
+    plist_path = "/Library/LaunchDaemons/com.trinity.flashed.plist"
+    plist_content = PLIST.replace("{script}", script)
+
+    with open("/tmp/com.trinity.flashed.plist", "w") as f:
+        f.write(plist_content)
+
+    print("=== Trinity Flash Daemon Installation ===")
+    print(f"Script: {script}")
+    print(f"Plist:  {plist_path}")
+    print()
+    print("Run these commands to install:")
+    print(f"  sudo cp /tmp/com.trinity.flashed.plist {plist_path}")
+    print(f"  sudo chown root:wheel {plist_path}")
+    print(f"  sudo launchctl load {plist_path}")
+    print()
+    print("Verify:")
+    print("  python3 trinity_flash.py --ping")
+    print()
+    print("Use:")
+    print("  python3 trinity_flash.py /tmp/bitstreams/bf16.bit")
+    print("  python3 trinity_flash.py --scan")
+
+if __name__ == "__main__":
+    if "--install" in sys.argv:
+        install()
+    elif "--serve" in sys.argv:
+        server_loop()
+    else:
+        print("Usage: trinity_flashed.py --install | --serve")
+        print("  --install  Show installation instructions")
+        print("  --serve    Run as daemon (launched by launchd)")
