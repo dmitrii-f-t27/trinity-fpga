@@ -1,0 +1,3155 @@
+{
+  "project": "Trinity FPGA Compute-HW Catalog",
+  "version": "2.0",
+  "date": "2026-07-12",
+  "target": "Artix-7 XC7A200T-FBG484-2 (AX7203)",
+  "toolchain": "openXC7 (yosys + abc9 + nextpnr)",
+  "parametric_cores": {
+    "gf_adder_param": {
+      "luts": 410,
+      "ffs": 16,
+      "dsp": 0,
+      "ops": [
+        "add"
+      ]
+    },
+    "gf_mul_param": {
+      "luts": 294,
+      "ffs": 17,
+      "dsp": 1,
+      "ops": [
+        "mul"
+      ]
+    },
+    "gf_div_param": {
+      "luts": 210,
+      "ffs": 124,
+      "dsp": 0,
+      "ops": [
+        "div"
+      ]
+    },
+    "gf_sqrt_param": {
+      "luts": 131,
+      "ffs": 59,
+      "dsp": 8,
+      "ops": [
+        "sqrt"
+      ]
+    },
+    "gf_quire_param": {
+      "luts": 75,
+      "ffs": 69,
+      "dsp": 0,
+      "ops": [
+        "quire"
+      ]
+    }
+  },
+  "operations": [
+    "add",
+    "mul",
+    "div",
+    "sqrt",
+    "quire",
+    "fma",
+    "cmp",
+    "alu",
+    "to_fp32",
+    "fp32_to"
+  ],
+  "families": [
+    {
+      "name": "afp",
+      "type": "legacy"
+    },
+    {
+      "name": "bcd",
+      "type": "legacy"
+    },
+    {
+      "name": "bf16",
+      "type": "legacy"
+    },
+    {
+      "name": "bfloat24",
+      "type": "legacy"
+    },
+    {
+      "name": "bfloat32",
+      "type": "legacy"
+    },
+    {
+      "name": "binary128",
+      "type": "legacy"
+    },
+    {
+      "name": "binary16",
+      "type": "legacy"
+    },
+    {
+      "name": "binary256",
+      "type": "legacy"
+    },
+    {
+      "name": "binary32",
+      "type": "legacy"
+    },
+    {
+      "name": "binary64",
+      "type": "legacy"
+    },
+    {
+      "name": "bitnet",
+      "type": "legacy"
+    },
+    {
+      "name": "cray_float",
+      "type": "legacy"
+    },
+    {
+      "name": "decimal128",
+      "type": "legacy"
+    },
+    {
+      "name": "decimal32",
+      "type": "legacy"
+    },
+    {
+      "name": "decimal64",
+      "type": "legacy"
+    },
+    {
+      "name": "double_double",
+      "type": "legacy"
+    },
+    {
+      "name": "e8m0",
+      "type": "legacy"
+    },
+    {
+      "name": "fp10",
+      "type": "legacy"
+    },
+    {
+      "name": "fp100_e11m88",
+      "type": "ieee_like",
+      "total_bits": 100,
+      "exponent_bits": 11,
+      "mantissa_bits": 88,
+      "bias": 1023
+    },
+    {
+      "name": "fp100_e8m91",
+      "type": "ieee_like",
+      "total_bits": 100,
+      "exponent_bits": 8,
+      "mantissa_bits": 91,
+      "bias": 127
+    },
+    {
+      "name": "fp101_e12m88",
+      "type": "ieee_like",
+      "total_bits": 101,
+      "exponent_bits": 12,
+      "mantissa_bits": 88,
+      "bias": 2047
+    },
+    {
+      "name": "fp101_e8m92",
+      "type": "ieee_like",
+      "total_bits": 101,
+      "exponent_bits": 8,
+      "mantissa_bits": 92,
+      "bias": 127
+    },
+    {
+      "name": "fp102_e12m89",
+      "type": "ieee_like",
+      "total_bits": 102,
+      "exponent_bits": 12,
+      "mantissa_bits": 89,
+      "bias": 2047
+    },
+    {
+      "name": "fp102_e8m93",
+      "type": "ieee_like",
+      "total_bits": 102,
+      "exponent_bits": 8,
+      "mantissa_bits": 93,
+      "bias": 127
+    },
+    {
+      "name": "fp103_e12m90",
+      "type": "ieee_like",
+      "total_bits": 103,
+      "exponent_bits": 12,
+      "mantissa_bits": 90,
+      "bias": 2047
+    },
+    {
+      "name": "fp103_e8m94",
+      "type": "ieee_like",
+      "total_bits": 103,
+      "exponent_bits": 8,
+      "mantissa_bits": 94,
+      "bias": 127
+    },
+    {
+      "name": "fp104_e12m91",
+      "type": "ieee_like",
+      "total_bits": 104,
+      "exponent_bits": 12,
+      "mantissa_bits": 91,
+      "bias": 2047
+    },
+    {
+      "name": "fp104_e8m95",
+      "type": "ieee_like",
+      "total_bits": 104,
+      "exponent_bits": 8,
+      "mantissa_bits": 95,
+      "bias": 127
+    },
+    {
+      "name": "fp105_e12m92",
+      "type": "ieee_like",
+      "total_bits": 105,
+      "exponent_bits": 12,
+      "mantissa_bits": 92,
+      "bias": 2047
+    },
+    {
+      "name": "fp105_e8m96",
+      "type": "ieee_like",
+      "total_bits": 105,
+      "exponent_bits": 8,
+      "mantissa_bits": 96,
+      "bias": 127
+    },
+    {
+      "name": "fp106_e12m93",
+      "type": "ieee_like",
+      "total_bits": 106,
+      "exponent_bits": 12,
+      "mantissa_bits": 93,
+      "bias": 2047
+    },
+    {
+      "name": "fp106_e8m97",
+      "type": "ieee_like",
+      "total_bits": 106,
+      "exponent_bits": 8,
+      "mantissa_bits": 97,
+      "bias": 127
+    },
+    {
+      "name": "fp107_e12m94",
+      "type": "ieee_like",
+      "total_bits": 107,
+      "exponent_bits": 12,
+      "mantissa_bits": 94,
+      "bias": 2047
+    },
+    {
+      "name": "fp107_e8m98",
+      "type": "ieee_like",
+      "total_bits": 107,
+      "exponent_bits": 8,
+      "mantissa_bits": 98,
+      "bias": 127
+    },
+    {
+      "name": "fp108_e12m95",
+      "type": "ieee_like",
+      "total_bits": 108,
+      "exponent_bits": 12,
+      "mantissa_bits": 95,
+      "bias": 2047
+    },
+    {
+      "name": "fp108_e8m99",
+      "type": "ieee_like",
+      "total_bits": 108,
+      "exponent_bits": 8,
+      "mantissa_bits": 99,
+      "bias": 127
+    },
+    {
+      "name": "fp109_e13m95",
+      "type": "ieee_like",
+      "total_bits": 109,
+      "exponent_bits": 13,
+      "mantissa_bits": 95,
+      "bias": 4095
+    },
+    {
+      "name": "fp109_e8m100",
+      "type": "ieee_like",
+      "total_bits": 109,
+      "exponent_bits": 8,
+      "mantissa_bits": 100,
+      "bias": 127
+    },
+    {
+      "name": "fp10_e3m6",
+      "type": "ieee_like",
+      "total_bits": 10,
+      "exponent_bits": 3,
+      "mantissa_bits": 6,
+      "bias": 3
+    },
+    {
+      "name": "fp10_e5m4",
+      "type": "ieee_like",
+      "total_bits": 10,
+      "exponent_bits": 5,
+      "mantissa_bits": 4,
+      "bias": 15
+    },
+    {
+      "name": "fp110_e13m96",
+      "type": "ieee_like",
+      "total_bits": 110,
+      "exponent_bits": 13,
+      "mantissa_bits": 96,
+      "bias": 4095
+    },
+    {
+      "name": "fp110_e8m101",
+      "type": "ieee_like",
+      "total_bits": 110,
+      "exponent_bits": 8,
+      "mantissa_bits": 101,
+      "bias": 127
+    },
+    {
+      "name": "fp111_e13m97",
+      "type": "ieee_like",
+      "total_bits": 111,
+      "exponent_bits": 13,
+      "mantissa_bits": 97,
+      "bias": 4095
+    },
+    {
+      "name": "fp111_e8m102",
+      "type": "ieee_like",
+      "total_bits": 111,
+      "exponent_bits": 8,
+      "mantissa_bits": 102,
+      "bias": 127
+    },
+    {
+      "name": "fp112_e14m97",
+      "type": "ieee_like",
+      "total_bits": 112,
+      "exponent_bits": 14,
+      "mantissa_bits": 97,
+      "bias": 8191
+    },
+    {
+      "name": "fp112_e8m103",
+      "type": "ieee_like",
+      "total_bits": 112,
+      "exponent_bits": 8,
+      "mantissa_bits": 103,
+      "bias": 127
+    },
+    {
+      "name": "fp113_e13m99",
+      "type": "ieee_like",
+      "total_bits": 113,
+      "exponent_bits": 13,
+      "mantissa_bits": 99,
+      "bias": 4095
+    },
+    {
+      "name": "fp113_e8m104",
+      "type": "ieee_like",
+      "total_bits": 113,
+      "exponent_bits": 8,
+      "mantissa_bits": 104,
+      "bias": 127
+    },
+    {
+      "name": "fp114_e13m100",
+      "type": "ieee_like",
+      "total_bits": 114,
+      "exponent_bits": 13,
+      "mantissa_bits": 100,
+      "bias": 4095
+    },
+    {
+      "name": "fp114_e8m105",
+      "type": "ieee_like",
+      "total_bits": 114,
+      "exponent_bits": 8,
+      "mantissa_bits": 105,
+      "bias": 127
+    },
+    {
+      "name": "fp115_e13m101",
+      "type": "ieee_like",
+      "total_bits": 115,
+      "exponent_bits": 13,
+      "mantissa_bits": 101,
+      "bias": 4095
+    },
+    {
+      "name": "fp115_e8m106",
+      "type": "ieee_like",
+      "total_bits": 115,
+      "exponent_bits": 8,
+      "mantissa_bits": 106,
+      "bias": 127
+    },
+    {
+      "name": "fp116_e12m103",
+      "type": "ieee_like",
+      "total_bits": 116,
+      "exponent_bits": 12,
+      "mantissa_bits": 103,
+      "bias": 2047
+    },
+    {
+      "name": "fp116_e8m107",
+      "type": "ieee_like",
+      "total_bits": 116,
+      "exponent_bits": 8,
+      "mantissa_bits": 107,
+      "bias": 127
+    },
+    {
+      "name": "fp117_e14m102",
+      "type": "ieee_like",
+      "total_bits": 117,
+      "exponent_bits": 14,
+      "mantissa_bits": 102,
+      "bias": 8191
+    },
+    {
+      "name": "fp117_e8m108",
+      "type": "ieee_like",
+      "total_bits": 117,
+      "exponent_bits": 8,
+      "mantissa_bits": 108,
+      "bias": 127
+    },
+    {
+      "name": "fp118_e14m103",
+      "type": "ieee_like",
+      "total_bits": 118,
+      "exponent_bits": 14,
+      "mantissa_bits": 103,
+      "bias": 8191
+    },
+    {
+      "name": "fp118_e8m109",
+      "type": "ieee_like",
+      "total_bits": 118,
+      "exponent_bits": 8,
+      "mantissa_bits": 109,
+      "bias": 127
+    },
+    {
+      "name": "fp119_e14m104",
+      "type": "ieee_like",
+      "total_bits": 119,
+      "exponent_bits": 14,
+      "mantissa_bits": 104,
+      "bias": 8191
+    },
+    {
+      "name": "fp119_e15m103",
+      "type": "ieee_like",
+      "total_bits": 119,
+      "exponent_bits": 15,
+      "mantissa_bits": 103,
+      "bias": 16383
+    },
+    {
+      "name": "fp119_e8m110",
+      "type": "ieee_like",
+      "total_bits": 119,
+      "exponent_bits": 8,
+      "mantissa_bits": 110,
+      "bias": 127
+    },
+    {
+      "name": "fp11_e5m5",
+      "type": "ieee_like",
+      "total_bits": 11,
+      "exponent_bits": 5,
+      "mantissa_bits": 5,
+      "bias": 15
+    },
+    {
+      "name": "fp11_e6m4",
+      "type": "ieee_like",
+      "total_bits": 11,
+      "exponent_bits": 6,
+      "mantissa_bits": 4,
+      "bias": 31
+    },
+    {
+      "name": "fp12",
+      "type": "legacy"
+    },
+    {
+      "name": "fp120_e13m106",
+      "type": "ieee_like",
+      "total_bits": 120,
+      "exponent_bits": 13,
+      "mantissa_bits": 106,
+      "bias": 4095
+    },
+    {
+      "name": "fp120_e15m104",
+      "type": "ieee_like",
+      "total_bits": 120,
+      "exponent_bits": 15,
+      "mantissa_bits": 104,
+      "bias": 16383
+    },
+    {
+      "name": "fp120_e8m111",
+      "type": "ieee_like",
+      "total_bits": 120,
+      "exponent_bits": 8,
+      "mantissa_bits": 111,
+      "bias": 127
+    },
+    {
+      "name": "fp121_e14m106",
+      "type": "ieee_like",
+      "total_bits": 121,
+      "exponent_bits": 14,
+      "mantissa_bits": 106,
+      "bias": 8191
+    },
+    {
+      "name": "fp121_e8m112",
+      "type": "ieee_like",
+      "total_bits": 121,
+      "exponent_bits": 8,
+      "mantissa_bits": 112,
+      "bias": 127
+    },
+    {
+      "name": "fp122_e14m107",
+      "type": "ieee_like",
+      "total_bits": 122,
+      "exponent_bits": 14,
+      "mantissa_bits": 107,
+      "bias": 8191
+    },
+    {
+      "name": "fp122_e8m113",
+      "type": "ieee_like",
+      "total_bits": 122,
+      "exponent_bits": 8,
+      "mantissa_bits": 113,
+      "bias": 127
+    },
+    {
+      "name": "fp123_e14m108",
+      "type": "ieee_like",
+      "total_bits": 123,
+      "exponent_bits": 14,
+      "mantissa_bits": 108,
+      "bias": 8191
+    },
+    {
+      "name": "fp123_e8m114",
+      "type": "ieee_like",
+      "total_bits": 123,
+      "exponent_bits": 8,
+      "mantissa_bits": 114,
+      "bias": 127
+    },
+    {
+      "name": "fp124_e14m109",
+      "type": "ieee_like",
+      "total_bits": 124,
+      "exponent_bits": 14,
+      "mantissa_bits": 109,
+      "bias": 8191
+    },
+    {
+      "name": "fp124_e15m109",
+      "type": "ieee_like",
+      "total_bits": 124,
+      "exponent_bits": 15,
+      "mantissa_bits": 109,
+      "bias": 16383
+    },
+    {
+      "name": "fp124_e8m115",
+      "type": "ieee_like",
+      "total_bits": 124,
+      "exponent_bits": 8,
+      "mantissa_bits": 115,
+      "bias": 127
+    },
+    {
+      "name": "fp125_e14m110",
+      "type": "ieee_like",
+      "total_bits": 125,
+      "exponent_bits": 14,
+      "mantissa_bits": 110,
+      "bias": 8191
+    },
+    {
+      "name": "fp125_e15m109",
+      "type": "ieee_like",
+      "total_bits": 125,
+      "exponent_bits": 15,
+      "mantissa_bits": 109,
+      "bias": 16383
+    },
+    {
+      "name": "fp125_e8m116",
+      "type": "ieee_like",
+      "total_bits": 125,
+      "exponent_bits": 8,
+      "mantissa_bits": 116,
+      "bias": 127
+    },
+    {
+      "name": "fp126_e15m110",
+      "type": "ieee_like",
+      "total_bits": 126,
+      "exponent_bits": 15,
+      "mantissa_bits": 110,
+      "bias": 16383
+    },
+    {
+      "name": "fp126_e8m117",
+      "type": "ieee_like",
+      "total_bits": 126,
+      "exponent_bits": 8,
+      "mantissa_bits": 117,
+      "bias": 127
+    },
+    {
+      "name": "fp127_e15m111",
+      "type": "ieee_like",
+      "total_bits": 127,
+      "exponent_bits": 15,
+      "mantissa_bits": 111,
+      "bias": 16383
+    },
+    {
+      "name": "fp127_e8m118",
+      "type": "ieee_like",
+      "total_bits": 127,
+      "exponent_bits": 8,
+      "mantissa_bits": 118,
+      "bias": 127
+    },
+    {
+      "name": "fp128_e15m112",
+      "type": "ieee_like",
+      "total_bits": 128,
+      "exponent_bits": 15,
+      "mantissa_bits": 112,
+      "bias": 16383
+    },
+    {
+      "name": "fp128_e8m119",
+      "type": "ieee_like",
+      "total_bits": 128,
+      "exponent_bits": 8,
+      "mantissa_bits": 119,
+      "bias": 127
+    },
+    {
+      "name": "fp12_e4m7",
+      "type": "ieee_like",
+      "total_bits": 12,
+      "exponent_bits": 4,
+      "mantissa_bits": 7,
+      "bias": 7
+    },
+    {
+      "name": "fp12_e5m6",
+      "type": "ieee_like",
+      "total_bits": 12,
+      "exponent_bits": 5,
+      "mantissa_bits": 6,
+      "bias": 15
+    },
+    {
+      "name": "fp13_e5m7",
+      "type": "ieee_like",
+      "total_bits": 13,
+      "exponent_bits": 5,
+      "mantissa_bits": 7,
+      "bias": 15
+    },
+    {
+      "name": "fp13_e6m6",
+      "type": "ieee_like",
+      "total_bits": 13,
+      "exponent_bits": 6,
+      "mantissa_bits": 6,
+      "bias": 31
+    },
+    {
+      "name": "fp14",
+      "type": "legacy"
+    },
+    {
+      "name": "fp14_e5m8",
+      "type": "ieee_like",
+      "total_bits": 14,
+      "exponent_bits": 5,
+      "mantissa_bits": 8,
+      "bias": 15
+    },
+    {
+      "name": "fp14_e7m6",
+      "type": "ieee_like",
+      "total_bits": 14,
+      "exponent_bits": 7,
+      "mantissa_bits": 6,
+      "bias": 63
+    },
+    {
+      "name": "fp15_e5m9",
+      "type": "ieee_like",
+      "total_bits": 15,
+      "exponent_bits": 5,
+      "mantissa_bits": 9,
+      "bias": 15
+    },
+    {
+      "name": "fp15_e6m8",
+      "type": "ieee_like",
+      "total_bits": 15,
+      "exponent_bits": 6,
+      "mantissa_bits": 8,
+      "bias": 31
+    },
+    {
+      "name": "fp16_e6m9",
+      "type": "ieee_like",
+      "total_bits": 16,
+      "exponent_bits": 6,
+      "mantissa_bits": 9,
+      "bias": 31
+    },
+    {
+      "name": "fp16_e7m8",
+      "type": "ieee_like",
+      "total_bits": 16,
+      "exponent_bits": 7,
+      "mantissa_bits": 8,
+      "bias": 63
+    },
+    {
+      "name": "fp16_e8m7",
+      "type": "ieee_like",
+      "total_bits": 16,
+      "exponent_bits": 8,
+      "mantissa_bits": 7,
+      "bias": 127
+    },
+    {
+      "name": "fp17_e10m6",
+      "type": "ieee_like",
+      "total_bits": 17,
+      "exponent_bits": 10,
+      "mantissa_bits": 6,
+      "bias": 511
+    },
+    {
+      "name": "fp17_e6m10",
+      "type": "ieee_like",
+      "total_bits": 17,
+      "exponent_bits": 6,
+      "mantissa_bits": 10,
+      "bias": 31
+    },
+    {
+      "name": "fp17_e8m8",
+      "type": "ieee_like",
+      "total_bits": 17,
+      "exponent_bits": 8,
+      "mantissa_bits": 8,
+      "bias": 127
+    },
+    {
+      "name": "fp18",
+      "type": "legacy"
+    },
+    {
+      "name": "fp18_e6m11",
+      "type": "ieee_like",
+      "total_bits": 18,
+      "exponent_bits": 6,
+      "mantissa_bits": 11,
+      "bias": 31
+    },
+    {
+      "name": "fp18_e8m9",
+      "type": "ieee_like",
+      "total_bits": 18,
+      "exponent_bits": 8,
+      "mantissa_bits": 9,
+      "bias": 127
+    },
+    {
+      "name": "fp19_e10m8",
+      "type": "ieee_like",
+      "total_bits": 19,
+      "exponent_bits": 10,
+      "mantissa_bits": 8,
+      "bias": 511
+    },
+    {
+      "name": "fp19_e6m12",
+      "type": "ieee_like",
+      "total_bits": 19,
+      "exponent_bits": 6,
+      "mantissa_bits": 12,
+      "bias": 31
+    },
+    {
+      "name": "fp19_e8m10",
+      "type": "ieee_like",
+      "total_bits": 19,
+      "exponent_bits": 8,
+      "mantissa_bits": 10,
+      "bias": 127
+    },
+    {
+      "name": "fp20",
+      "type": "legacy"
+    },
+    {
+      "name": "fp20_e7m12",
+      "type": "ieee_like",
+      "total_bits": 20,
+      "exponent_bits": 7,
+      "mantissa_bits": 12,
+      "bias": 63
+    },
+    {
+      "name": "fp20_e8m11",
+      "type": "ieee_like",
+      "total_bits": 20,
+      "exponent_bits": 8,
+      "mantissa_bits": 11,
+      "bias": 127
+    },
+    {
+      "name": "fp21_e10m10",
+      "type": "ieee_like",
+      "total_bits": 21,
+      "exponent_bits": 10,
+      "mantissa_bits": 10,
+      "bias": 511
+    },
+    {
+      "name": "fp21_e6m14",
+      "type": "ieee_like",
+      "total_bits": 21,
+      "exponent_bits": 6,
+      "mantissa_bits": 14,
+      "bias": 31
+    },
+    {
+      "name": "fp21_e8m12",
+      "type": "ieee_like",
+      "total_bits": 21,
+      "exponent_bits": 8,
+      "mantissa_bits": 12,
+      "bias": 127
+    },
+    {
+      "name": "fp22_e10m11",
+      "type": "ieee_like",
+      "total_bits": 22,
+      "exponent_bits": 10,
+      "mantissa_bits": 11,
+      "bias": 511
+    },
+    {
+      "name": "fp22_e6m15",
+      "type": "ieee_like",
+      "total_bits": 22,
+      "exponent_bits": 6,
+      "mantissa_bits": 15,
+      "bias": 31
+    },
+    {
+      "name": "fp22_e8m13",
+      "type": "ieee_like",
+      "total_bits": 22,
+      "exponent_bits": 8,
+      "mantissa_bits": 13,
+      "bias": 127
+    },
+    {
+      "name": "fp23_e7m15",
+      "type": "ieee_like",
+      "total_bits": 23,
+      "exponent_bits": 7,
+      "mantissa_bits": 15,
+      "bias": 63
+    },
+    {
+      "name": "fp23_e8m14",
+      "type": "ieee_like",
+      "total_bits": 23,
+      "exponent_bits": 8,
+      "mantissa_bits": 14,
+      "bias": 127
+    },
+    {
+      "name": "fp23_e9m13",
+      "type": "ieee_like",
+      "total_bits": 23,
+      "exponent_bits": 9,
+      "mantissa_bits": 13,
+      "bias": 255
+    },
+    {
+      "name": "fp24",
+      "type": "legacy"
+    },
+    {
+      "name": "fp24_e7m16",
+      "type": "ieee_like",
+      "total_bits": 24,
+      "exponent_bits": 7,
+      "mantissa_bits": 16,
+      "bias": 63
+    },
+    {
+      "name": "fp24_e8m15",
+      "type": "ieee_like",
+      "total_bits": 24,
+      "exponent_bits": 8,
+      "mantissa_bits": 15,
+      "bias": 127
+    },
+    {
+      "name": "fp25_e10m14",
+      "type": "ieee_like",
+      "total_bits": 25,
+      "exponent_bits": 10,
+      "mantissa_bits": 14,
+      "bias": 511
+    },
+    {
+      "name": "fp25_e6m18",
+      "type": "ieee_like",
+      "total_bits": 25,
+      "exponent_bits": 6,
+      "mantissa_bits": 18,
+      "bias": 31
+    },
+    {
+      "name": "fp25_e8m16",
+      "type": "ieee_like",
+      "total_bits": 25,
+      "exponent_bits": 8,
+      "mantissa_bits": 16,
+      "bias": 127
+    },
+    {
+      "name": "fp26_e10m15",
+      "type": "ieee_like",
+      "total_bits": 26,
+      "exponent_bits": 10,
+      "mantissa_bits": 15,
+      "bias": 511
+    },
+    {
+      "name": "fp26_e7m18",
+      "type": "ieee_like",
+      "total_bits": 26,
+      "exponent_bits": 7,
+      "mantissa_bits": 18,
+      "bias": 63
+    },
+    {
+      "name": "fp26_e8m17",
+      "type": "ieee_like",
+      "total_bits": 26,
+      "exponent_bits": 8,
+      "mantissa_bits": 17,
+      "bias": 127
+    },
+    {
+      "name": "fp27_e10m16",
+      "type": "ieee_like",
+      "total_bits": 27,
+      "exponent_bits": 10,
+      "mantissa_bits": 16,
+      "bias": 511
+    },
+    {
+      "name": "fp27_e7m19",
+      "type": "ieee_like",
+      "total_bits": 27,
+      "exponent_bits": 7,
+      "mantissa_bits": 19,
+      "bias": 63
+    },
+    {
+      "name": "fp27_e8m18",
+      "type": "ieee_like",
+      "total_bits": 27,
+      "exponent_bits": 8,
+      "mantissa_bits": 18,
+      "bias": 127
+    },
+    {
+      "name": "fp28_e10m17",
+      "type": "ieee_like",
+      "total_bits": 28,
+      "exponent_bits": 10,
+      "mantissa_bits": 17,
+      "bias": 511
+    },
+    {
+      "name": "fp28_e11m16",
+      "type": "ieee_like",
+      "total_bits": 28,
+      "exponent_bits": 11,
+      "mantissa_bits": 16,
+      "bias": 1023
+    },
+    {
+      "name": "fp28_e8m19",
+      "type": "ieee_like",
+      "total_bits": 28,
+      "exponent_bits": 8,
+      "mantissa_bits": 19,
+      "bias": 127
+    },
+    {
+      "name": "fp29_e10m18",
+      "type": "ieee_like",
+      "total_bits": 29,
+      "exponent_bits": 10,
+      "mantissa_bits": 18,
+      "bias": 511
+    },
+    {
+      "name": "fp29_e7m21",
+      "type": "ieee_like",
+      "total_bits": 29,
+      "exponent_bits": 7,
+      "mantissa_bits": 21,
+      "bias": 63
+    },
+    {
+      "name": "fp29_e8m20",
+      "type": "ieee_like",
+      "total_bits": 29,
+      "exponent_bits": 8,
+      "mantissa_bits": 20,
+      "bias": 127
+    },
+    {
+      "name": "fp30_e10m19",
+      "type": "ieee_like",
+      "total_bits": 30,
+      "exponent_bits": 10,
+      "mantissa_bits": 19,
+      "bias": 511
+    },
+    {
+      "name": "fp30_e11m18",
+      "type": "ieee_like",
+      "total_bits": 30,
+      "exponent_bits": 11,
+      "mantissa_bits": 18,
+      "bias": 1023
+    },
+    {
+      "name": "fp30_e8m21",
+      "type": "ieee_like",
+      "total_bits": 30,
+      "exponent_bits": 8,
+      "mantissa_bits": 21,
+      "bias": 127
+    },
+    {
+      "name": "fp31_e10m20",
+      "type": "ieee_like",
+      "total_bits": 31,
+      "exponent_bits": 10,
+      "mantissa_bits": 20,
+      "bias": 511
+    },
+    {
+      "name": "fp31_e11m19",
+      "type": "ieee_like",
+      "total_bits": 31,
+      "exponent_bits": 11,
+      "mantissa_bits": 19,
+      "bias": 1023
+    },
+    {
+      "name": "fp31_e8m22",
+      "type": "ieee_like",
+      "total_bits": 31,
+      "exponent_bits": 8,
+      "mantissa_bits": 22,
+      "bias": 127
+    },
+    {
+      "name": "fp32_e11m20",
+      "type": "ieee_like",
+      "total_bits": 32,
+      "exponent_bits": 11,
+      "mantissa_bits": 20,
+      "bias": 1023
+    },
+    {
+      "name": "fp32_e8m23",
+      "type": "ieee_like",
+      "total_bits": 32,
+      "exponent_bits": 8,
+      "mantissa_bits": 23,
+      "bias": 127
+    },
+    {
+      "name": "fp33_e10m22",
+      "type": "ieee_like",
+      "total_bits": 33,
+      "exponent_bits": 10,
+      "mantissa_bits": 22,
+      "bias": 511
+    },
+    {
+      "name": "fp33_e7m25",
+      "type": "ieee_like",
+      "total_bits": 33,
+      "exponent_bits": 7,
+      "mantissa_bits": 25,
+      "bias": 63
+    },
+    {
+      "name": "fp33_e8m24",
+      "type": "ieee_like",
+      "total_bits": 33,
+      "exponent_bits": 8,
+      "mantissa_bits": 24,
+      "bias": 127
+    },
+    {
+      "name": "fp34_e10m23",
+      "type": "ieee_like",
+      "total_bits": 34,
+      "exponent_bits": 10,
+      "mantissa_bits": 23,
+      "bias": 511
+    },
+    {
+      "name": "fp34_e7m26",
+      "type": "ieee_like",
+      "total_bits": 34,
+      "exponent_bits": 7,
+      "mantissa_bits": 26,
+      "bias": 63
+    },
+    {
+      "name": "fp34_e8m25",
+      "type": "ieee_like",
+      "total_bits": 34,
+      "exponent_bits": 8,
+      "mantissa_bits": 25,
+      "bias": 127
+    },
+    {
+      "name": "fp35_e10m24",
+      "type": "ieee_like",
+      "total_bits": 35,
+      "exponent_bits": 10,
+      "mantissa_bits": 24,
+      "bias": 511
+    },
+    {
+      "name": "fp35_e11m23",
+      "type": "ieee_like",
+      "total_bits": 35,
+      "exponent_bits": 11,
+      "mantissa_bits": 23,
+      "bias": 1023
+    },
+    {
+      "name": "fp35_e8m26",
+      "type": "ieee_like",
+      "total_bits": 35,
+      "exponent_bits": 8,
+      "mantissa_bits": 26,
+      "bias": 127
+    },
+    {
+      "name": "fp36_e10m25",
+      "type": "ieee_like",
+      "total_bits": 36,
+      "exponent_bits": 10,
+      "mantissa_bits": 25,
+      "bias": 511
+    },
+    {
+      "name": "fp36_e11m24",
+      "type": "ieee_like",
+      "total_bits": 36,
+      "exponent_bits": 11,
+      "mantissa_bits": 24,
+      "bias": 1023
+    },
+    {
+      "name": "fp36_e8m27",
+      "type": "ieee_like",
+      "total_bits": 36,
+      "exponent_bits": 8,
+      "mantissa_bits": 27,
+      "bias": 127
+    },
+    {
+      "name": "fp37_e10m26",
+      "type": "ieee_like",
+      "total_bits": 37,
+      "exponent_bits": 10,
+      "mantissa_bits": 26,
+      "bias": 511
+    },
+    {
+      "name": "fp37_e11m25",
+      "type": "ieee_like",
+      "total_bits": 37,
+      "exponent_bits": 11,
+      "mantissa_bits": 25,
+      "bias": 1023
+    },
+    {
+      "name": "fp37_e8m28",
+      "type": "ieee_like",
+      "total_bits": 37,
+      "exponent_bits": 8,
+      "mantissa_bits": 28,
+      "bias": 127
+    },
+    {
+      "name": "fp38_e10m27",
+      "type": "ieee_like",
+      "total_bits": 38,
+      "exponent_bits": 10,
+      "mantissa_bits": 27,
+      "bias": 511
+    },
+    {
+      "name": "fp38_e11m26",
+      "type": "ieee_like",
+      "total_bits": 38,
+      "exponent_bits": 11,
+      "mantissa_bits": 26,
+      "bias": 1023
+    },
+    {
+      "name": "fp38_e8m29",
+      "type": "ieee_like",
+      "total_bits": 38,
+      "exponent_bits": 8,
+      "mantissa_bits": 29,
+      "bias": 127
+    },
+    {
+      "name": "fp39_e10m28",
+      "type": "ieee_like",
+      "total_bits": 39,
+      "exponent_bits": 10,
+      "mantissa_bits": 28,
+      "bias": 511
+    },
+    {
+      "name": "fp39_e11m27",
+      "type": "ieee_like",
+      "total_bits": 39,
+      "exponent_bits": 11,
+      "mantissa_bits": 27,
+      "bias": 1023
+    },
+    {
+      "name": "fp39_e8m30",
+      "type": "ieee_like",
+      "total_bits": 39,
+      "exponent_bits": 8,
+      "mantissa_bits": 30,
+      "bias": 127
+    },
+    {
+      "name": "fp3_e1m1",
+      "type": "ieee_like",
+      "total_bits": 3,
+      "exponent_bits": 1,
+      "mantissa_bits": 1,
+      "bias": 0
+    },
+    {
+      "name": "fp3_e2m0",
+      "type": "ieee_like",
+      "total_bits": 3,
+      "exponent_bits": 2,
+      "mantissa_bits": 0,
+      "bias": 1
+    },
+    {
+      "name": "fp4-e2m1",
+      "type": "legacy"
+    },
+    {
+      "name": "fp40",
+      "type": "legacy"
+    },
+    {
+      "name": "fp40_e11m28",
+      "type": "ieee_like",
+      "total_bits": 40,
+      "exponent_bits": 11,
+      "mantissa_bits": 28,
+      "bias": 1023
+    },
+    {
+      "name": "fp40_e8m31",
+      "type": "ieee_like",
+      "total_bits": 40,
+      "exponent_bits": 8,
+      "mantissa_bits": 31,
+      "bias": 127
+    },
+    {
+      "name": "fp40_e9m30",
+      "type": "ieee_like",
+      "total_bits": 40,
+      "exponent_bits": 9,
+      "mantissa_bits": 30,
+      "bias": 255
+    },
+    {
+      "name": "fp41_e10m30",
+      "type": "ieee_like",
+      "total_bits": 41,
+      "exponent_bits": 10,
+      "mantissa_bits": 30,
+      "bias": 511
+    },
+    {
+      "name": "fp41_e11m29",
+      "type": "ieee_like",
+      "total_bits": 41,
+      "exponent_bits": 11,
+      "mantissa_bits": 29,
+      "bias": 1023
+    },
+    {
+      "name": "fp41_e8m32",
+      "type": "ieee_like",
+      "total_bits": 41,
+      "exponent_bits": 8,
+      "mantissa_bits": 32,
+      "bias": 127
+    },
+    {
+      "name": "fp42_e10m31",
+      "type": "ieee_like",
+      "total_bits": 42,
+      "exponent_bits": 10,
+      "mantissa_bits": 31,
+      "bias": 511
+    },
+    {
+      "name": "fp42_e11m30",
+      "type": "ieee_like",
+      "total_bits": 42,
+      "exponent_bits": 11,
+      "mantissa_bits": 30,
+      "bias": 1023
+    },
+    {
+      "name": "fp42_e8m33",
+      "type": "ieee_like",
+      "total_bits": 42,
+      "exponent_bits": 8,
+      "mantissa_bits": 33,
+      "bias": 127
+    },
+    {
+      "name": "fp43_e10m32",
+      "type": "ieee_like",
+      "total_bits": 43,
+      "exponent_bits": 10,
+      "mantissa_bits": 32,
+      "bias": 511
+    },
+    {
+      "name": "fp43_e11m31",
+      "type": "ieee_like",
+      "total_bits": 43,
+      "exponent_bits": 11,
+      "mantissa_bits": 31,
+      "bias": 1023
+    },
+    {
+      "name": "fp43_e8m34",
+      "type": "ieee_like",
+      "total_bits": 43,
+      "exponent_bits": 8,
+      "mantissa_bits": 34,
+      "bias": 127
+    },
+    {
+      "name": "fp44_e10m33",
+      "type": "ieee_like",
+      "total_bits": 44,
+      "exponent_bits": 10,
+      "mantissa_bits": 33,
+      "bias": 511
+    },
+    {
+      "name": "fp44_e11m32",
+      "type": "ieee_like",
+      "total_bits": 44,
+      "exponent_bits": 11,
+      "mantissa_bits": 32,
+      "bias": 1023
+    },
+    {
+      "name": "fp44_e8m35",
+      "type": "ieee_like",
+      "total_bits": 44,
+      "exponent_bits": 8,
+      "mantissa_bits": 35,
+      "bias": 127
+    },
+    {
+      "name": "fp45_e10m34",
+      "type": "ieee_like",
+      "total_bits": 45,
+      "exponent_bits": 10,
+      "mantissa_bits": 34,
+      "bias": 511
+    },
+    {
+      "name": "fp45_e11m33",
+      "type": "ieee_like",
+      "total_bits": 45,
+      "exponent_bits": 11,
+      "mantissa_bits": 33,
+      "bias": 1023
+    },
+    {
+      "name": "fp45_e8m36",
+      "type": "ieee_like",
+      "total_bits": 45,
+      "exponent_bits": 8,
+      "mantissa_bits": 36,
+      "bias": 127
+    },
+    {
+      "name": "fp46_e10m35",
+      "type": "ieee_like",
+      "total_bits": 46,
+      "exponent_bits": 10,
+      "mantissa_bits": 35,
+      "bias": 511
+    },
+    {
+      "name": "fp46_e11m34",
+      "type": "ieee_like",
+      "total_bits": 46,
+      "exponent_bits": 11,
+      "mantissa_bits": 34,
+      "bias": 1023
+    },
+    {
+      "name": "fp46_e8m37",
+      "type": "ieee_like",
+      "total_bits": 46,
+      "exponent_bits": 8,
+      "mantissa_bits": 37,
+      "bias": 127
+    },
+    {
+      "name": "fp47_e10m36",
+      "type": "ieee_like",
+      "total_bits": 47,
+      "exponent_bits": 10,
+      "mantissa_bits": 36,
+      "bias": 511
+    },
+    {
+      "name": "fp47_e11m35",
+      "type": "ieee_like",
+      "total_bits": 47,
+      "exponent_bits": 11,
+      "mantissa_bits": 35,
+      "bias": 1023
+    },
+    {
+      "name": "fp47_e8m38",
+      "type": "ieee_like",
+      "total_bits": 47,
+      "exponent_bits": 8,
+      "mantissa_bits": 38,
+      "bias": 127
+    },
+    {
+      "name": "fp48",
+      "type": "legacy"
+    },
+    {
+      "name": "fp48_e10m37",
+      "type": "ieee_like",
+      "total_bits": 48,
+      "exponent_bits": 10,
+      "mantissa_bits": 37,
+      "bias": 511
+    },
+    {
+      "name": "fp48_e12m35",
+      "type": "ieee_like",
+      "total_bits": 48,
+      "exponent_bits": 12,
+      "mantissa_bits": 35,
+      "bias": 2047
+    },
+    {
+      "name": "fp48_e8m39",
+      "type": "ieee_like",
+      "total_bits": 48,
+      "exponent_bits": 8,
+      "mantissa_bits": 39,
+      "bias": 127
+    },
+    {
+      "name": "fp49_e11m37",
+      "type": "ieee_like",
+      "total_bits": 49,
+      "exponent_bits": 11,
+      "mantissa_bits": 37,
+      "bias": 1023
+    },
+    {
+      "name": "fp49_e8m40",
+      "type": "ieee_like",
+      "total_bits": 49,
+      "exponent_bits": 8,
+      "mantissa_bits": 40,
+      "bias": 127
+    },
+    {
+      "name": "fp49_e9m39",
+      "type": "ieee_like",
+      "total_bits": 49,
+      "exponent_bits": 9,
+      "mantissa_bits": 39,
+      "bias": 255
+    },
+    {
+      "name": "fp4_e1m1",
+      "type": "ieee_like",
+      "total_bits": 4,
+      "exponent_bits": 1,
+      "mantissa_bits": 1,
+      "bias": 0
+    },
+    {
+      "name": "fp4_e1m2",
+      "type": "ieee_like",
+      "total_bits": 4,
+      "exponent_bits": 1,
+      "mantissa_bits": 2,
+      "bias": 0
+    },
+    {
+      "name": "fp50_e10m39",
+      "type": "ieee_like",
+      "total_bits": 50,
+      "exponent_bits": 10,
+      "mantissa_bits": 39,
+      "bias": 511
+    },
+    {
+      "name": "fp50_e11m38",
+      "type": "ieee_like",
+      "total_bits": 50,
+      "exponent_bits": 11,
+      "mantissa_bits": 38,
+      "bias": 1023
+    },
+    {
+      "name": "fp50_e8m41",
+      "type": "ieee_like",
+      "total_bits": 50,
+      "exponent_bits": 8,
+      "mantissa_bits": 41,
+      "bias": 127
+    },
+    {
+      "name": "fp51_e11m39",
+      "type": "ieee_like",
+      "total_bits": 51,
+      "exponent_bits": 11,
+      "mantissa_bits": 39,
+      "bias": 1023
+    },
+    {
+      "name": "fp51_e8m42",
+      "type": "ieee_like",
+      "total_bits": 51,
+      "exponent_bits": 8,
+      "mantissa_bits": 42,
+      "bias": 127
+    },
+    {
+      "name": "fp51_e9m41",
+      "type": "ieee_like",
+      "total_bits": 51,
+      "exponent_bits": 9,
+      "mantissa_bits": 41,
+      "bias": 255
+    },
+    {
+      "name": "fp52_e11m40",
+      "type": "ieee_like",
+      "total_bits": 52,
+      "exponent_bits": 11,
+      "mantissa_bits": 40,
+      "bias": 1023
+    },
+    {
+      "name": "fp52_e8m43",
+      "type": "ieee_like",
+      "total_bits": 52,
+      "exponent_bits": 8,
+      "mantissa_bits": 43,
+      "bias": 127
+    },
+    {
+      "name": "fp52_e9m42",
+      "type": "ieee_like",
+      "total_bits": 52,
+      "exponent_bits": 9,
+      "mantissa_bits": 42,
+      "bias": 255
+    },
+    {
+      "name": "fp53_e11m41",
+      "type": "ieee_like",
+      "total_bits": 53,
+      "exponent_bits": 11,
+      "mantissa_bits": 41,
+      "bias": 1023
+    },
+    {
+      "name": "fp53_e8m44",
+      "type": "ieee_like",
+      "total_bits": 53,
+      "exponent_bits": 8,
+      "mantissa_bits": 44,
+      "bias": 127
+    },
+    {
+      "name": "fp53_e9m43",
+      "type": "ieee_like",
+      "total_bits": 53,
+      "exponent_bits": 9,
+      "mantissa_bits": 43,
+      "bias": 255
+    },
+    {
+      "name": "fp54_e11m42",
+      "type": "ieee_like",
+      "total_bits": 54,
+      "exponent_bits": 11,
+      "mantissa_bits": 42,
+      "bias": 1023
+    },
+    {
+      "name": "fp54_e8m45",
+      "type": "ieee_like",
+      "total_bits": 54,
+      "exponent_bits": 8,
+      "mantissa_bits": 45,
+      "bias": 127
+    },
+    {
+      "name": "fp54_e9m44",
+      "type": "ieee_like",
+      "total_bits": 54,
+      "exponent_bits": 9,
+      "mantissa_bits": 44,
+      "bias": 255
+    },
+    {
+      "name": "fp55_e10m44",
+      "type": "ieee_like",
+      "total_bits": 55,
+      "exponent_bits": 10,
+      "mantissa_bits": 44,
+      "bias": 511
+    },
+    {
+      "name": "fp55_e12m42",
+      "type": "ieee_like",
+      "total_bits": 55,
+      "exponent_bits": 12,
+      "mantissa_bits": 42,
+      "bias": 2047
+    },
+    {
+      "name": "fp55_e8m46",
+      "type": "ieee_like",
+      "total_bits": 55,
+      "exponent_bits": 8,
+      "mantissa_bits": 46,
+      "bias": 127
+    },
+    {
+      "name": "fp56",
+      "type": "legacy"
+    },
+    {
+      "name": "fp56_e10m45",
+      "type": "ieee_like",
+      "total_bits": 56,
+      "exponent_bits": 10,
+      "mantissa_bits": 45,
+      "bias": 511
+    },
+    {
+      "name": "fp56_e8m47",
+      "type": "ieee_like",
+      "total_bits": 56,
+      "exponent_bits": 8,
+      "mantissa_bits": 47,
+      "bias": 127
+    },
+    {
+      "name": "fp57_e10m46",
+      "type": "ieee_like",
+      "total_bits": 57,
+      "exponent_bits": 10,
+      "mantissa_bits": 46,
+      "bias": 511
+    },
+    {
+      "name": "fp57_e12m44",
+      "type": "ieee_like",
+      "total_bits": 57,
+      "exponent_bits": 12,
+      "mantissa_bits": 44,
+      "bias": 2047
+    },
+    {
+      "name": "fp57_e8m48",
+      "type": "ieee_like",
+      "total_bits": 57,
+      "exponent_bits": 8,
+      "mantissa_bits": 48,
+      "bias": 127
+    },
+    {
+      "name": "fp58_e11m46",
+      "type": "ieee_like",
+      "total_bits": 58,
+      "exponent_bits": 11,
+      "mantissa_bits": 46,
+      "bias": 1023
+    },
+    {
+      "name": "fp58_e8m49",
+      "type": "ieee_like",
+      "total_bits": 58,
+      "exponent_bits": 8,
+      "mantissa_bits": 49,
+      "bias": 127
+    },
+    {
+      "name": "fp58_e9m48",
+      "type": "ieee_like",
+      "total_bits": 58,
+      "exponent_bits": 9,
+      "mantissa_bits": 48,
+      "bias": 255
+    },
+    {
+      "name": "fp59_e10m48",
+      "type": "ieee_like",
+      "total_bits": 59,
+      "exponent_bits": 10,
+      "mantissa_bits": 48,
+      "bias": 511
+    },
+    {
+      "name": "fp59_e12m46",
+      "type": "ieee_like",
+      "total_bits": 59,
+      "exponent_bits": 12,
+      "mantissa_bits": 46,
+      "bias": 2047
+    },
+    {
+      "name": "fp59_e8m50",
+      "type": "ieee_like",
+      "total_bits": 59,
+      "exponent_bits": 8,
+      "mantissa_bits": 50,
+      "bias": 127
+    },
+    {
+      "name": "fp5_e2m2",
+      "type": "ieee_like",
+      "total_bits": 5,
+      "exponent_bits": 2,
+      "mantissa_bits": 2,
+      "bias": 1
+    },
+    {
+      "name": "fp5_e3m1",
+      "type": "ieee_like",
+      "total_bits": 5,
+      "exponent_bits": 3,
+      "mantissa_bits": 1,
+      "bias": 3
+    },
+    {
+      "name": "fp6-e2m3",
+      "type": "legacy"
+    },
+    {
+      "name": "fp6-e3m2",
+      "type": "legacy"
+    },
+    {
+      "name": "fp60_e11m48",
+      "type": "ieee_like",
+      "total_bits": 60,
+      "exponent_bits": 11,
+      "mantissa_bits": 48,
+      "bias": 1023
+    },
+    {
+      "name": "fp60_e8m51",
+      "type": "ieee_like",
+      "total_bits": 60,
+      "exponent_bits": 8,
+      "mantissa_bits": 51,
+      "bias": 127
+    },
+    {
+      "name": "fp60_e9m50",
+      "type": "ieee_like",
+      "total_bits": 60,
+      "exponent_bits": 9,
+      "mantissa_bits": 50,
+      "bias": 255
+    },
+    {
+      "name": "fp61_e11m49",
+      "type": "ieee_like",
+      "total_bits": 61,
+      "exponent_bits": 11,
+      "mantissa_bits": 49,
+      "bias": 1023
+    },
+    {
+      "name": "fp61_e8m52",
+      "type": "ieee_like",
+      "total_bits": 61,
+      "exponent_bits": 8,
+      "mantissa_bits": 52,
+      "bias": 127
+    },
+    {
+      "name": "fp61_e9m51",
+      "type": "ieee_like",
+      "total_bits": 61,
+      "exponent_bits": 9,
+      "mantissa_bits": 51,
+      "bias": 255
+    },
+    {
+      "name": "fp62_e11m50",
+      "type": "ieee_like",
+      "total_bits": 62,
+      "exponent_bits": 11,
+      "mantissa_bits": 50,
+      "bias": 1023
+    },
+    {
+      "name": "fp62_e8m53",
+      "type": "ieee_like",
+      "total_bits": 62,
+      "exponent_bits": 8,
+      "mantissa_bits": 53,
+      "bias": 127
+    },
+    {
+      "name": "fp62_e9m52",
+      "type": "ieee_like",
+      "total_bits": 62,
+      "exponent_bits": 9,
+      "mantissa_bits": 52,
+      "bias": 255
+    },
+    {
+      "name": "fp63_e11m51",
+      "type": "ieee_like",
+      "total_bits": 63,
+      "exponent_bits": 11,
+      "mantissa_bits": 51,
+      "bias": 1023
+    },
+    {
+      "name": "fp63_e8m54",
+      "type": "ieee_like",
+      "total_bits": 63,
+      "exponent_bits": 8,
+      "mantissa_bits": 54,
+      "bias": 127
+    },
+    {
+      "name": "fp63_e9m53",
+      "type": "ieee_like",
+      "total_bits": 63,
+      "exponent_bits": 9,
+      "mantissa_bits": 53,
+      "bias": 255
+    },
+    {
+      "name": "fp64_e11m52",
+      "type": "ieee_like",
+      "total_bits": 64,
+      "exponent_bits": 11,
+      "mantissa_bits": 52,
+      "bias": 1023
+    },
+    {
+      "name": "fp64_e12m51",
+      "type": "ieee_like",
+      "total_bits": 64,
+      "exponent_bits": 12,
+      "mantissa_bits": 51,
+      "bias": 2047
+    },
+    {
+      "name": "fp64_e8m55",
+      "type": "ieee_like",
+      "total_bits": 64,
+      "exponent_bits": 8,
+      "mantissa_bits": 55,
+      "bias": 127
+    },
+    {
+      "name": "fp65_e10m54",
+      "type": "ieee_like",
+      "total_bits": 65,
+      "exponent_bits": 10,
+      "mantissa_bits": 54,
+      "bias": 511
+    },
+    {
+      "name": "fp65_e12m52",
+      "type": "ieee_like",
+      "total_bits": 65,
+      "exponent_bits": 12,
+      "mantissa_bits": 52,
+      "bias": 2047
+    },
+    {
+      "name": "fp65_e8m56",
+      "type": "ieee_like",
+      "total_bits": 65,
+      "exponent_bits": 8,
+      "mantissa_bits": 56,
+      "bias": 127
+    },
+    {
+      "name": "fp66_e11m54",
+      "type": "ieee_like",
+      "total_bits": 66,
+      "exponent_bits": 11,
+      "mantissa_bits": 54,
+      "bias": 1023
+    },
+    {
+      "name": "fp66_e8m57",
+      "type": "ieee_like",
+      "total_bits": 66,
+      "exponent_bits": 8,
+      "mantissa_bits": 57,
+      "bias": 127
+    },
+    {
+      "name": "fp66_e9m56",
+      "type": "ieee_like",
+      "total_bits": 66,
+      "exponent_bits": 9,
+      "mantissa_bits": 56,
+      "bias": 255
+    },
+    {
+      "name": "fp67_e10m56",
+      "type": "ieee_like",
+      "total_bits": 67,
+      "exponent_bits": 10,
+      "mantissa_bits": 56,
+      "bias": 511
+    },
+    {
+      "name": "fp67_e12m54",
+      "type": "ieee_like",
+      "total_bits": 67,
+      "exponent_bits": 12,
+      "mantissa_bits": 54,
+      "bias": 2047
+    },
+    {
+      "name": "fp67_e8m58",
+      "type": "ieee_like",
+      "total_bits": 67,
+      "exponent_bits": 8,
+      "mantissa_bits": 58,
+      "bias": 127
+    },
+    {
+      "name": "fp68_e11m56",
+      "type": "ieee_like",
+      "total_bits": 68,
+      "exponent_bits": 11,
+      "mantissa_bits": 56,
+      "bias": 1023
+    },
+    {
+      "name": "fp68_e8m59",
+      "type": "ieee_like",
+      "total_bits": 68,
+      "exponent_bits": 8,
+      "mantissa_bits": 59,
+      "bias": 127
+    },
+    {
+      "name": "fp68_e9m58",
+      "type": "ieee_like",
+      "total_bits": 68,
+      "exponent_bits": 9,
+      "mantissa_bits": 58,
+      "bias": 255
+    },
+    {
+      "name": "fp69_e10m58",
+      "type": "ieee_like",
+      "total_bits": 69,
+      "exponent_bits": 10,
+      "mantissa_bits": 58,
+      "bias": 511
+    },
+    {
+      "name": "fp69_e12m56",
+      "type": "ieee_like",
+      "total_bits": 69,
+      "exponent_bits": 12,
+      "mantissa_bits": 56,
+      "bias": 2047
+    },
+    {
+      "name": "fp69_e8m60",
+      "type": "ieee_like",
+      "total_bits": 69,
+      "exponent_bits": 8,
+      "mantissa_bits": 60,
+      "bias": 127
+    },
+    {
+      "name": "fp6_e1m4",
+      "type": "ieee_like",
+      "total_bits": 6,
+      "exponent_bits": 1,
+      "mantissa_bits": 4,
+      "bias": 0
+    },
+    {
+      "name": "fp6_e4m1",
+      "type": "ieee_like",
+      "total_bits": 6,
+      "exponent_bits": 4,
+      "mantissa_bits": 1,
+      "bias": 7
+    },
+    {
+      "name": "fp70_e10m59",
+      "type": "ieee_like",
+      "total_bits": 70,
+      "exponent_bits": 10,
+      "mantissa_bits": 59,
+      "bias": 511
+    },
+    {
+      "name": "fp70_e12m57",
+      "type": "ieee_like",
+      "total_bits": 70,
+      "exponent_bits": 12,
+      "mantissa_bits": 57,
+      "bias": 2047
+    },
+    {
+      "name": "fp70_e8m61",
+      "type": "ieee_like",
+      "total_bits": 70,
+      "exponent_bits": 8,
+      "mantissa_bits": 61,
+      "bias": 127
+    },
+    {
+      "name": "fp71_e10m60",
+      "type": "ieee_like",
+      "total_bits": 71,
+      "exponent_bits": 10,
+      "mantissa_bits": 60,
+      "bias": 511
+    },
+    {
+      "name": "fp71_e12m58",
+      "type": "ieee_like",
+      "total_bits": 71,
+      "exponent_bits": 12,
+      "mantissa_bits": 58,
+      "bias": 2047
+    },
+    {
+      "name": "fp71_e8m62",
+      "type": "ieee_like",
+      "total_bits": 71,
+      "exponent_bits": 8,
+      "mantissa_bits": 62,
+      "bias": 127
+    },
+    {
+      "name": "fp72_e10m61",
+      "type": "ieee_like",
+      "total_bits": 72,
+      "exponent_bits": 10,
+      "mantissa_bits": 61,
+      "bias": 511
+    },
+    {
+      "name": "fp72_e12m59",
+      "type": "ieee_like",
+      "total_bits": 72,
+      "exponent_bits": 12,
+      "mantissa_bits": 59,
+      "bias": 2047
+    },
+    {
+      "name": "fp72_e8m63",
+      "type": "ieee_like",
+      "total_bits": 72,
+      "exponent_bits": 8,
+      "mantissa_bits": 63,
+      "bias": 127
+    },
+    {
+      "name": "fp73_e10m62",
+      "type": "ieee_like",
+      "total_bits": 73,
+      "exponent_bits": 10,
+      "mantissa_bits": 62,
+      "bias": 511
+    },
+    {
+      "name": "fp73_e12m60",
+      "type": "ieee_like",
+      "total_bits": 73,
+      "exponent_bits": 12,
+      "mantissa_bits": 60,
+      "bias": 2047
+    },
+    {
+      "name": "fp73_e8m64",
+      "type": "ieee_like",
+      "total_bits": 73,
+      "exponent_bits": 8,
+      "mantissa_bits": 64,
+      "bias": 127
+    },
+    {
+      "name": "fp74_e10m63",
+      "type": "ieee_like",
+      "total_bits": 74,
+      "exponent_bits": 10,
+      "mantissa_bits": 63,
+      "bias": 511
+    },
+    {
+      "name": "fp74_e12m61",
+      "type": "ieee_like",
+      "total_bits": 74,
+      "exponent_bits": 12,
+      "mantissa_bits": 61,
+      "bias": 2047
+    },
+    {
+      "name": "fp74_e8m65",
+      "type": "ieee_like",
+      "total_bits": 74,
+      "exponent_bits": 8,
+      "mantissa_bits": 65,
+      "bias": 127
+    },
+    {
+      "name": "fp75_e10m64",
+      "type": "ieee_like",
+      "total_bits": 75,
+      "exponent_bits": 10,
+      "mantissa_bits": 64,
+      "bias": 511
+    },
+    {
+      "name": "fp75_e12m62",
+      "type": "ieee_like",
+      "total_bits": 75,
+      "exponent_bits": 12,
+      "mantissa_bits": 62,
+      "bias": 2047
+    },
+    {
+      "name": "fp75_e8m66",
+      "type": "ieee_like",
+      "total_bits": 75,
+      "exponent_bits": 8,
+      "mantissa_bits": 66,
+      "bias": 127
+    },
+    {
+      "name": "fp76_e10m65",
+      "type": "ieee_like",
+      "total_bits": 76,
+      "exponent_bits": 10,
+      "mantissa_bits": 65,
+      "bias": 511
+    },
+    {
+      "name": "fp76_e12m63",
+      "type": "ieee_like",
+      "total_bits": 76,
+      "exponent_bits": 12,
+      "mantissa_bits": 63,
+      "bias": 2047
+    },
+    {
+      "name": "fp76_e8m67",
+      "type": "ieee_like",
+      "total_bits": 76,
+      "exponent_bits": 8,
+      "mantissa_bits": 67,
+      "bias": 127
+    },
+    {
+      "name": "fp77_e10m66",
+      "type": "ieee_like",
+      "total_bits": 77,
+      "exponent_bits": 10,
+      "mantissa_bits": 66,
+      "bias": 511
+    },
+    {
+      "name": "fp77_e12m64",
+      "type": "ieee_like",
+      "total_bits": 77,
+      "exponent_bits": 12,
+      "mantissa_bits": 64,
+      "bias": 2047
+    },
+    {
+      "name": "fp77_e8m68",
+      "type": "ieee_like",
+      "total_bits": 77,
+      "exponent_bits": 8,
+      "mantissa_bits": 68,
+      "bias": 127
+    },
+    {
+      "name": "fp78_e10m67",
+      "type": "ieee_like",
+      "total_bits": 78,
+      "exponent_bits": 10,
+      "mantissa_bits": 67,
+      "bias": 511
+    },
+    {
+      "name": "fp78_e12m65",
+      "type": "ieee_like",
+      "total_bits": 78,
+      "exponent_bits": 12,
+      "mantissa_bits": 65,
+      "bias": 2047
+    },
+    {
+      "name": "fp78_e8m69",
+      "type": "ieee_like",
+      "total_bits": 78,
+      "exponent_bits": 8,
+      "mantissa_bits": 69,
+      "bias": 127
+    },
+    {
+      "name": "fp79_e10m68",
+      "type": "ieee_like",
+      "total_bits": 79,
+      "exponent_bits": 10,
+      "mantissa_bits": 68,
+      "bias": 511
+    },
+    {
+      "name": "fp79_e12m66",
+      "type": "ieee_like",
+      "total_bits": 79,
+      "exponent_bits": 12,
+      "mantissa_bits": 66,
+      "bias": 2047
+    },
+    {
+      "name": "fp79_e8m70",
+      "type": "ieee_like",
+      "total_bits": 79,
+      "exponent_bits": 8,
+      "mantissa_bits": 70,
+      "bias": 127
+    },
+    {
+      "name": "fp7_e2m4",
+      "type": "ieee_like",
+      "total_bits": 7,
+      "exponent_bits": 2,
+      "mantissa_bits": 4,
+      "bias": 1
+    },
+    {
+      "name": "fp7_e3m3",
+      "type": "ieee_like",
+      "total_bits": 7,
+      "exponent_bits": 3,
+      "mantissa_bits": 3,
+      "bias": 3
+    },
+    {
+      "name": "fp7_e4m2",
+      "type": "ieee_like",
+      "total_bits": 7,
+      "exponent_bits": 4,
+      "mantissa_bits": 2,
+      "bias": 7
+    },
+    {
+      "name": "fp8-e4m3",
+      "type": "legacy"
+    },
+    {
+      "name": "fp8-e5m2",
+      "type": "legacy"
+    },
+    {
+      "name": "fp80_e11m68",
+      "type": "ieee_like",
+      "total_bits": 80,
+      "exponent_bits": 11,
+      "mantissa_bits": 68,
+      "bias": 1023
+    },
+    {
+      "name": "fp80_e12m67",
+      "type": "ieee_like",
+      "total_bits": 80,
+      "exponent_bits": 12,
+      "mantissa_bits": 67,
+      "bias": 2047
+    },
+    {
+      "name": "fp80_e8m71",
+      "type": "ieee_like",
+      "total_bits": 80,
+      "exponent_bits": 8,
+      "mantissa_bits": 71,
+      "bias": 127
+    },
+    {
+      "name": "fp81_e10m70",
+      "type": "ieee_like",
+      "total_bits": 81,
+      "exponent_bits": 10,
+      "mantissa_bits": 70,
+      "bias": 511
+    },
+    {
+      "name": "fp81_e12m68",
+      "type": "ieee_like",
+      "total_bits": 81,
+      "exponent_bits": 12,
+      "mantissa_bits": 68,
+      "bias": 2047
+    },
+    {
+      "name": "fp81_e8m72",
+      "type": "ieee_like",
+      "total_bits": 81,
+      "exponent_bits": 8,
+      "mantissa_bits": 72,
+      "bias": 127
+    },
+    {
+      "name": "fp82_e11m70",
+      "type": "ieee_like",
+      "total_bits": 82,
+      "exponent_bits": 11,
+      "mantissa_bits": 70,
+      "bias": 1023
+    },
+    {
+      "name": "fp82_e13m68",
+      "type": "ieee_like",
+      "total_bits": 82,
+      "exponent_bits": 13,
+      "mantissa_bits": 68,
+      "bias": 4095
+    },
+    {
+      "name": "fp82_e8m73",
+      "type": "ieee_like",
+      "total_bits": 82,
+      "exponent_bits": 8,
+      "mantissa_bits": 73,
+      "bias": 127
+    },
+    {
+      "name": "fp83_e11m71",
+      "type": "ieee_like",
+      "total_bits": 83,
+      "exponent_bits": 11,
+      "mantissa_bits": 71,
+      "bias": 1023
+    },
+    {
+      "name": "fp83_e13m69",
+      "type": "ieee_like",
+      "total_bits": 83,
+      "exponent_bits": 13,
+      "mantissa_bits": 69,
+      "bias": 4095
+    },
+    {
+      "name": "fp83_e8m74",
+      "type": "ieee_like",
+      "total_bits": 83,
+      "exponent_bits": 8,
+      "mantissa_bits": 74,
+      "bias": 127
+    },
+    {
+      "name": "fp84_e10m73",
+      "type": "ieee_like",
+      "total_bits": 84,
+      "exponent_bits": 10,
+      "mantissa_bits": 73,
+      "bias": 511
+    },
+    {
+      "name": "fp84_e13m70",
+      "type": "ieee_like",
+      "total_bits": 84,
+      "exponent_bits": 13,
+      "mantissa_bits": 70,
+      "bias": 4095
+    },
+    {
+      "name": "fp84_e8m75",
+      "type": "ieee_like",
+      "total_bits": 84,
+      "exponent_bits": 8,
+      "mantissa_bits": 75,
+      "bias": 127
+    },
+    {
+      "name": "fp85_e11m73",
+      "type": "ieee_like",
+      "total_bits": 85,
+      "exponent_bits": 11,
+      "mantissa_bits": 73,
+      "bias": 1023
+    },
+    {
+      "name": "fp85_e13m71",
+      "type": "ieee_like",
+      "total_bits": 85,
+      "exponent_bits": 13,
+      "mantissa_bits": 71,
+      "bias": 4095
+    },
+    {
+      "name": "fp85_e8m76",
+      "type": "ieee_like",
+      "total_bits": 85,
+      "exponent_bits": 8,
+      "mantissa_bits": 76,
+      "bias": 127
+    },
+    {
+      "name": "fp86_e11m74",
+      "type": "ieee_like",
+      "total_bits": 86,
+      "exponent_bits": 11,
+      "mantissa_bits": 74,
+      "bias": 1023
+    },
+    {
+      "name": "fp86_e13m72",
+      "type": "ieee_like",
+      "total_bits": 86,
+      "exponent_bits": 13,
+      "mantissa_bits": 72,
+      "bias": 4095
+    },
+    {
+      "name": "fp86_e8m77",
+      "type": "ieee_like",
+      "total_bits": 86,
+      "exponent_bits": 8,
+      "mantissa_bits": 77,
+      "bias": 127
+    },
+    {
+      "name": "fp87_e11m75",
+      "type": "ieee_like",
+      "total_bits": 87,
+      "exponent_bits": 11,
+      "mantissa_bits": 75,
+      "bias": 1023
+    },
+    {
+      "name": "fp87_e13m73",
+      "type": "ieee_like",
+      "total_bits": 87,
+      "exponent_bits": 13,
+      "mantissa_bits": 73,
+      "bias": 4095
+    },
+    {
+      "name": "fp87_e8m78",
+      "type": "ieee_like",
+      "total_bits": 87,
+      "exponent_bits": 8,
+      "mantissa_bits": 78,
+      "bias": 127
+    },
+    {
+      "name": "fp88_e10m77",
+      "type": "ieee_like",
+      "total_bits": 88,
+      "exponent_bits": 10,
+      "mantissa_bits": 77,
+      "bias": 511
+    },
+    {
+      "name": "fp88_e13m74",
+      "type": "ieee_like",
+      "total_bits": 88,
+      "exponent_bits": 13,
+      "mantissa_bits": 74,
+      "bias": 4095
+    },
+    {
+      "name": "fp88_e8m79",
+      "type": "ieee_like",
+      "total_bits": 88,
+      "exponent_bits": 8,
+      "mantissa_bits": 79,
+      "bias": 127
+    },
+    {
+      "name": "fp89_e11m77",
+      "type": "ieee_like",
+      "total_bits": 89,
+      "exponent_bits": 11,
+      "mantissa_bits": 77,
+      "bias": 1023
+    },
+    {
+      "name": "fp89_e13m75",
+      "type": "ieee_like",
+      "total_bits": 89,
+      "exponent_bits": 13,
+      "mantissa_bits": 75,
+      "bias": 4095
+    },
+    {
+      "name": "fp89_e8m80",
+      "type": "ieee_like",
+      "total_bits": 89,
+      "exponent_bits": 8,
+      "mantissa_bits": 80,
+      "bias": 127
+    },
+    {
+      "name": "fp8_e1m6",
+      "type": "ieee_like",
+      "total_bits": 8,
+      "exponent_bits": 1,
+      "mantissa_bits": 6,
+      "bias": 0
+    },
+    {
+      "name": "fp8_e2m5",
+      "type": "ieee_like",
+      "total_bits": 8,
+      "exponent_bits": 2,
+      "mantissa_bits": 5,
+      "bias": 1
+    },
+    {
+      "name": "fp8_e3m4",
+      "type": "ieee_like",
+      "total_bits": 8,
+      "exponent_bits": 3,
+      "mantissa_bits": 4,
+      "bias": 3
+    },
+    {
+      "name": "fp8_e4m3_fnuz",
+      "type": "ieee_like",
+      "total_bits": 8,
+      "exponent_bits": 4,
+      "mantissa_bits": 3,
+      "bias": 7
+    },
+    {
+      "name": "fp8_e6m1",
+      "type": "ieee_like",
+      "total_bits": 8,
+      "exponent_bits": 6,
+      "mantissa_bits": 1,
+      "bias": 31
+    },
+    {
+      "name": "fp8_e7m0",
+      "type": "ieee_like",
+      "total_bits": 8,
+      "exponent_bits": 7,
+      "mantissa_bits": 0,
+      "bias": 63
+    },
+    {
+      "name": "fp90_e11m78",
+      "type": "ieee_like",
+      "total_bits": 90,
+      "exponent_bits": 11,
+      "mantissa_bits": 78,
+      "bias": 1023
+    },
+    {
+      "name": "fp90_e13m76",
+      "type": "ieee_like",
+      "total_bits": 90,
+      "exponent_bits": 13,
+      "mantissa_bits": 76,
+      "bias": 4095
+    },
+    {
+      "name": "fp90_e8m81",
+      "type": "ieee_like",
+      "total_bits": 90,
+      "exponent_bits": 8,
+      "mantissa_bits": 81,
+      "bias": 127
+    },
+    {
+      "name": "fp91_e11m79",
+      "type": "ieee_like",
+      "total_bits": 91,
+      "exponent_bits": 11,
+      "mantissa_bits": 79,
+      "bias": 1023
+    },
+    {
+      "name": "fp91_e13m77",
+      "type": "ieee_like",
+      "total_bits": 91,
+      "exponent_bits": 13,
+      "mantissa_bits": 77,
+      "bias": 4095
+    },
+    {
+      "name": "fp91_e8m82",
+      "type": "ieee_like",
+      "total_bits": 91,
+      "exponent_bits": 8,
+      "mantissa_bits": 82,
+      "bias": 127
+    },
+    {
+      "name": "fp92_e11m80",
+      "type": "ieee_like",
+      "total_bits": 92,
+      "exponent_bits": 11,
+      "mantissa_bits": 80,
+      "bias": 1023
+    },
+    {
+      "name": "fp92_e13m78",
+      "type": "ieee_like",
+      "total_bits": 92,
+      "exponent_bits": 13,
+      "mantissa_bits": 78,
+      "bias": 4095
+    },
+    {
+      "name": "fp92_e8m83",
+      "type": "ieee_like",
+      "total_bits": 92,
+      "exponent_bits": 8,
+      "mantissa_bits": 83,
+      "bias": 127
+    },
+    {
+      "name": "fp93_e11m81",
+      "type": "ieee_like",
+      "total_bits": 93,
+      "exponent_bits": 11,
+      "mantissa_bits": 81,
+      "bias": 1023
+    },
+    {
+      "name": "fp93_e13m79",
+      "type": "ieee_like",
+      "total_bits": 93,
+      "exponent_bits": 13,
+      "mantissa_bits": 79,
+      "bias": 4095
+    },
+    {
+      "name": "fp93_e8m84",
+      "type": "ieee_like",
+      "total_bits": 93,
+      "exponent_bits": 8,
+      "mantissa_bits": 84,
+      "bias": 127
+    },
+    {
+      "name": "fp94_e10m83",
+      "type": "ieee_like",
+      "total_bits": 94,
+      "exponent_bits": 10,
+      "mantissa_bits": 83,
+      "bias": 511
+    },
+    {
+      "name": "fp94_e11m82",
+      "type": "ieee_like",
+      "total_bits": 94,
+      "exponent_bits": 11,
+      "mantissa_bits": 82,
+      "bias": 1023
+    },
+    {
+      "name": "fp94_e8m85",
+      "type": "ieee_like",
+      "total_bits": 94,
+      "exponent_bits": 8,
+      "mantissa_bits": 85,
+      "bias": 127
+    },
+    {
+      "name": "fp95_e11m83",
+      "type": "ieee_like",
+      "total_bits": 95,
+      "exponent_bits": 11,
+      "mantissa_bits": 83,
+      "bias": 1023
+    },
+    {
+      "name": "fp95_e8m86",
+      "type": "ieee_like",
+      "total_bits": 95,
+      "exponent_bits": 8,
+      "mantissa_bits": 86,
+      "bias": 127
+    },
+    {
+      "name": "fp96_e11m84",
+      "type": "ieee_like",
+      "total_bits": 96,
+      "exponent_bits": 11,
+      "mantissa_bits": 84,
+      "bias": 1023
+    },
+    {
+      "name": "fp96_e8m87",
+      "type": "ieee_like",
+      "total_bits": 96,
+      "exponent_bits": 8,
+      "mantissa_bits": 87,
+      "bias": 127
+    },
+    {
+      "name": "fp97_e12m84",
+      "type": "ieee_like",
+      "total_bits": 97,
+      "exponent_bits": 12,
+      "mantissa_bits": 84,
+      "bias": 2047
+    },
+    {
+      "name": "fp97_e8m88",
+      "type": "ieee_like",
+      "total_bits": 97,
+      "exponent_bits": 8,
+      "mantissa_bits": 88,
+      "bias": 127
+    },
+    {
+      "name": "fp98_e11m86",
+      "type": "ieee_like",
+      "total_bits": 98,
+      "exponent_bits": 11,
+      "mantissa_bits": 86,
+      "bias": 1023
+    },
+    {
+      "name": "fp98_e8m89",
+      "type": "ieee_like",
+      "total_bits": 98,
+      "exponent_bits": 8,
+      "mantissa_bits": 89,
+      "bias": 127
+    },
+    {
+      "name": "fp99_e12m86",
+      "type": "ieee_like",
+      "total_bits": 99,
+      "exponent_bits": 12,
+      "mantissa_bits": 86,
+      "bias": 2047
+    },
+    {
+      "name": "fp99_e8m90",
+      "type": "ieee_like",
+      "total_bits": 99,
+      "exponent_bits": 8,
+      "mantissa_bits": 90,
+      "bias": 127
+    },
+    {
+      "name": "fp9_e3m5",
+      "type": "ieee_like",
+      "total_bits": 9,
+      "exponent_bits": 3,
+      "mantissa_bits": 5,
+      "bias": 3
+    },
+    {
+      "name": "fp9_e4m4",
+      "type": "ieee_like",
+      "total_bits": 9,
+      "exponent_bits": 4,
+      "mantissa_bits": 4,
+      "bias": 7
+    },
+    {
+      "name": "fp9_e5m3",
+      "type": "ieee_like",
+      "total_bits": 9,
+      "exponent_bits": 5,
+      "mantissa_bits": 3,
+      "bias": 15
+    },
+    {
+      "name": "gf10",
+      "type": "legacy"
+    },
+    {
+      "name": "gf12",
+      "type": "legacy"
+    },
+    {
+      "name": "gf128",
+      "type": "legacy"
+    },
+    {
+      "name": "gf14",
+      "type": "legacy"
+    },
+    {
+      "name": "gf16",
+      "type": "legacy"
+    },
+    {
+      "name": "gf20",
+      "type": "legacy"
+    },
+    {
+      "name": "gf24",
+      "type": "legacy"
+    },
+    {
+      "name": "gf256",
+      "type": "legacy"
+    },
+    {
+      "name": "gf32",
+      "type": "legacy"
+    },
+    {
+      "name": "gf4",
+      "type": "legacy"
+    },
+    {
+      "name": "gf48",
+      "type": "legacy"
+    },
+    {
+      "name": "gf6",
+      "type": "legacy"
+    },
+    {
+      "name": "gf64",
+      "type": "legacy"
+    },
+    {
+      "name": "gf8",
+      "type": "legacy"
+    },
+    {
+      "name": "gf8_bfp",
+      "type": "legacy"
+    },
+    {
+      "name": "gf96",
+      "type": "legacy"
+    },
+    {
+      "name": "gf_lns_hybrid",
+      "type": "legacy"
+    },
+    {
+      "name": "gfternary",
+      "type": "legacy"
+    },
+    {
+      "name": "ibm_hfp128",
+      "type": "legacy"
+    },
+    {
+      "name": "ibm_hfp32",
+      "type": "legacy"
+    },
+    {
+      "name": "ibm_hfp64",
+      "type": "legacy"
+    },
+    {
+      "name": "int128",
+      "type": "legacy"
+    },
+    {
+      "name": "int16",
+      "type": "legacy"
+    },
+    {
+      "name": "int2",
+      "type": "legacy"
+    },
+    {
+      "name": "int32",
+      "type": "legacy"
+    },
+    {
+      "name": "int4",
+      "type": "legacy"
+    },
+    {
+      "name": "int64",
+      "type": "legacy"
+    },
+    {
+      "name": "int8",
+      "type": "legacy"
+    },
+    {
+      "name": "lns16",
+      "type": "legacy"
+    },
+    {
+      "name": "lns32",
+      "type": "legacy"
+    },
+    {
+      "name": "lns64",
+      "type": "legacy"
+    },
+    {
+      "name": "lns8",
+      "type": "legacy"
+    },
+    {
+      "name": "minifloat",
+      "type": "legacy"
+    },
+    {
+      "name": "ms_mbf32",
+      "type": "legacy"
+    },
+    {
+      "name": "ms_mbf64",
+      "type": "legacy"
+    },
+    {
+      "name": "mxfp4",
+      "type": "legacy"
+    },
+    {
+      "name": "mxfp4_block",
+      "type": "legacy"
+    },
+    {
+      "name": "mxfp6",
+      "type": "legacy"
+    },
+    {
+      "name": "mxfp8_e4m3",
+      "type": "legacy"
+    },
+    {
+      "name": "mxgf4",
+      "type": "legacy"
+    },
+    {
+      "name": "mxgf6",
+      "type": "legacy"
+    },
+    {
+      "name": "mxint8",
+      "type": "legacy"
+    },
+    {
+      "name": "nf4",
+      "type": "legacy"
+    },
+    {
+      "name": "pdp11_float",
+      "type": "legacy"
+    },
+    {
+      "name": "posit128",
+      "type": "legacy"
+    },
+    {
+      "name": "posit16",
+      "type": "legacy"
+    },
+    {
+      "name": "posit32",
+      "type": "legacy"
+    },
+    {
+      "name": "posit64",
+      "type": "legacy"
+    },
+    {
+      "name": "posit8",
+      "type": "legacy"
+    },
+    {
+      "name": "q4",
+      "type": "legacy"
+    },
+    {
+      "name": "q_format",
+      "type": "legacy"
+    },
+    {
+      "name": "quad_double",
+      "type": "legacy"
+    },
+    {
+      "name": "takum16",
+      "type": "legacy"
+    },
+    {
+      "name": "takum32",
+      "type": "legacy"
+    },
+    {
+      "name": "takum64",
+      "type": "legacy"
+    },
+    {
+      "name": "takum8",
+      "type": "legacy"
+    },
+    {
+      "name": "tf32",
+      "type": "legacy"
+    },
+    {
+      "name": "uint16",
+      "type": "legacy"
+    },
+    {
+      "name": "uint32",
+      "type": "legacy"
+    },
+    {
+      "name": "uint4",
+      "type": "legacy"
+    },
+    {
+      "name": "uint8",
+      "type": "legacy"
+    },
+    {
+      "name": "vax_d",
+      "type": "legacy"
+    },
+    {
+      "name": "vax_f",
+      "type": "legacy"
+    },
+    {
+      "name": "vax_g",
+      "type": "legacy"
+    },
+    {
+      "name": "vax_h",
+      "type": "legacy"
+    },
+    {
+      "name": "x87_48bit",
+      "type": "legacy"
+    },
+    {
+      "name": "x87_fp80",
+      "type": "legacy"
+    }
+  ],
+  "stats": {
+    "total_families": 434,
+    "ieee_like_count": 336,
+    "width_coverage": "3-128 (100%)",
+    "widths_with_ge2_variants": 126,
+    "widths_with_ge3_variants": 81,
+    "exponent_range": "E=1..15 (BIAS 0..16383)",
+    "compute_workflows": "~3093",
+    "rtl_lines": "~480000",
+    "yosys_pass_rate": "100%",
+    "conformance_vectors": 16640
+  }
+}
