@@ -57,11 +57,13 @@ jobs:
               --freq 10.0 || exit 1
             echo "=== Step 3: clean FASM (strip annotations) ==="
             grep -v "{\*" ${DESIGN}.fasm > ${DESIGN}_clean.fasm || true
+            echo "FASM head (first 10 lines):"
+            head -10 ${DESIGN}_clean.fasm
             echo "=== Step 4: fasm2frames ==="
             /prjxray/env/bin/fasm2frames \
               --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 \
               --part xc7a200tfbg484-2 \
-              ${DESIGN}_clean.fasm ${DESIGN}.frames 2>/dev/null
+              ${DESIGN}_clean.fasm ${DESIGN}.frames 2>&1 | head -20
             echo "fasm2frames rc=$?"
             wc -l ${DESIGN}.frames
             [ -s ${DESIGN}.frames ] || exit 1
@@ -74,6 +76,15 @@ jobs:
             ls -la ${DESIGN}.bit || exit 1
             echo "=== BITSTREAM DONE ==="
             '
+
+      - name: Upload FASM + JSON (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug_intermediates
+          path: |
+            fpga/openxc7-synth/*.fasm
+            fpga/openxc7-synth/*.json
 
       - name: Upload bitstream
         uses: actions/upload-artifact@v4
