@@ -16,24 +16,24 @@ import argparse, sys, struct, random
 
 # Format definitions: (total_bits, nbytes, exponent_bits, mantissa_bits, bias)
 FORMATS = {
-    "gf4":  (4,  1, 2, 2, 1),
-    "gf6":  (6,  1, 2, 3, 1),
-    "gf8":  (8,  1, 3, 4, 3),
-    "gf10": (10, 2, 3, 6, 3),
-    "gf12": (12, 2, 3, 8, 3),
-    "gf14": (14, 2, 4, 9, 7),
-    "gf16": (16, 2, 5, 10, 15),
-    "gf20": (20, 3, 6, 13, 31),
-    "gf24": (24, 3, 6, 17, 31),
-    "gf32": (32, 4, 7, 25, 63),
-    "bf16": (16, 2, 8, 7, 127),
+    "gf4":  (4,  2, 2, 1),
+    "gf6":  (6,  2, 3, 1),
+    "gf8":  (8,  3, 4, 3),
+    "gf10": (10, 3, 6, 3),
+    "gf12": (12, 4, 7, 7),
+    "gf14": (14, 5, 8, 15),
+    "gf16": (16, 6, 9, 31),  # FIXED: E=6, M=9, BIAS=31 (matches gf_ref.py + RTL)
+    "gf20": (20, 7, 12, 63),
+    "gf24": (24, 7, 17, 63),  # Note: gf24 in catalog uses E=7, not E=9
+    "gf32": (32, 12, 19, 2047),  # Note: gf32 in catalog uses E=12
+    "bf16": (16, 8, 7, 127),
 }
 
 FRAME = bytes([0xAA, 0x55])
 
 def golden_fp32(a_bits, b_bits, fmt_name, op):
     """Compute golden result using Python struct fp32 arithmetic."""
-    total, nbytes, E, M, BIAS = FORMATS[fmt_name]
+    total, E, M, BIAS = FORMATS[fmt_name]
     sign_bit = total - 1
     exp_lo = M
     exp_hi = M + E - 1
@@ -117,7 +117,7 @@ def golden_fp32(a_bits, b_bits, fmt_name, op):
 
 def hw_exchange(ser, a, b, nbytes):
     """Send a,b to FPGA and read back result."""
-    pkt = FRAME
+    pkt = bytearray(FRAME)
     for i in range(nbytes):
         pkt += bytes([(a >> (8*i)) & 0xFF])
     for i in range(nbytes):
@@ -136,7 +136,8 @@ def hw_exchange(ser, a, b, nbytes):
 
 def run_hw(port, baud, fmt_name, op, n):
     import serial
-    total, nbytes, E, M, BIAS = FORMATS[fmt_name]
+    total, E, M, BIAS = FORMATS[fmt_name]
+    nbytes = max(1, (total + 7) // 8)
     T = 1 << total
     ser = serial.Serial(port, baud, timeout=3)
     fails = 0; checked = 0
