@@ -32,7 +32,7 @@ jobs:
         with:
           args: >-
             bash -c "cd /nextpnr-xilinx/xilinx &&
-            python3 python/bbaexport.py --xray /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --metadata /nextpnr-xilinx/xilinx/external/metadata --device xc7a200tfbg484-2 --constids /nextpnr-xilinx/xilinx/constids.inc --bba /tmp/chipdb.bba &&
+            python3 python/bbaexport.py --xray /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --metadata /nextpnr-xilinx/xilinx/external/nextpnr-xilinx-meta --device xc7a200tfbg484-2 --constids /nextpnr-xilinx/xilinx/constids.inc --bba /tmp/chipdb.bba &&
             bbasm --le /tmp/chipdb.bba /tmp/chipdb-xc7a200tfbg484-2.bin"
 
       - name: Full bitstream build
