@@ -71,7 +71,7 @@ correct per SSOT. No count correction needed.
 
 ### Proposed v2 submission text
 
-"We extend the hardware description with the first silicon verification of
+"We extend the hardware description with silicon verification of
 GoldenFloat compute arithmetic: 16 cells covering the canonical GF4-GF32
 family × {ADD, MUL} operations, verified bit-exact against a fractions.Fraction
 golden oracle via UART conformance on a Xilinx Artix-7 XC7A200T. The complete
