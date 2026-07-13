@@ -92,7 +92,7 @@ module corona_compute_gf64_add_ax7203 (
     // Wide result: {result, A5}
     wire [71:0] tx_load = {result_reg, 8'hA5};
     reg [8:0] tcnt; reg [3:0] tbi; reg [9:0] tsr;
-    wire [7:0] cur_byte;
+    reg [7:0] cur_byte;
     always @(*) begin
         if(!responding) cur_byte = 8'hFF;
         else cur_byte = tx_shift[7:0];

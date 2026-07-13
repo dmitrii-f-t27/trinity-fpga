@@ -81,6 +81,8 @@ optimization and nextpnr-xilinx is identified and resolved."
 
 ### GF64+ Verification (future work)
 
-GF64 ADD tested: 166/240 bit-exact. RTL uses native full-width arithmetic
-(E=24, M=39 — confirmed in source). Discrepancy likely from UART timing
-calibration for 20-byte frames. Full GF64+ verification = future work.
+GF64 ADD tested on silicon: 87/128 bit-exact. Root cause under investigation.
+RTL gf_adder_param uses native full-width arithmetic (E=24, M=39).
+Python bit-model of the core shows 8032/8032 bit-exact — suggests issue is
+in the compute wrapper or bitstream provenance, not the parametric core itself.
+Full GF64+ verification = future work.
