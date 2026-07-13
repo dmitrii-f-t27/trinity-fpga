@@ -51,24 +51,19 @@ jobs:
             nextpnr-xilinx --chipdb /chipdb/xc7a200tfbg484-2.bin \
               --json ${DESIGN}.json \
               --xdc ax7203_corona.xdc \
-              --write ${DESIGN}.fasm \
+              --fasm ${DESIGN}.fasm \
               --router router1 \
               --timing-allow-fail \
               --freq 10.0 || exit 1
-            echo "=== Step 3: clean FASM (strip JSON header) ==="
-            awk 'BEGIN{json=0} /^\{/ {json=1; next} /^\}/ {json=0; next} json==0 {print}' ${DESIGN}.fasm > ${DESIGN}_clean.fasm
-            echo "FASM clean head:"
-            head -5 ${DESIGN}_clean.fasm
-            echo "FASM clean lines: $(wc -l < ${DESIGN}_clean.fasm)"
-            echo "=== Step 4: fasm2frames ==="
+            echo "FASM lines: $(wc -l < ${DESIGN}.fasm)"
+            echo "=== Step 3: fasm2frames ==="
             /prjxray/env/bin/fasm2frames \
               --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 \
               --part xc7a200tfbg484-2 \
-              ${DESIGN}_clean.fasm ${DESIGN}.frames 2>&1 | head -20
-            echo "fasm2frames rc=$?"
-            wc -l ${DESIGN}.frames
+              ${DESIGN}.fasm ${DESIGN}.frames 2>/dev/null
+            echo "fasm2frames done, frames lines: $(wc -l < ${DESIGN}.frames)"
             [ -s ${DESIGN}.frames ] || exit 1
-            echo "=== Step 5: xc7frames2bit ==="
+            echo "=== Step 4: xc7frames2bit ==="
             xc7frames2bit \
               --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.json \
               --frm_file ${DESIGN}.frames \
