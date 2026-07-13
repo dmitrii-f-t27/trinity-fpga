@@ -65,7 +65,7 @@ jobs:
             [ -s ${DESIGN}.frames ] || exit 1
             echo "=== Step 4: xc7frames2bit ==="
             xc7frames2bit \
-              --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.json \
+              --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.yaml \
               --frm_file ${DESIGN}.frames \
               --output_file ${DESIGN}.bit
             echo "xc7frames2bit rc=$?"
