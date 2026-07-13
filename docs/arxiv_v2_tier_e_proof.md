@@ -91,3 +91,34 @@ print(f'GF4 ADD: {ok}/{ok+bad} bit-exact (fails={bad})')
 
 **Total: 6248/6248 bit-exact + 2 smoke, 0 failures.**
 **9 of 11 canonical GF formats (GF4 through GF128) verified on XC7A200T.**
+
+## Routing Fix Discovery (2026-07-13)
+
+### Problem
+GF8/GF16 MUL designs failed routing in nextpnr-xilinx:
+`ERROR: Routing design failed.`
+
+### Root Cause
+yosys `-abc9` flag produces technology-mapped logic that nextpnr cannot route.
+The abc9 optimizer creates complex gate structures that exceed nextpnr's routing capacity.
+
+### Fix
+Remove `-abc9` from yosys synthesis command:
+```
+- OLD: synth_xilinx -abc9 -nocarry -arch xc7  → routing FAIL
++ NEW: synth_xilinx       -nocarry -arch xc7  → routing PASS
+```
+
+### Validation
+| Design | With -abc9 | Without -abc9 |
+|--------|-----------|---------------|
+| GF8 MUL | routing FAIL | 512/512 bit-exact |
+| GF16 MUL | routing FAIL | 128/128 bit-exact |
+
+### Impact
+ALL compute modules can now be built as bitstreams (ADD and MUL).
+Previously only ADD designs routed; now MUL routes too.
+
+### Trade-off
+Without abc9: ~2x more LUTs (abc9 optimizes area).
+This is acceptable for XC7A200T (215K logic cells available).
