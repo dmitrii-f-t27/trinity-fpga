@@ -11,7 +11,7 @@
 | GF4 | ADD | 256/256 exhaustive | UART conformance |
 | GF4 | MUL | 256/256 exhaustive | UART conformance |
 | GF6 | ADD | 4096/4096 exhaustive | UART conformance |
-| GF6 | MUL | 4096/406 exhaustive | UART conformance |
+| GF6 | MUL | 4096/4096 exhaustive | UART conformance |
 | GF8 | ADD | 512/512 | UART conformance |
 | GF8 | MUL | 512/512 | UART conformance |
 | GF12 | ADD | 256/256 | UART conformance |
@@ -49,15 +49,15 @@ without Vivado. This is a yosys/nextpnr interaction, not an FPGA limitation.
 ### Falsification Ledger Update (FL-002)
 
 (c1) GF256 bias: unchanged — GF256 not yet on silicon
-(c2) Count drift: 83→84 catalog formats (84th = fp128_e8m119), but
-    canonical GF family remains GF4-GF256 (9 formats per paper)
+(c2) Count drift: SSOT total_formats = 83 (unchanged). Catalog RTL has
+    452+ compute families, but canonical format count per SSOT = 83.
+    Canonical GF family remains GF4-GF256 (9 formats per paper).
 (g) static-split vs micro-mixing: unchanged
 
 ### Erratum
 
-84 format families in catalog (not 83 as stated in companion paper 2606.09686).
-This is a count drift, not a mathematical error. The 84th format (fp128_e8m119)
-was added in Wave 80 as an E/M variant.
+Companion paper 2606.09686 states 83 format families — this remains
+correct per SSOT. No count correction needed.
 
 ### What NOT to claim in v2
 
@@ -65,7 +65,9 @@ was added in Wave 80 as an E/M variant.
 2. "Full catalog on silicon" — only 16 cells (GF4-GF32 × ADD+MUL)
 3. "Vivado-free timing closure" — --timing-allow-fail used, Fmax unknown
 4. "BF16 bit-exact" — 11 rounding tie-break mismatches (oracle limitation)
-5. "GF64+ on silicon" — CI built, not yet UART-verified
+5. "GF64+ on silicon" — GF64/GF128 ADD smoke tests only (0+0=0), not
+   full UART conformance. GF256 CI-built, not flashed. Only 8 formats
+   (GF4-GF32) have full Tier-E 4/4 on silicon.
 
 ### Proposed v2 submission text
 
