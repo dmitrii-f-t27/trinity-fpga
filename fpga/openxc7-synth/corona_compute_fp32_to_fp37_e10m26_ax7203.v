@@ -17,7 +17,7 @@ module corona_compute_fp32_to_fp37_e10m26_ax7203 (
     reg [2:0] rsync;
     always @(posedge mclk or posedge rst) if(rst) rsync<=3'b111; else rsync<={rsync[1:0],uart_rx};
     wire rxd=rsync[2];
-    reg [1:0] rxs; reg [8:0] rxcnt; reg [3:0] rbi; reg [7:0] rxsr; reg [7:0] rx_byte; reg rx_new;
+    reg [1:0] rxs; reg [9:0] rxcnt; reg [3:0] rbi; reg [7:0] rxsr; reg [7:0] rx_byte; reg rx_new;
     always @(posedge mclk or posedge rst) begin
         if(rst) begin rxs<=0;rxcnt<=0;rbi<=0;rxsr<=0;rx_byte<=0;rx_new<=0; end
         else begin rx_new<=0;
