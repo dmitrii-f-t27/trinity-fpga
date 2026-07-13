@@ -1,0 +1,45 @@
+name: Build AX7203 MUL Bitstream
+on:
+  workflow_dispatch:
+    inputs:
+      design:
+        description: 'Design module name'
+        required: true
+        default: 'corona_compute_gf8_mul_ax7203'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Generate chipdb cache
+        id: chipdb
+        uses: actions/cache@v4
+        with:
+          path: chipdb-xc7a200tfbg484-2.bin
+          key: chipdb-xc7a200tfbg484-2-v2
+      - name: Build chipdb (if not cached)
+        if: steps.chipdb.outputs.cache-hit != 'true'
+        run: |
+          docker run --rm -v "$(pwd):/github" regymm/openxc7:latest bash -c '
+          cd /nextpnr-xilinx/xilinx &&
+          python3 python/bbaexport.py --xray /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --metadata /nextpnr-xilinx/xilinx/external/nextpnr-xilinx-meta/artix7 --device xc7a200tfbg484-2 --constids /nextpnr-xilinx/xilinx/constids.inc --bba /tmp/chipdb.bba &&
+          bbasm --le /tmp/chipdb.bba /github/chipdb-xc7a200tfbg484-2.bin'
+      - name: Build bitstream
+        run: |
+          DESIGN="${{ github.event.inputs.design }}"
+          docker run --rm -v "$(pwd):/github" -e DESIGN="$DESIGN" regymm/openxc7:latest bash -c '
+          cd /github/fpga/openxc7-synth
+          yosys -q -p "read_verilog gf_adder_param.v gf_mul_param.v ${DESIGN}.v; synth_xilinx -abc9 -nocarry -arch xc7; write_json ${DESIGN}.json" || exit 1
+          cp /github/chipdb-xc7a200tfbg484-2.bin /chipdb/xc7a200tfbg484-2.bin
+          nextpnr-xilinx --chipdb /chipdb/xc7a200tfbg484-2.bin --json ${DESIGN}.json --xdc ax7203_corona.xdc --fasm ${DESIGN}.fasm --placer heap --router router1 --timing-allow-fail --freq 5.0 || exit 1
+          /prjxray/env/bin/fasm2frames --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --part xc7a200tfbg484-2 ${DESIGN}.fasm ${DESIGN}.frames 2>/dev/null
+          xc7frames2bit --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.yaml --frm_file ${DESIGN}.frames --output_file ${DESIGN}.bit
+          ls -la ${DESIGN}.bit'
+      - name: Upload bitstream
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.inputs.design }}_bitstream
+          path: fpga/openxc7-synth/${{ github.event.inputs.design }}.bit
