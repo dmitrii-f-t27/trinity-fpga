@@ -1,0 +1,67 @@
+name: Build AX7203 Bitstream (Full openXC7)
+on:
+  workflow_dispatch:
+    inputs:
+      design:
+        description: 'Design to build'
+        required: true
+        default: 'corona_decode_top_ax7203'
+      src_files:
+        description: 'Source Verilog files (space-separated)'
+        required: true
+        default: 'corona_decode_top_ax7203.v'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04-8core
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Generate chipdb cache
+        id: chipdb
+        uses: actions/cache@v4
+        with:
+          path: /tmp/chipdb-xc7a200tfbg484-2.bin
+          key: chipdb-xc7a200tfbg484-2-v1
+
+      - name: Build chipdb (if not cached)
+        if: steps.chipdb.outputs.cache-hit != 'true'
+        uses: docker://regymm/openxc7:latest
+        with:
+          args: >-
+            bash -c "bbaopenxc7 --chipdb /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/chipdb.hexpat --output /tmp/chipdb-xc7a200tfbg484-2.bin"
+
+      - name: Full bitstream build
+        uses: docker://regymm/openxc7:latest
+        with:
+          args: >-
+            bash -c "cd fpga/openxc7-synth &&
+            cp /tmp/chipdb-xc7a200tfbg484-2.bin /chipdb/xc7a200tfbg484-2.bin &&
+            SRC_FILES='${{ github.event.inputs.src_files }}' &&
+            DESIGN='${{ github.event.inputs.design }}' &&
+            
+            # Step 1: Yosys
+            echo '=== Yosys ===' &&
+            yosys -p 'read_verilog -I../../external/tt-trinity-corona/src/rtl gf_adder_param.v gf_mul_param.v \$SRC_FILES; synth_xilinx -abc9 -nocarry -arch xc7; write_json \${DESIGN}.json' &&
+            
+            # Step 2: nextpnr
+            echo '=== nextpnr ===' &&
+            nextpnr-xilinx --chipdb /chipdb/xc7a200tfbg484-2.bin --json \${DESIGN}.json --xdc ax7203_corona.xdc --write \${DESIGN}.fasm --router router1 --timing-allow-fail --freq 10.0 &&
+            
+            # Step 3: fasm2frames
+            echo '=== fasm2frames ===' &&
+            /prjxray/env/bin/fasm2frames --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --part xc7a200tfbg484-2 \${DESIGN}.fasm \${DESIGN}.frames 2>/dev/null &&
+            
+            # Step 4: xc7frames2bit
+            echo '=== xc7frames2bit ===' &&
+            xc7frames2bit --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.json --bitstream \${DESIGN}.bit \${DESIGN}.frames 2>/dev/null &&
+            
+            ls -la \${DESIGN}.bit"
+
+      - name: Upload bitstream
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.inputs.design }}_bitstream
+          path: fpga/openxc7-synth/${{ github.event.inputs.design }}.bit
