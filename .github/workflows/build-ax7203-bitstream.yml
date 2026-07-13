@@ -3,13 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       design:
-        description: 'Design to build'
+        description: 'Design name (module name without .v)'
         required: true
-        default: 'corona_decode_top_ax7203'
-      src_files:
-        description: 'Source Verilog files (space-separated)'
-        required: true
-        default: 'corona_decode_top_ax7203.v'
+        default: 'corona_compute_gf16_add_ax7203'
 
 jobs:
   build:
@@ -23,44 +19,21 @@ jobs:
         id: chipdb
         uses: actions/cache@v4
         with:
-          path: /tmp/chipdb-xc7a200tfbg484-2.bin
-          key: chipdb-xc7a200tfbg484-2-v1
+          path: chipdb-xc7a200tfbg484-2.bin
+          key: chipdb-xc7a200tfbg484-2-v2
 
       - name: Build chipdb (if not cached)
         if: steps.chipdb.outputs.cache-hit != 'true'
         uses: docker://regymm/openxc7:latest
         with:
-          args: >-
-            bash -c "cd /nextpnr-xilinx/xilinx &&
-            python3 python/bbaexport.py --xray /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --metadata /nextpnr-xilinx/xilinx/external/nextpnr-xilinx-meta/artix7 --device xc7a200tfbg484-2 --constids /nextpnr-xilinx/xilinx/constids.inc --bba /tmp/chipdb.bba &&
-            bbasm --le /tmp/chipdb.bba /tmp/chipdb-xc7a200tfbg484-2.bin"
+          args: bash -c "cd /nextpnr-xilinx/xilinx && python3 python/bbaexport.py --xray /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --metadata /nextpnr-xilinx/xilinx/external/nextpnr-xilinx-meta/artix7 --device xc7a200tfbg484-2 --constids /nextpnr-xilinx/xilinx/constids.inc --bba /tmp/chipdb.bba && bbasm --le /tmp/chipdb.bba /github/workspace/chipdb-xc7a200tfbg484-2.bin"
 
       - name: Full bitstream build
         uses: docker://regymm/openxc7:latest
+        env:
+          DESIGN: ${{ github.event.inputs.design }}
         with:
-          args: >-
-            bash -c "cd fpga/openxc7-synth &&
-            cp /tmp/chipdb-xc7a200tfbg484-2.bin /chipdb/xc7a200tfbg484-2.bin &&
-            SRC_FILES='${{ github.event.inputs.src_files }}' &&
-            DESIGN='${{ github.event.inputs.design }}' &&
-            
-            # Step 1: Yosys
-            echo '=== Yosys ===' &&
-            yosys -p 'read_verilog -I../../external/tt-trinity-corona/src/rtl gf_adder_param.v gf_mul_param.v \$SRC_FILES; synth_xilinx -abc9 -nocarry -arch xc7; write_json \${DESIGN}.json' &&
-            
-            # Step 2: nextpnr
-            echo '=== nextpnr ===' &&
-            nextpnr-xilinx --chipdb /chipdb/xc7a200tfbg484-2.bin --json \${DESIGN}.json --xdc ax7203_corona.xdc --write \${DESIGN}.fasm --router router1 --timing-allow-fail --freq 10.0 &&
-            
-            # Step 3: fasm2frames
-            echo '=== fasm2frames ===' &&
-            /prjxray/env/bin/fasm2frames --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --part xc7a200tfbg484-2 \${DESIGN}.fasm \${DESIGN}.frames 2>/dev/null &&
-            
-            # Step 4: xc7frames2bit
-            echo '=== xc7frames2bit ===' &&
-            xc7frames2bit --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.json --bitstream \${DESIGN}.bit \${DESIGN}.frames 2>/dev/null &&
-            
-            ls -la \${DESIGN}.bit"
+          args: bash -c "DESIGN=$DESIGN && cd /github/workspace/fpga/openxc7-synth && yosys -p 'read_verilog gf_adder_param.v gf_mul_param.v ${DESIGN}.v; synth_xilinx -abc9 -nocarry -arch xc7; write_json ${DESIGN}.json' && cp /github/workspace/chipdb-xc7a200tfbg484-2.bin /chipdb/xc7a200tfbg484-2.bin && nextpnr-xilinx --chipdb /chipdb/xc7a200tfbg484-2.bin --json ${DESIGN}.json --xdc ax7203_corona.xdc --write ${DESIGN}.fasm --router router1 --timing-allow-fail --freq 10.0 && /prjxray/env/bin/fasm2frames --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --part xc7a200tfbg484-2 ${DESIGN}.fasm ${DESIGN}.frames 2>/dev/null && xc7frames2bit --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.json --bitstream ${DESIGN}.bit ${DESIGN}.frames 2>/dev/null && ls -la ${DESIGN}.bit"
 
       - name: Upload bitstream
         uses: actions/upload-artifact@v4
