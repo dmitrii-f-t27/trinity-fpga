@@ -109,6 +109,10 @@ FORMATS = {
     "gf20": GFFormat("gf20", exp_bits=7, mant_bits=12, bias=63),
     "gf24": GFFormat("gf24", exp_bits=9, mant_bits=14, bias=255),
     "gf32": GFFormat("gf32", exp_bits=12, mant_bits=19, bias=2047),
+    # Canonical φ-rule family (arXiv:2606.05017) — wide formats
+    "gf64": GFFormat("gf64", exp_bits=24, mant_bits=39, bias=8388607),
+    "gf128": GFFormat("gf128", exp_bits=49, mant_bits=78, bias=281474976710655),
+    "gf256": GFFormat("gf256", exp_bits=97, mant_bits=158, bias=79228162514264337593543950335),
 }
 
 

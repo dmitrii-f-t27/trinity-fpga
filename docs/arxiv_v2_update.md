@@ -78,3 +78,14 @@ golden oracle via UART conformance on a Xilinx Artix-7 XC7A200T. The complete
 open-source toolchain (yosys → nextpnr-xilinx → prjxray → openocd) is used,
 requiring no proprietary software. A routing interaction between yosys abc9
 optimization and nextpnr-xilinx is identified and resolved."
+
+### Precision Boundary (GF64 ADD test)
+
+GF64 ADD: 166/240 bit-exact. Root cause: fp32 intermediate (M=23) cannot
+preserve GF64's 39-bit mantissa. This defines a **natural precision boundary**:
+
+- M ≤ 23 (GF4-GF32): fp32-intermediate is bit-exact — proven on silicon
+- M > 23 (GF64+): fp32-intermediate introduces rounding — architectural limitation
+
+This is consistent with the paper's framing: GF4-GF32 are the "realised" formats
+with silicon proof; GF64-GF256 are "extended" with smoke/precision tests only.
