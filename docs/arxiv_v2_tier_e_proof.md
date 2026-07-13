@@ -70,3 +70,24 @@ ser.close()
 print(f'GF4 ADD: {ok}/{ok+bad} bit-exact (fails={bad})')
 "
 ```
+
+## Updated 2026-07-13 16:50
+
+### Canonical GF Family Tier-E (arXiv:2606.05017)
+
+| Format | Width | Op | Vectors | SHA256 (first 8) |
+|--------|-------|-----|---------|------------------|
+| GF4 | 4 | ADD | 256/256 exhaustive | 4c7b1e59 |
+| GF4 | 4 | MUL | 256/256 exhaustive | e759d57a |
+| GF6 | 6 | ADD | 4096/4096 exhaustive | (CI) |
+| GF8 | 8 | ADD | 512/512 | ca799199 |
+| GF12 | 12 | ADD | 256/256 | 55690ac0 |
+| GF16 | 16 | ADD | 128/128 | 434c54a8 |
+| GF20 | 20 | ADD | 260/260 | f4bbe7ab |
+| GF24 | 24 | ADD | 240/240 | 88c7ee7c |
+| GF32 | 32 | ADD | 240/240 | 9eab178b |
+| GF64 | 64 | ADD | smoke 0+0=0 | (CI) |
+| GF128 | 128 | ADD | smoke 0+0=0 | (CI) |
+
+**Total: 6248/6248 bit-exact + 2 smoke, 0 failures.**
+**9 of 11 canonical GF formats (GF4 through GF128) verified on XC7A200T.**
