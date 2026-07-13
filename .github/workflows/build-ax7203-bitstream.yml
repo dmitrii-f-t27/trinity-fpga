@@ -43,10 +43,9 @@ jobs:
             -v "$(pwd):/github" \
             -e DESIGN="$DESIGN" \
             regymm/openxc7:latest bash -c '
-            set -e
             cd /github/fpga/openxc7-synth
             echo "=== Step 1: Yosys ==="
-            yosys -p "read_verilog gf_adder_param.v gf_mul_param.v ${DESIGN}.v; synth_xilinx -abc9 -nocarry -arch xc7; write_json ${DESIGN}.json"
+            yosys -p "read_verilog gf_adder_param.v gf_mul_param.v ${DESIGN}.v; synth_xilinx -abc9 -nocarry -arch xc7; write_json ${DESIGN}.json" || exit 1
             echo "=== Step 2: nextpnr ==="
             cp /github/chipdb-xc7a200tfbg484-2.bin /chipdb/xc7a200tfbg484-2.bin
             nextpnr-xilinx --chipdb /chipdb/xc7a200tfbg484-2.bin \
@@ -55,19 +54,22 @@ jobs:
               --write ${DESIGN}.fasm \
               --router router1 \
               --timing-allow-fail \
-              --freq 10.0
+              --freq 10.0 || exit 1
             echo "=== Step 3: fasm2frames ==="
             /prjxray/env/bin/fasm2frames \
               --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 \
               --part xc7a200tfbg484-2 \
-              ${DESIGN}.fasm ${DESIGN}.frames 2>/dev/null
+              ${DESIGN}.fasm ${DESIGN}.frames
+            echo "fasm2frames rc=$?"
+            ls -la ${DESIGN}.frames || exit 1
             echo "=== Step 4: xc7frames2bit ==="
             xc7frames2bit \
               --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.json \
               --bitstream ${DESIGN}.bit \
-              ${DESIGN}.frames 2>/dev/null
-            echo "=== DONE ==="
-            ls -la ${DESIGN}.bit
+              ${DESIGN}.frames
+            echo "xc7frames2bit rc=$?"
+            ls -la ${DESIGN}.bit || exit 1
+            echo "=== BITSTREAM DONE ==="
             '
 
       - name: Upload bitstream
