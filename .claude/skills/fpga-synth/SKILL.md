@@ -211,3 +211,46 @@ Source: github.com/ChinaQMTECH/QM_XC7A100T_WUKONG_BOARD
 
 Our old board had LEDs on M22, R23, T23 — matches NONE of these.
 Our new AX7203 board has LEDs on B13/C13/D14/D15.
+
+## Tier-E Silicon Proof (2026-07-13)
+
+### Verified Formats (UART conformance on AX7203)
+| Format | Op | Vectors | Result | SHA256 (first 12) |
+|--------|-----|---------|--------|-------------------|
+| GF4 | ADD | 256/256 exhaustive | bit-exact | 4c7b1e59a964 |
+| GF8 | ADD | 512/512 | bit-exact | ca79919948f1 |
+| GF16 | ADD | 128/128 | bit-exact | 925cc793a0de |
+
+**Total: 896/896 vectors, 0 failures. IDCODE: 0x13636093.**
+
+### openXC7 Full Pipeline (PROVEN)
+```
+yosys (synth_xilinx -abc9 -nocarry -arch xc7)
+  → nextpnr-xilinx (--fasm, --router router1, --timing-allow-fail, --freq 10)
+    → fasm2frames (--db-root prjxray-db/artix7 --part xc7a200tfbg484-2)
+      → xc7frames2bit (--part.yaml, --frm_file, --output_file)
+        → pld load (openocd 500kHz, 156s via trinity_flashed daemon)
+          → UART conformance (gf_ref.py Fraction-exact golden oracle)
+```
+
+### Critical Bug Fixed
+`reg [8:0] rxcnt` → `reg [9:0] rxcnt` in 3200 compute modules.
+BAUD_DIV + (BAUD_DIV>>1) = 651 > 511 (9-bit overflow).
+Root cause of UART silence in all compute modules.
+
+### Flash Without Sudo
+```bash
+# One-time install
+python3 hardware/tools/trinity_flashed.py --install
+sudo cp /tmp/com.trinity.flashed.plist /Library/LaunchDaemons/
+sudo launchctl load /Library/LaunchDaemons/com.trinity.flashed.plist
+
+# Flash (no sudo needed)
+python3 hardware/tools/trinity_flash.py /path/to/design.bit
+python3 hardware/tools/trinity_flash.py --scan
+```
+
+### FTDI MPSSE Fix
+FTDINoSerial.kext (codeless kext, IOProbeScore=90000) prevents AppleSerialShim.
+Requires: `csrutil enable --without kext` (Recovery Mode).
+After USB replug: `kmutil load -p /Library/Extensions/FTDINoSerial.kext` via daemon.
