@@ -16,3 +16,9 @@ nextpnr: --fasm --placer heap --router router1 --timing-allow-fail --freq 5
 
 ## Flash (no sudo)
 python3 hardware/tools/trinity_flash.py <bitstream>
+
+## COUNTED FACT (auditor-verified 2026-07-13)
+16 canonical GF compute Tier-E 4/4 @ Wave 89
+Ceiling 71/83 decode Tier-E unchanged.
+GF64/128/256 NOT yet on silicon (CI built, flash pending).
+BF16 ADD NOT bit-exact (11 rounding tie-breaks, excluded).
