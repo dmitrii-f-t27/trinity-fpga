@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       design:
-        description: 'Design name (module name without .v)'
+        description: 'Design module name (e.g. corona_compute_gf16_add_ax7203)'
         required: true
         default: 'corona_compute_gf16_add_ax7203'
 
@@ -24,16 +24,51 @@ jobs:
 
       - name: Build chipdb (if not cached)
         if: steps.chipdb.outputs.cache-hit != 'true'
-        uses: docker://regymm/openxc7:latest
-        with:
-          args: bash -c "cd /nextpnr-xilinx/xilinx && python3 python/bbaexport.py --xray /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --metadata /nextpnr-xilinx/xilinx/external/nextpnr-xilinx-meta/artix7 --device xc7a200tfbg484-2 --constids /nextpnr-xilinx/xilinx/constids.inc --bba /tmp/chipdb.bba && bbasm --le /tmp/chipdb.bba /github/workspace/chipdb-xc7a200tfbg484-2.bin"
+        run: |
+          docker run --rm -v "$(pwd):/github" regymm/openxc7:latest bash -c '
+          cd /nextpnr-xilinx/xilinx &&
+          python3 python/bbaexport.py \
+            --xray /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 \
+            --metadata /nextpnr-xilinx/xilinx/external/nextpnr-xilinx-meta/artix7 \
+            --device xc7a200tfbg484-2 \
+            --constids /nextpnr-xilinx/xilinx/constids.inc \
+            --bba /tmp/chipdb.bba &&
+          bbasm --le /tmp/chipdb.bba /github/chipdb-xc7a200tfbg484-2.bin'
 
       - name: Full bitstream build
-        uses: docker://regymm/openxc7:latest
-        env:
-          DESIGN: ${{ github.event.inputs.design }}
-        with:
-          args: bash -c "DESIGN=$DESIGN && cd /github/workspace/fpga/openxc7-synth && yosys -p 'read_verilog gf_adder_param.v gf_mul_param.v ${DESIGN}.v; synth_xilinx -abc9 -nocarry -arch xc7; write_json ${DESIGN}.json' && cp /github/workspace/chipdb-xc7a200tfbg484-2.bin /chipdb/xc7a200tfbg484-2.bin && nextpnr-xilinx --chipdb /chipdb/xc7a200tfbg484-2.bin --json ${DESIGN}.json --xdc ax7203_corona.xdc --write ${DESIGN}.fasm --router router1 --timing-allow-fail --freq 10.0 && /prjxray/env/bin/fasm2frames --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --part xc7a200tfbg484-2 ${DESIGN}.fasm ${DESIGN}.frames 2>/dev/null && xc7frames2bit --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.json --bitstream ${DESIGN}.bit ${DESIGN}.frames 2>/dev/null && ls -la ${DESIGN}.bit"
+        run: |
+          DESIGN="${{ github.event.inputs.design }}"
+          echo "Building $DESIGN..."
+          docker run --rm \
+            -v "$(pwd):/github" \
+            -e DESIGN="$DESIGN" \
+            regymm/openxc7:latest bash -c '
+            set -e
+            cd /github/fpga/openxc7-synth
+            echo "=== Step 1: Yosys ==="
+            yosys -p "read_verilog gf_adder_param.v gf_mul_param.v ${DESIGN}.v; synth_xilinx -abc9 -nocarry -arch xc7; write_json ${DESIGN}.json"
+            echo "=== Step 2: nextpnr ==="
+            cp /github/chipdb-xc7a200tfbg484-2.bin /chipdb/xc7a200tfbg484-2.bin
+            nextpnr-xilinx --chipdb /chipdb/xc7a200tfbg484-2.bin \
+              --json ${DESIGN}.json \
+              --xdc ax7203_corona.xdc \
+              --write ${DESIGN}.fasm \
+              --router router1 \
+              --timing-allow-fail \
+              --freq 10.0
+            echo "=== Step 3: fasm2frames ==="
+            /prjxray/env/bin/fasm2frames \
+              --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 \
+              --part xc7a200tfbg484-2 \
+              ${DESIGN}.fasm ${DESIGN}.frames 2>/dev/null
+            echo "=== Step 4: xc7frames2bit ==="
+            xc7frames2bit \
+              --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.json \
+              --bitstream ${DESIGN}.bit \
+              ${DESIGN}.frames 2>/dev/null
+            echo "=== DONE ==="
+            ls -la ${DESIGN}.bit
+            '
 
       - name: Upload bitstream
         uses: actions/upload-artifact@v4
