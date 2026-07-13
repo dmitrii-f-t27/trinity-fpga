@@ -55,14 +55,17 @@ jobs:
               --router router1 \
               --timing-allow-fail \
               --freq 10.0 || exit 1
-            echo "=== Step 3: fasm2frames ==="
+            echo "=== Step 3: clean FASM (strip annotations) ==="
+            grep -v "{\*" ${DESIGN}.fasm > ${DESIGN}_clean.fasm || true
+            echo "=== Step 4: fasm2frames ==="
             /prjxray/env/bin/fasm2frames \
               --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 \
               --part xc7a200tfbg484-2 \
-              ${DESIGN}.fasm ${DESIGN}.frames 2>/dev/null
+              ${DESIGN}_clean.fasm ${DESIGN}.frames 2>/dev/null
             echo "fasm2frames rc=$?"
-            ls -la ${DESIGN}.frames || exit 1
-            echo "=== Step 4: xc7frames2bit ==="
+            wc -l ${DESIGN}.frames
+            [ -s ${DESIGN}.frames ] || exit 1
+            echo "=== Step 5: xc7frames2bit ==="
             xc7frames2bit \
               --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.json \
               --frm_file ${DESIGN}.frames \
