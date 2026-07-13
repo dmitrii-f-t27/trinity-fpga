@@ -96,6 +96,27 @@ def handle_client(conn):
             resp = {"ok": rc == 0, "msg": "kext loaded"}
         elif req["cmd"] == "ping":
             resp = {"ok": True, "msg": "pong"}
+        elif req["cmd"] == "run":
+            # Run arbitrary command as root (for kext management)
+            rc, out, err = run_cmd(req.get("args", []), timeout=req.get("timeout", 60))
+            resp = {"ok": rc == 0, "msg": out[-1000:] if out else "", "data": err[-500:] if err else "", "rc": rc}
+        elif req["cmd"] == "flash_fast":
+            # Flash at higher speed (scan first to verify, then flash at best speed)
+            bitstream = req["bitstream"]
+            speed = req.get("speed", 100)
+            if not os.path.exists(bitstream):
+                resp = {"ok": False, "msg": f"not found: {bitstream}"}
+            else:
+                # Try flash without kextunload (might work in brief window after replug)
+                rc2, out2, err2 = run_cmd([
+                    OPENOCD, "-f", CFG,
+                    "-c", f"adapter speed {speed}",
+                    "-c", "init",
+                    "-c", f"pld load 0 {bitstream}",
+                    "-c", "runtest 200000",
+                    "-c", "shutdown"
+                ], timeout=req.get("timeout", 900))
+                resp = {"ok": rc2 == 0, "msg": f"flashed at {speed}kHz" if rc2 == 0 else f"failed (rc={rc2})", "data": (out2+err2)[-500:]}
         else:
             resp = {"ok": False, "msg": f"unknown cmd: {req['cmd']}"}
 
