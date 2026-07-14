@@ -1,6 +1,6 @@
 ---
 name: fpga-synth
-description: "AX7203 openXC7. 7 GF formats bit-exact ADD/MUL. GF64 70.1% timing. div/sqrt=binary32 proxy. Paper draft honest."
+description: "AX7203 openXC7. 10 GF formats bit-exact ADD/MUL. GF64 70.1% timing. div/sqrt=binary32 proxy. Paper draft honest."
 allowed-tools: Bash(docker *), Bash(ls *), Read, Grep, Glob, Write, Edit
 ---
 
@@ -12,12 +12,12 @@ allowed-tools: Bash(docker *), Bash(ls *), Read, Grep, Glob, Write, Edit
 |------|-------|--------|
 | SW-bitexact | ~62-69/83 | (CATALOG_MATRIX: strict 62, self-consistent 69) |
 | decode-HW Tier-E | 41 formats | 41 unique formats with bit-exact decode cells |
-| compute-HW Tier-E | 7 GF formats × {ADD,MUL} | GF4-GF32, 0 failures on silicon (vectors vary by run) |
+| compute-HW Tier-E | 10 GF formats × {ADD,MUL} | GF4-GF32 (10 formats), 0 failures on silicon (vectors vary by run) |
 | GF64 ADD | 70.1% (359/512) | timing closure failure; clamp reverted (regressed to 48.9%) |
 | DIV/SQRT | binary32 proxy | NOT native GF, stale output bug, no conformance |
 | QUIRE | untested | no conformance vectors |
 
-**Honest catalog**: 3 bit-exact (add/mul) + 2 proxy (div/sqrt) + 1 untested (quire)
+**Honest catalog**: 10 formats bit-exact (add/mul) + 2 proxy (div/sqrt) + 1 untested (quire)
 **Paper**: ~41/83 formats (NOT 71 — that was cell count, not format count)
 
 ## Synthesis Flags (MEASURED, not assumed)

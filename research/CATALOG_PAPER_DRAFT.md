@@ -9,7 +9,7 @@
 
 ## Abstract
 
-We present a reproducible hardware benchmark of 83 numeric formats spanning 13 families — including IEEE-754 binary16/binary32/bfloat16, OCP MXFP4/8 elements, posit, takum, decimal, logarithmic, and the φ-derived GoldenFloat family — implemented on a Xilinx Artix-7 (XC7A200T, ALINX AX7203) using a fully open toolchain (openXC7: Yosys + nextpnr-xilinx + Project X-Ray). ~41 of 83 formats carry at least one bit-exact decode cell on silicon against an independent exact-arithmetic oracle, reached through four parameterized decode templates (algebraic, table-2^x, transcendental-exp-via-tables, truncated-multiply); of these, 7 GF formats (GF4–GF32) additionally carry bit-exact compute cells (ADD/MUL) on the same fabric. Because Project X-Ray documents the DSP48E1 hard block as only partially reverse-engineered, ADD designs use `synth_xilinx -flatten -abc9 -nocarry -arch xc7` (the `-nocarry` flag disables CARRY4 chain inference, which produces unreliable routing) and MUL designs add `-nodsp` (DSP48E1 is used only when explicitly instantiated, as in GF16 MUL's single-DSP multiplier); we therefore report LUT counts and place-and-route yields per cell, including the openXC7-specific result that wide carry-chain multiplies fail routing while wide BRAM tables route successfully (decimal128 routes at 336 bits; an untruncated 140-bit takum multiply fails across 32 seeds). A head-to-head accuracy and LUT comparison of GF16, posit(16,1), MXFP8, BF16, FP16, and takum16 against an exact rational oracle shows that no single format dominates across arithmetic, dynamic-range, and cancellation suites. The contribution is not a new format and claims no superiority over posit, takum, or microscaling designs; it is the breadth of formats proven on vendor-neutral silicon, together with the open toolchain methodology and a per-cell reproducible evidence chain.
+We present a reproducible hardware benchmark of 83 numeric formats spanning 13 families — including IEEE-754 binary16/binary32/bfloat16, OCP MXFP4/8 elements, posit, takum, decimal, logarithmic, and the φ-derived GoldenFloat family — implemented on a Xilinx Artix-7 (XC7A200T, ALINX AX7203) using a fully open toolchain (openXC7: Yosys + nextpnr-xilinx + Project X-Ray). ~41 of 83 formats carry at least one bit-exact decode cell on silicon against an independent exact-arithmetic oracle, reached through four parameterized decode templates (algebraic, table-2^x, transcendental-exp-via-tables, truncated-multiply); of these, 10 GF formats (GF4, GF6, GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32) additionally carry bit-exact compute cells (ADD/MUL) on the same fabric. Because Project X-Ray documents the DSP48E1 hard block as only partially reverse-engineered, ADD designs use `synth_xilinx -flatten -abc9 -nocarry -arch xc7` (the `-nocarry` flag disables CARRY4 chain inference, which produces unreliable routing) and MUL designs add `-nodsp` (DSP48E1 is used only when explicitly instantiated, as in GF16 MUL's single-DSP multiplier); we therefore report LUT counts and place-and-route yields per cell, including the openXC7-specific result that wide carry-chain multiplies fail routing while wide BRAM tables route successfully (decimal128 routes at 336 bits; an untruncated 140-bit takum multiply fails across 32 seeds). A head-to-head accuracy and LUT comparison of GF16, GF12, posit(16,1), MXFP8, BF16, FP16, and takum16 against an exact rational oracle shows that no single format dominates across arithmetic, dynamic-range, and cancellation suites. The contribution is not a new format and claims no superiority over posit, takum, or microscaling designs; it is the breadth of formats proven on vendor-neutral silicon, together with the open toolchain methodology and a per-cell reproducible evidence chain.
 
 ---
 
@@ -21,7 +21,7 @@ Yet published hardware numbers for these formats are almost always produced on *
 
 This work fills that gap with three contributions:
 
-1. **A breadth benchmark.** ~41 of 83 catalog formats carry at least one bit-exact decode cell on silicon (41 decode ports); of these, 7 GF formats (GF4–GF32) additionally carry bit-exact compute cells (ADD/MUL) — GF64 reaches 70.1% (359/512) on silicon due to a timing-closure issue in the adder's barrel shifter, see §4.5. Each ships with a full evidence chain: CI synthesis → bitstream SHA-256 → JTAG flash → UART verify against an independent golden oracle.
+1. **A breadth benchmark.** ~41 of 83 catalog formats carry at least one bit-exact decode cell on silicon (41 decode ports); of these, 10 GF formats (GF4, GF6, GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32) additionally carry bit-exact compute cells (ADD/MUL) — GF64 reaches 70.1% (359/512) on silicon due to a timing-closure issue in the adder's barrel shifter, see §4.5. Each ships with a full evidence chain: CI synthesis → bitstream SHA-256 → JTAG flash → UART verify against an independent golden oracle.
 2. **A methodology.** Four parameterized decode templates (algebraic, table-2^x, transcendental-exp-via-tables, truncated-multiply) plus a truncation-analysis sweep make "does format X route on openXC7?" a one-command question.
 3. **A toolchain finding.** The LUT-only constraint imposed by partial DSP documentation, and the wide-multiply-vs-wide-table routing asymmetry that follows from it, are reported as open-toolchain limitations — not design choices.
 
@@ -145,7 +145,7 @@ The decodable catalog reduces to four parameterized templates:
 
 ### 3.5 Accuracy benchmark methodology
 
-Six formats at approximately 16-bit total width — GF16 [1|6|9], GF12 [1|4|7],
+Seven formats at approximately 16-bit total width — GF16 [1|6|9], GF12 [1|4|7],
 posit(16,1), MXFP8 (E4M3), BF16 [1|8|7], FP16 [1|5|10], and takum16 — are
 compared on four vector suites against an exact `Fraction` oracle:
 (i) 1000 random add/subtract pairs in [-100, 100];
@@ -164,7 +164,7 @@ at `research/format_benchmark.py` and `research/format_accuracy_results.csv`.
 
 ### 4.1 Tier-E matrix
 
-**~41 / 83** formats carry at least one bit-exact decode cell on silicon (41 decode ports); of these, 7 GF formats (GF4–GF32) additionally carry bit-exact compute cells (ADD/MUL). GF64 ADD is the exception: 359/512 (70.1%) bit-exact on silicon, with the residual failures
+**~41 / 83** formats carry at least one bit-exact decode cell on silicon (41 decode ports); of these, 10 GF formats (GF4, GF6, GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32) additionally carry bit-exact compute cells (ADD/MUL). GF64 ADD is the exception: 359/512 (70.1%) bit-exact on silicon, with the residual failures
 diagnosed as a **timing-closure issue in the 43-bit barrel shifter** of
 `gf_adder_param`, not a logic defect — the adder core passes all iverilog
 (6/6) and Python bit-model (1544/1544) tests, and GF32 (23-bit barrel shifter)
@@ -226,7 +226,7 @@ dominates raw add/sub accuracy while exponent width governs range.
 `[lit.]` = from the cited paper on a closed flow (Vivado), included for scale, not directly comparable.
 `[est.]` = engineering extrapolation from a measured neighbor.
 
-**GF16 occupies a specific cost/accuracy point**: 486 LUT for the parameterized adder at
+**GF16 occupies a specific cost/accuracy point**: 491 LUT for the parameterized adder (with -flatten) at
 1.63e-3 mean error. Posit(16,1) achieves matching accuracy at higher LUT cost
 (~1500 LUT, from closed-flow Vivado literature [PERI, arXiv:1908.01466] — not
 directly comparable to openXC7). Takum16's accuracy is competitive (2.13e-3 mean) but its decode is
@@ -347,7 +347,7 @@ numbers on closed flows; this work contributes breadth on an open flow.
 Three contributions, restated without superlatives:
 
 - **Breadth.** ~41 / 83 catalog formats carry at least one bit-exact decode cell
-  on silicon (41 decode ports); 7 GF formats (GF4–GF32) additionally carry
+  on silicon (41 decode ports); 10 GF formats (GF4, GF6, GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32) additionally carry
   bit-exact compute cells (ADD/MUL) — on a Xilinx Artix-7 (XC7A200T) via a fully
   open toolchain, each shipped with a reproducible evidence chain.
 - **Methodology.** Four decode templates (algebraic, table-2^x,

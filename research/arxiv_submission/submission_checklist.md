@@ -12,7 +12,7 @@
 - [x] Abstract ≤ 200 words (verified: `wc -w abstract.txt` — see below)
 - [x] No "first / best / only / novel format" claims anywhere in draft or abstract
 - [x] GF64 reported as **"70.1% silicon (359/512), timing-closure issue in the 43-bit barrel shifter"** — NOT bit-exact
-- [x] GF compute claim is **"16 compute cells (GF4–GF32) bit-exact"** — not 30, not all GoldenFloat widths
+- [x] GF compute claim is **"10 GF formats (GF4–GF32) × {ADD,MUL} bit-exact"** — 20 cells total
 - [x] φ-ratio described as **"design heuristic"** — not a theorem (Introduction §1, §2.4, §7)
 - [x] LUT-only reported as a **toolchain constraint** (partial DSP48E1 docs), not a design preference
 - [x] MXFP8 standalone weakness attributed to its block-scaled design context
@@ -58,7 +58,7 @@
 - [ ] `71 / 83` formats carry ≥1 bit-exact silicon cell — cross-check
       `fpga/CATALOG_MATRIX_83.md` and EPIC #199
 - [ ] `41 decode ports` count
-- [ ] `16 compute cells` = GF4, GF8, GF12, GF16, GF20, GF24, GF32 × {ADD, MUL}
+- [ ] `10 GF formats` = GF4, GF6, GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32 × {ADD, MUL} = 20 cells
       (verify each is 16 cells, 0 failures (vector counts vary by run) or bit-exact on silicon logs)
 - [ ] `359 / 512 (70.1%)` for GF64 ADD — cross-check
       `.trinity/experience/wave_2026_07_14_wave3.md` and the GF64 conformance
