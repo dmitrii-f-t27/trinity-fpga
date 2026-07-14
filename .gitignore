@@ -14,6 +14,13 @@ zig-out/
 **/.build/
 **/witness/**/build/
 
+# Bitstream provenance manifests (generated, never source of truth).
+# Bind source -> bitstream via hardware/tools/bitstream_provenance.py
+*.provenance.json
+
+# Bitstreams are build outputs, not source. Provenance lives in *.provenance.json.
+*.bit
+
 # Never commit accidental root clutter (use zig-out/bin, hardware/rtl-root)
 /a.out
 /*.v

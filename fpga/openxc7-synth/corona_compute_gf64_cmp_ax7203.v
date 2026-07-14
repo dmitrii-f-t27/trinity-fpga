@@ -1,7 +1,7 @@
 `default_nettype wire
 `timescale 1ns / 1ps
 // corona_compute_gf64_cmp_ax7203 — GoldenFloat64 comparison on AX7203.
-// GF64: [S:1][E:24][M:39] = 64 bits, HAS_INF=1.
+// GF64: [S:1][E:24][M:39] = 64 bits, HAS_INF=0.
 // op: 0x00=EQ, 0x01=LT, 0x02=LE
 module corona_compute_gf64_cmp_ax7203 (
     input  wire rst_n, input wire uart_rx, output reg uart_tx, output wire [3:0] led

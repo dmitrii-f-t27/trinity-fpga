@@ -1,7 +1,7 @@
 `default_nettype wire
 `timescale 1ns / 1ps
 // corona_compute_gf128_fma_ax7203 — GoldenFloat128 FMA (y=a*b+c) on AX7203.
-// GF128: [S:1][E:49][M:78] = 128 bits, BIAS=281474976710655, HAS_INF=1.
+// GF128: [S:1][E:49][M:78] = 128 bits, BIAS=281474976710655, HAS_INF=0.
 // Pipelined: gf_mul_param -> gf_adder_param. Latency: 2 cycles.
 module corona_compute_gf128_fma_ax7203 (
     input  wire rst_n, input wire uart_rx, output reg uart_tx, output wire [3:0] led
@@ -102,7 +102,7 @@ module corona_compute_gf128_fma_ax7203 (
     // Stage 1: MUL
     reg [127:0] a_reg, b_reg; reg mul_trigger;
     wire mul_in_ready, mul_out_valid; wire [127:0] mul_result;
-    gf_mul_param #(.EXP_BITS(49), .MANT_BITS(78), .HAS_INF(1)) u_mul (
+    gf_mul_param #(.EXP_BITS(49), .MANT_BITS(78), .HAS_INF(0)) u_mul (
         .clk(mclk), .rst(rst),
         .in_valid(mul_trigger), .in_a(a_reg), .in_b(b_reg), .in_ready(mul_in_ready),
         .out_valid(mul_out_valid), .out_y(mul_result), .out_ready(1'b1)
@@ -110,7 +110,7 @@ module corona_compute_gf128_fma_ax7203 (
     // Stage 2: ADD
     reg [127:0] c_reg; reg add_trigger;
     wire add_in_ready, add_out_valid; wire [127:0] add_result;
-    gf_adder_param #(.EXP_BITS(49), .MANT_BITS(78), .HAS_INF(1)) u_add (
+    gf_adder_param #(.EXP_BITS(49), .MANT_BITS(78), .HAS_INF(0)) u_add (
         .clk(mclk), .rst(rst),
         .in_valid(add_trigger), .in_a(mul_result), .in_b(c_reg), .in_ready(add_in_ready),
         .out_valid(add_out_valid), .out_y(add_result), .out_ready(1'b1)

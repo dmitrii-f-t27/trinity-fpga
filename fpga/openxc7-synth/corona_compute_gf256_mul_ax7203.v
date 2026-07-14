@@ -1,7 +1,7 @@
 `default_nettype wire
 `timescale 1ns / 1ps
 // corona_compute_gf256_mul_ax7203 — GoldenFloat256 MUL on AX7203.
-// GF256: [S:1][E:97][M:158] = 256 bits, BIAS=79228162514264337593543950335, HAS_INF=1.
+// GF256: [S:1][E:97][M:158] = 256 bits, BIAS=79228162514264337593543950335, HAS_INF=0.
 // 32 bytes per operand, 68-byte frame.
 module corona_compute_gf256_mul_ax7203 (
     input  wire rst_n, input wire uart_rx, output reg uart_tx, output wire [3:0] led
@@ -117,7 +117,7 @@ module corona_compute_gf256_mul_ax7203 (
 
     reg [255:0] a_reg, b_reg; reg comp_trigger;
     wire comp_in_ready, comp_out_valid; wire [255:0] comp_result;
-    gf_mul_param #(.EXP_BITS(97), .MANT_BITS(158), .HAS_INF(1)) u_comp (
+    gf_mul_param #(.EXP_BITS(97), .MANT_BITS(158), .HAS_INF(0)) u_comp (
         .clk(mclk), .rst(rst),
         .in_valid(comp_trigger), .in_a(a_reg), .in_b(b_reg), .in_ready(comp_in_ready),
         .out_valid(comp_out_valid), .out_y(comp_result), .out_ready(1'b1)

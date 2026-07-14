@@ -90,17 +90,17 @@ pub const EncryptedData = struct {
     tag: [16]u8,
 };
 
-/// Derive AES key from password using PBKDF2-like hash iterations
+/// Derive AES key from password using iterated SHA256 (PBKDF-style).
+/// 100k iterations ≈ ~100ms on Apple M2 — balances brute-force resistance
+/// with acceptable startup latency for a local wallet.
 pub fn deriveKey(password: []const u8, salt: [16]u8) [32]u8 {
-    // Simple key derivation: SHA256(password || salt) repeated
     var key: [32]u8 = undefined;
     var hasher = Sha256.init(.{});
     hasher.update(password);
     hasher.update(&salt);
     key = hasher.finalResult();
 
-    // Additional iterations for security
-    for (0..10000) |_| {
+    for (0..100_000) |_| {
         var h = Sha256.init(.{});
         h.update(&key);
         h.update(&salt);

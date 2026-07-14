@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
-// Testbench for gf_adder_param at gf64 (E=24, M=39, HAS_INF=1)
-// Matches the silicon wrapper: corona_compute_gf64_add_ax7203.v uses HAS_INF(1)
+// Testbench for gf_adder_param at gf64 (E=24, M=39, HAS_INF=0)
+// Matches the silicon wrapper: corona_compute_gf64_add_ax7203.v uses HAS_INF(0)
 module tb_gf_adder_gf64;
     reg clk = 0;
     reg rst = 1;
@@ -14,7 +14,7 @@ module tb_gf_adder_gf64;
     gf_adder_param #(
         .EXP_BITS(24),
         .MANT_BITS(39),
-        .HAS_INF(1)
+        .HAS_INF(0)
     ) DUT (
         .clk(clk), .rst(rst),
         .in_valid(in_valid), .in_a(in_a), .in_b(in_b), .in_ready(in_ready),

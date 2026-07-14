@@ -1,0 +1,75 @@
+name: Build Batch (fan-out dispatcher)
+
+# Accepts a JSON array of {"format","op"} pairs and dispatches one
+# build-matrix.yml run per pair. Use for queuing many designs at once
+# without creating per-design workflow files.
+#
+# Example `pairs` input:
+#   [{"format":"gf4","op":"add"},{"format":"fp32","op":"mul"},{"format":"bf16","op":"fma"}]
+#
+# For decode batches, set type=decode; `op` is ignored per design.
+
+on:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: 'Design type (applied to every dispatched build)'
+        type: choice
+        options:
+          - compute
+          - decode
+        required: true
+        default: 'compute'
+      pairs:
+        description: 'JSON array of {"format","op"} objects'
+        required: true
+        default: '[{"format":"gf4","op":"add"}]'
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate pairs JSON
+        id: pairs
+        env:
+          PAIRS: ${{ github.event.inputs.pairs }}
+        run: |
+          echo "$PAIRS" | jq -e 'type == "array" and length > 0' >/dev/null \
+            || { echo "::error::pairs must be a non-empty JSON array"; exit 1; }
+          COUNT=$(echo "$PAIRS" | jq 'length')
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "Validated $COUNT pair(s)."
+
+      - name: Dispatch build-matrix.yml for each pair
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAIRS: ${{ github.event.inputs.pairs }}
+          TYPE: ${{ github.event.inputs.type }}
+        run: |
+          set -uo pipefail
+          OK=0; FAIL=0
+          while IFS= read -r row; do
+            FMT=$(echo "$row" | jq -r '.format')
+            OP=$(echo "$row"  | jq -r '.op // "add"')
+            echo "::group::Dispatch: type=$TYPE format=$FMT op=$OP"
+            if gh workflow run build-matrix.yml -f type="$TYPE" -f format="$FMT" -f op="$OP"; then
+              echo "Dispatched build-matrix.yml -> type=$TYPE format=$FMT op=$OP"
+              OK=$((OK+1))
+            else
+              echo "::warning::failed to dispatch type=$TYPE format=$FMT op=$OP"
+              FAIL=$((FAIL+1))
+            fi
+            echo "::endgroup::"
+          done < <(echo "$PAIRS" | jq -c '.[]')
+          echo "Dispatched OK=$OK FAIL=$FAIL"
+          [ "$FAIL" -eq 0 ] || exit 1
+
+      - name: Summary
+        run: |
+          echo "### Build Batch Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Dispatched **${{ steps.pairs.outputs.count }}** \`${{ github.event.inputs.type }}\` build(s) via \`build-matrix.yml\`." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Track each run under the **Actions** tab (workflow: _Build Matrix_)." >> "$GITHUB_STEP_SUMMARY"

@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // Minimal inline testbench — targets exact GF64 silicon failures
-// Tests gf_adder_param at E=24, M=39, HAS_INF=1 (matching wrapper)
+// Tests gf_adder_param at E=24, M=39, HAS_INF=0 (matching wrapper)
 module tb_gf64_inline;
     reg clk = 0;
     reg rst = 1;
@@ -14,7 +14,7 @@ module tb_gf64_inline;
     gf_adder_param #(
         .EXP_BITS(24),
         .MANT_BITS(39),
-        .HAS_INF(1)
+        .HAS_INF(0)
     ) DUT (
         .clk(clk), .rst(rst),
         .in_valid(in_valid), .in_a(in_a), .in_b(in_b), .in_ready(in_ready),
@@ -79,23 +79,15 @@ module tb_gf64_inline;
         // half = 0x3FFFFF0000000000
         check(64'h3FFFFF8000000000, 64'hBFFFFF0000000000, 64'h3FFFFF0000000000);
 
-        // ---- Inf/NaN (HAS_INF=1) ----
-        // pos_inf = exp=0xFFFFFF, mant=0 = 0x7FFFFF8000000000... wait
-        // exp_max = 2^24-1 = 16777215 = 0xFFFFFF
-        // pos_inf = (0xFFFFFF << 39) = 0x7FFFFF8000000000
-        // Wait: bit layout is [S:1][E:24][M:39]
-        // pos_inf = 0 | (0xFFFFFF << 39) | 0
-        // 0xFFFFFF << 39 = 0xFFFFFF * 2^39
-        // 2^39 = 0x8000000000
-        // 0xFFFFFF * 0x8000000000 = ?
-        // 0xFFFFFF = 16777215
-        // 16777215 * 549755813888 = 9223372036854775808 - 549755813888 = 9223371487098961920
-        // = 0x7FFFFF8000000000
-        // Inf + 1.0 = Inf
+        // ---- max-exponent finite values (HAS_INF=0) ----
+        // GF64 has NO Inf/NaN (spec family: only GF16 reserves all-ones exp).
+        // exp=all-ones (0xFFFFFF) is a finite normal value:
+        //   +2^8388608 = 0x7FFFFF8000000000 (S=0, E=0xFFFFFF, M=0)
+        //   -2^8388608 = 0xFFFFFF8000000000 (S=1, E=0xFFFFFF, M=0)
+        // max-exp + 1.0 = max-exp (1.0 vanishes below ULP at this scale)
         check(64'h7FFFFF8000000000, 64'h3FFFFF8000000000, 64'h7FFFFF8000000000);
-        // Inf + (-Inf) = NaN (canonical qNaN: exp=all-ones, mant=1)
-        // qNaN = 0x7FFFFF8000000001
-        check(64'h7FFFFF8000000000, 64'hFFFFFFFF80000000, 64'h7FFFFF8000000001);
+        // (+2^8388608) + (-2^8388608) = +0 (equal magnitude, opposite sign)
+        check(64'h7FFFFF8000000000, 64'hFFFFFF8000000000, 64'h0000000000000000);
 
         // ---- Normal arithmetic ----
         // 1.5 + 0.5 = 2.0

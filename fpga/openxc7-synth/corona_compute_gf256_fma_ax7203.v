@@ -1,7 +1,7 @@
 `default_nettype wire
 `timescale 1ns / 1ps
 // corona_compute_gf256_fma_ax7203 — GoldenFloat256 FMA (y=a*b+c) on AX7203.
-// GF256: [S:1][E:97][M:158] = 256 bits, BIAS=79228162514264337593543950335, HAS_INF=1.
+// GF256: [S:1][E:97][M:158] = 256 bits, BIAS=79228162514264337593543950335, HAS_INF=0.
 // Pipelined: gf_mul_param -> gf_adder_param. Latency: 2 cycles.
 module corona_compute_gf256_fma_ax7203 (
     input  wire rst_n, input wire uart_rx, output reg uart_tx, output wire [3:0] led
@@ -150,7 +150,7 @@ module corona_compute_gf256_fma_ax7203 (
     // Stage 1: MUL
     reg [255:0] a_reg, b_reg; reg mul_trigger;
     wire mul_in_ready, mul_out_valid; wire [255:0] mul_result;
-    gf_mul_param #(.EXP_BITS(97), .MANT_BITS(158), .HAS_INF(1)) u_mul (
+    gf_mul_param #(.EXP_BITS(97), .MANT_BITS(158), .HAS_INF(0)) u_mul (
         .clk(mclk), .rst(rst),
         .in_valid(mul_trigger), .in_a(a_reg), .in_b(b_reg), .in_ready(mul_in_ready),
         .out_valid(mul_out_valid), .out_y(mul_result), .out_ready(1'b1)
@@ -158,7 +158,7 @@ module corona_compute_gf256_fma_ax7203 (
     // Stage 2: ADD
     reg [255:0] c_reg; reg add_trigger;
     wire add_in_ready, add_out_valid; wire [255:0] add_result;
-    gf_adder_param #(.EXP_BITS(97), .MANT_BITS(158), .HAS_INF(1)) u_add (
+    gf_adder_param #(.EXP_BITS(97), .MANT_BITS(158), .HAS_INF(0)) u_add (
         .clk(mclk), .rst(rst),
         .in_valid(add_trigger), .in_a(mul_result), .in_b(c_reg), .in_ready(add_in_ready),
         .out_valid(add_out_valid), .out_y(add_result), .out_ready(1'b1)
