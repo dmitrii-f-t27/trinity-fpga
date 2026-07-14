@@ -1,0 +1,29 @@
+suite,format,layout,n_valid,n_invalid,mean_rel_err,max_rel_err
+arithmetic,GF16,[1|6|9] E=6 M=9 bias=31 (+Inf/NaN),1000,0,1.6333e-03,1.5695e-01
+arithmetic,GF12,[1|4|7] E=4 M=7 bias=7 (no Inf),1000,2,5.1364e-03,2.2870e-01
+arithmetic,"Posit16,1",[1|regime|1 exp|frac] es=1,1000,0,1.3575e-03,1.5695e-01
+arithmetic,MXFP8 (E4M3),[1|4|3] bias=7 (no Inf; max finite),1000,18,7.1019e-02,4.8107e+00
+arithmetic,BF16,[1|8|7] bias=127 (IEEE-style),1000,2,5.1364e-03,2.2870e-01
+arithmetic,FP16,[1|5|10] bias=15 (IEEE-754),1000,0,1.3020e-03,4.5751e-01
+arithmetic,Takum16,[S|D|R(3)|characteristic|mantissa] logarithmic,1000,0,2.1278e-03,2.1114e-01
+dynamic_range,GF16,[1|6|9] E=6 M=9 bias=31 (+Inf/NaN),200,0,4.0830e-04,1.5424e-03
+dynamic_range,GF12,[1|4|7] E=4 M=7 bias=7 (no Inf),200,7,4.1999e-01,9.9943e-01
+dynamic_range,"Posit16,1",[1|regime|1 exp|frac] es=1,200,0,5.0691e-03,5.1761e-02
+dynamic_range,MXFP8 (E4M3),[1|4|3] bias=7 (no Inf; max finite),200,20,4.4548e-01,9.9950e-01
+dynamic_range,BF16,[1|8|7] bias=127 (IEEE-style),200,0,1.6500e-03,4.6004e-03
+dynamic_range,FP16,[1|5|10] bias=15 (IEEE-754),154,46,2.2997e-04,2.1940e-03
+dynamic_range,Takum16,[S|D|R(3)|characteristic|mantissa] logarithmic,200,0,7.2420e-04,3.5481e-03
+cancellation,GF16,[1|6|9] E=6 M=9 bias=31 (+Inf/NaN),200,11,1.8833e-01,4.4796e+00
+cancellation,GF12,[1|4|7] E=4 M=7 bias=7 (no Inf),200,61,3.2728e-01,3.8660e+00
+cancellation,"Posit16,1",[1|regime|1 exp|frac] es=1,200,8,1.2879e-01,4.4796e+00
+cancellation,MXFP8 (E4M3),[1|4|3] bias=7 (no Inf; max finite),200,186,8.3090e-01,2.5956e+01
+cancellation,BF16,[1|8|7] bias=127 (IEEE-style),200,61,3.2728e-01,3.8660e+00
+cancellation,FP16,[1|5|10] bias=15 (IEEE-754),200,7,7.8874e-02,1.5793e+00
+cancellation,Takum16,[S|D|R(3)|characteristic|mantissa] logarithmic,200,14,1.8195e-01,4.0939e+00
+edge_cases,GF16,[1|6|9] E=6 M=9 bias=31 (+Inf/NaN),10,0,9.2789e-05,4.4700e-04
+edge_cases,GF12,[1|4|7] E=4 M=7 bias=7 (no Inf),10,2,9.9949e-02,9.9949e-01
+edge_cases,"Posit16,1",[1|regime|1 exp|frac] es=1,10,0,1.0961e-02,4.6326e-02
+edge_cases,MXFP8 (E4M3),[1|4|3] bias=7 (no Inf; max finite),10,2,1.0396e-01,9.9955e-01
+edge_cases,BF16,[1|8|7] bias=127 (IEEE-style),10,0,3.8214e-04,1.6222e-03
+edge_cases,FP16,[1|5|10] bias=15 (IEEE-754),9,1,2.9509e-03,1.3279e-02
+edge_cases,Takum16,[S|D|R(3)|characteristic|mantissa] logarithmic,10,0,6.9473e-04,2.6331e-03

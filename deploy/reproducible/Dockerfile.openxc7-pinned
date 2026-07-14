@@ -1,0 +1,180 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Trinity Reproducible openXC7 Bitstream Builder
+# TRUST ANCHOR for DePIN compute attestation
+#
+# This image pins ALL tool versions so that any party can rebuild a bitstream
+# bit-for-bit and verify SHA256(bitstream) matches the attestation key.
+#
+# Agent K (Kernel/FPGA) + Agent F (Conformance) + Agent D (De-Zigfication)
+# φ² + 1/φ² = 3 = TRINITY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+FROM ubuntu:22.04
+
+# ─── Pinned tool versions ────────────────────────────────────────────────────
+# Every variable below is a fixed, auditable input to the trust chain.
+# Bumping ANY of these changes every downstream bitstream hash.
+#
+# Audit procedure for bumping:
+#   1. Update the version/commit below.
+#   2. Rebuild: docker build -f Dockerfile.openxc7-pinned -t trinity-openxc7-pinned .
+#   3. Rebuild a reference design (e.g. corona_compute_gf16_add_ax7203).
+#   4. Record the new SHA256 in the provenance manifest.
+#   5. Commit the manifest + this Dockerfile together.
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+ENV YOSYS_VERSION=0.63
+# nextpnr-xilinx: pinned to the commit the CI image was built from.
+# Source: https://github.com/YosysHQ/nextpnr
+# TODO(K): replace with the exact commit from `docker run regymm/openxc7:latest git -C /nextpnr-xilinx rev-parse HEAD`
+ENV NEXTPNR_COMMIT=0000000000000000000000000000000000000000
+ENV NEXTPNR_REPO=https://github.com/YosysHQ/nextpnr.git
+
+# prjxray (fasm2frames + xc7frames2bit): pinned commit.
+# Source: https://github.com/f4pga/prjxray
+ENV PRJXRAY_COMMIT=0000000000000000000000000000000000000000
+ENV PRJXRAY_REPO=https://github.com/f4pga/prjxray.git
+
+# prjxray-db (device database for Artix-7): pinned commit.
+# Source: https://github.com/f4pga/prjxray-db
+ENV PRJXRAY_DB_COMMIT=0000000000000000000000000000000000000000
+ENV PRJXRAY_DB_REPO=https://github.com/f4pga/prjxray-db.git
+
+# nextpnr-xilinx metadata (tile types, constids): pinned commit.
+# Source: https://github.com/openXC7/nextpnr-xilinx-meta
+ENV NEXTPNR_META_COMMIT=0000000000000000000000000000000000000000
+ENV NEXTPNR_META_REPO=https://github.com/openXC7/nextpnr-xilinx-meta.git
+
+# fasm: FPGA Assembly parser (Python).
+# Source: https://github.com/chipsalliance/fasm
+ENV FASM_VERSION=0.0.2.post0
+ENV FASM_WHEEL=https://github.com/chipsalliance/fasm/releases/download/${FASM_VERSION}/fasm-${FASM_VERSION}-py3-none-any.whl
+
+ENV TARGET_PART=xc7a200tfbg484-2
+ENV TARGET_BOARD=ax7203
+
+# ─── System dependencies (apt packages are pinned by Ubuntu 22.04 archive) ──
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    clang \
+    cmake \
+    curl \
+    git \
+    libboost-all-dev \
+    libeigen3-dev \
+    libffi-dev \
+    libreadline-dev \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    tcl-dev \
+    wget \
+    xz-utils \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# ─── Yosys (exact release binary) ────────────────────────────────────────────
+# Yosys release binaries are reproducible — the tarball SHA is published.
+RUN wget -q "https://github.com/YosysHQ/yosys/releases/download/yosys-${YOSYS_VERSION}/yosys-yosys-${YOSYS_VERSION}-ubuntu-22.04-x86_64.tar.gz" \
+        -O /tmp/yosys.tar.gz \
+    && mkdir -p /opt/yosys \
+    && tar -xzf /tmp/yosys.tar.gz -C /opt/yosys --strip-components=1 \
+    && rm /tmp/yosys.tar.gz \
+    && ln -s /opt/yosys/bin/yosys /usr/local/bin/yosys \
+    && yosys -V
+
+# ─── prjxray-db (device database) ────────────────────────────────────────────
+RUN git clone --no-checkout "${PRJXRAY_DB_REPO}" /opt/prjxray-db \
+    && cd /opt/prjxray-db \
+    && git checkout "${PRJXRAY_DB_COMMIT}" \
+    && git submodule update --init --recursive
+
+# ─── nextpnr-xilinx-meta ─────────────────────────────────────────────────────
+RUN git clone --no-checkout "${NEXTPNR_META_REPO}" /opt/nextpnr-xilinx-meta \
+    && cd /opt/nextpnr-xilinx-meta \
+    && git checkout "${NEXTPNR_META_COMMIT}"
+
+# ─── Build chipdb (bbaexport → bbasm) ────────────────────────────────────────
+# This is the device model for the target part. It must be identical across
+# all nodes for bitstream-level reproducibility.
+RUN pip3 install --no-cache-dir "${FASM_WHEEL}" \
+    && pip3 install --no-cache-dir \
+        "intervaltree" \
+        "pyyaml" \
+        "jsonschema" \
+        "textx"
+
+RUN git clone --no-checkout "${NEXTPNR_REPO}" /opt/nextpnr-xilinx \
+    && cd /opt/nextpnr-xilinx \
+    && git checkout "${NEXTPNR_COMMIT}" \
+    && git submodule update --init --recursive \
+    && mkdir -p build \
+    && cd build \
+    && cmake .. \
+        -DARCH=xilinx \
+        -DBUILD_GUI=OFF \
+        -DBUILD_PYTHON=OFF \
+        -DBUILD_TESTS=OFF \
+        -DUSE_OPENMP=ON \
+        -DCMAKE_BUILD_TYPE=Release \
+    && make -j"$(nproc)" \
+    && make install \
+    && ln -s /usr/local/bin/nextpnr-xilinx /usr/local/bin/nextpnr-xilinx
+
+# Generate the chipdb binary for the target part.
+RUN mkdir -p /opt/chipdb \
+    && cd /opt/nextpnr-xilinx/xilinx \
+    && python3 python/bbaexport.py \
+        --xray /opt/prjxray-db/artix7 \
+        --metadata /opt/nextpnr-xilinx-meta/artix7 \
+        --device "${TARGET_PART}" \
+        --constids /opt/nextpnr-xilinx/xilinx/constids.inc \
+        --bba /tmp/chipdb.bba \
+    && bbasm --le /tmp/chipdb.bba "/opt/chipdb/${TARGET_PART}.bin" \
+    && rm /tmp/chipdb.bba
+
+# ─── prjxray tools (fasm2frames + xc7frames2bit) ─────────────────────────────
+RUN git clone --no-checkout "${PRJXRAY_REPO}" /opt/prjxray \
+    && cd /opt/prjxray \
+    && git checkout "${PRJXRAY_COMMIT}" \
+    && git submodule update --init --recursive \
+    && mkdir -p build \
+    && cd build \
+    && cmake .. -DCMAKE_BUILD_TYPE=Release \
+    && make -j"$(nproc)" \
+    && make install
+
+# ─── Environment ─────────────────────────────────────────────────────────────
+ENV PRJXRAY_DB_DIR=/opt/prjxray-db/artix7
+ENV CHIPDB_DIR=/opt/chipdb
+ENV PRJXRAY_BUILD=/opt/prjxray/build
+
+# Symlinks so the CI workflow's paths still resolve inside this image.
+RUN ln -sf /opt/prjxray-db /nextpnr-xilinx/xilinx/external/prjxray-db 2>/dev/null; \
+    mkdir -p /nextpnr-xilinx/xilinx/external && \
+    ln -sf /opt/prjxray-db /nextpnr-xilinx/xilinx/external/prjxray-db; \
+    ln -sf /opt/nextpnr-xilinx-meta /nextpnr-xilinx/xilinx/external/nextpnr-xilinx-meta; \
+    mkdir -p /prjxray && ln -sf /opt/prjxray/build /prjxray/build; \
+    mkdir -p /chipdb && ln -sf /opt/chipdb/${TARGET_PART}.bin /chipdb/${TARGET_PART}.bin
+
+# ─── Record the provenance of THIS image ─────────────────────────────────────
+# This file is the root of the trust chain. Its SHA256 is the "toolchain key".
+RUN echo "{\n" \
+      "  \"yosys_version\": \"${YOSYS_VERSION}\",\n" \
+      "  \"nextpnr_commit\": \"${NEXTPNR_COMMIT}\",\n" \
+      "  \"prjxray_commit\": \"${PRJXRAY_COMMIT}\",\n" \
+      "  \"prjxray_db_commit\": \"${PRJXRAY_DB_COMMIT}\",\n" \
+      "  \"nextpnr_meta_commit\": \"${NEXTPNR_META_COMMIT}\",\n" \
+      "  \"fasm_version\": \"${FASM_VERSION}\",\n" \
+      "  \"target_part\": \"${TARGET_PART}\",\n" \
+      "  \"base_image\": \"ubuntu:22.04\"\n" \
+      "}" > /opt/toolchain_provenance.json
+
+WORKDIR /work
+
+# Entry: build_reproducible.sh calls this image and runs the 4-step flow.
+CMD ["/bin/bash"]
