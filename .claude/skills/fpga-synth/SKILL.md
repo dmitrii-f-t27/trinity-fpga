@@ -72,6 +72,10 @@ Source: research/LUT_COMPARISON_MEASURED.md
 13. **"4-11x lower LUT" is FALSE** — measured 0.85x (GF16 486 LUT vs tekum16 573 LUT)
 14. BENCH-005 "118 LUT" is stale — same module gives 176 now
 15. takum16 adder RTL does NOT EXIST — only decode exists
+16. **Repo portability**: no more hardcoded paths — all scripts use relative resolution
+17. **UART port**: unified to /dev/cu.usbserial-1120 across all 98 conformance scripts
+18. **README**: rewritten to match actual project state (was stale monorepo description)
+19. **.gitignore**: removed *.md and *.toml catch-alls — no more silently dropped files
 
 ## Key Files
 
