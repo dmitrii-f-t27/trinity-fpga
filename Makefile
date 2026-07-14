@@ -118,7 +118,11 @@ stoch_tb: synth_check_no_star_stoch
 	grep -q 'ALL 10/10 PASS' /tmp/stoch_tb.log && echo '\nstoch_tb: 10/10 PASS ✓'
 
 # ─── Reproducibility targets (Wave 15) ───
-.PHONY: oracle repro bench lut
+.PHONY: oracle repro bench lut vectors
+
+# Generate ADD conformance vectors for all 72 oracle formats
+vectors:
+	@python3 conformance/generate_vectors.py
 
 # Run all 12 oracle self-tests
 oracle:
