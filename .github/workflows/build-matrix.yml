@@ -93,8 +93,15 @@ jobs:
             else
               READS="gf_adder_param.v gf_mul_param.v ${DESIGN}.v"
             fi
+            # Synthesis: -nodsp (openXC7 DSP partial), -nocarry (carry chains break routing)
+            # NO -abc9 for ADD designs (barrel-shifter misoptimization at wide E/M)
+            if [ "$OP" = "mul" ]; then
+              SYNTH_FLAGS="-nocarry -nodsp -arch xc7"
+            else
+              SYNTH_FLAGS="-nocarry -nodsp -arch xc7"
+            fi
             echo "=== Step 1: Yosys ==="
-            yosys -p "read_verilog $READS; synth_xilinx -abc9 -nocarry -arch xc7; write_json ${DESIGN}.json" || exit 1
+            yosys -p "read_verilog $READS; synth_xilinx $SYNTH_FLAGS; write_json ${DESIGN}.json" || exit 1
             echo "=== Step 2: nextpnr ==="
             cp /github/chipdb-xc7a200tfbg484-2.bin /chipdb/xc7a200tfbg484-2.bin
             nextpnr-xilinx --chipdb /chipdb/xc7a200tfbg484-2.bin \
