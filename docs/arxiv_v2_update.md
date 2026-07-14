@@ -10,22 +10,27 @@
 |--------|-----|---------|--------|
 | GF4 | ADD | 256/256 exhaustive | UART conformance |
 | GF4 | MUL | 256/256 exhaustive | UART conformance |
-| GF6 | ADD | 4096/4096 exhaustive | UART conformance |
-| GF6 | MUL | 4096/4096 exhaustive | UART conformance |
+| GF6 | ADD | sampled | UART conformance |
+| GF6 | MUL | sampled | UART conformance |
 | GF8 | ADD | 512/512 | UART conformance |
 | GF8 | MUL | 512/512 | UART conformance |
-| GF12 | ADD | 256/256 | UART conformance |
-| GF12 | MUL | 256/256 | UART conformance |
-| GF16 | ADD | 128/128 | UART conformance |
-| GF16 | MUL | 128/128 | UART conformance |
-| GF20 | ADD | 260/260 | UART conformance |
-| GF20 | MUL | 260/260 | UART conformance |
-| GF24 | ADD | 240/240 | UART conformance |
-| GF24 | MUL | 240/240 | UART conformance |
-| GF32 | ADD | 240/240 | UART conformance |
-| GF32 | MUL | 240/240 | UART conformance |
+| GF12 | ADD | sampled | UART conformance |
+| GF12 | MUL | sampled | UART conformance |
+| GF16 | ADD | 512/512 | UART conformance (committed log: logs/gf16_add_hw.log) |
+| GF16 | MUL | sampled | UART conformance |
+| GF20 | ADD | sampled | UART conformance |
+| GF20 | MUL | sampled | UART conformance |
+| GF24 | ADD | sampled | UART conformance |
+| GF24 | MUL | sampled | UART conformance |
+| GF32 | ADD | sampled | UART conformance |
+| GF32 | MUL | sampled | UART conformance |
 
-Total: 11392/11392 bit-exact, 0 failures.
+All 16 cells passed with 0 failures on silicon. Exact vector counts vary
+by run (scripts use `--n` flag, default 64-512 sampled pairs per cell;
+GF4 is exhaustive at 256). The previously reported "11392/11392" total
+was a sum of per-run vector counts that varied across sessions and
+did not match the committed logs. It has been replaced with this
+honest per-cell summary.
 
 ### Toolchain: Fully Open-Source
 

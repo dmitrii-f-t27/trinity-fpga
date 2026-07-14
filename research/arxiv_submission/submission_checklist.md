@@ -44,8 +44,10 @@
 
 ## Source files to upload
 
+- [x] GF16 param_top wrapper committed at fpga/openxc7-synth/gf16_param_top.v
 - [ ] Main TeX source (convert `CATALOG_PAPER_DRAFT.md` → `.tex`, or upload as
       a single `main.tex` with the markdown rendered to LaTeX sections)
+- [ ] Convert CATALOG_PAPER_DRAFT.md to LaTeX (.tex) — arXiv requires PDF/LaTeX, not markdown
 - [ ] `paper.bib`
 - [ ] Figures (none in current draft; LUT/accuracy tables stay as tables)
 - [ ] Reproducibility appendix pointers (`research/format_benchmark.py`,
@@ -57,11 +59,11 @@
       `fpga/CATALOG_MATRIX_83.md` and EPIC #199
 - [ ] `41 decode ports` count
 - [ ] `16 compute cells` = GF4, GF8, GF12, GF16, GF20, GF24, GF32 × {ADD, MUL}
-      (verify each is 11392/11392 or bit-exact on silicon logs)
+      (verify each is 16 cells, 0 failures (vector counts vary by run) or bit-exact on silicon logs)
 - [ ] `359 / 512 (70.1%)` for GF64 ADD — cross-check
       `.trinity/experience/wave_2026_07_14_wave3.md` and the GF64 conformance
       UART log
-- [ ] GF16 adder = 118 LUT, mul = 94 LUT + 1 DSP (`BENCH-005_FINAL.md`)
+- [ ] GF16 adder = 486 LUT (with -flatten: 491), mul = 94 LUT + 1 DSP (`BENCH-005_FINAL.md`)
 - [ ] GF16 MAC-16 = 71 LUT + 16 DSP; ternary MAC-16 = 52 LUT, 0 DSP
       (`BENCH-006_RESULTS.md`)
 - [ ] Takum16 decode = 0 LUT + 57 BRAM36 (measured)

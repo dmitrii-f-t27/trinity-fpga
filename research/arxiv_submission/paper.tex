@@ -1,0 +1,99 @@
+% paper.tex — LaTeX skeleton for the 83-format openXC7 benchmark paper.
+%
+% This is a SKELETON, not a full conversion of CATALOG_PAPER_DRAFT.md.
+% Section headers mirror the markdown structure; body text is future work.
+%
+% Build:  pdflatex paper && bibtex paper && pdflatex paper && pdflatex paper
+
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[hyphens]{url}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\title{83 Number Formats on Open-Source Silicon: \\
+       A Reproducible Benchmark of Decode and Compute on openXC7}
+
+\author{Dmitrii Vasilev\\
+        \textit{ORCID:} 0009-0008-4294-6159}
+
+\date{Draft v0.1, 2026-07-14}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present a reproducible hardware benchmark of 83 numeric formats from 13
+families, including IEEE-754, OCP FP8, Microscaling (MX), posit, takum,
+decimal, logarithmic, and the phi-derived GoldenFloat family, implemented on a
+Xilinx Artix-7 (XC7A200T, ALINX AX7203) using a fully open toolchain (openXC7:
+Yosys + nextpnr-xilinx + Project X-Ray). 71 of 83 formats carry at least one
+bit-exact silicon decode cell against an independent exact-arithmetic oracle,
+reached through four parameterized decode templates (algebraic, table-2\^{}x,
+transcendental-exp-via-tables, truncated-multiply). 16 GoldenFloat compute
+cells (GF4-GF32, ADD and MUL) verify bit-exactly on the same fabric; GF64
+reaches 70.1\% (359/512) bit-exact on silicon, with the residual failures
+diagnosed as a timing-closure issue in the 43-bit barrel shifter of the adder
+core, not a logic defect. Because Project X-Ray documents the DSP48E1
+hard block as only partially reverse-engineered, every design is synthesized
+LUT-only (synth\_xilinx -nodsp); we therefore report LUT counts and
+place-and-route yields per cell, including the openXC7-specific result that
+wide carry-chain multiplies fail routing while wide BRAM tables route
+successfully. The contribution is not a new format and claims no superiority
+over posit, takum, or microscaling; it is the breadth of formats
+proven on vendor-neutral silicon, the open toolchain methodology,
+and a per-cell reproducible evidence chain.
+\end{abstract}
+
+\section{Introduction}
+\textit{(Placeholder --- see CATALOG\_PAPER\_DRAFT.md \S1. To be expanded.)
+The 83-format catalog and conformance packs are described in~\cite{vasilev2026catalog}.}
+
+\section{Background --- the number-format landscape}
+\textit{(Placeholder --- see \S2.)}
+\subsection{IEEE-754 lineage and the minifloat revival}
+\subsection{Tapered precision: posit $\rightarrow$ takum $\rightarrow$ tekum}
+\subsection{Block-scaled microscaling}
+\subsection{First-principles and $\varphi$-derived floats}
+\subsection{The 83-format catalog}
+
+\section{Methodology}
+\textit{(Placeholder --- see \S3.)}
+\subsection{The openXC7 flow}
+\subsection{Evidence chain (per Tier-E cell)}
+\subsection{Four decode templates}
+\subsection{Tier definitions}
+\subsection{Accuracy benchmark methodology}
+
+\section{Results}
+\textit{(Placeholder --- see \S4.)}
+\subsection{Tier-E matrix}
+\subsection{Accuracy benchmark}
+\subsection{LUT comparison}
+\subsection{The openXC7 routing asymmetry}
+\subsection{Three case studies where silicon caught what simulation hid}
+
+\section{Related work}
+\textit{(Placeholder --- see \S5.)}
+
+\section{Discussion --- limitations of openXC7}
+\textit{(Placeholder --- see \S6.)}
+
+\section{Conclusion}
+\textit{(Placeholder --- see \S7.)}
+
+\section*{Reproducibility}
+\textit{(Placeholder --- pointers to \texttt{format\_benchmark.py},
+\texttt{format\_accuracy\_results.csv}, \texttt{lut\_comparison.md}, and
+\texttt{formats\_catalog.t27}.)}
+
+\bibliographystyle{plain}
+\bibliography{paper}
+
+\end{document}

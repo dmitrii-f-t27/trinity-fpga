@@ -58,3 +58,19 @@ yosys -p "read_verilog fpga/openxc7-synth/gf_adder_param.v /tmp/gf16_param_top.v
 yosys -p "read_verilog fpga/openxc7-synth/gf16_add_top.v; synth_xilinx -abc9 -nocarry -arch xc7; stat"
 yosys -p "read_verilog fpga/openxc7-synth/tekum16_adder.v; synth_xilinx -abc9 -nocarry -arch xc7; stat"
 ```
+
+## Updated Reproducibility (Wave 9)
+
+The GF16 wrapper is now committed at `fpga/openxc7-synth/gf16_param_top.v`.
+
+```bash
+# Reproducible from clean clone:
+yosys -p "read_verilog fpga/openxc7-synth/gf_adder_param.v \
+  fpga/openxc7-synth/gf16_param_top.v; \
+  synth_xilinx -flatten -abc9 -nocarry -arch xc7; stat"
+```
+
+Result (yosys 0.63, macOS arm64): **491 LUT** (86 LUT2 + 143 LUT3 + 96 LUT4 + 78 LUT5 + 88 LUT6).
+
+Note: without `-flatten`, the count is 486. The `-flatten` flag is used in
+CI workflows for consistency. Both numbers are reproducible.
