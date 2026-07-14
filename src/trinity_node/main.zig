@@ -15,6 +15,7 @@ const discovery = @import("discovery.zig");
 const config_mod = @import("config.zig");
 const inference_mod = @import("inference.zig");
 const distributed = @import("distributed.zig");
+const attestation = @import("attestation.zig");
 
 // GUI is enabled separately via 'zig build node-gui' which links raylib
 // This file is for headless mode; ui.zig has its own entry point
@@ -118,6 +119,7 @@ const Args = struct {
     // v2.1: HTTP REST API
     enable_http_api: bool = false,
     http_api_port: u16 = 8080,
+    bitstream: ?[]const u8 = null,
     help: bool = false,
 };
 
@@ -239,6 +241,8 @@ fn parseArgs() Args {
         } else if (std.mem.startsWith(u8, arg, "--http-api-port=")) {
             args.http_api_port = std.fmt.parseInt(u16, arg[16..], 10) catch 8080;
             args.enable_http_api = true;
+        } else if (std.mem.startsWith(u8, arg, "--bitstream=")) {
+            args.bitstream = arg[12..];
         }
     }
 
@@ -298,6 +302,7 @@ fn printHelp() void {
         \\  --prometheus-http-port=PORT  Prometheus HTTP port (default: 9090) (v2.0)
         \\  --http-api              Enable HTTP REST API server (v2.1)
         \\  --http-api-port=PORT    HTTP API port (default: 8080) (v2.1)
+        \\  --bitstream=PATH        Compute and print SHA256 attestation hash of bitstream
         \\
         \\EXAMPLES:
         \\  trinity-node                          # Start with GUI
@@ -373,6 +378,15 @@ pub fn main() !void {
 
     std.debug.print("Wallet address: {s}\n", .{wallet.getAddressHex()});
     std.debug.print("Balance: {d:.6} $TRI\n", .{wallet.getBalanceFormatted()});
+
+    if (args.bitstream) |bs_path| {
+        const bs_hash = attestation.computeBitstreamHashHex(allocator, bs_path) catch |err| {
+            std.debug.print("Failed to compute bitstream attestation hash: {s}\n", .{@errorName(err)});
+            return err;
+        };
+        defer allocator.free(bs_hash);
+        std.debug.print("Bitstream attestation hash: {s}\n", .{bs_hash});
+    }
 
     // Initialize network
     std.debug.print("Starting network on port {d}...\n", .{args.port});

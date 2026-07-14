@@ -103,13 +103,17 @@ pub const SignedAttestation = struct {
 /// This hash is the attestation key — the cryptographic commitment to
 /// (source, toolchain, routing).
 pub fn computeBitstreamHash(path: []const u8) ![32]u8 {
-    const file = try std.fs.cwd().openFile(path, .{});
-    defer file.close();
+    const io = std.Options.debug_io;
+    const file = try std.Io.Dir.cwd().openFile(io, path, .{});
+    defer file.close(io);
 
     var hasher = Sha256.init(.{});
+    var read_buf: [65536]u8 = undefined;
+    var fr = file.reader(io, &read_buf);
+    const reader = &fr.interface;
     var buf: [65536]u8 = undefined;
     while (true) {
-        const bytes_read = try file.readAll(&buf);
+        const bytes_read = try reader.readSliceShort(&buf);
         if (bytes_read == 0) break;
         hasher.update(buf[0..bytes_read]);
     }
@@ -125,13 +129,17 @@ pub fn computeBitstreamHashHex(allocator: std.mem.Allocator, path: []const u8) !
 
 /// Compute SHA256 of a conformance vectors file.
 pub fn computeVectorsHash(allocator: std.mem.Allocator, vectors_path: []const u8) ![]u8 {
-    const file = try std.fs.cwd().openFile(vectors_path, .{});
-    defer file.close();
+    const io = std.Options.debug_io;
+    const file = try std.Io.Dir.cwd().openFile(io, vectors_path, .{});
+    defer file.close(io);
 
     var hasher = Sha256.init(.{});
+    var read_buf: [65536]u8 = undefined;
+    var fr = file.reader(io, &read_buf);
+    const reader = &fr.interface;
     var buf: [65536]u8 = undefined;
     while (true) {
-        const bytes_read = try file.readAll(&buf);
+        const bytes_read = try reader.readSliceShort(&buf);
         if (bytes_read == 0) break;
         hasher.update(buf[0..bytes_read]);
     }
@@ -193,51 +201,58 @@ pub fn verifyProvenanceWithTool(
 pub fn canonicalizeAttestation(allocator: std.mem.Allocator, att: Attestation) ![]u8 {
     var list: std.ArrayList(u8) = .empty;
     errdefer list.deinit(allocator);
-    const w = list.writer(allocator);
 
-    try w.writeAll("{");
+    {
+        var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, &list);
+        errdefer list = aw.toArrayList();
+        const w = &aw.writer;
 
-    // bitstream_hash
-    try w.print("\"bitstream_hash\":\"{s}\"", .{att.bitstream_hash});
+        try w.writeAll("{");
 
-    // conformance_proof
-    try w.writeAll(",\"conformance_proof\":{");
-    try w.print("\"all_passed\":{}", .{att.conformance_proof.all_passed});
-    try w.print(",\"format\":\"{s}\"", .{att.conformance_proof.format});
-    try w.print(",\"operation\":\"{s}\"", .{att.conformance_proof.operation});
-    try w.print(",\"results_hash\":\"{s}\"", .{att.conformance_proof.results_hash});
-    try w.print(",\"vector_count\":{d}", .{att.conformance_proof.vector_count});
-    try w.print(",\"vectors_hash\":\"{s}\"", .{att.conformance_proof.vectors_hash});
-    try w.writeAll("}");
+        // bitstream_hash
+        try w.print("\"bitstream_hash\":\"{s}\"", .{att.bitstream_hash});
 
-    // design
-    try w.print(",\"design\":\"{s}\"", .{att.design});
+        // conformance_proof
+        try w.writeAll(",\"conformance_proof\":{");
+        try w.print("\"all_passed\":{}", .{att.conformance_proof.all_passed});
+        try w.print(",\"format\":\"{s}\"", .{att.conformance_proof.format});
+        try w.print(",\"operation\":\"{s}\"", .{att.conformance_proof.operation});
+        try w.print(",\"results_hash\":\"{s}\"", .{att.conformance_proof.results_hash});
+        try w.print(",\"vector_count\":{d}", .{att.conformance_proof.vector_count});
+        try w.print(",\"vectors_hash\":\"{s}\"", .{att.conformance_proof.vectors_hash});
+        try w.writeAll("}");
 
-    // docker_image
-    try w.print(",\"docker_image\":\"{s}\"", .{att.docker_image});
+        // design
+        try w.print(",\"design\":\"{s}\"", .{att.design});
 
-    // node_public_key
-    try w.print(",\"node_public_key\":\"{s}\"", .{att.node_public_key});
+        // docker_image
+        try w.print(",\"docker_image\":\"{s}\"", .{att.docker_image});
 
-    // source_commit
-    try w.print(",\"source_commit\":\"{s}\"", .{att.source_commit});
+        // node_public_key
+        try w.print(",\"node_public_key\":\"{s}\"", .{att.node_public_key});
 
-    // target_part
-    try w.print(",\"target_part\":\"{s}\"", .{att.target_part});
+        // source_commit
+        try w.print(",\"source_commit\":\"{s}\"", .{att.source_commit});
 
-    // timestamp
-    try w.print(",\"timestamp\":\"{s}\"", .{att.timestamp});
+        // target_part
+        try w.print(",\"target_part\":\"{s}\"", .{att.target_part});
 
-    // toolchain_provenance
-    try w.writeAll(",\"toolchain_provenance\":{");
-    try w.print("\"fasm_version\":\"{s}\"", .{att.toolchain_provenance.fasm_version});
-    try w.print(",\"nextpnr_commit\":\"{s}\"", .{att.toolchain_provenance.nextpnr_commit});
-    try w.print(",\"prjxray_commit\":\"{s}\"", .{att.toolchain_provenance.prjxray_commit});
-    try w.print(",\"prjxray_db_commit\":\"{s}\"", .{att.toolchain_provenance.prjxray_db_commit});
-    try w.print(",\"yosys_version\":\"{s}\"", .{att.toolchain_provenance.yosys_version});
-    try w.writeAll("}");
+        // timestamp
+        try w.print(",\"timestamp\":\"{s}\"", .{att.timestamp});
 
-    try w.writeAll("}");
+        // toolchain_provenance
+        try w.writeAll(",\"toolchain_provenance\":{");
+        try w.print("\"fasm_version\":\"{s}\"", .{att.toolchain_provenance.fasm_version});
+        try w.print(",\"nextpnr_commit\":\"{s}\"", .{att.toolchain_provenance.nextpnr_commit});
+        try w.print(",\"prjxray_commit\":\"{s}\"", .{att.toolchain_provenance.prjxray_commit});
+        try w.print(",\"prjxray_db_commit\":\"{s}\"", .{att.toolchain_provenance.prjxray_db_commit});
+        try w.print(",\"yosys_version\":\"{s}\"", .{att.toolchain_provenance.yosys_version});
+        try w.writeAll("}");
+
+        try w.writeAll("}");
+
+        list = aw.toArrayList();
+    }
 
     return list.toOwnedSlice(allocator);
 }
@@ -247,26 +262,33 @@ pub fn canonicalizeAttestation(allocator: std.mem.Allocator, att: Attestation) !
 pub fn serializeSignedAttestation(allocator: std.mem.Allocator, signed: SignedAttestation) ![]u8 {
     var list: std.ArrayList(u8) = .empty;
     errdefer list.deinit(allocator);
-    const w = list.writer(allocator);
 
-    try w.writeAll("{\n");
+    {
+        var aw: std.Io.Writer.Allocating = .fromArrayList(allocator, &list);
+        errdefer list = aw.toArrayList();
+        const w = &aw.writer;
 
-    // attestation
-    try w.writeAll("  \"attestation\": ");
-    const canon = try canonicalizeAttestation(allocator, signed.attestation);
-    defer allocator.free(canon);
+        try w.writeAll("{\n");
 
-    // Pretty-print by adding newlines after commas at depth 1
-    // (simplified: just emit compact inside the attestation key)
-    try w.writeAll(canon);
+        // attestation
+        try w.writeAll("  \"attestation\": ");
+        const canon = try canonicalizeAttestation(allocator, signed.attestation);
+        defer allocator.free(canon);
 
-    // node_signature
-    try w.print(",\n  \"node_signature\": \"{s}\"", .{signed.node_signature});
+        // Pretty-print by adding newlines after commas at depth 1
+        // (simplified: just emit compact inside the attestation key)
+        try w.writeAll(canon);
 
-    // protocol
-    try w.print(",\n  \"protocol\": \"{s}\"", .{signed.protocol});
+        // node_signature
+        try w.print(",\n  \"node_signature\": \"{s}\"", .{signed.node_signature});
 
-    try w.writeAll("\n}\n");
+        // protocol
+        try w.print(",\n  \"protocol\": \"{s}\"", .{signed.protocol});
+
+        try w.writeAll("\n}\n");
+
+        list = aw.toArrayList();
+    }
 
     return list.toOwnedSlice(allocator);
 }
@@ -413,9 +435,8 @@ pub fn writeSignedAttestation(
     const json = try serializeSignedAttestation(allocator, signed);
     defer allocator.free(json);
 
-    const file = try std.fs.cwd().createFile(path, .{});
-    defer file.close();
-    try file.writeAll(json);
+    const io = std.Options.debug_io;
+    try std.Io.Dir.cwd().writeFile(io, .{ .sub_path = path, .data = json });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -529,14 +550,13 @@ pub fn defaultToolchain() ToolchainProvenance {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 test "compute bitstream hash of known data" {
+    const io = std.Options.debug_io;
     const tmp = "test_bitstream_hash.tmp";
-    defer std.fs.cwd().deleteFile(tmp) catch {};
+    defer std.Io.Dir.cwd().deleteFile(io, tmp) catch {};
 
     // Write known data
     const data = "Trinity DePIN Trust Anchor";
-    const file = try std.fs.cwd().createFile(tmp, .{});
-    try file.writeAll(data);
-    file.close();
+    try std.Io.Dir.cwd().writeFile(io, .{ .sub_path = tmp, .data = data });
 
     const hash = try computeBitstreamHash(tmp);
     const expected = crypto.sha256(data);
