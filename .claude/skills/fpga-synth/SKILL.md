@@ -76,6 +76,11 @@ Source: research/LUT_COMPARISON_MEASURED.md
 17. **UART port**: unified to /dev/cu.usbserial-1120 across all 98 conformance scripts
 18. **README**: rewritten to match actual project state (was stale monorepo description)
 19. **.gitignore**: removed *.md and *.toml catch-alls — no more silently dropped files
+20. **DIV/SQRT are binary32 proxies** — NOT native GF computation. Hardcoded widths, NBA stale output, no conformance. See DIV_SQRT_HONESTY.md
+21. **gf_mul_param has same timing risk** as adder for GF64+ (80-way priority encoder)
+22. **"5 parameterized cores" is honestly**: 3 bit-exact (add/mul) + 2 proxy (div/sqrt) + 1 untested (quire)
+23. **Fake CI deleted** (build-compute-bitstreams.yml passed /dev/null to fasm2frames)
+24. **CLAUDE.md board**: fixed XC7A100T→XC7A200T (was stale)
 
 ## Key Files
 
