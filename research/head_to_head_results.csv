@@ -1,0 +1,4 @@
+name,layout,n_tested,n_valid,n_nonfinite,pass_1e2,pass_1e3,pass_1e4,pass_1e2_pct,pass_1e3_pct,pass_1e4_pct,mean_relerr,max_relerr
+GF16,"[1|6|9] linear IEEE-style, bias=31, +Inf/NaN",500,500,0,490,368,47,98.0,73.6,9.4,0.0015764544992609036,0.09266566288327617
+tekum16,[S|D|R(3)|char|mant] LINEAR tapered,500,500,0,490,353,45,98.0,70.6,9.0,0.0016100493655754626,0.09266566288327617
+takum16,[S|D|R(3)|char|mant] LOGARITHMIC LNS,500,500,0,488,343,35,97.6,68.6,7.0,0.0019262109340237093,0.13651659510100295

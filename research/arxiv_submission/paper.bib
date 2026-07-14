@@ -1,0 +1,151 @@
+@inproceedings{hunhold2024takum,
+  author       = {Hunhold, Laslo},
+  title        = {Beating Posits at Their Own Game: {T}akum Arithmetic},
+  booktitle    = {Proceedings of the Conference on Next-Generation Arithmetic (CoNGA 2024)},
+  year         = {2024},
+  eprint       = {2404.18603},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AR},
+  note         = {Defines the takum tapered-precision logarithmic number format}
+}
+
+@misc{hunhold2024takumcodec,
+  author       = {Hunhold, Laslo},
+  title        = {Efficient Hardware Codecs for Takum Arithmetic},
+  year         = {2024},
+  eprint       = {2408.10594},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AR},
+  note         = {VHDL takum codec; reports -38\% latency and -50\% LUT vs. posits on a closed Vivado flow}
+}
+
+@misc{hunhold2025tekum,
+  author       = {Hunhold, Laslo},
+  title        = {Tekum: Balanced-Ternary Tapered Precision},
+  year         = {2025},
+  eprint       = {2512.10964},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AR}
+}
+
+@inproceedings{rouhani2023mx,
+  author       = {Rouhani, Bita Darvish and others},
+  title        = {Microscaling Formats (MX) for Deep Learning},
+  booktitle    = {OCP Microscaling Formats (MX) Specification, v1.0},
+  year         = {2023},
+  eprint       = {2310.10537},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG},
+  note         = {OCP Microscaling standard defining MXFP4, MXFP8, MXINT8 block-scaled elements}
+}
+
+@misc{micikevicius2022fp8,
+  author       = {Micikevicius, Paulius and Stosic, Dusan and Burgess, Neil and others},
+  title        = {{FP8} Formats for Deep Learning},
+  year         = {2022},
+  eprint       = {2209.05433},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG},
+  note         = {Defines the E4M3 and E5M2 FP8 formats adopted as the OCP standard}
+}
+
+@misc{kuzmin2022fp8quant,
+  author       = {Kuzmin, Andrey and Nagel, Markus and Pitilli, Saurabh and Hoof, Christoph and Plaat, Aske},
+  title        = {FP8 Quantization: The Power of the Exponent},
+  year         = {2022},
+  eprint       = {2208.09225},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG},
+  note         = {Shows the optimal exponent/mantissa split is workload-dependent; evidence against any universal-split claim}
+}
+
+@misc{morisaki2026aetherfloat,
+  author       = {Morisaki, Ryo},
+  title        = {{AetherFloat}: A First-Principles Quad-Radix Floating-Point Format},
+  year         = {2026},
+  eprint       = {2603.08741},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AR},
+  note         = {Base-4 float reporting -33\% area, -22\% power, -12\% delay vs. IEEE MAC in VLSI}
+}
+
+@inproceedings{aggarwal2024minifloat,
+  author       = {Aggarwal, Aryan and others},
+  title        = {Parameterized Minifloat {MAC} for {FPGA}-Based Low-Precision Inference},
+  booktitle    = {Proceedings of the International Conference on Field Programmable Logic and Applications (FPL 2024)},
+  year         = {2024},
+  eprint       = {2311.12359},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AR},
+  note         = {Parameterized FP3-FP8 MAC family for FPGAs (Vivado); closest prior art to the parameterized GF MAC}
+}
+
+@misc{tiwari2019peri,
+  author       = {Tiwari, Neeraj and others},
+  title        = {{PERI}: A Configurable Posit {FPU} for {FPGA}},
+  year         = {2019},
+  eprint       = {1908.01466},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AR},
+  note         = {3507 LUTs, 100 MHz posit FPU on Artix-7-100T (Vivado); canonical posit-on-this-board baseline}
+}
+
+@misc{lokhande2026euleradas,
+  author       = {Lokhande, Soham and others},
+  title        = {{EULER-ADAS}: Bounded-Regime Posit with Logarithmic Mantissa for Efficient {ADAS} Inference},
+  year         = {2026},
+  eprint       = {2605.06875},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AR},
+  note         = {Bounded-regime posit + log mantissa; reports -41\% LUT vs. exact posit}
+}
+
+@misc{wang2024bitnet,
+  author       = {Wang, Hongyu and Ma, Shuming and Dong, Li and others},
+  title        = {{BitNet}: Scaling 1-bit Transformers for Large Language Models},
+  year         = {2024},
+  eprint       = {2402.17764},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  note         = {BitNet b1.58 ternary {-1,0,+1} weights; motivates zero-DSP ternary MAC}
+}
+
+@misc{eliformer2026,
+  author       = {{ELiTeFormer Authors}},
+  title        = {{ELiTeFormer}: Efficient Linear-Transform {Transformer} with LUT-Based Compute},
+  year         = {2026},
+  eprint       = {2607.03652},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AR},
+  note         = {LUT-based transformer compute; independent validation of the zero-DSP compute thesis}
+}
+
+@misc{mxglut2026,
+  author       = {{MxGLUT Authors}},
+  title        = {{MxGLUT}: Mixed-Precision {GLU} {LUT} Transformer},
+  year         = {2026},
+  eprint       = {2607.01607},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AR},
+  note         = {LUT-based activation compute; independent validation of the zero-DSP compute thesis}
+}
+
+@misc{vasilev2026goldenfloat,
+  author       = {Vasilev, Dmitrii},
+  title        = {The {GoldenFloat} Family: A {phi}-Derived Linear Number-Format Family},
+  year         = {2026},
+  eprint       = {2606.05017},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AR},
+  note         = {IEEE-754-style linear family using the phi-ratio (exp/mant -> 1/phi) as a design heuristic}
+}
+
+@misc{vasilev2026catalog,
+  author       = {Vasilev, Dmitrii},
+  title        = {An 83-Format Number-Format Catalog with Bit-Exact Conformance Vectors},
+  year         = {2026},
+  eprint       = {2606.09686},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AR},
+  note         = {The 83-format catalog and conformance packs; this paper is its hardware companion}
+}

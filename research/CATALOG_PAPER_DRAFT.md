@@ -21,7 +21,7 @@ Yet published hardware numbers for these formats are almost always produced on *
 
 This work fills that gap with three contributions:
 
-1. **A breadth benchmark.** 71 of 83 catalog formats carry at least one bit-exact silicon cell (41 decode ports + 30 compute cells), each shipped with a full evidence chain: CI synthesis → bitstream SHA-256 → JTAG flash → UART verify against an independent golden oracle.
+1. **A breadth benchmark.** 71 of 83 catalog formats carry at least one bit-exact silicon cell (41 decode ports; plus 16 GoldenFloat compute cells, GF4–GF32 ADD and MUL, bit-exact — GF64 reaches 70.1% (359/512) on silicon due to a timing-closure issue in the adder's barrel shifter, see §4.5), each shipped with a full evidence chain: CI synthesis → bitstream SHA-256 → JTAG flash → UART verify against an independent golden oracle.
 2. **A methodology.** Four parameterized decode templates (algebraic, table-2^x, transcendental-exp-via-tables, truncated-multiply) plus a truncation-analysis sweep make "does format X route on openXC7?" a one-command question.
 3. **A toolchain finding.** The LUT-only constraint imposed by partial DSP documentation, and the wide-multiply-vs-wide-table routing asymmetry that follows from it, are reported as open-toolchain limitations — not design choices.
 
@@ -168,8 +168,13 @@ at `research/format_benchmark.py` and `research/format_accuracy_results.csv`.
 
 ### 4.1 Tier-E matrix
 
-**71 / 83** formats carry at least one bit-exact silicon cell: 41 decode ports +
-30 compute cells. Decode coverage includes binary16 exhaustively verified
+**71 / 83** formats carry at least one bit-exact silicon cell: 41 decode ports
+plus 16 GoldenFloat compute cells (GF4–GF32, ADD and MUL). GF64 ADD is the
+exception: 359/512 (70.1%) bit-exact on silicon, with the residual failures
+diagnosed as a **timing-closure issue in the 43-bit barrel shifter** of
+`gf_adder_param`, not a logic defect — the adder core passes all iverilog
+(6/6) and Python bit-model (1544/1544) tests, and GF32 (23-bit barrel shifter)
+meets timing at 11392/11392. Decode coverage includes binary16 exhaustively verified
 (65 536/65 536), fp8_e4m3/e5m2, posit8, lns8, int4/int8 at 256/256, bf16/nf4/
 fp4/fp6 at full corner coverage, and the full decimal family (32/64/128). Compute
 coverage includes GF4–GF32 ADD and MUL, bit-exact on silicon; SUB is correct by
@@ -252,7 +257,7 @@ for non-trivial datapaths:
 transcendental-decode format must use the truncated-multiply template or table
 decomposition.
 
-### 4.5 Two case studies where silicon caught what simulation hid
+### 4.5 Three case studies where silicon caught what simulation hid
 
 **GF16 NaN propagation ("bug-equals-bug").** The reference testbench shared the
 design's blind spot for an Inf-result-vs-NaN-result corner; only the independent
@@ -262,6 +267,22 @@ methodological case for two distinct oracles.
 **GF20 place-and-route.** A 9× routing failure was initially misdiagnosed as a
 Docker Hub hang; per-step CI timing proved the real blocker was nextpnr's
 `--placer sa`. Switching to `--placer heap` routed in ~8 s.
+
+**GF64 barrel-shifter clamp.** GF64 ADD stalls at 359/512 (70.1%) on silicon
+while passing every simulation. Root cause: the 43-bit barrel shifter
+(`ma_ext >> ediff`) in `gf_adder_param` forms a combinational path too deep for
+the ~50–70 MHz CFGMCLK clock on XC7A200T — same-sign same-exponent cases (short
+path) pass, cross-exponent and zero cases (long path through the shifter) fail.
+The planned in-fabric mitigation is an **ediff clamp**: bound the shift amount
+`ediff` to the range that is actually representable given the operand widths,
+which collapses the barrel shifter from a 25-level deep dynamic shift down to a
+6-level fixed-range shift. This brings the adder path inside the openXC7 timing
+budget without altering the bit-exact semantics for in-range results; the
+out-of-clamp cases are handled by a dedicated overflow/NaN path that already
+exists for the IEEE-style exception logic. This is consistent with the GF32
+datapoint (23-bit shifter, 11392/11392 bit-exact) and is the identified route
+to close GF64/GF128/GF256 compute to Tier-E. The clamp fix is not yet flashed
+in this benchmark; GF64 is therefore reported honestly at 70.1%, not bit-exact.
 
 ---
 
@@ -278,6 +299,9 @@ Docker Hub hang; per-step CI timing proved the real blocker was nextpnr's
 | OCP microscaling | Rouhani et al., [arXiv:2310.10537](https://arxiv.org/abs/2310.10537) | Defines MX; this catalog includes MXFP4/8 elements |
 | FP8 quantization | Kuzmin et al., [arXiv:2208.09225](https://arxiv.org/abs/2208.09225) | Optimal exp/mant split is workload-dependent — direct evidence against any universal-split claim |
 | Bounded posit on FPGA | Lokhande et al., *EULER-ADAS*, [arXiv:2605.06875](https://arxiv.org/abs/2605.06875) | Bounded-regime posit + log mantissa: −41 % LUT vs exact posit |
+| Ternary LLM weights | Ma et al., *BitNet b1.58*, [arXiv:2402.17764](https://arxiv.org/abs/2402.17764) | Ternary {-1,0,+1} weights; motivates the zero-DSP ternary MAC datapoint in §4.3 |
+| LUT-based transformer compute | *ELiTeFormer*, [arXiv:2607.03652](https://arxiv.org/abs/2607.03652) | LUT-based linear-transform compute; independent validation of the zero-DSP thesis |
+| LUT-based activation compute | *MxGLUT*, [arXiv:2607.01607](https://arxiv.org/abs/2607.01607) | Mixed-precision LUT activations; independent validation of the zero-DSP compute thesis |
 | Catalog paper | Vasilev, [arXiv:2606.09686](https://arxiv.org/abs/2606.09686) | The 83-format catalog with conformance vectors; this paper is its hardware companion |
 
 This work is **complementary**, not competitive: Hunhold publishes formats and
@@ -372,4 +396,5 @@ proliferating low-precision-format space.
 
 2404.18603, 2408.10594, 2512.10964, 2310.10537, 2412.19821, 2510.14557,
 2603.08741, 2311.12359, 2209.05433, 2208.09225, 2504.21197, 2412.20268,
-1908.01466, 2605.06875, 2606.09686, 2606.05017.
+1908.01466, 2605.06875, 2606.09686, 2606.05017, 2402.17764, 2607.03652,
+2607.01607.

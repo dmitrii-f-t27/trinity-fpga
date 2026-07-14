@@ -1,0 +1,20 @@
+We present a reproducible hardware benchmark of 83 numeric formats from 13
+families, including IEEE-754, OCP FP8, Microscaling (MX), posit, takum,
+decimal, logarithmic, and the phi-derived GoldenFloat family, implemented on a
+Xilinx Artix-7 (XC7A200T, ALINX AX7203) using a fully open toolchain (openXC7:
+Yosys + nextpnr-xilinx + Project X-Ray). 71 of 83 formats carry at least one
+bit-exact silicon decode cell against an independent exact-arithmetic oracle,
+reached through four parameterized decode templates (algebraic, table-2^x,
+transcendental-exp-via-tables, truncated-multiply). 16 GoldenFloat compute
+cells (GF4-GF32, ADD and MUL) verify bit-exactly on the same fabric; GF64
+reaches 70.1% (359/512) bit-exact on silicon, with the residual failures
+diagnosed as a timing-closure issue in the 43-bit barrel shifter of the adder
+core, not a logic defect. Because Project X-Ray documents the DSP48E1
+hard block as only partially reverse-engineered, every design is synthesized
+LUT-only (synth_xilinx -nodsp); we therefore report LUT counts and
+place-and-route yields per cell, including the openXC7-specific result that
+wide carry-chain multiplies fail routing while wide BRAM tables route
+successfully. The contribution is not a new format and claims no superiority
+over posit, takum, or microscaling; it is the breadth of formats
+proven on vendor-neutral silicon, the open toolchain methodology,
+and a per-cell reproducible evidence chain.
