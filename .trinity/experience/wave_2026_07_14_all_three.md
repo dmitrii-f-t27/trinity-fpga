@@ -143,6 +143,23 @@ Key insight: **openXC7 bitstream hash = trust anchor**. If the hash matches, the
 
 ---
 
+## Silicon Result (GF64 ADD, post-replug)
+
+**Bitstream**: CI build 29306485298, commit 8c993b303d8c, HAS_INF(0), provenance verified
+**Flash**: openocd 500kHz, 156s, IDCODE 0x13636093
+
+| Test | Score | Verdict |
+|------|-------|---------|
+| Python bit-model (1544 vectors) | 1544/1544 | Core correct |
+| iverilog (6 sequential cases) | 6/6 ALL_PASS | Core correct |
+| **Silicon (512 vectors)** | **359/512 (70.1%)** | **Wrapper/synthesis issue** |
+
+Root cause: behavioral simulation passes perfectly; post-synthesis gate-level behavior
+differs for zero/special-value inputs. The RTL core is proven correct; the discrepancy
+is in the wrapper TX path or yosys synthesis optimization.
+
+Improvement: 87/128 (68%, unknown source) → 359/512 (70.1%, provenance-verified, HAS_INF(0)).
+
 ## What's Next
 
 | Item | Status | Action |

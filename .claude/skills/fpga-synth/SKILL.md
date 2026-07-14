@@ -13,7 +13,7 @@ allowed-tools: Bash(docker *), Bash(ls *), Read, Grep, Glob, Write, Edit
 | SW-bitexact | 75/83 | Ceiling reached (8 structural terminal) |
 | decode-HW Tier-E | ~47 unique | Ceiling 71 — biggest remaining gap |
 | compute-HW Tier-E | 16 cells | GF4-GF32 × {ADD,MUL}, 11392/11392 bit-exact |
-| GF64+ | HAS_INF fixed | Bitstreams rebuilt, awaiting re-flash |
+| GF64+ | 359/512 silicon | Core iverilog 6/6, wrapper/synthesis bug |
 | Tekum | Oracle + decode RTL | tekum8/16/32, self-test PASS |
 | Benchmark | 7 formats compared | GF16 competitive with Posit16/FP16 |
 | DePIN | Attestation protocol | Reproducible build + Ed25519 attestation |
