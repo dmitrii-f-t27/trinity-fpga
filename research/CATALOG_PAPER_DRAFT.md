@@ -168,12 +168,12 @@ at `research/format_benchmark.py` and `research/format_accuracy_results.csv`.
 diagnosed as a **timing-closure issue in the 43-bit barrel shifter** of
 `gf_adder_param`, not a logic defect — the adder core passes all iverilog
 (6/6) and Python bit-model (1544/1544) tests, and GF32 (23-bit barrel shifter)
-meets timing at 11392/11392. Decode coverage includes binary16 exhaustively verified
+meets timing with 0 failures on silicon. Decode coverage includes binary16 exhaustively verified
 (65 536/65 536), fp8_e4m3/e5m2, posit8, lns8, int4/int8 at 256/256, bf16/nf4/
 fp4/fp6 at full corner coverage, and the full decimal family (32/64/128). Compute
 coverage includes GF4–GF32 ADD and MUL, bit-exact on silicon; SUB is correct by
-reduction to the silicon-proven ADD core. The remaining 12 formats are
-structural (no decode law — unreachable) or transcendental-decode research-level
+        reduction to the silicon-proven ADD core. The remaining 15 formats are
+        structural (no decode law — unreachable) or transcendental-decode research-level
 work (takum32/64: routing unlocked, residual 1-ULP Taylor misses).
 
 ### 4.2 Accuracy benchmark
@@ -273,7 +273,7 @@ An **ediff clamp** was attempted as in-fabric mitigation: bound the shift amount
 down to a 6-level fixed-range shift. The clamp was expected to bring the adder
 path inside the openXC7 timing budget without altering bit-exact semantics for
 in-range results (out-of-clamp cases handled by the existing overflow/NaN path),
-consistent with the GF32 datapoint (23-bit shifter, 11392/11392 bit-exact). In
+consistent with the GF32 datapoint (23-bit shifter, 0 failures on silicon). In
 practice the clamped build regressed to 48.9% on silicon — yosys rerouted the
 now-shallower datapath into a worse placement — so the clamp has been reverted;
 HEAD reproduces the 70.1% figure. The definitive fix is a 2-stage pipeline

@@ -62,7 +62,7 @@ reason. The repo documents it in multiple places:
   (`MANT_BITS+4`); **(b) an 8-branch priority encoder over 64-bit data, still
   too deep for CFGMCLK**. Definitive fix is a 2-stage pipeline."*
 - `.trinity/experience/wave_2026_07_14_wave3.md:91-98` — *"GF32 (23-bit barrel
-  shifter) meets timing → 11392/11392 bit-exact. **GF64 (43-bit barrel shifter)
+  shifter) meets timing → 0 failures on silicon. **GF64 (43-bit barrel shifter)
   fails timing → ~50-70% pass rate.** Fix: pipeline the adder."*
 - `research/CATALOG_PAPER_DRAFT.md:174-178, 271-278` — GF64 ADD reaches only
   **359/512 (70.1%)** on silicon due to the barrel-shifter / priority-encoder

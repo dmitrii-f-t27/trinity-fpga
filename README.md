@@ -10,7 +10,7 @@ Snapshot 2026-07-14 (Wave 4). Counts are measured, not projected.
 |------|-------|-------|
 | SW-bitexact | 75 / 83 | Ceiling reached; remaining 8 are structural (no independent decode law) |
 | decode-HW Tier-E | ~47 / 83 | UART @160000 on AX7203, IDCODE `0x13636093` |
-| compute-HW Tier-E | 16 cells | GF4–GF32 × {ADD, MUL}, 11392 / 11392 vectors bit-exact on silicon |
+| compute-HW Tier-E | 16 cells | GF4–GF32 × {ADD, MUL}, 0 failures on silicon (vectors vary by run) |
 | GF64+ on silicon | 70.1% | 359 / 512 score; two timing paths identified, fix in progress |
 | Tekum benchmark | Done | GF16 wins LUT, tekum16 wins dynamic range — see findings |
 | arXiv package | Ready | `research/arxiv_submission/` |
@@ -61,7 +61,7 @@ yosys -p "read_verilog fpga/openxc7-synth/gf_adder_param.v /tmp/gf16_param_top.v
 
 ## Key Findings
 
-**1. 16 GF compute cells bit-exact on silicon.** GF4, GF6, GF8, GF12, GF16, GF20, GF24, GF32 — ADD and MUL each — pass 11392 / 11392 vectors on AX7203 silicon (2026-07-02 audit). Each cell has its own Tier-E proof post with run ID. Fixes applied during audit: GF4 bias=0, GF16 NaN-precedence, GF32-mul `-nodsp`.
+**1. 16 GF compute cells bit-exact on silicon.** GF4, GF6, GF8, GF12, GF16, GF20, GF24, GF32 — ADD and MUL each — pass with 0 failures on AX7203 silicon (2026-07-02 audit). Vector counts vary by run (64–512 sampled; GF4 exhaustive at 256).
 
 **2. GF64 timing closure failure — root cause identified.** Best silicon score 359 / 512 (70.1%). Two independent timing-critical paths in `gf_adder_param`: (a) a 43-bit barrel shifter driven by a 25-bit amount, now clamped to 6 bits (`MANT_BITS+4`); (b) an 8-branch priority encoder over 64-bit data, still too deep for CFGMCLK. Definitive fix is a 2-stage pipeline (decode+shift+sticky → register → add+norm+round+pack).
 
