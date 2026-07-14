@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-generate_vectors.py — Generator of ADD conformance vectors for ALL 72 oracle
-formats across the 12 reference modules (gf, tekum, posit, bf16, fp8, mxfp,
-takum, decimal, ieee, legacy, lns, int).
+generate_vectors.py — Generator of ADD and MUL conformance vectors for ALL 72
+oracle formats across the 12 reference modules (gf, tekum, posit, bf16, fp8,
+mxfp, takum, decimal, ieee, legacy, lns, int).
 
-For each format emits conformance/vectors/{format}_add.json:
+For each format and each operation emits:
+    conformance/vectors/{format}_{op}.json   where op in {add, mul}
   {
     "format": "gf16",
-    "operation": "add",
+    "operation": "add" | "mul",
     "oracle": "gf_ref.py",
     "family": "gf",
     "width": 16,
@@ -17,17 +18,23 @@ For each format emits conformance/vectors/{format}_add.json:
     "vectors": [ {"a":"0x...","b":"0x...","expected":"0x..."}, ... ]
   }
 
-Coverage policy per format width W:
+Coverage policy per format width W (same for ADD and MUL):
   W <= 8  : exhaustive (all 2^W x 2^W ordered pairs) + edge x edge
   W <= 16 : edge x edge + 200 seeded random pairs
   W >  16 : edge x edge + 50 seeded random pairs (Fraction arithmetic is slow)
 
+Edge coverage naturally exercises the MUL identities: 0*x=0, 1*x=x, max*max
+(overflow / saturation), denormal*normal — because edge_raws() always includes
+the encoded raws for 0, +/-1, +/-max-finite and a tiny denormal-magnitude value.
+
 Specials (Inf/NaN/NaR) are exposed both (a) as a named legend under "specials"
 and (b) as raw hex bit-patterns inside vectors (the DUT sees bits, produces bits).
 
-Skips a format only if its add function is genuinely absent. All 12 modules
-define add, so all 72 formats are covered (lns add is transcendental/approximate
-but defined — noted in the per-file "note").
+A format/op is skipped ONLY if that op's function is genuinely absent in the
+module. All 12 modules define both add and mul, so all 72 formats get both an
+_add.json and a _mul.json. Note: LNS MUL is exact in the log domain
+(log_a + log_b, then RNE) — the transcendental step is LNS ADD, not MUL; both
+are emitted and the distinction is recorded in the per-file "note".
 
 Honesty: Trinity conformance team (AGENT F). Run: python3 conformance/generate_vectors.py
 """
@@ -43,21 +50,45 @@ from fractions import Fraction
 HERE = os.path.dirname(os.path.abspath(__file__))          # .../conformance
 VECTORS_DIR = os.path.join(HERE, "vectors")
 
-# (module_name, add_function_name, family_tag)
+# (module_name, add_function_name, mul_function_name, family_tag)
 MODULES = [
-    ("gf_ref",      "gf_add",      "gf"),
-    ("tekum_ref",   "tekum_add",   "tekum"),
-    ("posit_ref",   "format_add",  "posit"),
-    ("bf16_ref",    "format_add",  "bfloat"),
-    ("fp8_ref",     "format_add",  "fp8"),
-    ("mxfp_ref",    "format_add",  "mxfp"),
-    ("takum_ref",   "format_add",  "takum"),
-    ("decimal_ref", "format_add",  "decimal"),
-    ("ieee_ref",    "format_add",  "ieee"),
-    ("legacy_ref",  "format_add",  "legacy"),
-    ("lns_ref",     "format_add",  "lns"),
-    ("int_ref",     "format_add",  "int"),
+    ("gf_ref",      "gf_add",      "gf_mul",      "gf"),
+    ("tekum_ref",   "tekum_add",   "tekum_mul",   "tekum"),
+    ("posit_ref",   "format_add",  "format_mul",  "posit"),
+    ("bf16_ref",    "format_add",  "format_mul",  "bfloat"),
+    ("fp8_ref",     "format_add",  "format_mul",  "fp8"),
+    ("mxfp_ref",    "format_add",  "format_mul",  "mxfp"),
+    ("takum_ref",   "format_add",  "format_mul",  "takum"),
+    ("decimal_ref", "format_add",  "format_mul",  "decimal"),
+    ("ieee_ref",    "format_add",  "format_mul",  "ieee"),
+    ("legacy_ref",  "format_add",  "format_mul",  "legacy"),
+    ("lns_ref",     "format_add",  "format_mul",  "lns"),
+    ("int_ref",     "format_add",  "format_mul",  "int"),
 ]
+
+# (op_tag, index_into_module_tuple_for_fn_name)
+OPERATIONS = [("add", 1), ("mul", 2)]
+
+# Per-family notes, split by operation. The LNS distinction matters: MUL is the
+# exact log-domain operation; ADD is the one with a transcendental step.
+_ADD_NOTES = {
+    "lns": "lns add uses a transcendental step (math.log2); result is the "
+           "oracle's rounded-log approximation, not exact-Fraction.",
+    "takum": "Linear structural model of tapered takum (see takum_ref.py).",
+    "tekum": "Linear structural model of tapered tekum (see tekum_ref.py).",
+}
+_MUL_NOTES = {
+    "lns": "lns mul is EXACT in the log domain (log_a + log_b as Fractions, "
+           "then RNE) — no transcendental step (unlike lns add).",
+    "takum": "Linear structural model of tapered takum (see takum_ref.py).",
+    "tekum": "Linear structural model of tapered tekum (see tekum_ref.py).",
+}
+
+
+def op_note(family, op):
+    table = _MUL_NOTES if op == "mul" else _ADD_NOTES
+    verb = "decode/mul/encode" if op == "mul" else "decode/add/encode"
+    return table.get(family, f"exact Fraction {verb}, round-ties-even.")
 
 def hexstr(raw, width):
     ndig = (width + 3) // 4
@@ -265,7 +296,7 @@ def gen_pairs(fmt, mod, family, width, mask, seed):
     return pairs
 
 
-def build_document(name, fmt, mod, add_fn, family, oracle_file, seed):
+def build_document(name, fmt, mod, op_fn, op, family, oracle_file, seed):
     width = get_width(fmt)
     mask = get_mask(fmt)
 
@@ -275,7 +306,7 @@ def build_document(name, fmt, mod, add_fn, family, oracle_file, seed):
     errors = 0
     for a_raw, b_raw in pairs:
         try:
-            exp_raw = add_fn(fmt, a_raw, b_raw) & mask
+            exp_raw = op_fn(fmt, a_raw, b_raw) & mask
         except Exception:
             errors += 1
             continue
@@ -285,21 +316,14 @@ def build_document(name, fmt, mod, add_fn, family, oracle_file, seed):
             "expected": hexstr(exp_raw, width),
         })
 
-    note = {
-        "lns": "lns add uses a transcendental step (math.log2); result is the "
-               "oracle's rounded-log approximation, not exact-Fraction.",
-        "takum": "Linear structural model of tapered takum (see takum_ref.py).",
-        "tekum": "Linear structural model of tapered tekum (see tekum_ref.py).",
-    }.get(family, "exact Fraction decode/add/encode, round-ties-even.")
-
     doc = {
         "format": name,
-        "operation": "add",
+        "operation": op,
         "oracle": oracle_file,
         "family": family,
         "width": width,
         "specials": specials_legend(fmt, family, width),
-        "note": note,
+        "note": op_note(family, op),
         "vector_count": len(vectors),
         "vectors": vectors,
     }
@@ -311,63 +335,93 @@ def main():
     os.makedirs(VECTORS_DIR, exist_ok=True)
 
     # Deterministic per-format seeds derived from (module index, format name).
+    # The seed is INDEPENDENT of the operation, so {format}_add.json and
+    # {format}_mul.json exercise the SAME (a, b) input pairs — only the
+    # expected output differs. This keeps ADD vector byte-identical to the
+    # previous (add-only) generator and makes add-vs-mul cross-checks trivial.
     files_written = []
     total_vectors = 0
     total_errors = 0
     skipped = []
-    per_format = []
+    per_format = []   # (fname, family, width, n_add, n_mul)
 
     t0 = time.time()
 
-    for mi, (mod_name, add_name, family) in enumerate(MODULES):
+    # First pass: import every module once, resolve its op fns, then iterate.
+    for mi, (mod_name, add_name, mul_name, family) in enumerate(MODULES):
         mod = importlib.import_module(mod_name)
-        add_fn = getattr(mod, add_name, None)
-        if add_fn is None:
-            for fname in mod.FORMATS:
-                skipped.append(f"{fname} (no {add_name} in {mod_name})")
-            continue
+
+        # resolve operation functions; if a module lacks an op, skip all its
+        # formats for that op with an explicit message (none do today).
+        op_fns = {}
+        for op, fn_idx in OPERATIONS:
+            fn_name = (add_name, mul_name)[fn_idx - 1]
+            fn = getattr(mod, fn_name, None)
+            if fn is None:
+                for fname in mod.FORMATS:
+                    skipped.append(f"{fname}/{op} (no {fn_name} in {mod_name})")
+            else:
+                op_fns[op] = fn
 
         for fname, fmt in mod.FORMATS.items():
             seed = (mi + 1) * 100003 + sum(ord(c) for c in fname)
             ft0 = time.time()
-            try:
-                doc, errs = build_document(fname, fmt, mod, add_fn, family,
-                                           f"{mod_name}.py", seed)
-            except Exception as e:
-                skipped.append(f"{fname} (generation error: {e!r})")
-                print(f"  [SKIP] {fname}: {e!r}", flush=True)
-                continue
-            out_path = os.path.join(VECTORS_DIR, f"{fname}_add.json")
-            with open(out_path, "w") as f:
-                json.dump(doc, f)
-            files_written.append(out_path)
-            total_vectors += doc["vector_count"]
-            total_errors += errs
-            per_format.append((fname, family, doc["width"], doc["vector_count"]))
-            print(f"  {fname:<14} w={doc['width']:>3}  vectors={doc['vector_count']:>7}  "
+            counts = {}
+            for op, _ in OPERATIONS:
+                fn = op_fns.get(op)
+                if fn is None:
+                    counts[op] = None
+                    continue
+                try:
+                    doc, errs = build_document(fname, fmt, mod, fn, op, family,
+                                               f"{mod_name}.py", seed)
+                except Exception as e:
+                    skipped.append(f"{fname}/{op} (generation error: {e!r})")
+                    print(f"  [SKIP] {fname}/{op}: {e!r}", flush=True)
+                    counts[op] = None
+                    continue
+                out_path = os.path.join(VECTORS_DIR, f"{fname}_{op}.json")
+                with open(out_path, "w") as f:
+                    json.dump(doc, f)
+                files_written.append(out_path)
+                total_vectors += doc["vector_count"]
+                total_errors += errs
+                counts[op] = doc["vector_count"]
+            per_format.append((fname, family, get_width(fmt), counts.get("add"), counts.get("mul")))
+            n_add = counts.get("add")
+            n_mul = counts.get("mul")
+            print(f"  {fname:<14} w={get_width(fmt):>3}  "
+                  f"add={str(n_add):>7}  mul={str(n_mul):>7}  "
                   f"({time.time()-ft0:.1f}s)", flush=True)
 
     dt = time.time() - t0
 
     # ---------------- report ----------------
-    print("=" * 64)
-    print("TRINITY conformance vector generator (AGENT F) — ADD operation")
-    print("=" * 64)
-    print(f"{'format':<14}{'family':<9}{'width':>6}{'vectors':>12}")
-    print("-" * 64)
-    for fname, fam, w, nv in per_format:
-        print(f"{fname:<14}{fam:<9}{w:>6}{nv:>12}")
-    print("-" * 64)
+    print("=" * 72)
+    print("TRINITY conformance vector generator (AGENT F) — ADD + MUL operations")
+    print("=" * 72)
+    print(f"{'format':<14}{'family':<9}{'width':>6}{'add':>10}{'mul':>10}")
+    print("-" * 72)
+    n_add_files = n_mul_files = 0
+    for fname, fam, w, na, nm in per_format:
+        print(f"{fname:<14}{fam:<9}{w:>6}{str(na):>10}{str(nm):>10}")
+        if na is not None:
+            n_add_files += 1
+        if nm is not None:
+            n_mul_files += 1
+    print("-" * 72)
     print(f"formats covered : {len(per_format)}")
+    print(f"_add.json files : {n_add_files}")
+    print(f"_mul.json files : {n_mul_files}")
     print(f"files written   : {len(files_written)}  -> {VECTORS_DIR}")
     print(f"total vectors   : {total_vectors}")
-    print(f"skipped formats : {len(skipped)}")
+    print(f"skipped (op/fmt): {len(skipped)}")
     for s in skipped:
         print(f"    - {s}")
     if total_errors:
         print(f"vector errors   : {total_errors} (pairs that raised and were dropped)")
     print(f"elapsed         : {dt:.1f}s")
-    print("=" * 64)
+    print("=" * 72)
     return 0
 
 
