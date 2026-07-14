@@ -78,6 +78,12 @@ module gf_adder_param #(
     wire [EXP_BITS:0] ediff = a_larger ?
         ({1'b0, ea_eff} - {1'b0, eb_eff}) : ({1'b0, eb_eff} - {1'b0, ea_eff});
 
+    // Clamp shift amount: shifting a (MANT_BITS+4)-bit value by >= width
+    // gives 0. This reduces the barrel shifter from EXP_BITS+1 mux levels
+    // to log2(MANT_BITS+5) levels — critical for GF64+ timing closure.
+    // The sticky_bit loop uses the FULL ediff and captures all shifted-out bits.
+    wire [7:0] ediff_shift = (ediff > (MANT_BITS+4)) ? (MANT_BITS+4) : ediff[7:0];
+
     // Sticky: OR of all bits below G+R from the SMALLER operand (the shifted one)
     reg sticky_bit;
     integer j;
@@ -91,8 +97,8 @@ module gf_adder_param #(
     // Extend to MANT_BITS+4, align, preserve G+R+S
     wire [MANT_BITS+3:0] ma_ext = {ma_f, 3'b000};
     wire [MANT_BITS+3:0] mb_ext = {mb_f, 3'b000};
-    wire [MANT_BITS+3:0] ma_al_raw = a_larger ? ma_ext : (ma_ext >> ediff);
-    wire [MANT_BITS+3:0] mb_al_raw = a_larger ? (mb_ext >> ediff) : mb_ext;
+    wire [MANT_BITS+3:0] ma_al_raw = a_larger ? ma_ext : (ma_ext >> ediff_shift);
+    wire [MANT_BITS+3:0] mb_al_raw = a_larger ? (mb_ext >> ediff_shift) : mb_ext;
     // Inject sticky into the SHIFTED operand's bit 0
     wire [MANT_BITS+3:0] ma_al = a_larger ? ma_ext : {ma_al_raw[MANT_BITS+3:1], ma_al_raw[0] | sticky_bit};
     wire [MANT_BITS+3:0] mb_al = a_larger ? {mb_al_raw[MANT_BITS+3:1], mb_al_raw[0] | sticky_bit} : mb_ext;
