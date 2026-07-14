@@ -42,8 +42,8 @@
       "exports": ["GoldenFloat16", "gf16_encode", "gf16_decode"],
       "bench_suite": ["gf_family"],
       "status": "done",
-      "last_verdict": null,
-      "last_bench": null,
+      "last_verdict": "pass",
+      "last_bench": "2026-04-04",
       "failure_count": 0
     },
     {
@@ -238,8 +238,8 @@
       "exports": ["SacredPhysics", "verify_sacred_physics", "sacred_gravity", "sacred_dark_energy", "GAMMA_LQG", "C_THRESHOLD"],
       "bench_suite": ["sacred_physics"],
       "status": "done",
-      "last_verdict": null,
-      "last_bench": null,
+      "last_verdict": "pass",
+      "last_bench": "2026-04-04",
       "failure_count": 0
     },
     {
@@ -252,8 +252,8 @@
       "exports": ["GoldenFloat20", "gf20_encode", "gf20_decode"],
       "bench_suite": ["gf_family"],
       "status": "done",
-      "last_verdict": null,
-      "last_bench": null,
+      "last_verdict": "pass",
+      "last_bench": "2026-04-04",
       "failure_count": 0
     },
     {
@@ -266,8 +266,8 @@
       "exports": ["GoldenFloat24", "gf24_encode", "gf24_decode"],
       "bench_suite": ["gf_family"],
       "status": "done",
-      "last_verdict": null,
-      "last_bench": null,
+      "last_verdict": "pass",
+      "last_bench": "2026-04-04",
       "failure_count": 0
     },
     {
@@ -294,8 +294,8 @@
       "exports": ["GoldenFloatFormat", "GOLDEN_FLOAT_FAMILY", "verify_golden_family"],
       "bench_suite": ["gf_family"],
       "status": "done",
-      "last_verdict": null,
-      "last_bench": null,
+      "last_verdict": "pass",
+      "last_bench": "2026-04-04",
       "failure_count": 0
     },
     {
@@ -308,8 +308,8 @@
       "exports": ["golden_ratio_target", "phi_split", "verify_phi_split"],
       "bench_suite": ["gf_family"],
       "status": "done",
-      "last_verdict": null,
-      "last_bench": null,
+      "last_verdict": "pass",
+      "last_bench": "2026-04-04",
       "failure_count": 0
     }
   ],
@@ -538,33 +538,23 @@
 
   "bench_links": [
     {
-      "from": 16,
-      "to": "docs/GF_FAMILY_BENCH.md",
-      "metric": "phi_distance"
-    },
-    {
       "from": 2,
-      "to": "conformance/gf_family_bench.json",
+      "to": "t27/conformance/gf_family_bench.json",
       "metric": "mse_vs_fp32"
     },
     {
       "from": 17,
-      "to": "conformance/gf20_vectors.json",
+      "to": "t27/conformance/gf20_vectors.json",
       "metric": "phi_distance"
     },
     {
       "from": 18,
-      "to": "conformance/gf24_vectors.json",
-      "metric": "phi_distance"
-    },
-    {
-      "from": 19,
-      "to": "conformance/gf32_vectors.json",
+      "to": "t27/conformance/gf24_vectors.json",
       "metric": "phi_distance"
     },
     {
       "from": 16,
-      "to": "conformance/sacred_physics_*.json",
+      "to": "t27/conformance/sacred_physics_*.json",
       "metric": "conformance_score"
     }
   ],

@@ -40,11 +40,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Build: `cargo build --workspace`
 - Test: `cargo test --workspace`
 - Run the bitstream CLI: `cargo run --manifest-path rings/BR-BITSTREAM/Cargo.toml -- --help`
-- Flash example: `cargo run --manifest-path rings/BR-BITSTREAM/Cargo.toml -- --xvc-host 192.168.1.30 flash --board XC7A100T --bitstream fpga/vsa/DESIGN.bit`
+- Flash example: `cargo run --manifest-path rings/BR-BITSTREAM/Cargo.toml -- --xvc-host 192.168.1.30 flash --board XC7A200T --bitstream fpga/vsa/DESIGN.bit`
 
 ### FPGA Synthesis (openXC7)
 
-- The canonical FPGA board is a QMTech/AliExpress Artix-7 **XC7A100T-1FGG676C**.
+- The canonical FPGA board is an ALINX **AX7203** Artix-7 **XC7A200T-2FBG484**.
 - Synthesis uses the `regymm/openxc7` Docker image (amd64; requires QEMU on ARM Macs).
 - UART bridge commands referenced in `fpga/README.md`: `tri fpga build-uart`, `tri fpga flash-uart`, `tri fpga uart-test`, `tri fpga status`.
 - For detailed board truth, pin mappings, and the full synthesis/flash command sequence, follow `.claude/skills/fpga-synth/SKILL.md`.
@@ -154,9 +154,9 @@ trinity                 ← Orchestrator (links all via build.zig.zon)
 - Commit format: `feat(<module>): <description>`, `fix(<module>): ...`, `refactor(<module>): ...`, `docs(<module>): ...`, `chore(<module>): ...`.
 - Commit messages must be bilingual (English then Russian). Example:
   ```
-  feat(cli): add XC7A100T board support
+  feat(cli): add XC7A200T board support
 
-  Добавлена поддержка платы XC7A100T.
+  Добавлена поддержка платы XC7A200T.
   ```
 - Push after commit. Never force-push to `main` without explicit user approval.
 - Large files (>1MB) must be in `.gitignore`.
@@ -197,7 +197,7 @@ trinity                 ← Orchestrator (links all via build.zig.zon)
 
 ### FPGA
 
-- Target board: Artix-7 `xc7a100tfgg676-1` (QMTech). Some docs also reference `xc7a200t`.
+- Target board: Artix-7 `xc7a200tfbg484-2` (ALINX AX7203).
 - Canonical UART bridge constraints: `fpga/constraints/uart_bridge_j2.xdc`.
 - LED on pin T23 is active-low.
 - After modifying Verilog, run synthesis via the openXC7 Docker flow or the `/fpga-synth` skill.

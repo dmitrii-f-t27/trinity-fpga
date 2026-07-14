@@ -391,3 +391,17 @@ data/cifar-10/
 .trinity/scholar/state/
 fpga/build-deps/
 fpga-flash
+
+# Large binaries (never track)
+data/cifar-10-binary.tar.gz
+data/cifar-10-python.tar.gz
+data/cifar-10-batches-py/
+data/train-images-idx3-ubyte
+data/t10k-images-idx3-ubyte
+data/MNIST/
+data/data/test_batch.bin
+data/wave9/
+deploy/railway-update-service
+.zig-cache-new/
+apps/queen/Trinity.app/
+.zig-cache-new/

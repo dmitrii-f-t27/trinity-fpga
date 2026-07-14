@@ -26,6 +26,12 @@
 //
 // Honesty: Vasilev, ORCID 0009-0008-4294-6159, admin@t27.ai. [смоделировано], не железо.
 // ============================================================================
+// TIMING WARNING: For MANT_BITS > ~20 (GF32+), the priority encoder
+// for MSB search creates a deep combinational path that may fail timing
+// on AX7203 (XC7A200T at CFGMCLK). Same root cause as gf_adder_param.
+// Fix: add pipeline register after MSB search, or clamp the search width.
+// (See research/MUL_TIMING_RISK.md for full analysis.)
+// ============================================================================
 module gf_mul_param #(
     parameter EXP_BITS  = 6,
     parameter MANT_BITS = 9,
