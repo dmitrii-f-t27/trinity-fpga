@@ -1,6 +1,6 @@
 #!/bin/bash
 # format_pipeline.sh — Iterative FPGA format decode-HW pipeline.
-# Cron: */15 * * * * /Users/playom/trinity-fpga/scripts/format_pipeline.sh >> /tmp/format_pipeline.log 2>&1
+# Cron: */15 * * * * /path/to/trinity-fpga/scripts/format_pipeline.sh >> /tmp/format_pipeline.log 2>&1
 #
 # Each run:
 # 1. Checks CI status for pending synth runs
@@ -9,12 +9,12 @@
 # 4. Reports progress
 
 set -u
-REPO_DIR="/Users/playom/trinity-fpga"
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_DIR" || exit 1
 LOG_PREFIX="[pipeline $(date -u +%H:%M)]"
 GH="gh --repo gHashTag/trinity-fpga"
 OPENOCD="/opt/homebrew/bin/openocd"
-CFG="fpga/openxc7-synth/ax7203_al3321.cfg"
+CFG="fpga/openxc7-synth/ax7203_al321.cfg"
 
 # Formats to track (name:conformance_script)
 FORMATS="gf48:gf48_decode_conformance_ax7203.py
@@ -84,7 +84,7 @@ while IFS=: read -r fmt script; do
 
         # UART verify
         echo "$LOG_PREFIX $fmt: UART verify..."
-        result=$(python3 "conformance/$script" --port /dev/cu.usbserial-120 --baud 160000 2>&1 | \
+        result=$(python3 "conformance/$script" --port /dev/cu.usbserial-1120 --baud 160000 2>&1 | \
                  grep "HW RESULT")
         echo "$LOG_PREFIX $fmt: $result"
 

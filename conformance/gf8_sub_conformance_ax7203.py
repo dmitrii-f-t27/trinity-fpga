@@ -12,7 +12,7 @@
 # RX = A5 r_lo r_hi 00.
 #
 #   self-test (no hardware):   python3 gf8_sub_conformance_ax7203.py --self-test
-#   on hardware (after flash): python3 gf8_sub_conformance_ax7203.py --port /dev/cu.usbserial-120 --baud 160000
+#   on hardware (after flash): python3 gf8_sub_conformance_ax7203.py --port /dev/cu.usbserial-1120 --baud 160000
 #
 # HONESTY: a bit-exact pass on hardware (IDCODE-recheck 0x13636093 + UART) is the
 # only thing that turns a compute-HW SUB cell 0→1. SW self-test = [смоделировано].
@@ -98,7 +98,7 @@ def run_hw(port, baud, n, exhaustive=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--port", default="/dev/cu.usbserial-120")
+    ap.add_argument("--port", default="/dev/cu.usbserial-1120")
     ap.add_argument("--baud", type=int, default=160000)
     ap.add_argument("--n", type=int, default=64)
     ap.add_argument("--exhaustive", action="store_true", help="all 256x256=65536")

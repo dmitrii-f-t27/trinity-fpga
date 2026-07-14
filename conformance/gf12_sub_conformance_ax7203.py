@@ -5,7 +5,7 @@
 # pairs) + silicon-PROVEN. Golden = gf_ref.gf_add(GF12, a, b ^ 0x800).
 #
 #   self-test:   python3 gf12_sub_conformance_ax7203.py --self-test
-#   on hardware: python3 gf12_sub_conformance_ax7203.py --port /dev/cu.usbserial-120 --baud 160000
+#   on hardware: python3 gf12_sub_conformance_ax7203.py --port /dev/cu.usbserial-1120 --baud 160000
 import argparse, sys, os, random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gf_ref import FORMATS, gf_add
@@ -79,7 +79,7 @@ def run_hw(port, baud, n, exhaustive=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--port", default="/dev/cu.usbserial-120")
+    ap.add_argument("--port", default="/dev/cu.usbserial-1120")
     ap.add_argument("--baud", type=int, default=160000)
     ap.add_argument("--n", type=int, default=64)
     ap.add_argument("--exhaustive", action="store_true")

@@ -143,7 +143,7 @@ def run_hw(port, baud, n):
 def main():
     ap = argparse.ArgumentParser(description="GF16 decode conformance on AX7203")
     ap.add_argument("--self-test", action="store_true", help="run golden spot-check only")
-    ap.add_argument("--port", default="/dev/cu.usbserial-120")
+    ap.add_argument("--port", default="/dev/cu.usbserial-1120")
     ap.add_argument("--baud", type=int, default=160000)
     ap.add_argument("--n", type=int, default=256,
                     help="samples (>=65536 = exhaustive all codes)")

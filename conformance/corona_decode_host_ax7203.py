@@ -14,7 +14,7 @@
 #         decode from the RTL — add before flashing those two formats).
 #
 #   self-test:  python3 corona_decode_host_ax7203.py --self-test
-#   on HW:      python3 corona_decode_host_ax7203.py --port /dev/cu.usbserial-120 --baud 160000
+#   on HW:      python3 corona_decode_host_ax7203.py --port /dev/cu.usbserial-1120 --baud 160000
 import argparse, sys, struct
 
 FMT_BF16, FMT_FP8, FMT_INT8, FMT_NF4, FMT_POSIT8 = 0, 1, 2, 3, 4
@@ -353,7 +353,7 @@ def run_hw(port, baud, fmt_filter=None):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--port", default="/dev/cu.usbserial-120")
+    ap.add_argument("--port", default="/dev/cu.usbserial-1120")
     ap.add_argument("--baud", type=int, default=160000)
     ap.add_argument("--fmt", type=int, default=None, help="only test this format (0-9), None=all")
     a = ap.parse_args()

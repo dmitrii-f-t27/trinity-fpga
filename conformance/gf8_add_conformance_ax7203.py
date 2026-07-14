@@ -9,7 +9,7 @@
 # formal/gf_adder_ref_tb.v — GF8 exhaustive 65536/0).
 #
 #   self-test (no hardware):   python3 gf8_add_conformance_ax7203.py --self-test
-#   on hardware (after flash): python3 gf8_add_conformance_ax7203.py --port /dev/cu.usbserial-120 --baud 160000
+#   on hardware (after flash): python3 gf8_add_conformance_ax7203.py --port /dev/cu.usbserial-1120 --baud 160000
 #
 # HONESTY: a bit-exact pass on hardware (IDCODE-recheck 0x13636093 + UART) is the
 # only thing that turns compute-HW 0→1/83. SW self-test = [смоделировано], not HW.
@@ -145,7 +145,7 @@ def run_hw(port, baud, n, exhaustive=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--port", default="/dev/cu.usbserial-120")
+    ap.add_argument("--port", default="/dev/cu.usbserial-1120")
     ap.add_argument("--baud", type=int, default=160000)
     ap.add_argument("--n", type=int, default=64)
     ap.add_argument("--exhaustive", action="store_true", help="all 256x256=65536")

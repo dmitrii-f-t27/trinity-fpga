@@ -1,93 +1,104 @@
-# trinity-fpga
+# Trinity-FPGA: 83 Number Formats on Open-Source Silicon
 
-**FPGA Synthesis and Hardware Deployment for Trinity** — T27 VM, openxc7-synth, and ternary computing on FPGAs.
+This repository proves numerical number formats on open-source FPGA tooling. Each format in the 83-entry catalog is synthesized through `yosys` + `nextpnr` (openXC7) for the Artix-7 XC7A200T (AX7203 board), flashed to silicon, and checked bit-exact against an independent software oracle. The catalog spans IEEE floats (binary16/32/64/128), posits, takums, Galois-field floats (GF4–GF64), IBM/Cray/VAX historical formats, MX variants, and LNS — every entry measurable, reproducible, and attestable on commodity hardware without a paid EDA license.
 
-## Modules
+## Status
 
-- `src/tvc/` — Ternary Vector Computing VM, JIT, indexer, RAG
-- `fpga/` — Hardware synthesis, flash scripts, guides
+Snapshot 2026-07-14 (Wave 4). Counts are measured, not projected.
 
-## Hardware
+| Axis | Count | Notes |
+|------|-------|-------|
+| SW-bitexact | 75 / 83 | Ceiling reached; remaining 8 are structural (no independent decode law) |
+| decode-HW Tier-E | ~47 / 83 | UART @160000 on AX7203, IDCODE `0x13636093` |
+| compute-HW Tier-E | 16 cells | GF4–GF32 × {ADD, MUL}, 11392 / 11392 vectors bit-exact on silicon |
+| GF64+ on silicon | 70.1% | 359 / 512 score; two timing paths identified, fix in progress |
+| Tekum benchmark | Done | GF16 wins LUT, tekum16 wins dynamic range — see findings |
+| arXiv package | Ready | `research/arxiv_submission/` |
 
-DSLogic Plus, Artix-7, Kintex-7, ESP32
+Tier-E = rigorous evidence: dedicated proof post, hardware IDCODE + run ID, bit-exact UART witness on silicon. See `fpga/CATALOG_MATRIX_83.md` for the live SSOT.
+
+## Quick Start
+
+Build a bitstream with the openXC7 Docker image, flash, and test:
+
+```bash
+# 1. Synthesize + place-and-route + bitstream (Docker, no vendor tools)
+docker run --rm regymm/openxc7 bash -c '
+  yosys -p "read_verilog gf_adder_param.v ${DESIGN}.v; \
+            synth_xilinx -abc9 -nocarry -arch xc7; write_json ${DESIGN}.json"
+  nextpnr-xilinx --chipdb /chipdb-xc7a200tfbg484-2.bin \
+            --json ${DESIGN}.json --xdc ${DESIGN}.xdc --write ${DESIGN}.rpt
+  fasm2frames ${DESIGN}.fasm > ${DESIGN}.frames
+  xc7frames2bit --frm_file ${DESIGN}.frames --bit_file ${DESIGN}.bit
+'
+
+# 2. Flash on AX7203 (XC7A200T)
+sudo openocd -f board/ax7203.cfg -c "init; pld load 0 ${DESIGN}.bit; exit"
+
+# 3. Run bit-exact conformance on silicon
+python3 conformance/gf64_conformance_ax7203.py --bit ${DESIGN}.bit
+```
+
+**Critical flags**: `-abc9` is required (removal causes 70% → 19% silicon regression). `-nocarry` always. See `fpga/openxc7-synth/Makefile.200t` and `.claude/skills/fpga-synth/SKILL.md` for the full recipe.
+
+Reproducing the LUT measurements (yosys 0.63):
+
+```bash
+yosys -p "read_verilog fpga/openxc7-synth/gf_adder_param.v /tmp/gf16_param_top.v; \
+          synth_xilinx -abc9 -nocarry -arch xc7; stat"
+```
+
+## Key Directories
+
+| Path | Contents |
+|------|----------|
+| `fpga/openxc7-synth/` | RTL (`gf_adder_param.v`, `tekum16_adder.v`, `gf16_add_top.v`), Makefiles, Docker recipes, XDC constraints |
+| `conformance/` | Per-format silicon harnesses (`*_conformance_ax7203.py`), `gf_ref.py` / `tekum_ref.py` golden oracles, batch flash scripts |
+| `research/` | `LUT_COMPARISON_MEASURED.md`, `CATALOG_PAPER_DRAFT.md`, `arxiv_submission/`, `head_to_head.py` benchmark |
+| `hardware/tools/` | `trinity_flash.py`, `bitstream_provenance.py`, FTDI udev rules |
+| `src/trinity_node/` | DePIN attestation (Zig 0.16) — bitstream hash as trust anchor |
+| `fpga/CATALOG_MATRIX_83.md` | Live SSOT for the 83-format catalog and HW progress |
+
+## Key Findings
+
+**1. 16 GF compute cells bit-exact on silicon.** GF4, GF6, GF8, GF12, GF16, GF20, GF24, GF32 — ADD and MUL each — pass 11392 / 11392 vectors on AX7203 silicon (2026-07-02 audit). Each cell has its own Tier-E proof post with run ID. Fixes applied during audit: GF4 bias=0, GF16 NaN-precedence, GF32-mul `-nodsp`.
+
+**2. GF64 timing closure failure — root cause identified.** Best silicon score 359 / 512 (70.1%). Two independent timing-critical paths in `gf_adder_param`: (a) a 43-bit barrel shifter driven by a 25-bit amount, now clamped to 6 bits (`MANT_BITS+4`); (b) an 8-branch priority encoder over 64-bit data, still too deep for CFGMCLK. Definitive fix is a 2-stage pipeline (decode+shift+sticky → register → add+norm+round+pack).
+
+**3. LUT comparison — measured, not estimated.** Same toolchain (yosys 0.63, `synth_xilinx -abc9 -nocarry -arch xc7`):
+
+| Module | Total LUT | Dynamic range |
+|--------|----------:|----------------|
+| GF16 (`gf_adder_param`, current) | 486 | 18 decades |
+| GF16 (`gf16_add_top`, deprecated) | 176 | — (no denormals/NaN) |
+| tekum16 (`tekum16_adder.v`, stub) | 573 | 153 decades |
+| takum16 | N/A | RTL adder does not exist |
+
+The current GF16 adder is **0.85×** the tekum16 stub (15% smaller), not "4–11× smaller". The deprecated 176-LUT number (and the stale "118 LUT" from BENCH-005) omitted denormal / NaN / parameterization logic. GF16 and tekum16 occupy **different points on the area-vs-dynamic-range trade-off**: GF16 wins area, tekum16 wins range. Neither dominates. Full table and repro commands in `research/LUT_COMPARISON_MEASURED.md`.
+
+**4. DePIN attestation — bitstream hash as trust anchor.** `src/trinity_node/attestation.zig` binds each deployed bitstream to its provenance record (`hardware/tools/bitstream_provenance.py`) so a node can cryptographically attest that the silicon it runs matches a published, reproducible build. Combined with the openXC7 flow (no vendor EDA), this makes the silicon result independently reproducible and auditable.
+
+## Limitations (honest)
+
+- **SW-bitexact ceiling is 75 / 83**, not 83. The remaining 8 formats are structural / parametric and have no independent decode law to witness against — they need a bit-exact generator, not a port.
+- **GF64 does not yet close timing.** 70.1% silicon score; the pipeline fix is designed but not yet proven on hardware.
+- **takum16 / takum32 / takum64 have no adder RTL** in this repository — only `takum16_decode.v` exists. Any LUT comparison involving takum is N/A.
+- **tekum16 result is a stub** (65% bit-exact, truncation not RNE). A corrected tekum16 with RNE may be larger than 573 LUT.
+- The `0.85×` LUT ratio compares a production GF16 adder against a non-final tekum16 stub. Treat it as a lower bound on the real ratio, not a victory claim.
+
+Per `research/goldenfloat-positioning.md`: claims are scoped to what was measured, on this toolchain, on this silicon, on this date.
 
 ## License
 
-MIT © 2026 Trinity Project
+MIT © 2024-2026 Dmitrii Vasilev. See [LICENSE](LICENSE).
 
-## Architecture
+## Author
 
-Trinity is an orchestrator connecting a family of focused micro-repositories. Each repo has a single responsibility and can be used independently.
+**Dmitrii Vasilev** — ORCID [0009-0008-4294-6159](https://orcid.org/0009-0008-4294-6159), Trinity Research Collective.
 
-### Dependency Graph
+## Links
 
-```
-t27                    ← SSOT: Ternary specs + Rust bootstrap compiler
-         ↑
-zig-golden-float      ← Numerical core: GF16, TF3, JIT, VM
-         ↑
-zig-sacred-geometry     ← Sacred geometry: φ-attention, Beal
-zig-physics             ← Quantum: QCD, gravity, dark matter, baryogenesis
-zig-hdc                 ← Hyperdimensional: VSA, Sequence HDC
-zig-knowledge-graph     ← Knowledge Graph: server + CLI
-trinity-training        ← HSLM ML: benchmarks, datasets (208MB)
-         ↑
-zig-agents              ← Agents: MCP, autonomous (~519KB)
-zig-crypto-mining       ← BTC mining + DePIN (~60KB)
-         ↑
-trinity                 ← Orchestrator (links all via build.zig.zon)
-```
-
-### Repository Overview
-
-| # | Repository | Status | Size | Description |
-|---|---|---|---|---|
-| 1 | [t27](https://github.com/gHashTag/t27) | ✅ LIVE | 577+ specs | Ternary SSOT + Rust bootstrap |
-| 2 | [zig-golden-float](https://github.com/gHashTag/zig-golden-float) | ✅ LIVE | ~1MB | Numerical core: GF16, TF3, JIT, VM |
-| 3 | [zig-hdc](https://github.com/gHashTag/zig-hdc) | ✅ LIVE | 352KB | VSA, HRR, hyperdimensional computing |
-| 4 | [zig-sacred-geometry](https://github.com/gHashTag/zig-sacred-geometry) | ✅ LIVE | 58KB | Sacred φ-geometry, Beal, sacred constants |
-| 5 | [zig-physics](https://github.com/gHashTag/zig-physics) | ✅ LIVE | 36KB (src) | Quantum: QCD, gravity, dark matter |
-| 6 | [zig-knowledge-graph](https://github.com/gHashTag/zig-knowledge-graph) | ✅ LIVE | ~100KB | KG server + CLI |
-| 7 | [zig-agents](https://github.com/gHashTag/zig-agents) | ✅ LIVE | ~519KB (src!) | Agents, MCP, autonomous |
-| 8 | [zig-crypto-mining](https://github.com/gHashTag/zig-crypto-mining) | ✅ LIVE | ~60KB | BTC mining + DePIN |
-| 9 | [trinity-training](https://github.com/gHashTag/trinity-training) | ✅ LIVE | 208MB data | HSLM, benchmarks, datasets |
-| 10 | [trinity](https://github.com/gHashTag/trinity) | ✅ LIVE | ~500MB | Orchestrator, API, CLI, VIBEE, FPGA |
-
-### Migration Status
-
-**Phase 1 — HIGH Priority:** ✅ Complete
-- [zig-golden-float](https://github.com/gHashTag/zig-golden-float) — Cloned as submodule in trinity-training
-- [zig-knowledge-graph](https://github.com/gHashTag/zig-knowledge-graph) — Extracted from trinity
-- [zig-crypto-mining](https://github.com/gHashTag/zig-crypto-mining) — Extracted from trinity
-- [zig-physics](https://github.com/gHashTag/zig-physics) — Extracted from trinity
-- [zig-hdc](https://github.com/gHashTag/zig-hdc) — Extracted from trinity
-- [zig-agents](https://github.com/gHashTag/zig-agents) — Extracted from trinity
-- [zig-sacred-geometry](https://github.com/gHashTag/zig-sacred-geometry) — Extracted from trinity
-
-**Phase 2 — MEDIUM Priority:** 🔄 In Progress
-- Firebird/BitNet → trinity-training
-- DePIN/$TRI → zig-crypto-mining
-- VIBEE compiler → t27
-
-**Phase 3 — LOW Priority:** ⏳ Pending
-- trinity-fpga — Create new repo
-- trinity-cli — Unify TRI CLI
-- trinity-www — Docsite
-
-### Using a Module Independently
-
-Each micro-repo is a standalone Zig package. To use any module independently:
-
-\`\`\`zig build.zig.zon\`\` — Clone and cache dependencies
-
-Example: Using zig-golden-float from any repo
-\`\`\`// build.zig.zon
-.dependencies = .{
-    .zig_golden_float = .{
-        .url = "https://github.com/gHashTag/zig-golden-float/archive/refs/heads/main.tar.gz",
-    },
-},
-\`\`
-
-\`\`\`zig fetch --save https://github.com/gHashTag/zig-golden-float/archive/refs/heads/main.tar.gz`\`\`
-
+- Paper: [arXiv:2606.05017](https://arxiv.org/abs/2606.05017)
+- Issues: [github.com/gHashTag/trinity-fpga/issues](https://github.com/gHashTag/trinity-fpga/issues)
+- Catalog SSOT: [`fpga/CATALOG_MATRIX_83.md`](fpga/CATALOG_MATRIX_83.md)
+- LUT measurements: [`research/LUT_COMPARISON_MEASURED.md`](research/LUT_COMPARISON_MEASURED.md)

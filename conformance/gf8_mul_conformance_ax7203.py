@@ -7,7 +7,7 @@ request (AA 55 a_lo a_hi b_lo b_hi), 4-byte response (A5 r_lo r_hi 0x00); the GF
 operand is the low byte (high byte ignored by the DUT). Result is 8-bit (r_lo).
 
   self-test: python3 gf8_mul_conformance_ax7203.py --self-test
-  on HW:     python3 gf8_mul_conformance_ax7203.py --port /dev/cu.usbserial-120 --baud 160000
+  on HW:     python3 gf8_mul_conformance_ax7203.py --port /dev/cu.usbserial-1120 --baud 160000
 """
 import sys, os, argparse, random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -69,7 +69,7 @@ def run_hw(port, baud, exhaustive=False):
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--self-test", action="store_true")
-ap.add_argument("--port", default="/dev/cu.usbserial-120")
+ap.add_argument("--port", default="/dev/cu.usbserial-1120")
 ap.add_argument("--baud", type=int, default=160000)
 ap.add_argument("--exhaustive", action="store_true", help="all 256x256=65536 pairs (gf8 fits)")
 a = ap.parse_args()

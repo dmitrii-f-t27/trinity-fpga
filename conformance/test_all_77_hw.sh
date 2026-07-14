@@ -4,7 +4,7 @@
 #
 # IMPORTANT: Must be run as root. Handles kextunload/kextload cycle
 # (AppleSerialShim blocks FTDI MPSSE for large JTAG transfers).
-cd /Users/playom/trinity-fpga
+cd "$(cd "$(dirname "$0")/.." && pwd)"
 
 PORT="${PORT:-/dev/cu.usbserial-1120}"
 CFG="fpga/openxc7-synth/ax7203_al321.cfg"

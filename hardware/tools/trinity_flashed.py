@@ -25,7 +25,11 @@ OPENOCD = "/opt/homebrew/bin/openocd"
 KEXT_UNLOAD = "/usr/sbin/kextunload"
 KEXT_LOAD = "/usr/sbin/kextload"
 APPLE_SERIAL = "com.apple.driver.AppleSerialShim"
-CFG = "/Users/playom/trinity-fpga/fpga/openxc7-synth/ax7203_al321.cfg"
+_REPO_ROOT = os.environ.get(
+    "TRINITY_REPO",
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+)
+CFG = os.path.join(_REPO_ROOT, "fpga/openxc7-synth/ax7203_al321.cfg")
 
 def run_cmd(cmd, timeout=300):
     """Run command, return (rc, stdout, stderr)."""

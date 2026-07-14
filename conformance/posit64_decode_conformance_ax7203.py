@@ -69,7 +69,7 @@ def make_codes():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--port', default='/dev/cu.usbserial-120')
+    ap.add_argument('--port', default='/dev/cu.usbserial-1120')
     ap.add_argument('--baud', type=int, default=160000)
     args = ap.parse_args()
     codes = make_codes()

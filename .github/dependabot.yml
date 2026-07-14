@@ -26,33 +26,9 @@ updates:
       - "npm"
     open-pull-requests-limit: 5
 
-  # npm - website
-  - package-ecosystem: "npm"
-    directory: "/website"
-    schedule:
-      interval: "weekly"
-    commit-message:
-      prefix: "deps"
-    labels:
-      - "dependencies"
-      - "npm"
-    open-pull-requests-limit: 5
-
   # npm - docs
   - package-ecosystem: "npm"
     directory: "/docs"
-    schedule:
-      interval: "weekly"
-    commit-message:
-      prefix: "deps"
-    labels:
-      - "dependencies"
-      - "npm"
-    open-pull-requests-limit: 5
-
-  # npm - vscode-vib extension
-  - package-ecosystem: "npm"
-    directory: "/src/tooling/vscode-vib"
     schedule:
       interval: "weekly"
     commit-message:

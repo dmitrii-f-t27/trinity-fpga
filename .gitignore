@@ -50,13 +50,11 @@ docs/docsite/node_modules/
 # Test artifacts
 *.log
 .zig-cache/
--e 
+
 # Large model files
 data/models/*.tri
 data/models/qwen-coder-7b/
 data/models/qwen-coder-1.5b/
--e 
-# Large model files
 data/models/*.gguf
 *.gguf
 
@@ -278,18 +276,11 @@ bench_core
 *.trit
 
 # Invalid filenames (shell artifact)
---
--language
--output
--output-dir
--o
 docs.old.20250304/
 
 # Training artifacts (active process)
 hslm-train
 hslm-train/
---output
---output/
 data/checkpoints_v3/
 
 # Claude agent config (local)
@@ -338,19 +329,10 @@ fpga/openxc7-synth/fpga/
 fpga/tools/weight_col2wide
 fpga/tools/weight_pack_wide
 
-# Report files (auto-generated docs)
-*.md
-!CLAUDE.md
-!.github/
-!docs/
-!fpga/experience/**/*.md
-
 # Docker files in root (use deploy/ subdirectory instead)
 Dockerfile*
-*.toml
 
-# Templates (tracked for agent orchestration)
-!templates/SOUL.md
+# Fly deploy config
 fly.toml
 
 # Temporary directories
@@ -367,10 +349,6 @@ zig-out-linux/
 install.sh
 deploy-*.sh
 
-# Temporary CLI flags
---language
---output-dir
-
 # Build artifacts
 bin/
 bindings/
@@ -379,7 +357,6 @@ demo/
 demos/
 extensions/
 homebrew-tap/
-install.sh
 k8s/
 libs/
 mcp/
@@ -391,11 +368,6 @@ translator-app/
 tree-sitter-vibee/
 trinity-nexus/
 website/
-
-# SOUL bindings (tracked for orchestration)
-!.trinity/issue_bindings.json
-!.trinity/souls/
-!templates/SOUL.md
 
 # Junk archive (large, local only)
 archive/junk-*/
@@ -412,8 +384,6 @@ src/tools/uart-echo-test
 data/cifar-10/
 # Trinity: specific subdirectories ignored
 # .trinity/ is NOT ignored (SOUL bindings must be tracked)
-.trinity/ralph/logs/
-.trinity/ralph/god_mode_log.jsonl
 .trinity/queen/
 .trinity/scholar/
 .trinity/mu/
@@ -421,7 +391,3 @@ data/cifar-10/
 .trinity/scholar/state/
 fpga/build-deps/
 fpga-flash
-# SOUL bindings (tracked)
-!.trinity/issue_bindings.json
-!.trinity/souls/
-!templates/SOUL.md

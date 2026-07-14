@@ -2,7 +2,7 @@
 # prep_silicon_sprint.sh — Build bitstream list for Silicon Sprint.
 # Outputs a list of (format, op) pairs that need bitstreams for HW verification.
 # Run BEFORE hw_silicon_sprint.sh to know what bitstreams are needed.
-cd /Users/playom/trinity-fpga
+cd "$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║  SILICON SPRINT PREP — Bitstream Requirements               ║"

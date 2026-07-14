@@ -7,7 +7,7 @@ corners + seeded random (~512 pairs), NOT exhaustive (2^40). GF20 operands are
 4-byte response (3 result bytes).
 
   self-test:  python3 gf20_add_conformance_ax7203.py --self-test
-  on HW:      python3 gf20_add_conformance_ax7203.py --port /dev/cu.usbserial-120 --baud 160000
+  on HW:      python3 gf20_add_conformance_ax7203.py --port /dev/cu.usbserial-1120 --baud 160000
 """
 import sys, os, argparse, random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -80,7 +80,7 @@ def run_hw(port, baud):
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--self-test", action="store_true")
-ap.add_argument("--port", default="/dev/cu.usbserial-120")
+ap.add_argument("--port", default="/dev/cu.usbserial-1120")
 ap.add_argument("--baud", type=int, default=160000)
 a = ap.parse_args()
 if a.self_test:

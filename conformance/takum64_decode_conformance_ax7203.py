@@ -30,7 +30,7 @@ endmodule
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", default="/dev/cu.usbserial-120")
+    ap.add_argument("--port", default="/dev/cu.usbserial-1120")
     ap.add_argument("--baud", type=int, default=160000)
     ap.add_argument("--n", type=int, default=30, help="random test vectors")
     args = ap.parse_args()

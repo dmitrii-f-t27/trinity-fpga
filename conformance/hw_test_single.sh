@@ -5,7 +5,7 @@
 #          sudo bash conformance/hw_test_single.sh binary32
 
 set -e
-cd /Users/playom/trinity-fpga
+cd "$(cd "$(dirname "$0")/.." && pwd)"
 
 PORT="/dev/cu.usbserial-1120"
 CFG="fpga/openxc7-synth/ax7203_al321.cfg"

@@ -39,9 +39,9 @@ def run(device: str, baud: int = 115200, count: int = 10) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="UART loopback diagnostic for AX7203")
-    # Verified 2026-06-26: FPGA UART bridge = /dev/cu.usbserial-120 (on-board
+    # Verified 2026-06-26: FPGA UART bridge = /dev/cu.usbserial-1120 (on-board
     # CP2102N). AL321 ch.B receives nothing. /dev/ttyUSB0 is Linux-only.
-    parser.add_argument("--device", default="/dev/cu.usbserial-120",
+    parser.add_argument("--device", default="/dev/cu.usbserial-1120",
                         help="USB-UART bridge (verified on-board CP2102N)")
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--count", type=int, default=10)

@@ -16,7 +16,7 @@ def decode(raw):
     return struct.unpack(">I",struct.pack(">f",-v if s else v))[0]
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--port",default="/dev/cu.usbserial-120")
+    ap.add_argument("--port",default="/dev/cu.usbserial-1120")
     ap.add_argument("--baud",type=int,default=160000)
     args=ap.parse_args()
     codes=set()

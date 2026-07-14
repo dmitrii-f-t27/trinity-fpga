@@ -6,7 +6,7 @@
 # by the single-decoder build but sent for protocol parity.
 #
 #   self-test:   python3 e8m0_decode_conformance_ax7203.py --self-test
-#   on hardware: python3 e8m0_decode_conformance_ax7203.py --port /dev/cu.usbserial-120 --baud 160000
+#   on hardware: python3 e8m0_decode_conformance_ax7203.py --port /dev/cu.usbserial-1120 --baud 160000
 import argparse, sys, struct
 
 # Independent golden (re-implemented from the E8M0 spec, NOT copied from the RTL):
@@ -78,7 +78,7 @@ def run_hw(port, baud, exhaustive=True):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--port", default="/dev/cu.usbserial-120")
+    ap.add_argument("--port", default="/dev/cu.usbserial-1120")
     ap.add_argument("--baud", type=int, default=160000)
     ap.add_argument("--sample", action="store_true", help="corner sample instead of exhaustive 256")
     a = ap.parse_args()

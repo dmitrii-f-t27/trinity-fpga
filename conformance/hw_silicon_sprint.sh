@@ -4,7 +4,7 @@
 # Run with: sudo bash conformance/hw_silicon_sprint.sh
 #
 # Track A deliverable: automated HW test for ALL operations.
-cd /Users/playom/trinity-fpga
+cd "$(cd "$(dirname "$0")/.." && pwd)"
 PORT="${PORT:-/dev/cu.usbserial-1120}"
 CFG="fpga/openxc7-synth/ax7203_al321.cfg"
 RESULTS="/tmp/hw_silicon_sprint_$(date +%Y%m%d_%H%M%S).txt"

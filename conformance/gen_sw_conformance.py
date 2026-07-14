@@ -8,8 +8,9 @@ Usage:
 """
 import json, os, subprocess, argparse, sys
 
-OUT = "/Users/playom/trinity-fpga/fpga/openxc7-synth"
-VEC_DIR = "/Users/playom/trinity-fpga/conformance/vectors"
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(REPO, "fpga/openxc7-synth")
+VEC_DIR = os.path.join(REPO, "conformance/vectors")
 
 FORMATS = {
     "gf4": (4, 2, 2, 1), "gf8": (8, 3, 4, 3), "gf16": (16, 5, 10, 15),

@@ -77,7 +77,7 @@ def run(pack_path, device, baud, limit):
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--pack", type=Path, required=True)
-    p.add_argument("--device", default="/dev/cu.usbserial-120")
+    p.add_argument("--device", default="/dev/cu.usbserial-1120")
     p.add_argument("--baud", type=int, default=160000)
     p.add_argument("--limit", type=int, default=0)
     args = p.parse_args()

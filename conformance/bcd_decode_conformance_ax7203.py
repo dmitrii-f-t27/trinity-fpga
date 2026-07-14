@@ -5,7 +5,7 @@
 # gHashTag/tt-trinity-corona). Golden is self-contained (no gf_ref / no vector files).
 #
 #   self-test:   python3 bcd_decode_conformance_ax7203.py --self-test
-#   on hardware: python3 bcd_decode_conformance_ax7203.py --port /dev/cu.usbserial-120 --baud 160000
+#   on hardware: python3 bcd_decode_conformance_ax7203.py --port /dev/cu.usbserial-1120 --baud 160000
 import argparse, sys, struct, serial
 
 FRAME = bytes([0xAA, 0x55])
@@ -67,7 +67,7 @@ def run_hw(port, baud):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--port", default="/dev/cu.usbserial-120")
+    ap.add_argument("--port", default="/dev/cu.usbserial-1120")
     ap.add_argument("--baud", type=int, default=160000)
     a = ap.parse_args()
     if a.self_test:

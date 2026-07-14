@@ -66,7 +66,7 @@ def run_hw(port, baud, n):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--port", default="/dev/cu.usbserial-120"); ap.add_argument("--baud", type=int, default=160000); ap.add_argument("--n", type=int, default=64)
+    ap.add_argument("--port", default="/dev/cu.usbserial-1120"); ap.add_argument("--baud", type=int, default=160000); ap.add_argument("--n", type=int, default=64)
     a = ap.parse_args()
     if a.self_test: sys.exit(0 if self_test() else 1)
     sys.exit(0 if run_hw(a.port, a.baud, a.n) else 1)

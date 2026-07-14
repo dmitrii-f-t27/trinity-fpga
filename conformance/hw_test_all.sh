@@ -2,12 +2,13 @@
 # hw_test_all.sh — Full 77-format HW test on AX7203
 # Runs entirely as root, writes results to the repo directory.
 # Usage: sudo bash conformance/hw_test_all.sh
-cd /Users/playom/trinity-fpga
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_DIR"
 
 PORT="/dev/cu.usbserial-1120"
 CFG="fpga/openxc7-synth/ax7203_al321.cfg"
 HOST="conformance/corona_decode_host_ax7203.py"
-OUT="/Users/playom/trinity-fpga/HW_RESULTS.txt"
+OUT="$REPO_DIR/HW_RESULTS.txt"
 PASS=0; FAIL=0; SMOKE=0; TOTAL=0
 
 declare -a FORMATS=(

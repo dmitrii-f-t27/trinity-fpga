@@ -1,7 +1,7 @@
 #!/bin/bash
 # batch_remaining_hw.sh — Flash and test remaining formats
 # Run with: sudo bash conformance/batch_remaining_hw.sh
-cd /Users/playom/trinity-fpga
+cd "$(cd "$(dirname "$0")/.." && pwd)"
 
 PORT="/dev/cu.usbserial-1120"
 CFG="fpga/openxc7-synth/ax7203_al321.cfg"

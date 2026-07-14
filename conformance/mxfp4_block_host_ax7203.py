@@ -8,7 +8,7 @@
 # Reply (FPGA -> host), 5 bytes: 0xA5 + FP32 (little-endian) of the requested lane.
 #
 # Usage on the flashed AX7203 (CP2102N):
-#   python3 mxfp4_block_host_ax7203.py --port /dev/cu.usbserial-120 --baud 160000
+#   python3 mxfp4_block_host_ax7203.py --port /dev/cu.usbserial-1120 --baud 160000
 #   python3 mxfp4_block_host_ax7203.py --self-test   # golden-only, no serial
 #
 # STATUS: horizon B -- bitstream not yet synth/flashed. A green run here == real
@@ -93,7 +93,7 @@ def run_hw(port, baud):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--port', default='/dev/cu.usbserial-120')
+    ap.add_argument('--port', default='/dev/cu.usbserial-1120')
     ap.add_argument('--baud', type=int, default=160000)
     ap.add_argument('--self-test', action='store_true')
     args = ap.parse_args()
