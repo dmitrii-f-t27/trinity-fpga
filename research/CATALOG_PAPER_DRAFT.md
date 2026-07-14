@@ -9,7 +9,7 @@
 
 ## Abstract
 
-We present a reproducible hardware benchmark of 83 numeric formats spanning 13 families — including IEEE-754 binary16/binary32/bfloat16, OCP MXFP4/8 elements, posit, takum, decimal, logarithmic, and the φ-derived GoldenFloat family — implemented on a Xilinx Artix-7 (XC7A200T, ALINX AX7203) using a fully open toolchain (openXC7: Yosys + nextpnr-xilinx + Project X-Ray). 71 of 83 formats carry at least one bit-exact silicon cell against an independent exact-arithmetic oracle, reached through four parameterized decode templates (algebraic, table-2^x, transcendental-exp-via-tables, truncated-multiply). 16 GoldenFloat compute cells (GF4–GF32, ADD and MUL) verify bit-exactly on the same fabric. Because Project X-Ray documents the DSP48E1 hard block as only partially reverse-engineered, every design is synthesized LUT-only (`synth_xilinx -nodsp`); we therefore report LUT counts and place-and-route yields per cell, including the openXC7-specific result that wide carry-chain multiplies fail routing while wide BRAM tables route successfully (decimal128 routes at 336 bits; an untruncated 140-bit takum multiply fails across 32 seeds). A head-to-head accuracy and LUT comparison of GF16, posit(16,1), MXFP8, BF16, FP16, and takum16 against an exact rational oracle shows that no single format dominates across arithmetic, dynamic-range, and cancellation suites. The contribution is not a new format and claims no superiority over posit, takum, or microscaling designs; it is the breadth of formats proven on vendor-neutral silicon, together with the open toolchain methodology and a per-cell reproducible evidence chain.
+We present a reproducible hardware benchmark of 83 numeric formats spanning 13 families — including IEEE-754 binary16/binary32/bfloat16, OCP MXFP4/8 elements, posit, takum, decimal, logarithmic, and the φ-derived GoldenFloat family — implemented on a Xilinx Artix-7 (XC7A200T, ALINX AX7203) using a fully open toolchain (openXC7: Yosys + nextpnr-xilinx + Project X-Ray). ~41 of 83 formats carry at least one bit-exact decode cell on silicon against an independent exact-arithmetic oracle, reached through four parameterized decode templates (algebraic, table-2^x, transcendental-exp-via-tables, truncated-multiply); of these, 7 GF formats (GF4–GF32) additionally carry bit-exact compute cells (ADD/MUL) on the same fabric. Because Project X-Ray documents the DSP48E1 hard block as only partially reverse-engineered, ADD designs use `synth_xilinx -flatten -abc9 -nocarry -arch xc7` (the `-nocarry` flag disables CARRY4 chain inference, which produces unreliable routing) and MUL designs add `-nodsp` (DSP48E1 is used only when explicitly instantiated, as in GF16 MUL's single-DSP multiplier); we therefore report LUT counts and place-and-route yields per cell, including the openXC7-specific result that wide carry-chain multiplies fail routing while wide BRAM tables route successfully (decimal128 routes at 336 bits; an untruncated 140-bit takum multiply fails across 32 seeds). A head-to-head accuracy and LUT comparison of GF16, posit(16,1), MXFP8, BF16, FP16, and takum16 against an exact rational oracle shows that no single format dominates across arithmetic, dynamic-range, and cancellation suites. The contribution is not a new format and claims no superiority over posit, takum, or microscaling designs; it is the breadth of formats proven on vendor-neutral silicon, together with the open toolchain methodology and a per-cell reproducible evidence chain.
 
 ---
 
@@ -21,7 +21,7 @@ Yet published hardware numbers for these formats are almost always produced on *
 
 This work fills that gap with three contributions:
 
-1. **A breadth benchmark.** 71 of 83 catalog formats carry at least one bit-exact silicon cell (41 decode ports; plus 16 GoldenFloat compute cells, GF4–GF32 ADD and MUL, bit-exact — GF64 reaches 70.1% (359/512) on silicon due to a timing-closure issue in the adder's barrel shifter, see §4.5), each shipped with a full evidence chain: CI synthesis → bitstream SHA-256 → JTAG flash → UART verify against an independent golden oracle.
+1. **A breadth benchmark.** ~41 of 83 catalog formats carry at least one bit-exact decode cell on silicon (41 decode ports); of these, 7 GF formats (GF4–GF32) additionally carry bit-exact compute cells (ADD/MUL) — GF64 reaches 70.1% (359/512) on silicon due to a timing-closure issue in the adder's barrel shifter, see §4.5. Each ships with a full evidence chain: CI synthesis → bitstream SHA-256 → JTAG flash → UART verify against an independent golden oracle.
 2. **A methodology.** Four parameterized decode templates (algebraic, table-2^x, transcendental-exp-via-tables, truncated-multiply) plus a truncation-analysis sweep make "does format X route on openXC7?" a one-command question.
 3. **A toolchain finding.** The LUT-only constraint imposed by partial DSP documentation, and the wide-multiply-vs-wide-table routing asymmetry that follows from it, are reported as open-toolchain limitations — not design choices.
 
@@ -95,11 +95,7 @@ All synthesis uses the `regymm/openxc7` Docker image (5.72 GB), which wraps
 Yosys, nextpnr-xilinx, and Project X-Ray (prjxray-db for Artix-7). The target is
 the ALINX AX7203 board, part `xc7a200tfbg484-2`, IDCODE `0x13636093`.
 
-**The LUT-only constraint.** `synth_xilinx -nodsp` is mandatory. DSP48E1
-inference breaks routing on this part under the open flow; Project X-Ray
-documents DSP as "Partial." This is a toolchain limitation, not a design choice.
-All LUT counts reported in this paper are therefore LUT-only numbers; they are a
-*lower bound on engineering effort*, not an upper bound on performance.
+**Synthesis flags.** ADD designs use `synth_xilinx -flatten -abc9 -nocarry -arch xc7`. MUL designs add `-nodsp` (DSP48E1 is used when explicitly instantiated for single-DSP multipliers, as in GF16 MUL). The `-nocarry` flag disables CARRY4 chain inference, which produces unreliable routing under openXC7; DSP48E1 auto-inference is disabled for MUL designs because Project X-Ray documents DSP as “Partial.” This is a toolchain limitation, not a design choice. LUT counts reported in this paper reflect these flags; they are a *lower bound on engineering effort*, not an upper bound on performance.
 
 **Placer.** `--placer heap` strictly dominates `sa` for wide datapaths (empirical
 GF20 case study, where `sa` was misdiagnosed as a Docker Hub hang until per-step
@@ -168,9 +164,7 @@ at `research/format_benchmark.py` and `research/format_accuracy_results.csv`.
 
 ### 4.1 Tier-E matrix
 
-**71 / 83** formats carry at least one bit-exact silicon cell: 41 decode ports
-plus 16 GoldenFloat compute cells (GF4–GF32, ADD and MUL). GF64 ADD is the
-exception: 359/512 (70.1%) bit-exact on silicon, with the residual failures
+**~41 / 83** formats carry at least one bit-exact decode cell on silicon (41 decode ports); of these, 7 GF formats (GF4–GF32) additionally carry bit-exact compute cells (ADD/MUL). GF64 ADD is the exception: 359/512 (70.1%) bit-exact on silicon, with the residual failures
 diagnosed as a **timing-closure issue in the 43-bit barrel shifter** of
 `gf_adder_param`, not a logic defect — the adder core passes all iverilog
 (6/6) and Python bit-model (1544/1544) tests, and GF32 (23-bit barrel shifter)
@@ -273,16 +267,17 @@ while passing every simulation. Root cause: the 43-bit barrel shifter
 (`ma_ext >> ediff`) in `gf_adder_param` forms a combinational path too deep for
 the ~50–70 MHz CFGMCLK clock on XC7A200T — same-sign same-exponent cases (short
 path) pass, cross-exponent and zero cases (long path through the shifter) fail.
-The planned in-fabric mitigation is an **ediff clamp**: bound the shift amount
-`ediff` to the range that is actually representable given the operand widths,
-which collapses the barrel shifter from a 25-level deep dynamic shift down to a
-6-level fixed-range shift. This brings the adder path inside the openXC7 timing
-budget without altering the bit-exact semantics for in-range results; the
-out-of-clamp cases are handled by a dedicated overflow/NaN path that already
-exists for the IEEE-style exception logic. This is consistent with the GF32
-datapoint (23-bit shifter, 11392/11392 bit-exact) and is the identified route
-to close GF64/GF128/GF256 compute to Tier-E. The clamp fix is not yet flashed
-in this benchmark; GF64 is therefore reported honestly at 70.1%, not bit-exact.
+An **ediff clamp** was attempted as in-fabric mitigation: bound the shift amount
+`ediff` to the range actually representable given the operand widths
+(MANT_BITS+4), collapsing the barrel shifter from a 25-level deep dynamic shift
+down to a 6-level fixed-range shift. The clamp was expected to bring the adder
+path inside the openXC7 timing budget without altering bit-exact semantics for
+in-range results (out-of-clamp cases handled by the existing overflow/NaN path),
+consistent with the GF32 datapoint (23-bit shifter, 11392/11392 bit-exact). In
+practice the clamped build regressed to 48.9% on silicon — yosys rerouted the
+now-shallower datapath into a worse placement — so the clamp has been reverted;
+HEAD reproduces the 70.1% figure. The definitive fix is a 2-stage pipeline
+(future work). GF64 is therefore reported honestly at 70.1%, not bit-exact.
 
 ---
 
@@ -312,11 +307,14 @@ numbers on closed flows; this work contributes breadth on an open flow.
 
 ## 6. Discussion — limitations of openXC7
 
-1. **DSP partial.** The zero-DSP constraint caps achievable GFLOPS and is a
-   toolchain artifact. If Project X-Ray completes DSP48E1 documentation, the MAC
-   designs port directly — `gf_mul_dsp_param.v` already exists as the wrapper.
-   The LUT-only numbers in §4.3 are a *lower bound on effort*, not an upper bound
-   on performance.
+1. **DSP partial.** DSP48E1 is usable only via explicit instantiation;
+   auto-inference is broken under the open flow and Project X-Ray documents DSP
+   as "Partial." Single-DSP multipliers (GF16 MUL: 94 + 1 DSP) and the 16-element
+   MAC (71 + 16 DSP) explicitly instantiate DSP48E1 blocks, but larger
+   auto-inferred DSP arrays are not achievable until documentation completes — at
+   which point the MAC designs port directly (`gf_mul_dsp_param.v` already exists
+   as the wrapper). The LUT/DSP counts in §4.3 are a *lower bound on effort*, not
+   an upper bound on performance.
 
 2. **BRAM partial.** Constrained BRAM inference; the benchmark uses explicit
    65 536-entry tables (`(* ram_style="block" *)`) rather than inferred block
@@ -348,9 +346,10 @@ numbers on closed flows; this work contributes breadth on an open flow.
 
 Three contributions, restated without superlatives:
 
-- **Breadth.** 71 / 83 catalog formats carry at least one bit-exact silicon cell
-  on a Xilinx Artix-7 (XC7A200T) via a fully open toolchain, each shipped with a
-  reproducible evidence chain.
+- **Breadth.** ~41 / 83 catalog formats carry at least one bit-exact decode cell
+  on silicon (41 decode ports); 7 GF formats (GF4–GF32) additionally carry
+  bit-exact compute cells (ADD/MUL) — on a Xilinx Artix-7 (XC7A200T) via a fully
+  open toolchain, each shipped with a reproducible evidence chain.
 - **Methodology.** Four decode templates (algebraic, table-2^x,
   transcendental-exp-via-tables, truncated-multiply) plus a truncation sweep make
   "does format X route on openXC7?" a one-command question.

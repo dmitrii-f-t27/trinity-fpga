@@ -1,98 +1,79 @@
 ---
 name: fpga-synth
-description: "AX7203 openXC7. 16 Tier-E 4/4. GF64: timing root cause found (barrel shifter+priority encoder). arXiv pkg ready. Tekum benchmark done."
+description: "AX7203 openXC7. 7 GF formats bit-exact ADD/MUL. GF64 70.1% timing. div/sqrt=binary32 proxy. Paper draft honest."
 allowed-tools: Bash(docker *), Bash(ls *), Read, Grep, Glob, Write, Edit
 ---
 
 # FPGA Pipeline — AX7203 XC7A200T
 
-## Current State (2026-07-14, Wave 4)
+## Current State (2026-07-14, Wave 8 — clamp REVERTED)
 
 | Axis | Count | Detail |
 |------|-------|--------|
-| SW-bitexact | 75/83 | Ceiling reached |
-| decode-HW Tier-E | ~47 | Ceiling 71 |
-| compute-HW Tier-E | 16 cells | GF4-GF32 × {ADD,MUL}, 11392/11392 |
-| GF64+ | ~50-70% silicon | 2 timing paths identified |
-| Tekum | Oracle + adder + benchmark | GF16 wins accuracy+LUT |
-| arXiv pkg | Ready | abstract.bib+checklist in research/arxiv_submission/ |
+| SW-bitexact | ~62-69/83 | (CATALOG_MATRIX: strict 62, self-consistent 69) |
+| decode-HW Tier-E | 41 formats | 41 unique formats with bit-exact decode cells |
+| compute-HW Tier-E | 7 GF formats × {ADD,MUL} | GF4-GF32, 11392/11392 bit-exact on silicon |
+| GF64 ADD | 70.1% (359/512) | timing closure failure; clamp reverted (regressed to 48.9%) |
+| DIV/SQRT | binary32 proxy | NOT native GF, stale output bug, no conformance |
+| QUIRE | untested | no conformance vectors |
 
-## GF64 Root Cause Analysis (Wave 3-4)
+**Honest catalog**: 3 bit-exact (add/mul) + 2 proxy (div/sqrt) + 1 untested (quire)
+**Paper**: ~41/83 formats (NOT 71 — that was cell count, not format count)
 
-TWO independent timing-critical paths in `gf_adder_param`:
+## Synthesis Flags (MEASURED, not assumed)
 
-1. **Barrel shifter** (43-bit shift by 25-bit amount) → **clamped** to 6-bit shift (MANT_BITS+4). Fix: applied.
-2. **Priority encoder** (8-branch if/else on 64-bit data) → still too deep for CFGMCLK. Fix: pipeline.
+| Design type | Flags | Notes |
+|-------------|-------|-------|
+| ADD/SUB | `-flatten -abc9 -nocarry -arch xc7` | -abc9 REQUIRED (removal = 70%→19%) |
+| MUL | `-flatten -abc9 -nocarry -nodsp -arch xc7` | -nodsp for MUL only |
+| GF16 MUL | uses 1 DSP48E1 | explicitly instantiated, not inferred |
 
-**Best silicon score**: 359/512 (70.1%) with original shift-reg TX + -abc9 (no clamp).
-**Clamp effect**: -0+0 case fixed, but overall score lower due to priority encoder timing.
-**Definitive fix**: 2-stage pipeline (Stage 1: decode+shift+sticky → reg → Stage 2: add+norm+round+pack).
+LUT measurements (yosys 0.63, -abc9 -nocarry):
+- GF16 parametric adder: 486 LUT
+- GF16 old adder: 176 LUT (BENCH-005 "118" was stale)
+- tekum16 stub: 573 LUT
+- takum16: N/A (RTL doesn't exist)
 
 ## Build Recipe
 
 ```
 docker run --rm regymm ... bash -c '
-  yosys -p "read_verilog gf_adder_param.v ${DESIGN}.v; synth_xilinx -abc9 -nocarry -arch xc7; write_json ${DESIGN}.json"
+  yosys -p "read_verilog gf_adder_param.v ${DESIGN}.v; synth_xilinx -flatten -abc9 -nocarry -arch xc7; write_json ${DESIGN}.json"
   nextpnr-xilinx --chipdb /chipdb-xc7a200tfbg484-2.bin ...
   fasm2frames ... && xc7frames2bit ...
 '
 ```
 
-**Critical**: `-abc9` is REQUIRED (removal = 70%→19% regression). `-nocarry` always.
+## GF64 Root Cause (Waves 3-8)
 
-## LUT Comparison (MEASURED, same toolchain)
+**NOT a logic bug** — iverilog 6/6 + Python 1544/1544 ALL_PASS.
+**IS a timing closure failure** — 43-bit barrel shifter + 64-bit priority encoder too deep for CFGMCLK.
 
-| Module | Total LUT | Notes |
-|--------|----------|-------|
-| GF16 (gf_adder_param) | **486** | current parameterized adder |
-| GF16 (gf16_add_top, OLD) | **176** | deprecated, no denormals/NaN |
-| tekum16 (stub) | **573** | 65% bit-exact, not final RTL |
-| takum16 | **N/A** | RTL adder does not exist |
+Timeline:
+- Wave 3: root cause found (timing, not logic)
+- Wave 4: clamp attempted → -0+0 fixed but overall regressed 70→49%
+- Wave 8: clamp REVERTED → HEAD reproduces 70.1%
+- Future: 2-stage pipeline is definitive fix
 
-**"4-11x lower LUT" is FALSE.** Real ratio: 0.85x (GF16 param vs tekum16 stub).
-BENCH-005 "118 LUT" was stale — same module now gives 176.
-Honest framing: different trade-off (area vs dynamic range), neither dominates.
-
-Source: research/LUT_COMPARISON_MEASURED.md
-
-## LESSONS LEARNED (Waves 1-4)
+## LESSONS (Waves 1-8, auditor-verified)
 
 1. HAS_INF per-format (only GF16)
 2. cur_byte must be reg
-3. iverilog is fast gate (Python model + inline TB)
+3. iverilog is fast gate
 4. Provenance before every flash
 5. Trinity moat = catalog × open-source-silicon proof
-6. Tekum = nearest competitor (GF16 wins on LUT)
-7. DePIN + openXC7 reproducible = strongest niche
-8. TX NBA race: use buffer+mux not shift-register
+6. Tekum = nearest competitor (GF16 0.85x LUT, not 4-11x)
+7. DePIN + openXC7 = strongest niche
+8. TX NBA race: use buffer+mux
 9. -abc9 REQUIRED (removal = catastrophic regression)
-10. GF64 timing: barrel shifter clamp helps partially, pipeline needed
+10. GF64 timing: barrel shifter + priority encoder, pipeline needed
 11. ELiTeFormer + MxGLUT validate zero-DSP thesis
-12. Priority encoder on 64-bit data is a timing bottleneck
-13. **"4-11x lower LUT" is FALSE** — measured 0.85x (GF16 486 LUT vs tekum16 573 LUT)
-14. BENCH-005 "118 LUT" is stale — same module gives 176 now
-15. takum16 adder RTL does NOT EXIST — only decode exists
-16. **Repo portability**: no more hardcoded paths — all scripts use relative resolution
-17. **UART port**: unified to /dev/cu.usbserial-1120 across all 98 conformance scripts
-18. **README**: rewritten to match actual project state (was stale monorepo description)
-19. **.gitignore**: removed *.md and *.toml catch-alls — no more silently dropped files
-20. **DIV/SQRT are binary32 proxies** — NOT native GF computation. Hardcoded widths, NBA stale output, no conformance. See DIV_SQRT_HONESTY.md
-21. **gf_mul_param has same timing risk** as adder for GF64+ (80-way priority encoder)
-22. **"5 parameterized cores" is honestly**: 3 bit-exact (add/mul) + 2 proxy (div/sqrt) + 1 untested (quire)
-23. **Fake CI deleted** (build-compute-bitstreams.yml passed /dev/null to fasm2frames)
-24. **CLAUDE.md board**: fixed XC7A100T→XC7A200T (was stale)
-
-## Key Files
-
-| File | Purpose |
-|------|---------|
-| `fpga/openxc7-synth/gf_adder_param.v` | Parameterized GF adder (with clamp) |
-| `fpga/openxc7-synth/tekum16_adder.v` | tekum16 adder (509 lines, iverilog clean) |
-| `conformance/gf_ref.py` | Golden oracle |
-| `conformance/tekum_ref.py` | Tekum oracle |
-| `conformance/gf64_conformance_ax7203.py` | GF64 silicon harness |
-| `research/arxiv_submission/` | Paper package (abstract, bib, checklist) |
-| `research/CATALOG_PAPER_DRAFT.md` | ~3800-word paper |
-| `research/head_to_head.py` | GF vs tekum vs takum benchmark |
-| `hardware/tools/bitstream_provenance.py` | Provenance |
-| `src/trinity_node/attestation.zig` | DePIN attestation (Zig 0.16) |
+12. **"4-11x lower LUT" is FALSE** — measured 0.85x
+13. BENCH-005 "118 LUT" is stale — same module gives 176
+14. takum16 adder RTL does NOT EXIST
+15. **div/sqrt = binary32 proxy** — NOT native, hardcoded, stale output
+16. **gf_mul_param same timing risk** as adder for GF64+
+17. **"71/83 formats" was wrong** — double-counted cells as formats (real: ~41)
+18. **"-nodsp mandatory" was wrong** — only MUL uses -nodsp, ADD doesn't
+19. **Clamp regressed** — reverted to make HEAD reproducible at 70.1%
+20. **build-matrix.yml was dead code** — both if/else branches identical, now fixed

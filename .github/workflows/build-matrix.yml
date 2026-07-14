@@ -93,12 +93,13 @@ jobs:
             else
               READS="gf_adder_param.v gf_mul_param.v ${DESIGN}.v"
             fi
-            # Synthesis: -nodsp (openXC7 DSP partial), -nocarry (carry chains break routing)
-            # NO -abc9 for ADD designs (barrel-shifter misoptimization at wide E/M)
+            # Synthesis flags: -abc9 is REQUIRED (Wave 3: removal = 70%→19% regression)
+            # -nocarry: carry chains break routing on this part
+            # -nodsp: for MUL designs (DSP48E1 partial in openXC7); ADD doesn't need it
             if [ "$OP" = "mul" ]; then
-              SYNTH_FLAGS="-nocarry -nodsp -arch xc7"
+              SYNTH_FLAGS="-flatten -abc9 -nocarry -nodsp -arch xc7"
             else
-              SYNTH_FLAGS="-nocarry -nodsp -arch xc7"
+              SYNTH_FLAGS="-flatten -abc9 -nocarry -arch xc7"
             fi
             echo "=== Step 1: Yosys ==="
             yosys -p "read_verilog $READS; synth_xilinx $SYNTH_FLAGS; write_json ${DESIGN}.json" || exit 1
