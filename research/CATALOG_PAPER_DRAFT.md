@@ -216,7 +216,7 @@ dominates raw add/sub accuracy while exponent width governs range.
 
 | Format | Adder LUTs | Mul LUTs / DSP | Decode LUTs | Decode style | Source |
 |---|---:|---|---:|---|---|
-| GF16 `[1\|6\|9]` | **118** `[measured]` | **94 + 1 DSP** `[measured]` | ~50 `[est.]` | algebraic | `BENCH-005_FINAL.md` |
+| GF16 `[1\|6\|9]` | **486** `[measured, parametric]` / 176 `[old top]` | **94 + 1 DSP** `[measured, old]` | ~50 `[est.]` | algebraic | `LUT_COMPARISON_MEASURED.md` (yosys 0.63, 2026-07-14) |
 | GF16 MAC-16 (16-elem dot) | **71 + 16 DSP** `[measured]` | — | — | — | `BENCH-006_RESULTS.md` |
 | Ternary MAC-16 | **52, 0 DSP** `[measured]` | — | — | — | `BENCH-006_RESULTS.md` |
 | GF32 `[1\|12\|19]` | ~600 `[est.]` | ~500 + 1 DSP | ~120 `[est.]` | algebraic | extrapolated from GF16 |
@@ -232,10 +232,10 @@ dominates raw add/sub accuracy while exponent width governs range.
 `[lit.]` = from the cited paper on a closed flow (Vivado), included for scale, not directly comparable.
 `[est.]` = engineering extrapolation from a measured neighbor.
 
-**GF16 occupies a favorable cost/accuracy corner**: 118 LUT for the adder at
-1.63e-3 mean error, against posit(16,1)'s matching accuracy at roughly 12× the
-LUT cost (on a closed flow; no posit-compute cell exists on openXC7 in this
-work). Takum16's accuracy is competitive (2.13e-3 mean) but its decode is
+**GF16 occupies a specific cost/accuracy point**: 486 LUT for the parameterized adder at
+1.63e-3 mean error. Posit(16,1) achieves matching accuracy at higher LUT cost
+(~1500 LUT, from closed-flow Vivado literature [PERI, arXiv:1908.01466] — not
+directly comparable to openXC7). Takum16's accuracy is competitive (2.13e-3 mean) but its decode is
 BRAM-bound (57 of 365 BRAM36 on the XC7A200T), occupying a different resource
 axis from the LUT-bound linear formats. This is a structural consequence of
 takum's transcendental decode — the `exp(ell/2)` is realized as a 65 536-entry

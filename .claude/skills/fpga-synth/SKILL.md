@@ -40,15 +40,20 @@ docker run --rm regymm ... bash -c '
 
 **Critical**: `-abc9` is REQUIRED (removal = 70%→19% regression). `-nocarry` always.
 
-## Tekum Head-to-Head Results (Wave 4)
+## LUT Comparison (MEASURED, same toolchain)
 
-| Format | Mean Rel Err | Add LUT | Dynamic Range |
-|--------|-------------|---------|---------------|
-| **GF16** | **1.58e-03** | **118** | 18 decades |
-| tekum16 | 1.61e-03 | ~480 | 153 decades |
-| takum16 | 1.93e-03 | ~1350 | 83 decades |
+| Module | Total LUT | Notes |
+|--------|----------|-------|
+| GF16 (gf_adder_param) | **486** | current parameterized adder |
+| GF16 (gf16_add_top, OLD) | **176** | deprecated, no denormals/NaN |
+| tekum16 (stub) | **573** | 65% bit-exact, not final RTL |
+| takum16 | **N/A** | RTL adder does not exist |
 
-GF16: competitive accuracy at 4-11x lower LUT cost. Tapered formats win on range.
+**"4-11x lower LUT" is FALSE.** Real ratio: 0.85x (GF16 param vs tekum16 stub).
+BENCH-005 "118 LUT" was stale — same module now gives 176.
+Honest framing: different trade-off (area vs dynamic range), neither dominates.
+
+Source: research/LUT_COMPARISON_MEASURED.md
 
 ## LESSONS LEARNED (Waves 1-4)
 
@@ -64,6 +69,9 @@ GF16: competitive accuracy at 4-11x lower LUT cost. Tapered formats win on range
 10. GF64 timing: barrel shifter clamp helps partially, pipeline needed
 11. ELiTeFormer + MxGLUT validate zero-DSP thesis
 12. Priority encoder on 64-bit data is a timing bottleneck
+13. **"4-11x lower LUT" is FALSE** — measured 0.85x (GF16 486 LUT vs tekum16 573 LUT)
+14. BENCH-005 "118 LUT" is stale — same module gives 176 now
+15. takum16 adder RTL does NOT EXIST — only decode exists
 
 ## Key Files
 
