@@ -93,3 +93,5 @@ Timeline:
 34. **`make oracle/repro/bench/lut`** — reproducibility from clean clone, no hardware needed
 35. **#199 body updated** — honest ~49-55/83 (was stale 71/83 double-count)
 36. **Paper is fully honest** — zero known falsehoods remaining
+37. **72/72 formats have conformance vectors** — 791,115 vectors via `make vectors`
+38. **`make vectors`** — generates JSON vectors for all 72 oracle formats from clean clone
