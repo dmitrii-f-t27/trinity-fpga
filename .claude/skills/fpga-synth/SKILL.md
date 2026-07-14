@@ -1,12 +1,12 @@
 ---
 name: fpga-synth
-description: "AX7203 openXC7. 10 GF formats bit-exact ADD/MUL. GF64 70.1% timing. div/sqrt=binary32 proxy. Paper draft honest."
+description: "AX7203 openXC7. 72 format oracles. 10 GF bit-exact. Paper PDF compiled. arXiv-ready."
 allowed-tools: Bash(docker *), Bash(ls *), Read, Grep, Glob, Write, Edit
 ---
 
 # FPGA Pipeline — AX7203 XC7A200T
 
-## Current State (2026-07-14, Wave 8 — clamp REVERTED)
+## Current State (2026-07-14, Wave 13 — PDF compiled, paper submittable)
 
 | Axis | Count | Detail |
 |------|-------|--------|
