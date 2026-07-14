@@ -81,3 +81,8 @@ Timeline:
 22. **LUT wrapper committed** — gf16_param_top.v in repo, reproducible from clean clone (491 LUT with -flatten)
 23. **LaTeX skeleton created** — paper.tex exists but full conversion still needed for arXiv
 24. **27-agent system is vapor** — only self.json exists, verdict.zig missing, tri CLI not built
+25. **72 formats have oracle** — 10 new oracle files (posit, bf16, fp8, mxfp, takum, decimal, ieee, legacy, lns, int)
+26. **1496 TX race wrappers fixed** — auto-script converted all to buffer+mux
+27. **2-stage pipeline implemented but REGRESSED** — iverilog 9/9 but silicon 50.6% (worse than 70.1%). Reverted.
+28. **GF64 ceiling = 70.1%** on AX7203/CFGMCLK — no RTL modification improves on original. External clock = only untested approach.
+29. **Full LaTeX paper** — 648 lines, 3888 words, research/arxiv_submission/paper.tex
