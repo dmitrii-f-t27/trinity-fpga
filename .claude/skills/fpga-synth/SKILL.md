@@ -89,3 +89,7 @@ Timeline:
 30. **Paper PDF compiled** — 314KB via CI (build-paper.yml), arXiv-submittable
 31. **All 12 oracles have self-tests** — gf_ref.py was the last (added Wave 13)
 32. **Paper structural count reconciled** — ~10 structural + 2 routing-pending + 3 single-witness = 15
+33. **takum64 routing claim was FALSE** — CI failed all 8 seeds, paper fixed to ✗
+34. **`make oracle/repro/bench/lut`** — reproducibility from clean clone, no hardware needed
+35. **#199 body updated** — honest ~49-55/83 (was stale 71/83 double-count)
+36. **Paper is fully honest** — zero known falsehoods remaining
