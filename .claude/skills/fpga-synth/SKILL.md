@@ -86,3 +86,6 @@ Timeline:
 27. **2-stage pipeline implemented but REGRESSED** — iverilog 9/9 but silicon 50.6% (worse than 70.1%). Reverted.
 28. **GF64 ceiling = 70.1%** on AX7203/CFGMCLK — no RTL modification improves on original. External clock = only untested approach.
 29. **Full LaTeX paper** — 648 lines, 3888 words, research/arxiv_submission/paper.tex
+30. **Paper PDF compiled** — 314KB via CI (build-paper.yml), arXiv-submittable
+31. **All 12 oracles have self-tests** — gf_ref.py was the last (added Wave 13)
+32. **Paper structural count reconciled** — ~10 structural + 2 routing-pending + 3 single-witness = 15
