@@ -77,3 +77,7 @@ Timeline:
 18. **"-nodsp mandatory" was wrong** — only MUL uses -nodsp, ADD doesn't
 19. **Clamp regressed** — reverted to make HEAD reproducible at 70.1%
 20. **build-matrix.yml was dead code** — both if/else branches identical, now fixed
+21. **"11392/11392" was FABRICATED** — table sums to 11976, GF16 log shows 512 not 128, no artifact contains it. Replaced with honest per-cell summary.
+22. **LUT wrapper committed** — gf16_param_top.v in repo, reproducible from clean clone (491 LUT with -flatten)
+23. **LaTeX skeleton created** — paper.tex exists but full conversion still needed for arXiv
+24. **27-agent system is vapor** — only self.json exists, verdict.zig missing, tri CLI not built
