@@ -120,34 +120,32 @@ module corona_compute_gf128_cmp_ax7203 (
 
     // ---- UART TX (shift-register, 5 bytes) ----
     localparam [2:0] TX_LEN = 5;
-    reg responding; reg [2:0] tx_cnt;
-    reg [135:0] tx_shift;
-    // CMP result: {padding, result, A5}
+    // TX: buffer+mux (no conflicting NBA — fixes tx race). 5 bytes sliced from tx_load[135:0].
     wire [135:0] tx_load = {result_reg, 8'hA5};
+    reg responding; reg [2:0] tx_idx; reg [7:0] tx_buf0, tx_buf1, tx_buf2, tx_buf3, tx_buf4;
     reg [8:0] tcnt; reg [3:0] tbi; reg [9:0] tsr;
-    wire [7:0] cur_byte;
-    always @(*) begin
-        if(!responding) cur_byte = 8'hFF;
-        else cur_byte = tx_shift[7:0];
-    end
     always @(posedge mclk or posedge rst) begin
-        if(rst) begin responding<=0;tx_cnt<=0;tcnt<=BAUD_DIV-1;tbi<=0;tsr<=10'h3FF;uart_tx<=1; end
+        if(rst) begin responding<=0;tx_idx<=0;tcnt<=BAUD_DIV-1;tbi<=0;tsr<=10'h3FF;uart_tx<=1;
+            tx_buf0<=8'hFF; tx_buf1<=8'hFF; tx_buf2<=8'hFF; tx_buf3<=8'hFF; tx_buf4<=8'hFF; end
         else begin uart_tx<=tsr[0];
             if(result_ready) begin
-                tx_shift<=tx_load;
-                tx_cnt<=0;
-                responding<=1;
+                tx_buf0<=tx_load[7:0]; tx_buf1<=tx_load[15:8]; tx_buf2<=tx_load[23:16]; tx_buf3<=tx_load[31:24]; tx_buf4<=tx_load[39:32]; responding<=1; tx_idx<=0;
             end
             if(tcnt==0) begin tcnt<=BAUD_DIV-1;
                 if(tbi==9) begin tbi<=0;
                     if(responding) begin
-                        tsr<={1'b1,cur_byte,1'b0};
-                        tx_shift<={8'h00,tx_shift[135:8]};
-                        if(tx_cnt==TX_LEN-1) responding<=0; else tx_cnt<=tx_cnt+1;
+                        case(tx_idx)
+                            3'd0: tsr<={1'b1,tx_buf0,1'b0};
+                            3'd1: tsr<={1'b1,tx_buf1,1'b0};
+                            3'd2: tsr<={1'b1,tx_buf2,1'b0};
+                            3'd3: tsr<={1'b1,tx_buf3,1'b0};
+                            3'd4: tsr<={1'b1,tx_buf4,1'b0};
+                        endcase
+                        if(tx_idx==4) responding<=0; else tx_idx<=tx_idx+1;
                     end else tsr<=10'h3FF;
                 end else begin tbi<=tbi+1;tsr<={1'b1,tsr[9:1]}; end
             end else tcnt<=tcnt-1;
         end
     end
-endmodule
+    endmodule
 `default_nettype wire

@@ -1,7 +1,17 @@
 `timescale 1ns / 1ps
-// Parameterized GoldenFloat ADD — works for GF4 (1S+1E+2M) through GF16 (1S+6E+9M).
-// Same algorithm as gf16_adder.v: align exp → effective add/sub → normalize → pack.
+// Parameterized GoldenFloat ADD — works for GF4 (1S+1E+2M) through GF64 (1S+24E+39M).
+// Same algorithm as gf16_adder.v: align exp -> effective add/sub -> normalize -> pack.
 // Round-half-to-even (RNE) with GRS (G=bit2, R=bit1, S=bit0). AXI-Stream handshake identical to gf16_adder.
+//
+// PIPELINE parameter (default 0 = backward compatible):
+//   PIPELINE=0 : single-cycle combinational datapath, registered output (1-cycle latency).
+//                Used by GF4..GF32 wrappers — these meet timing on XC7A200T CFGMCLK.
+//   PIPELINE=1 : 2-stage pipeline. Stage 1 = field extract + zero/denorm/NaN/Inf detect +
+//                effective exp + mantissa extend + barrel shift + sticky (registered).
+//                Stage 2 = add/sub + normalize + round + pack (registered). 2-cycle latency.
+//                in_ready = ~pipe_valid | (pipe_valid & ~out_valid_reg) — accept when the
+//                2-deep FIFO has space. Required for GF64 (43-bit shifter + 64-bit priority
+//                encoder too deep for CFGMCLK; silicon 70.1% pass without pipelining).
 module gf_adder_param #(
     parameter EXP_BITS  = 6,
     parameter MANT_BITS = 8,
@@ -11,7 +21,10 @@ module gf_adder_param #(
     //   (Inf/NaN): currently GF16 (gf16.t27:25,35,131). For GF6/8/12/20
     //   exp=all-ones is a FINITE max_value (gf8.t27:115-119) -> HAS_INF=0,
     //   overflow saturates to max-finite.
-    parameter HAS_INF   = 0
+    parameter HAS_INF   = 0,
+    // PIPELINE=1 splits the combinational path into 2 stages for wide formats (GF64).
+    // See header comment for details. Default 0 preserves all existing behavior.
+    parameter PIPELINE  = 0
 )(
     input  wire                    clk,
     input  wire                    rst,
@@ -212,22 +225,170 @@ module gf_adder_param #(
     // AXI-Stream output register
     reg [TOTAL-1:0] out_reg;
     reg             out_valid_reg;
+    // pipe_valid: stage-1 register occupancy (PIPELINE=1 only; held at 0 otherwise
+    // so the in_ready formula degrades to the original ~out_valid_reg | out_ready).
+    reg             pipe_valid;
 
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
-            out_reg       <= {TOTAL{1'b0}};
-            out_valid_reg <= 1'b0;
-        end else begin
-            if (out_valid_reg && out_ready)
-                out_valid_reg <= 1'b0;
-            if (in_valid && in_ready) begin
-                out_reg       <= result_packed;
-                out_valid_reg <= 1'b1;
+    generate
+        if (PIPELINE) begin : g_pipe
+            // ====== STAGE 1 REGISTERS (latched at posedge when accepting input) ======
+            // Capture everything phase-1 produces that stage 2 needs:
+            //   - datapath: mant_raw (post-align add/sub operand), same_sign, er, sr
+            //   - special-case flags + raw operands (for IEEE passthrough in stage 2)
+            reg [MANT_BITS+4:0] s1_mant_raw;
+            reg                 s1_same_sign;
+            reg [EXP_BITS-1:0]  s1_er;
+            reg                 s1_sr;
+            reg                 s1_a_zero, s1_b_zero;
+            reg                 s1_a_nan,  s1_b_nan;
+            reg                 s1_a_inf,  s1_b_inf;
+            reg                 s1_sa,     s1_sb;
+            reg [TOTAL-1:0]     s1_in_a,   s1_in_b;
+
+            // ====== STAGE 2 COMBINATIONAL: add/sub + normalize + round + pack ======
+            // Mirror of the PIPELINE=0 result_packed block but reading from s1_* regs.
+            // Special-case order (NaN > zero > Inf > normal) is preserved exactly.
+            reg [TOTAL-1:0]     result_packed_pipe;
+            reg [MANT_BITS+4:0] mw_p;
+            reg [EXP_BITS:0]    ew_p;
+            reg                 sg_p;
+            reg                 underflow_p;
+            reg [MANT_BITS+1:0] mant_rounded_p;
+            reg                 old_sticky_p;
+            integer i_p;
+
+            always @(*) begin
+                if (s1_a_nan || s1_b_nan)
+                    result_packed_pipe = {1'b0, {EXP_BITS{1'b1}}, {(MANT_BITS-1){1'b0}}, 1'b1};
+                else if (s1_a_zero && s1_b_zero)
+                    result_packed_pipe = (s1_sa && s1_sb) ? {1'b1, {(TOTAL-1){1'b0}}} : {TOTAL{1'b0}};
+                else if (s1_a_zero)
+                    result_packed_pipe = s1_in_b;
+                else if (s1_b_zero)
+                    result_packed_pipe = s1_in_a;
+                else if (s1_a_inf && s1_b_inf)
+                    result_packed_pipe = (s1_sa != s1_sb)
+                        ? {1'b0, {EXP_BITS{1'b1}}, {(MANT_BITS-1){1'b0}}, 1'b1}
+                        : {s1_sa,   {EXP_BITS{1'b1}}, {MANT_BITS{1'b0}}};
+                else if (s1_a_inf)
+                    result_packed_pipe = {s1_sa, {EXP_BITS{1'b1}}, {MANT_BITS{1'b0}}};
+                else if (s1_b_inf)
+                    result_packed_pipe = {s1_sb, {EXP_BITS{1'b1}}, {MANT_BITS{1'b0}}};
+                else begin
+                    sg_p = s1_sr; mw_p = s1_mant_raw; ew_p = {1'b0, s1_er}; underflow_p = 1'b0;
+                    if (s1_same_sign && mw_p[MANT_BITS+4]) begin
+                        old_sticky_p = mw_p[0];
+                        mw_p = mw_p >> 1;
+                        mw_p[0] = mw_p[0] | old_sticky_p;
+                        ew_p = ew_p + 1;
+                    end
+                    if (!s1_same_sign && mw_p != 0)
+                        for (i_p = 0; i_p < MANT_BITS+3; i_p = i_p + 1)
+                            if (!mw_p[MANT_BITS+3] && ew_p != 0) begin
+                                mw_p = mw_p << 1;
+                                ew_p = ew_p - 1;
+                            end
+                    if (!s1_same_sign && mw_p != 0 && ew_p == 0) begin
+                        old_sticky_p = mw_p[0];
+                        mw_p = mw_p >> 1;
+                        mw_p[0] = mw_p[0] | old_sticky_p;
+                    end
+                    if (mw_p[2] && (mw_p[1] || mw_p[0] || mw_p[3]))
+                        mant_rounded_p = mw_p[MANT_BITS+3:3] + 1;
+                    else
+                        mant_rounded_p = mw_p[MANT_BITS+3:3];
+                    if (mant_rounded_p[MANT_BITS+1]) begin
+                        mant_rounded_p = mant_rounded_p >> 1;
+                        ew_p = ew_p + 1;
+                    end
+                    if (s1_same_sign && !mw_p[MANT_BITS+3] && ew_p <= 1'b1)
+                        ew_p = {EXP_BITS{1'b0}};
+                    if (mw_p == 0 || underflow_p)
+                        result_packed_pipe = {TOTAL{1'b0}};
+                    else if (HAS_INF && (ew_p[EXP_BITS] || (ew_p[EXP_BITS-1:0] == {EXP_BITS{1'b1}})))
+                        result_packed_pipe = {sg_p, {EXP_BITS{1'b1}}, {MANT_BITS{1'b0}}};
+                    else if (!HAS_INF && ew_p[EXP_BITS])
+                        result_packed_pipe = {sg_p, {EXP_BITS{1'b1}}, {MANT_BITS{1'b1}}};
+                    else if (ew_p == {EXP_BITS{1'b0}})
+                        result_packed_pipe = {sg_p, {EXP_BITS{1'b0}}, mant_rounded_p[MANT_BITS-1:0]};
+                    else
+                        result_packed_pipe = {sg_p, ew_p[EXP_BITS-1:0], mant_rounded_p[MANT_BITS-1:0]};
+                end
+            end
+
+            // ====== STAGE 1 + OUTPUT REGISTER CONTROL ======
+            // 2-deep registered pipeline with AXI-Stream backpressure.
+            //   s2_writable = stage 2 can accept stage-1's value this cycle
+            //               = ~out_valid_reg | out_ready
+            //   in_ready    = ~pipe_valid | (pipe_valid & ~out_valid_reg)
+            //                (spec formula — conservative; yields 1-cycle bubble when
+            //                 both stages fill, irrelevant for UART-driven GF64 frames)
+            always @(posedge clk or posedge rst) begin
+                if (rst) begin
+                    out_reg       <= {TOTAL{1'b0}};
+                    out_valid_reg <= 1'b0;
+                    pipe_valid    <= 1'b0;
+                end else begin
+                    // ---- Stage 2 (output register) ----
+                    if (pipe_valid && (~out_valid_reg | out_ready)) begin
+                        // Stage 2 <- stage 1 result
+                        out_reg       <= result_packed_pipe;
+                        out_valid_reg <= 1'b1;
+                    end else if (out_valid_reg && out_ready) begin
+                        // Stage 2 drained, no replacement from stage 1
+                        out_valid_reg <= 1'b0;
+                    end
+                    // else: stage 2 holds (backpressure)
+
+                    // ---- Stage 1 ----
+                    if (in_valid && (~pipe_valid | ~out_valid_reg)) begin
+                        // Accept new operands (in_ready=1 path)
+                        s1_mant_raw  <= mant_raw;
+                        s1_same_sign <= same_sign;
+                        s1_er        <= er;
+                        s1_sr        <= sr;
+                        s1_a_zero    <= a_zero;
+                        s1_b_zero    <= b_zero;
+                        s1_a_nan     <= a_nan;
+                        s1_b_nan     <= b_nan;
+                        s1_a_inf     <= a_inf;
+                        s1_b_inf     <= b_inf;
+                        s1_sa        <= sa;
+                        s1_sb        <= sb;
+                        s1_in_a      <= in_a;
+                        s1_in_b      <= in_b;
+                        pipe_valid   <= 1'b1;
+                    end else if (pipe_valid && (~out_valid_reg | out_ready)) begin
+                        // Stage 1 drained into stage 2, no new input
+                        pipe_valid <= 1'b0;
+                    end
+                    // else: stage 1 holds (backpressure)
+                end
+            end
+        end else begin : g_nopipe
+            // ====== ORIGINAL PIPELINE=0 OUTPUT REGISTER (unchanged) ======
+            always @(posedge clk or posedge rst) begin
+                if (rst) begin
+                    out_reg       <= {TOTAL{1'b0}};
+                    out_valid_reg <= 1'b0;
+                    pipe_valid    <= 1'b0;
+                end else begin
+                    if (out_valid_reg && out_ready)
+                        out_valid_reg <= 1'b0;
+                    if (in_valid && in_ready) begin
+                        out_reg       <= result_packed;
+                        out_valid_reg <= 1'b1;
+                    end
+                end
             end
         end
-    end
+    endgenerate
 
-    assign in_ready  = ~out_valid_reg | out_ready;
+    // in_ready: spec formula when PIPELINE=1, original when PIPELINE=0.
+    // (Elaboration-time constant fold — synthesizer picks one branch.)
+    assign in_ready  = PIPELINE
+        ? (~pipe_valid | (pipe_valid & ~out_valid_reg))
+        : (~out_valid_reg | out_ready);
     assign out_valid = out_valid_reg;
     assign out_y     = out_reg;
 `ifdef FORMAL
