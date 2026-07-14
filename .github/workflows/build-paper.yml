@@ -1,0 +1,38 @@
+name: Build Paper PDF
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'research/arxiv_submission/**'
+      - '.github/workflows/build-paper.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-bibtex-extra
+
+      - name: Compile paper
+        run: |
+          cd research/arxiv_submission
+          pdflatex -interaction=nonstopmode paper.tex
+          bibtex paper
+          pdflatex -interaction=nonstopmode paper.tex
+          pdflatex -interaction=nonstopmode paper.tex
+
+      - name: Verify PDF exists
+        run: |
+          ls -la research/arxiv_submission/paper.pdf
+          file research/arxiv_submission/paper.pdf
+
+      - name: Upload PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-pdf
+          path: research/arxiv_submission/paper.pdf

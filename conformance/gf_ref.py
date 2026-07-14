@@ -343,3 +343,30 @@ def gf_mul(fmt: GFFormat, a_raw: int, b_raw: int) -> int:
     # т.к. value = a*b имеет знак sa^sb. Денормал-произведения обрабатываются
     # gradual-underflow веткой encode() (НЕ flush-to-zero — отличие от старой gf16-спеки).
     return encode(fmt, a * b)
+
+
+# -------------------- SELF-TEST --------------------
+
+if __name__ == "__main__":
+    ok = 0
+    for name, fmt in sorted(FORMATS.items()):
+        if fmt.width > 32:
+            continue  # skip wide formats (slow Fraction)
+        # Zero
+        assert gf_add(fmt, 0, 0) == 0, f"{name}: 0+0 != 0"
+        # -0 + 0 = +0
+        assert gf_add(fmt, fmt.neg_zero, 0) == 0, f"{name}: -0+0 != +0"
+        # Round-trip 0
+        assert encode(fmt, decode(fmt, 0)) == 0, f"{name}: round-trip 0 failed"
+        # For bias > 0: test 1.0 + 0 = 1.0
+        if fmt.bias > 0:
+            one = fmt.bias << fmt.mant_bits
+            assert gf_add(fmt, one, 0) == one, f"{name}: 1+0 != 1"
+            assert gf_add(fmt, one, one) != one, f"{name}: 1+1 == 1"
+        ok += 1
+    # Wide formats: quick check only
+    for name in ["gf64", "gf128", "gf256"]:
+        fmt = FORMATS[name]
+        assert gf_add(fmt, 0, 0) == 0, f"{name}: 0+0 != 0"
+        ok += 1
+    print(f"SELF-TEST: PASS ({ok} formats: zero/-0+0/round-trip/identity)")

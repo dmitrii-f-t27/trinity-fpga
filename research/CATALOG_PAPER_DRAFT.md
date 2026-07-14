@@ -139,7 +139,7 @@ The decodable catalog reduces to four parameterized templates:
 
 - **Tier E (silicon):** CI run + bitstream SHA-256 + UART log published.
 - **Tier C (self-report only):** zero remaining in this benchmark.
-- **Structural formats:** 15 of 83 are structural-by-design (parametric,
+- **Structural formats:** ~10 of 83 are structural-by-design (no decode law — unreachable), 2 are routing-pending (takum32/64, transcendental decode), and 3 are single-witness (self-consistent but lacking independent oracle).
   block-scaled, non-S:E:M). They are reported honestly as such, not forced into
   bit-exact boxes.
 
@@ -328,8 +328,8 @@ numbers on closed flows; this work contributes breadth on an open flow.
    downstream DePIN/attestation use; reproducible-builds discipline is required
    and not yet formally certified.
 
-5. **Structural formats.** 15 of 83 are structural-by-design (parametric,
-   block-scaled, non-S:E:M) and are honestly reported as such rather than forced
+5. **Structural formats.** ~10 of 83 are structural-by-design (no decode law),
+   2 routing-pending (takum32/64), 3 single-witness. These are honestly
    into bit-exact boxes. E8M0 is the shared-exponent component of Microscaling,
    not a standalone catalog row — the canonical count is 83 [erratum of
    arXiv:2606.09686].
