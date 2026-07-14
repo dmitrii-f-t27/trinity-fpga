@@ -246,8 +246,9 @@ The decodable catalog reduces to four parameterized templates:
 \item \textbf{Truncated-multiply}---Mitchinson--Smith sticky-OR truncation that
   brings wide carry-chain products below the openXC7 routing ceiling. takum64's
   119-bit and 140-bit products fail across 32 seeds; truncation to $94 + 72$
-  bits routes and is strictly more correct (2 fails vs 5 on a 4\,848-vector
-  stress set, zero regressions).
+  bits was attempted but also failed to route on all 8 nextpnr seeds
+  (CI run, 2026-07-04). The truncated decode is correct in simulation
+  (1-ULP residual on 4\,848-vector stress set) but has no silicon cell.
 \end{enumerate}
 
 \subsection{Tier definitions}
@@ -443,7 +444,7 @@ Datapath & Width & Routes? & Why \\
 Decimal128 decode (table $\times$ constant) & 336-bit & $\checkmark$ & wide signal is a \textbf{table}, not a carry chain \\
 GF16 ADD/MUL & 16-bit & $\checkmark$ & narrow; CARRY4 chains fit \\
 Takum64 decode, \emph{original} (119 + 140-bit multiply) & 119/140-bit & $\times$ (32/32 seeds fail) & wide \textbf{carry-chain multiply} saturates the router \\
-Takum64 decode, \emph{truncated} (94 + 72-bit, sticky-OR) & 94/72-bit & $\checkmark$ & below the openXC7 routing ceiling; strictly more correct (2 fails vs 5) \\
+Takum64 decode, \emph{truncated} (94 + 72-bit, sticky-OR) & 94/72-bit & $\times$ (8/8 seeds fail) & attempted; correct in simulation but failed to route \\
 \bottomrule
 \end{tabular}
 \end{table}

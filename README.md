@@ -19,6 +19,25 @@ Tier-E = rigorous evidence: dedicated proof post, hardware IDCODE + run ID, bit-
 
 ## Quick Start
 
+### Reproduce results (no hardware required)
+
+```bash
+# Run all 12 oracle self-tests (72 formats)
+make oracle
+
+# Cross-validate oracles (7 format families)
+make repro
+
+# Run accuracy benchmark (7 formats vs exact Fraction oracle)
+make bench
+
+# Measure GF16 LUT count (requires yosys)
+make lut
+# Expected: ~491 LUT (86 LUT2 + 143 LUT3 + 96 LUT4 + 78 LUT5 + 88 LUT6)
+```
+
+### Build a bitstream (requires Docker + AX7203 board)
+
 Build a bitstream with the openXC7 Docker image, flash, and test:
 
 ```bash

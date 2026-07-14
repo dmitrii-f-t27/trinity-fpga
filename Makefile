@@ -116,3 +116,27 @@ stoch_tb: synth_check_no_star_stoch
 	iverilog -g2012 -o /tmp/stoch_tb $(STOCH_RTL) $(STOCH_TB) && \
 	vvp /tmp/stoch_tb | tee /tmp/stoch_tb.log && \
 	grep -q 'ALL 10/10 PASS' /tmp/stoch_tb.log && echo '\nstoch_tb: 10/10 PASS ✓'
+
+# ─── Reproducibility targets (Wave 15) ───
+.PHONY: oracle repro bench lut
+
+# Run all 12 oracle self-tests
+oracle:
+	@echo "=== Running all oracle self-tests ==="
+	@for f in conformance/*_ref.py; do \
+	  echo -n "  $$(basename $$f): "; \
+	  python3 $$f 2>&1 | grep -o 'SELF-TEST: PASS.*' || echo "NO TEST"; \
+	done
+
+# Cross-validate oracles against each other
+repro: oracle
+	@echo "=== Cross-validation ==="
+	@python3 conformance/cross_validate_oracles.py
+
+# Run accuracy benchmark
+bench:
+	@python3 research/format_benchmark.py
+
+# Measure GF16 LUT (requires yosys)
+lut:
+	@yosys -p "read_verilog fpga/openxc7-synth/gf_adder_param.v fpga/openxc7-synth/gf16_param_top.v; synth_xilinx -flatten -abc9 -nocarry -arch xc7; stat" 2>&1 | grep -E "LUT[2-6] " | head -5
