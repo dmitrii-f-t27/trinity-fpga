@@ -553,6 +553,20 @@ corner. At other widths, the $\varphi$-rule is increasingly
 conservative (selecting more exponent bits than strictly necessary),
 which explains why it remains robust for $W \geq 14$.
 
+\paragraph{MRE minimization vs.\ robustness.}
+A concurrent work, WINT~\cite{lee2026wint}, optimizes Mean Relative Error
+(MRE) across configurable $(e, m)$ splits and recommends $e{=}2$ for
+$W \geq 12$. This recommendation is consistent with MRE theory---fewer
+exponent bits yield finer mantissa resolution near unity, reducing average
+relative error on uniformly distributed inputs. However, $e{=}2$ provides
+only $\sim$4 decades of dynamic range, which would fail our dynamic-range
+workload catastrophically (losing $\geq$7/11 values in the
+$10^{-10}$--$10^{10}$ sweep). This illustrates that MRE minimization and
+robustness are \emph{different objectives}: a format can achieve low MRE
+yet fail catastrophically on workloads requiring wide dynamic range. Our
+robustness criterion complements MRE-based selection by identifying the
+\emph{failure boundary} rather than the statistical optimum.
+
 \subsection{Training stability analysis}\label{sec:training}
 
 The robustness analysis of \S\ref{sec:robustness} scores formats on whether they
@@ -980,6 +994,11 @@ fabric (Artix-7, \$150). The theses agree; the evidence is complementary.
 This work is \textbf{complementary}, not competitive: Hunhold publishes formats
 and (for takum) a closed-flow codec; PERI and Aggarwal publish single-family
 FPGA numbers on closed flows; this work contributes breadth on an open flow.
+
+Lee et al.\ (WINT,~\cite{lee2026wint}) optimize configurable integer-exponent
+formats for MRE, arriving at a different $E/M$ recommendation ($e{=}2$) than
+our robustness-driven analysis ($E{\geq}6$); the two approaches optimize
+different objectives (statistical error vs.\ worst-case survival).
 
 The IEEE~P3109 draft~\cite{fitzgibbon2026p3109} defines parameterized
 ML float formats by $(N, e, m)$. GoldenFloat maps directly to P3109
