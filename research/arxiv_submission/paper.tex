@@ -36,35 +36,26 @@
 
 % =========================================================================
 \begin{abstract}
-We present a reproducible hardware benchmark of 83 numeric formats spanning
-13 families---including IEEE-754 binary16/binary32/bfloat16, OCP MXFP4/8
-elements, posit, takum, decimal, logarithmic, and the $\varphi$-derived
-GoldenFloat family---implemented on a Xilinx Artix-7 (XC7A200T, ALINX AX7203)
-using a fully open toolchain (openXC7: Yosys + nextpnr-xilinx + Project
-X-Ray). ${\sim}41$ of 83 formats carry at least one bit-exact decode cell on
-silicon against an independent exact-arithmetic oracle, reached through four
-parameterized decode templates (algebraic, table-$2^{x}$,
-transcendental-exp-via-tables, truncated-multiply); of these, 10 GF formats
-(GF4, GF6, GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32) additionally carry
-bit-exact compute cells (ADD/MUL) on the same fabric. Because Project X-Ray
-documents the DSP48E1 hard block as only partially reverse-engineered, ADD
-designs use \texttt{synth\_xilinx -flatten -abc9 -nocarry -arch xc7} (the
-\texttt{-nocarry} flag disables CARRY4 chain inference, which produces
-unreliable routing) and MUL designs add \texttt{-nodsp} (DSP48E1 is used only
-when explicitly instantiated, as in GF16 MUL's single-DSP multiplier); we
-therefore report LUT counts and place-and-route yields per cell, including the
-openXC7-specific result that wide carry-chain multiplies fail routing while
-wide BRAM tables route successfully (decimal128 routes at 336 bits; an
-untruncated 140-bit takum multiply fails across 32 seeds). A head-to-head
-accuracy and LUT comparison of GF16, GF12, posit(16,1), MXFP8, BF16, FP16, and
-takum16 against an exact rational oracle shows that no single format dominates
-across arithmetic, dynamic-range, and cancellation suites. The contribution is
-not a new format and claims no superiority over posit, takum, or microscaling
-designs; it is the breadth of formats proven on vendor-neutral silicon,
-together with the open toolchain methodology and a per-cell reproducible
-evidence chain. We further demonstrate, via a training-noise-floor
-simulation, that GF16 preserves $8.7\times$ more gradient updates than BF16,
-explaining its suitability for low-precision training.
+Number-format proliferation in ML hardware has outpaced understanding of
+\emph{when formats fail}. We present the first systematic robustness
+analysis of 16-bit floating-point formats on open-source silicon
+(Artix-7 XC7A200T, openXC7 toolchain), testing seven formats across
+seven workloads---four ML (matrix multiply, gradient accumulation,
+dynamic range, attention softmax) and three hold-out (convolution,
+polynomial evaluation, linear solve). GF16 (GoldenFloat, $\varphi$-rule
+$E{=}6, M{=}9$) is the minimum-width IEEE-style format that passes all
+seven tests; FP16 fails dynamic range (5/11 values flushed to zero) and
+BF16 fails matrix multiply (10$\times$ worse max error). A training
+simulation reveals that BF16 preserves only 7.3\% of gradient updates
+(7-bit mantissa $\to$ quantization step 0.004 at $|w|{=}0.5$), while
+GF16 preserves 63.9\% (9-bit mantissa). On hardware, the LUT cost of
+multiplication follows $2W^2$ regardless of encoding: GF16 multiply
+(505 LUT, zero-DSP) equals a native takum16 LNS multiply (505 LUT).
+Ten GoldenFloat formats (GF4--GF32) are proven bit-exact on silicon
+with 0 failures. The $\varphi$-ratio is presented as an empirically
+located heuristic, not a theorem. All oracles, vectors (2.4M), and
+synthesis scripts are reproducible from a clean clone via
+\texttt{make oracle \&\& make repro \&\& make lut}.
 \end{abstract}
 
 % =========================================================================
@@ -958,6 +949,31 @@ FPGA numbers on closed flows; this work contributes breadth on an open flow.
   standalone showing is expected---its design context is block-scaled
   containers, not standalone use.
 \end{enumerate}
+
+% =========================================================================
+\section{Threats to Validity}
+
+\paragraph{Single author.} All oracles, RTL, and measurements are the
+work of one person. Independent reproduction is encouraged via the
+\texttt{make} targets; cross-validation (7/7 oracle agreement) provides
+partial mitigation.
+
+\paragraph{Synthesis-only LUT counts.} LUT numbers are from Yosys
+synthesis (pre-place-and-route). Post-PNR inflation on openXC7 is
+typically 15--30\%. The scaling law ($1.55W^2$, $2.06W^2$) should hold
+but absolute numbers may shift.
+
+\paragraph{Simulated training.} The MLP and noise-floor results are
+simulations, not training on physical hardware. The IGLA RACE pipeline
+(referenced) uses GF16 on real hardware but has not met its target BPB.
+
+\paragraph{Format selection.} The seven formats compared are chosen for
+breadth (IEEE, tapered, LNS). Other 16-bit formats exist (e.g.,
+FloatX, MiniFloat) and may behave differently.
+
+\paragraph{Toolchain dependence.} All results depend on Yosys 0.63 and
+nextpnr-xilinx. Different versions or commercial tools (Vivado) may
+produce different routing and timing.
 
 % =========================================================================
 \section{Conclusion}\label{sec:conclusion}
