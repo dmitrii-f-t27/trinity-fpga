@@ -105,6 +105,17 @@ Timeline:
 46. **Zero citations on both papers** — 3-6 weeks old, no community uptake
 47. **Biggest competitor**: Hunhold takum (2404.18603 + FPGA codec 2408.10594)
 48. **EXISTENTIAL risk**: OCP-MX (9 citations, silicon shipping) + IEEE P3109 (standards-track)
+49. **GF16 = minimum 4/4 ROBUST** — matmul + gradient + dynamic range + attention all pass
+50. **FP16 fails dynamic range** (5/11 values lost), **BF16 fails matmul** (10× worse)
+51. **φ-rule finds the balance point** where neither E nor M is the bottleneck
+52. **LUT = 2.3 × W²** — encoding-independent information floor (GF16=takum16=505)
+53. **505 = 505** — GF16 MUL ≡ takum16 MUL in zero-DSP regime (LNS re-encode = mantissa multiply)
+54. **Three tiers**: ternary 52 LUT → GF16 505 LUT → takum16 505 LUT (all on one FPGA)
+55. **IGLA RACE**: GF16 used in trios-trainer-igla, champion BPB=2.5329, target <1.50
+56. **BF16 loses 92.7% gradient updates** (7-bit mantissa → step 0.0039 at w=0.5)
+57. **GF16 preserves 63.9% updates** (9-bit mantissa → step 0.00098) — 8.7× more than BF16
+58. **Training ranking**: posit16 (90.8%) > takum16 (89.6%) > FP16 (80.5%) > GF16 (63.9%) >> BF16 (7.3%) >> GF8 (0%)
+59. **Paper has §4.4 Training Stability** — noise floor table + gradient accumulation + IGLA connection
 49. **GF16 = minimum 16-bit format with 4/4 robustness** (matmul+grad+range+attn) — the φ-sweet spot
 50. **FP16 fails dynamic range** (loses 5/11 values to zero), **BF16 fails matmul** (10× worse max error), **GF16 passes all** → minimum robust IEEE-style format
 51. **φ-rule finds the E/M balance point** where neither exponent nor mantissa is the bottleneck (E/M → 1/φ ≈ 0.618: GF16 = 6/9 = 0.667)
