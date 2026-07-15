@@ -116,6 +116,14 @@ FORMATS = {
     "gf96": GFFormat("gf96", exp_bits=36, mant_bits=59, bias=(1 << 35) - 1),
     "gf128": GFFormat("gf128", exp_bits=49, mant_bits=78, bias=281474976710655),
     "gf256": GFFormat("gf256", exp_bits=97, mant_bits=158, bias=79228162514264337593543950335),
+    # Canonical φ-rule family — ultra-wide formats.
+    # gf512: E = round(511/φ²) = 195, M = 511-195 = 316, bias = 2^194 - 1.
+    # gf1024: E = round(1023/φ²) = 391, M = 1023-391 = 632, bias = 2^390 - 1.
+    # Self-test/generation only exercise edge cases (0, ±0): arbitrary raws
+    # decode to pow2(≈2^195) which is unconstructible. Value-driven generation
+    # stays safe because encoded raws carry small unbiased exponents.
+    "gf512":  GFFormat("gf512",  exp_bits=195, mant_bits=316, bias=(1 << 194) - 1),
+    "gf1024": GFFormat("gf1024", exp_bits=391, mant_bits=632, bias=(1 << 390) - 1),
 }
 
 
@@ -367,9 +375,13 @@ if __name__ == "__main__":
             assert gf_add(fmt, one, 0) == one, f"{name}: 1+0 != 1"
             assert gf_add(fmt, one, one) != one, f"{name}: 1+1 == 1"
         ok += 1
-    # Wide formats: quick check only
-    for name in ["gf48", "gf64", "gf96", "gf128", "gf256"]:
+    # Wide / ultra-wide formats: edge-case only (0+0=0, -0+0=+0). Random raws
+    # would decode to pow2(≈2^195) for gf512/gf1024 — unconstructible; the
+    # value-driven generator keeps generation safe, but the self-test sticks
+    # to zero-identities which never touch the exponent field.
+    for name in ["gf48", "gf64", "gf96", "gf128", "gf256", "gf512", "gf1024"]:
         fmt = FORMATS[name]
         assert gf_add(fmt, 0, 0) == 0, f"{name}: 0+0 != 0"
+        assert gf_add(fmt, fmt.neg_zero, 0) == 0, f"{name}: -0+0 != +0"
         ok += 1
     print(f"SELF-TEST: PASS ({ok} formats: zero/-0+0/round-trip/identity)")

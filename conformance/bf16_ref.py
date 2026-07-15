@@ -46,7 +46,100 @@ FORMATS = {
     "bfloat16": BFFormat("bfloat16", exp_bits=8, mant_bits=7,  bias=127),
     "bfloat24": BFFormat("bfloat24", exp_bits=8, mant_bits=15, bias=127),
     "bfloat32": BFFormat("bfloat32", exp_bits=8, mant_bits=23, bias=127),
+    # AFP (Adaptive Floating Point, Tambe 2020): [S:1][E:8][M:7] = 16 bits,
+    # identical layout to bfloat16. The per-tensor "shift" adjusts the shared
+    # exponent bias (effective_bias = bias - shift). At shift=0 AFP is
+    # bit-identical to bfloat16 — which is exactly what the AX7203 decode
+    # cell implements (pure bf16 bit-pad, see corona_decode_afp_ax7203.v).
+    # Conformance vectors are therefore generated at shift=0; shift-aware
+    # decode/encode/add/mul are provided below as afp_* helpers.
+    "afp":      BFFormat("afp",     exp_bits=8, mant_bits=7,  bias=127),
 }
+
+
+# -------------------- AFP shift-aware helpers --------------------
+# AFP shares the 16-bit bfloat16 layout but applies a per-tensor integer
+# "shift" that rescales the exponent bias: value = significand * 2^(exp - (bias - shift)).
+# shift=0 -> AFP == bfloat16 (the conformance baseline). These helpers carry
+# the shift explicitly for callers that model a non-zero tensor shift.
+
+AFP = FORMATS["afp"]
+
+
+def afp_decode(raw: int, shift: int = 0):
+    """Decode AFP raw at the given tensor shift. shift=0 == bf16 decode."""
+    if shift == 0:
+        return decode(AFP, raw)
+    raw &= AFP.mask
+    sign = (raw >> AFP.sign_shift) & 1
+    exp = (raw >> AFP.mant_bits) & AFP.exp_max
+    mant = raw & AFP.mant_max
+    eff_bias = AFP.bias - shift
+    if exp == AFP.exp_max:
+        if mant == 0:
+            return Special("inf", sign)
+        return Special("nan")
+    if exp == 0:
+        if mant == 0:
+            return Fraction(0)
+        val = Fraction(mant, 1 << AFP.mant_bits) * pow2(1 - eff_bias)
+    else:
+        val = (1 + Fraction(mant, 1 << AFP.mant_bits)) * pow2(exp - eff_bias)
+    return -val if sign else val
+
+
+def afp_encode(value, shift: int = 0) -> int:
+    """Encode a value to AFP raw at the given tensor shift. shift=0 == bf16 encode."""
+    if shift == 0:
+        return encode(AFP, value)
+    # Rescale into the bf16 domain: a value v at bias' = bias - shift encodes
+    # the same bit-pattern as v * 2^(-shift) at the original bias. Encode the
+    # rescaled value with the unmodified bf16 encoder.
+    if isinstance(value, Special):
+        return encode(AFP, value)
+    v = Fraction(value)
+    if shift > 0:
+        v = v / pow2(shift)
+    else:
+        v = v * pow2(-shift)
+    return encode(AFP, v)
+
+
+def afp_add(a_raw: int, b_raw: int, shift: int = 0) -> int:
+    a = afp_decode(a_raw, shift)
+    b = afp_decode(b_raw, shift)
+    if isinstance(a, Special) and a.kind == "nan": return AFP.quiet_nan
+    if isinstance(b, Special) and b.kind == "nan": return AFP.quiet_nan
+    if isinstance(a, Special) and a.kind == "inf":
+        if isinstance(b, Special) and b.kind == "inf" and b.sign != a.sign:
+            return AFP.quiet_nan
+        return AFP.neg_inf if a.sign else AFP.pos_inf
+    if isinstance(b, Special) and b.kind == "inf":
+        return AFP.neg_inf if b.sign else AFP.pos_inf
+    sa = (a_raw >> AFP.sign_shift) & 1
+    sb = (b_raw >> AFP.sign_shift) & 1
+    if a == 0 and b == 0:
+        return AFP.neg_zero if (sa == 1 and sb == 1) else AFP.pos_zero
+    return afp_encode(a + b, shift)
+
+
+def afp_mul(a_raw: int, b_raw: int, shift: int = 0) -> int:
+    a = afp_decode(a_raw, shift)
+    b = afp_decode(b_raw, shift)
+    sa = (a_raw >> AFP.sign_shift) & 1
+    sb = (b_raw >> AFP.sign_shift) & 1
+    rsign = sa ^ sb
+    if isinstance(a, Special) and a.kind == "nan": return AFP.quiet_nan
+    if isinstance(b, Special) and b.kind == "nan": return AFP.quiet_nan
+    a_inf = isinstance(a, Special) and a.kind == "inf"
+    b_inf = isinstance(b, Special) and b.kind == "inf"
+    if a_inf or b_inf:
+        if a == 0 or b == 0:
+            return AFP.quiet_nan
+        return AFP.neg_inf if rsign else AFP.pos_inf
+    if a == 0 or b == 0:
+        return AFP.neg_zero if rsign else AFP.pos_zero
+    return afp_encode(a * b, shift)
 
 
 class Special:
@@ -222,7 +315,53 @@ def _selftest():
         for f in failures[:20]:
             print("  " + f)
         return 1
-    print("SELF-TEST: PASS (bfloat: zero/unity/inf/nan/1+1/x+0)")
+    # AFP shift sanity: shift=0 must match bf16 bit-for-bit; non-zero shift
+    # rescales the shared exponent bias (eff_bias = bias - shift, i.e. a raw
+    # held under shift k represents value * 2^k vs the same bits at shift 0).
+    afp_fmt = FORMATS["afp"]
+    bf16_fmt = FORMATS["bfloat16"]
+
+    def _same(a, b):
+        if isinstance(a, Special) or isinstance(b, Special):
+            return isinstance(a, Special) and isinstance(b, Special) \
+                and a.kind == b.kind and a.sign == b.sign
+        return a == b
+
+    # shift=0: AFP decode/encode == bf16 decode/encode for every raw.
+    for raw in (0, bf16_fmt.pos_zero, bf16_fmt.pos_inf,
+                bf16_fmt.neg_inf, bf16_fmt.quiet_nan,
+                encode(bf16_fmt, Fraction(1)), encode(bf16_fmt, Fraction(2)),
+                encode(bf16_fmt, Fraction(1, 2)), encode(bf16_fmt, Fraction(-3))):
+        check(_same(afp_decode(raw, 0), decode(bf16_fmt, raw)),
+              f"afp: shift0 decode raw=0x{raw:x}")
+        # encode(0) always yields +0, so skip neg_zero for the round-trip.
+        if raw != bf16_fmt.neg_zero:
+            check(afp_encode(decode(bf16_fmt, raw), 0) == raw,
+                  f"afp: shift0 round-trip raw=0x{raw:x}")
+    # neg_zero still decodes to zero at shift 0.
+    check(afp_decode(bf16_fmt.neg_zero, 0) == 0, "afp: neg_zero decodes to 0")
+
+    # Round-trip at non-zero shifts: decode(encode(v, k), k) == v.
+    for k in (-3, -1, 1, 4):
+        for v in (Fraction(1), Fraction(2), Fraction(1, 2), Fraction(-3),
+                  Fraction(7, 4), Fraction(0)):
+            raw = afp_encode(v, k)
+            check(afp_decode(raw, k) == v, f"afp: round-trip v={v} k={k}")
+
+    # Cross-check: a raw encoded at shift k decodes under plain bf16 to v/2^k.
+    for k in (1, 2, -1):
+        raw = afp_encode(Fraction(1), k)
+        check(decode(bf16_fmt, raw) == Fraction(1, 1 << k) if k > 0
+              else decode(bf16_fmt, raw) == Fraction(1 << (-k)),
+              f"afp: encode 1.0 at shift={k} maps to bf16 2^(-{k})")
+
+    check(afp_add(0, 0, 0) == 0, "afp: 0+0=0 shift0")
+    if failures:
+        print("SELF-TEST: FAIL (afp: %d)" % len(failures))
+        for f in failures[-10:]:
+            print("  " + f)
+        return 1
+    print("SELF-TEST: PASS (bfloat+afp: zero/unity/inf/nan/1+1/x+0/shift)")
     return 0
 
 

@@ -79,7 +79,10 @@ is not, and is not claimed to be, a floating-point accuracy theorem.
 ### 2.5 The 83-format catalog
 
 The single source of truth is `formats_catalog.t27` in the gHashTag/t27
-repository: 83 formats in 13 families, each with a bit-exact conformance pack
+repository: 83 formats in 13 families. Of these, **72 of 83** carry an
+independent exact-arithmetic conformance oracle (15 reference modules emitting
+bit-exact ADD/MUL vectors); the remaining 11 are structural-by-design
+(parametric, block-scaled, or container formats with no single S:E:M decode law)
 [arXiv:2606.09686]. The catalog is a registry-filling artifact: it introduces no
 new formats and makes no superiority claims. An earlier draft reported 84; the
 erratum corrects this — E8M0 is the shared-exponent component of Microscaling,
@@ -139,9 +142,11 @@ The decodable catalog reduces to four parameterized templates:
 
 - **Tier E (silicon):** CI run + bitstream SHA-256 + UART log published.
 - **Tier C (self-report only):** zero remaining in this benchmark.
-- **Structural formats:** ~10 of 83 are structural-by-design (no decode law — unreachable), 2 are routing-pending (takum32/64, transcendental decode), and 3 are single-witness (self-consistent but lacking independent oracle).
+- **Structural formats:** 11 of 83 are structural-by-design (no decode law — unreachable; parametric,
   block-scaled, non-S:E:M). They are reported honestly as such, not forced into
-  bit-exact boxes.
+  bit-exact boxes. The remaining 72 carry an independent exact-arithmetic
+  conformance oracle (15 reference modules); the last three concrete oracle
+  gaps (AFP, GF512, GF1024) were closed in this revision.
 
 ### 3.5 Accuracy benchmark methodology
 
@@ -328,9 +333,11 @@ numbers on closed flows; this work contributes breadth on an open flow.
    downstream DePIN/attestation use; reproducible-builds discipline is required
    and not yet formally certified.
 
-5. **Structural formats.** ~10 of 83 are structural-by-design (no decode law),
-   2 routing-pending (takum32/64), 3 single-witness. These are honestly
-   into bit-exact boxes. E8M0 is the shared-exponent component of Microscaling,
+5. **Structural formats.** 11 of 83 are structural-by-design (no decode law),
+   reported honestly as such rather than forced into bit-exact boxes. The other
+   72 carry an independent exact-arithmetic conformance oracle (15 reference
+   modules); the last three concrete oracle gaps (AFP, GF512, GF1024) were
+   closed in this revision. E8M0 is the shared-exponent component of Microscaling,
    not a standalone catalog row — the canonical count is 83 [erratum of
    arXiv:2606.09686].
 

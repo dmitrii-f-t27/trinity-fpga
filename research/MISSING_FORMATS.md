@@ -2,7 +2,7 @@
 
 **AGENT F (conformance) finding.** Verified 2026-07-15 against:
 - SSOT catalog `specs/numeric/formats_catalog.t27` (repo `gHashTag/t27`, master — 83 `// CATALOG: id=` records, no dupes; family count 13).
-- The 12 oracle modules in `conformance/`: `gf_ref`, `tekum_ref`, `posit_ref`, `bf16_ref`, `fp8_ref`, `mxfp_ref`, `takum_ref`, `decimal_ref`, `ieee_ref`, `legacy_ref`, `lns_ref`, `int_ref` (72 `FORMATS` entries total).
+- The 15 oracle modules in `conformance/`: `gf_ref`, `tekum_ref`, `posit_ref`, `bf16_ref`, `fp8_ref`, `mxfp_ref`, `takum_ref`, `decimal_ref`, `ieee_ref`, `legacy_ref`, `lns_ref`, `int_ref`, `nf4_ref`, `gfternary_ref`, `extended_ref` (84 `FORMATS` entries total).
 
 > Companion to `conformance/generate_vectors.py` (now emits both `{format}_add.json` and `{format}_mul.json`). The generator's per-format seeds are op-independent, so ADD and MUL vectors exercise the **same** `(a, b)` input pairs.
 
@@ -13,21 +13,21 @@
 | Quantity | Count | Notes |
 |---|---|---|
 | Catalog rows (SSOT) | **83** | `formats_catalog.t27`, 13 families |
-| Oracle format-names (12 modules) | **72** | what `generate_vectors.py` iterates |
-| Catalog rows **covered** by an oracle | **60 / 83** | strict, by id (incl. `mxfp8` ← `mxfp8_e4m3`) |
-| Catalog rows **without** an oracle | **23** | itemised in §3 |
-| …of which are **structural / parametric / container** (no single S:E:M decode law) | **11** | §3A — correctly excluded |
-| …of which are **concrete, addable in principle** | **12** | §3B — real gaps |
+| Oracle format-names (15 modules) | **84** | what `generate_vectors.py` iterates |
+| Catalog rows **covered** by an oracle | **72 / 83** | strict, by id (incl. `mxfp8` ← `mxfp8_e4m3`) — theoretical maximum |
+| Catalog rows **without** an oracle | **11** | itemised in §3A — all structural |
+| …of which are **structural / parametric / container** (no single S:E:M decode law) | **11** | §3A — correctly excluded, unreachable by design |
+| …of which are **concrete, addable in principle** | **0** | all 12 former gaps closed (afp, gf512, gf1024 were the last 3) |
 | Oracle format-names that are **NOT** catalog rows | **12** | §4 (tekum, unsigned ints, wider bfloats, …) |
 
-**The naive "72 of 83 covered, 11 missing" is an arithmetic artefact** (`83 − 72 = 11`). It conflates two disjoint sets: the 72 *oracle format-names* and the 83 *catalog rows*. They are not subsets of each other. The rigorous diff is **60/83 covered, 23 missing**, of which **11 are structural** (the likely origin of the "11") and **12 are concrete gaps**.
+**All 12 concrete oracle gaps are now closed.** The last 3 — `afp` (bf16-layout + tensor shift, shift=0 ⟹ identical to bfloat16), `gf512` (`e=195, m=316`), and `gf1024` (`e=391, m=632`) — were added on 2026-07-15. Catalog coverage is at its theoretical maximum: the remaining 11 are structural-by-design (no decode law). The earlier "60/83 strict, 12 concrete gaps" figure (this file's prior revision) reflected the state before `nf4`, `bcd`, `ms_mbf32/64`, `gfternary`, `double/quad_double`, `gf48/96`, and finally `afp/gf512/gf1024` gained unified decode+add+mul oracles.
 
 ---
 
 ## 2. How the diff was computed
 
 1. Pulled the 83 `// CATALOG: id=…` records from the SSOT `formats_catalog.t27` (the catalog matrix `fpga/CATALOG_MATRIX_83.md` and the catalog paper draft do **not** enumerate all 83 by name; only the `.t27` SSOT does).
-2. Imported each of the 12 oracle modules and listed `FORMATS.keys()` → 72 names.
+2. Imported each of the 15 oracle modules and listed `FORMATS.keys()` → 84 names.
 3. Set difference. One fuzzy merge applied: the catalog row `mxfp8` is covered by the oracle entry `mxfp8_e4m3` (same Microscaling family / same element encoding, OCP MX v1.0). Unsigned-int oracle entries (`uint4/8/16/32`) map to the catalog's combined `int4/8/16/32` rows (catalog uses one `INTn / UINTn` row per width), so they do **not** add catalog coverage — they are extra granularity.
 
 Reproduce:
@@ -38,7 +38,7 @@ python3 -c "import ...diff..."   # see git log; the script is inline in the audi
 
 ---
 
-## 3. The 23 catalog formats without a 12-module oracle
+## 3. The 11 catalog formats without a 15-module oracle (all structural)
 
 ### 3A. Structural / parametric / container / technique — 11 (cannot have a single uniform oracle)
 
@@ -58,34 +58,38 @@ These are correctly absent: they have no standalone `S:E:M` decode law. They are
 | 10 | `gf8_bfp` | GoldenFloat | 8 | GF8 element + **per-tile shared exponent** (§12.5 hybrid). Container atop GF8. | No — container atop GF8 |
 | 11 | `gf_lns_hybrid` | GoldenFloat | 16 | **Dual-space** GF+LNS (mul in log-space, accumulate in linear). Two decode laws in one storage. | No — dual-space, not single-law |
 
-These 11 explain the recurring "11" in the codebase's shorthand. They are **gaps by design**, not bugs to close (echoes the catalog paper's "15 structural by design").
+These 11 explain the recurring "11" in the codebase's shorthand. They are **gaps by design**, not bugs to close (the catalog paper now reports these same 11 as "structural by design").
 
-### 3B. Concrete formats — addable in principle — 12 (real gaps)
+### 3B. Concrete formats — addable in principle — 0 remaining (all 12 closed)
 
-These have a concrete bit layout and a real decode law; they simply have no entry in the 12 `*_ref.py` modules yet. Several already ship a **standalone decode-conformance script** (so decode is proven; only the unified add/mul oracle is missing).
+Every concrete format that has a real bit layout and decode law now ships a
+unified decode+add+mul oracle entry. The table below records the closure
+history; the "Status today" column shows each is now covered.
 
-| # | Format | Cluster | `bits` | Status today | Addable? | Effort |
-|---|---|---|---|---|---|---|
-| 12 | `nf4` | QuantTuned | 4 | NormalFloat 4-bit, 16-value **quantile table** on N(0,1) (Dettmers/QLoRA). Decoded by `nf4_decode.v` (Corona). | **Yes** | Low — 16-entry table oracle |
-| 13 | `bcd` | IntegerFixed | 0 | Binary-coded decimal (4 bits/digit). Standalone `bcd_decode_conformance_ax7203.py` exists. | **Yes** | Low — integer-in-decimal |
-| 14 | `ms_mbf32` | HistoricalVendor | 32 | Microsoft Binary Format single (pre-IEEE, bias 129). Standalone decode script exists. | **Yes** | Low — S:E:M |
-| 15 | `ms_mbf64` | HistoricalVendor | 64 | MS Binary double. Standalone decode script exists. | **Yes** | Low — S:E:M |
-| 16 | `gfternary` | GoldenFloat | 2 | {-φ, 0, +φ} ternary. Separate `gfternary_compute_conformance_ax7203.py` exists. | **Yes** | Low — 3-value table |
-| 17 | `afp` | QuantTuned | 16 | Adaptive FP (Tambe 2020): 1\|8\|7 + **tensor shift**. Per-element decode = bf16-like once shift fixed. | **Yes (shift=0 reduces to bf16)** | Low–Med |
-| 18 | `gf48` | GoldenFloat | 48 | GF rung, rule-derived (`e=18`), spec-only. | **Yes** | Med — extend `gf_ref` |
-| 19 | `gf96` | GoldenFloat | 96 | GF rung, rule-derived (`e=36`), spec-only. | **Yes** | Med — wide poly mul |
-| 20 | `double_double` | ExtendedFloat | 128 | Two binary64 (Bailey/Hida). Standalone decode script exists. | **Yes** | Med — two-error-free add (Knuth) |
-| 21 | `quad_double` | ExtendedFloat | 256 | Four binary64. Standalone decode script exists. | **Yes** | High — multi-word |
-| 22 | `gf512` | GoldenFloat | 512 | GF rung, rule-derived (`e=195`), extrapolation/no RTL. | **Yes** | High — 512-bit poly mul |
-| 23 | `gf1024` | GoldenFloat | 1024 | GF rung, rule-derived (`e=391`), extrapolation/no RTL. | **Yes** | High — 1024-bit poly mul |
+| # | Format | Cluster | `bits` | Oracle module | Closed |
+|---|---|---|---|---|---|
+| 12 | `nf4` | QuantTuned | 4 | `nf4_ref` (16-entry quantile table) | 2026-07 |
+| 13 | `bcd` | IntegerFixed | 0 | `int_ref` (bcd entry) | 2026-07 |
+| 14 | `ms_mbf32` | HistoricalVendor | 32 | `legacy_ref` | 2026-07 |
+| 15 | `ms_mbf64` | HistoricalVendor | 64 | `legacy_ref` | 2026-07 |
+| 16 | `gfternary` | GoldenFloat | 2 | `gfternary_ref` ({-φ,0,+φ}) | 2026-07 |
+| 17 | `afp` | QuantTuned | 16 | `bf16_ref` (afp entry; shift=0 ⟹ bfloat16, shift-aware `afp_*` helpers) | 2026-07-15 |
+| 18 | `gf48` | GoldenFloat | 48 | `gf_ref` (`e=18, m=29`) | 2026-07 |
+| 19 | `gf96` | GoldenFloat | 96 | `gf_ref` (`e=36, m=59`) | 2026-07 |
+| 20 | `double_double` | ExtendedFloat | 128 | `extended_ref` | 2026-07 |
+| 21 | `quad_double` | ExtendedFloat | 256 | `extended_ref` | 2026-07 |
+| 22 | `gf512` | GoldenFloat | 512 | `gf_ref` (`e=195, m=316`) — edge-case self-test | 2026-07-15 |
+| 23 | `gf1024` | GoldenFloat | 1024 | `gf_ref` (`e=391, m=632`) — edge-case self-test | 2026-07-15 |
 
-> Quick wins if the 72-module set is to grow toward the 83 ceiling: **`nf4`, `bcd`, `ms_mbf32`, `ms_mbf64`, `gfternary`** (all ≤16-bit or table-based, several already decode-proven). That would move strict coverage from 60 → 65 with low effort, leaving the genuinely hard multi-component/ultra-wide ones and the 11 structural.
+> The final 3 (`afp`, `gf512`, `gf1024`) were the last concrete oracle gaps and
+> are closed as of 2026-07-15. Catalog oracle coverage is now 72/83 — the
+> theoretical maximum given the 11 structural formats in §3A.
 
 ---
 
 ## 4. The 12 oracle format-names that are NOT catalog rows
 
-The 72 oracle names are **not** a subset of the 83 catalog ids. These 12 exist as oracles but have no matching catalog row:
+The 84 oracle names are **not** a subset of the 83 catalog ids. These 12 exist as oracles but have no matching catalog row:
 
 | Oracle entry | Module | What it is | Catalog relation |
 |---|---|---|---|
@@ -103,18 +107,16 @@ These are legitimate extra granularity (especially the unsigned ints and `tekum`
 
 ## 5. The honest coverage claim (recommended wording)
 
-For papers / READMEs, replace "72/83" with one of these, depending on what is being claimed:
+For papers / READMEs, the recommended wording (updated 2026-07-15 after the last 3 concrete gaps were closed):
 
 - **Oracle breadth (what `generate_vectors.py` actually produces):**
-  > "Bit-exact ADD **and** MUL conformance vectors for **72** numeric format-instances across 12 oracle modules — covering **60 of the 83** catalog rows strictly, plus 12 non-catalog variants (unsigned ints, tekum, wider bfloats, OCP MX elements)."
+  > "Bit-exact ADD **and** MUL conformance vectors for **84** numeric format-instances across 15 oracle modules — covering **72 of the 83** catalog rows (the theoretical maximum), plus 12 non-catalog variants (unsigned ints, tekum, wider bfloats, OCP MX elements)."
 
 - **Catalog coverage (strict):**
-  > "**60/83** catalog formats have a unified decode+add+mul oracle; **23** do not — **11** are structural/parametric/container formats with no single S:E:M decode law (correctly excluded), and **12** are concrete formats addable in principle (nf4, bcd, ms_mbf32/64, gfternary, afp, gf48/96/512/1024, double/quad_double)."
+  > "**72/83** catalog formats have a unified decode+add+mul oracle; the remaining **11** are structural/parametric/container formats with no single S:E:M decode law (correctly excluded). There are **zero** concrete oracle gaps left."
 
 - **One-line honesty:**
-  > "60/83 strict; 11 structural-by-design; 12 concrete gaps (5 low-effort)."
-
-Never write "72/83" without this footnote — it double-counts non-catalog oracle variants and under-counts the structural formats.
+  > "72/83 strict (theoretical max); 11 structural-by-design; 0 concrete gaps."
 
 ---
 
@@ -123,5 +125,5 @@ Never write "72/83" without this footnote — it double-counts non-catalog oracl
 - SSOT: `specs/numeric/formats_catalog.t27` (gHashTag/t27 master).
 - Count erratum: `research/ERRATUM_arXiv_2606.09686_catalog_count.md` (the 84→83 E8M0 correction; E8M0 is a Microscaling **component**, not a standalone row — so it is rightly absent from both the 83 and the oracle set).
 - Generator: `conformance/generate_vectors.py` (emits `_add.json` + `_mul.json`).
-- Oracle modules: `conformance/{gf,tekum,posit,bf16,fp8,mxfp,takum,decimal,ieee,legacy,lns,int}_ref.py`.
+- Oracle modules: `conformance/{gf,tekum,posit,bf16,fp8,mxfp,takum,decimal,ieee,legacy,lns,int,nf4,gfternary,extended}_ref.py` (15 modules, 84 `FORMATS`).
 - HW matrix: `fpga/CATALOG_MATRIX_83.md` (decode-HW 41, compute-HW 30 = 71/83 Tier-E on AX7203 — a different, HW-oriented axis from this oracle-oriented audit).

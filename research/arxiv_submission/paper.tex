@@ -176,8 +176,11 @@ floating-point accuracy theorem.
 \subsection{The 83-format catalog}
 
 The single source of truth is \texttt{formats\_catalog.t27} in the
-gHashTag/t27 repository: 83 formats in 13 families, each with a bit-exact
-conformance pack~\cite{vasilev2026catalog}. The catalog is a registry-filling
+gHashTag/t27 repository: 83 formats in 13 families. Of these, \textbf{72 of 83}
+carry an independent exact-arithmetic conformance oracle (15 reference modules
+emitting bit-exact ADD/MUL vectors); the remaining 11 are
+structural-by-design (parametric, block-scaled, or container formats with no
+single S:E:M decode law)~\cite{vasilev2026catalog}. The catalog is a registry-filling
 artifact: it introduces no new formats and makes no superiority claims. An
 earlier draft reported 84; the erratum corrects this---E8M0 is the
 shared-exponent component of Microscaling, not a standalone row, giving the
@@ -257,9 +260,10 @@ The decodable catalog reduces to four parameterized templates:
 \item \textbf{Tier E (silicon):} CI run + bitstream SHA-256 + UART log
   published.
 \item \textbf{Tier C (self-report only):} zero remaining in this benchmark.
-\item \textbf{Structural formats:} 15 of 83 are structural-by-design
+\item \textbf{Structural formats:} 11 of 83 are structural-by-design
   (parametric, block-scaled, non-S:E:M). They are reported honestly as such,
-  not forced into bit-exact boxes.
+  not forced into bit-exact boxes. The remaining 72 carry an independent
+  exact-arithmetic conformance oracle.
 \end{itemize}
 
 \subsection{Accuracy benchmark methodology}
@@ -299,9 +303,11 @@ Decode coverage includes binary16 exhaustively verified
 bf16/nf4/fp4/fp6 at full corner coverage, and the full decimal family
 (32/64/128). Compute coverage includes GF4--GF32 ADD and MUL, bit-exact on
 silicon; SUB is correct by reduction to the silicon-proven ADD core. The
-remaining 15 formats are structural (no decode law---unreachable) or
+remaining 11 formats are structural (no decode law---unreachable) or
 transcendental-decode research-level work (takum32/64: routing unlocked,
-residual 1-ULP Taylor misses).
+residual 1-ULP Taylor misses). On the oracle side, 72 of 83 catalog formats
+carry an independent exact-arithmetic decode+add+mul reference; the last three
+concrete gaps (AFP, GF512, GF1024) were closed in this revision.
 
 \subsection{Accuracy benchmark}
 
@@ -568,11 +574,12 @@ FPGA numbers on closed flows; this work contributes breadth on an open flow.
   for any downstream DePIN/attestation use; reproducible-builds discipline is
   required and not yet formally certified.
 
-\item \textbf{Structural formats.} 15 of 83 are structural-by-design
+\item \textbf{Structural formats.} 11 of 83 are structural-by-design
   (parametric, block-scaled, non-S:E:M) and are honestly reported as such rather
-  than forced into bit-exact boxes. E8M0 is the shared-exponent component of
-  Microscaling, not a standalone catalog row---the canonical count is
-  83~\cite{vasilev2026catalog}.
+  than forced into bit-exact boxes. The other 72 carry an independent
+  exact-arithmetic conformance oracle (15 reference modules). E8M0 is the
+  shared-exponent component of Microscaling, not a standalone catalog row---the
+  canonical count is 83~\cite{vasilev2026catalog}.
 
 \item \textbf{Accuracy benchmark scope.} The head-to-head measures standalone
   add/sub accuracy against an exact oracle. It does not measure matmul
