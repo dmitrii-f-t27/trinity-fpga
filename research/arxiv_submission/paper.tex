@@ -23,13 +23,14 @@
   citecolor=blue
 }
 
-\title{83 Number Formats on Open-Source Silicon: \\
-       A Reproducible Benchmark of Decode and Compute on openXC7}
+\title{When Number Formats Fail: \\
+       A Robustness Analysis of 16-bit Floating-Point \\
+       on Open-Source Silicon}
 
 \author{Dmitrii Vasilev\\
         \small ORCID \texttt{0009-0008-4294-6159}}
 
-\date{Draft v0.1, 2026-07-14}
+\date{v4, 2026-07-15}
 
 \begin{document}
 \maketitle
@@ -376,6 +377,17 @@ MXFP8 is understandably weak standalone---it is designed to be consumed inside
 a block-scaled MX container, not as a standalone float. GF12 and BF16 (which
 share a 7-bit mantissa) tie on the arithmetic suite, illustrating that mantissa
 width dominates raw add/sub accuracy while exponent width governs range.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{failure_mode_map.pdf}
+\caption{Format failure mode map for $W{=}16$. The $E/M$ split determines
+which failure mode dominates: too few exponent bits ($E \leq 4$) causes
+dynamic-range failure; too few mantissa bits ($E \geq 8$) causes
+stochastic matmul fragility. The $\varphi$-rule ($E{=}6, M{=}9$) lands
+in the robust zone.}
+\label{fig:failuremap}
+\end{figure}
 
 \subsection{Robustness analysis---ML workload survival}\label{sec:robustness}
 
