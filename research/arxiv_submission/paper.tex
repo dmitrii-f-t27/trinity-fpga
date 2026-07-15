@@ -86,27 +86,39 @@ but on Vivado. The open-source-silicon perspective---what routes when the
 toolchain is Yosys + nextpnr-xilinx + Project X-Ray, with no proprietary
 bitstream knowledge---is unrepresented.
 
-This work fills that gap with three contributions:
+This work fills that gap with four contributions:
 
 \begin{enumerate}[label=\arabic*.,leftmargin=*]
-\item \textbf{A breadth benchmark.} ${\sim}41$ of 83 catalog formats carry at
-  least one bit-exact decode cell on silicon (41 decode ports); of these, 10 GF
-  formats (GF4, GF6, GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32)
-  additionally carry bit-exact compute cells (ADD/MUL)---GF64 reaches 70.1\%
-  (359/512) on silicon due to a timing-closure issue in the adder's barrel
-  shifter, see \S\ref{sec:results-case}. Each ships with a full evidence chain:
-  CI synthesis $\to$ bitstream SHA-256 $\to$ JTAG flash $\to$ UART verify against
-  an independent golden oracle.
+\item \textbf{A robustness analysis} (\S\ref{sec:robustness}). We identify
+  \emph{when and why} 16-bit number formats fail: FP16 fails dynamic range
+  ($E{=}5$ too narrow, 5/11 values flushed to zero), while BF16 is
+  stochastically fragile on matrix multiply ($M{=}7$, 1.5--10\% error).
+  GF16 ($E{=}6, M{=}9$) is the minimum-width IEEE-style format that
+  passes all seven tested workloads. The $\varphi$-ratio's effectiveness
+  is explained by a constraint-based derivation: the feasible corner
+  $(E{\geq}6, M{\geq}9)$ yields $E/(E{+}M){=}0.40$, close to
+  $1/\varphi^2{=}0.38$.
 
-\item \textbf{A methodology.} Four parameterized decode templates (algebraic,
-  table-$2^{x}$, transcendental-exp-via-tables, truncated-multiply) plus a
-  truncation-analysis sweep make ``does format X route on openXC7?'' a
-  one-command question.
+\item \textbf{A breadth benchmark.} ${\sim}41$ of 83 catalog formats carry
+  at least one bit-exact decode cell on silicon (41 decode ports); of these,
+  10 GF formats (GF4--GF32) additionally carry bit-exact compute cells
+  (ADD/MUL)---GF64 reaches 70.1\% (359/512) due to a timing-closure issue.
+  Each ships with a full evidence chain: CI synthesis $\to$ bitstream
+  SHA-256 $\to$ JTAG flash $\to$ UART verify against an independent
+  golden oracle.
 
-\item \textbf{A toolchain finding.} The LUT-only constraint imposed by partial
-  DSP documentation, and the wide-multiply-vs-wide-table routing asymmetry that
-  follows from it, are reported as open-toolchain limitations---not design
-  choices.
+\item \textbf{A hardware-cost characterization.} The LUT cost of
+  floating-point arithmetic follows $cW^2$ ($c_{\text{ADD}}{=}1.55$,
+  $c_{\text{MUL}}{=}2.06$), verified across 15 measured widths
+  ($W{=}4$--$128$, $R^2{\geq}0.88$). A native takum16 LNS multiplier
+  yields the same 505 LUT as GF16 in the zero-DSP regime, confirming
+  that the floor is encoding-independent.
+
+\item \textbf{A training-stability analysis.} BF16 preserves only 7.3\%
+  of gradient updates (7-bit mantissa $\to$ quantization step 0.004 at
+  $|w|{=}0.5$), while GF16 preserves 63.9\%. An MLP training experiment
+  confirms the prediction: GF16 converges to a final loss $4\times$
+  lower than BF16.
 \end{enumerate}
 
 We state up front what is \textbf{not} claimed: no new format is introduced;
