@@ -444,6 +444,47 @@ is the bottleneck. This is consistent with~\cite{kuzmin2022fp8quant}, which
 shows the optimal split is workload-dependent---GF16 happens to satisfy all
 four ML workloads simultaneously.
 
+\subsubsection{Hold-out validation}
+
+To preclude the concern that the robustness result is an artefact of
+selecting workloads favorable to the $\phi$-rule, we test three
+\emph{hold-out} workloads that the format design never considered:
+(i)~1D convolution (20-tap FIR filter, signal amplitude spanning
+$10^{-3}$ to $10^3$);
+(ii)~polynomial evaluation via Horner's method (degree~8,
+Chebyshev-like coefficients, $x \in [-2, 2]$);
+(iii)~$2 \times 2$ linear solve (random systems, condition number
+spanning 1 to $10^8$).
+
+\begin{table}[h]
+\footnotesize
+\caption{Hold-out robustness: three workloads not used in format design.
+Combined score = original 4 + hold-out 3 = 7 workloads.}
+\label{tab:holdout}
+\begin{tabular}{lccccc}
+\toprule
+Format & Conv1D & Polynomial & Lin.\,Solve & Orig.\,4/4 & Combined \\
+\midrule
+FP32 & \checkmark & \checkmark & \checkmark & 4/4 & \textbf{7/7} \\
+FP16 & \checkmark & \checkmark & \checkmark & 3/4 & 6/7 \\
+BF16 & \checkmark & \checkmark & \checkmark & 3/4 & 6/7 \\
+\textbf{GF16} & \checkmark & \checkmark & \checkmark & \textbf{4/4} & \textbf{7/7} \\
+GF14 & \checkmark & \checkmark & \checkmark & 4/4 & \textbf{7/7} \\
+GF12 & \checkmark & \checkmark & \checkmark & 2/4 & 5/7 \\
+GF8 & $\times$ & \checkmark & \checkmark & 0/4 & 2/7 \\
+FP8 & $\times$ & \checkmark & \checkmark & 0/4 & 2/7 \\
+posit16 & \checkmark & \checkmark & \checkmark & 4/4 & \textbf{7/7} \\
+takum16 & \checkmark & \checkmark & \checkmark & 4/4 & \textbf{7/7} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+GF16 passes all three hold-out workloads, confirming that its robustness
+is not an artefact of the workload selection. The $\phi$-rule locates a
+balance point (E=6, M=9) that generalizes to signal processing
+(Conv1D), numerical analysis (Horner), and linear algebra (system
+solve)---domains outside the ML workload suite used to discover it.
+
 \subsection{Training stability analysis}\label{sec:training}
 
 The robustness analysis of \S\ref{sec:robustness} scores formats on whether they
