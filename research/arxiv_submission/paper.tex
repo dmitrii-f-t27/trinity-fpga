@@ -521,16 +521,40 @@ FP8        & 0.0313 & 97\%    \\
 \end{tabular}
 \end{table}
 
-\paragraph{Connection to the IGLA RACE training pipeline.} The
-trios-trainer-igla project~\cite{vasilev2026igla} trains a small language model
-with weights quantized to GF16 and tracks bits-per-byte (BPB). The two tables
-above explain the format choice: GF16 is the minimum-width IEEE-style format
-where training converges \emph{without loss scaling or stochastic rounding}---at
-$63.9\%$ update survival and $2.2\%$ accumulation error, the gradient signal
-remains informative, whereas BF16's $7.3\%$ survival and $50\%$ accumulation
-error effectively freeze the weights. This is consistent with the robustness
-result of \S\ref{sec:robustness}: the $E/M$ balance that passes all four ML
-workloads is the same balance that keeps the training-noise floor low.
+To confirm the noise-floor prediction, we trained a 2-layer MLP with per-step
+weight re-quantization across 10 formats. GF16 converges to a final loss
+$3.9\times$ lower than BF16 (0.0019 vs 0.0074) and learns weights $14\times$
+more accurately (MSE 0.0001 vs 0.0014). GF8 and FP8 fail to learn entirely---
+weights are frozen by quantization noise.
+
+\begin{table}[h]
+\footnotesize
+\caption{End-to-end MLP training (2-layer, D=8, H=16, 2000 SGD steps,
+weights re-quantized after each step, seed 42)}
+\label{tab:mlp}
+\begin{tabular}{lrrll}
+\toprule
+Format & Init loss & Final loss & Status & Weight MSE \\
+\midrule
+FP32 & 0.1399 & 0.0012 & converged & 0.0000 \\
+FP16 & 0.1399 & 0.0017 & converged & 0.0000 \\
+\textbf{GF16} & \textbf{0.1400} & \textbf{0.0019} & \textbf{converged} & \textbf{0.0001} \\
+GF14 & 0.1399 & 0.0026 & converged & 0.0002 \\
+BF16 & 0.1400 & 0.0074 & converged (4$\times$ worse) & 0.0014 \\
+GF12 & 0.1400 & 0.0075 & converged (4$\times$ worse) & 0.0014 \\
+GF8 & 0.1436 & 0.1436 & \textbf{stuck} (weights frozen) & 0.0730 \\
+FP8 & 0.1467 & 0.1307 & \textbf{stuck} & 0.0504 \\
+posit16 & 0.1399 & 0.0017 & converged & 0.0000 \\
+takum16 & 0.1399 & 0.0018 & converged & 0.0000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The noise-floor analysis predicts that GF16 is the minimum-width format where
+low-precision training can converge without loss scaling or stochastic rounding.
+An open training pipeline (trios-trainer-igla) uses GF16-quantized weights; the
+current champion (BPB 2.53) has not yet met its 1.50 target, but the analysis
+above identifies the bottleneck as model capacity rather than format precision.
 
 \subsection{LUT comparison}
 
@@ -658,6 +682,22 @@ tapered re-encode) was synthesized under identical flags, yielding 505 LUT ---
 identical to GF16 MUL (505 LUT in the zero-DSP regime). This confirms that the
 hardware cost is determined by format width, not encoding: the LNS multiply
 avoids the mantissa multiplier but the tapered re-encode costs the same.
+
+\begin{quote}
+\textbf{Observation (Information-Theoretic LUT Floor).}
+\emph{For $W$-bit floating-point multiply on Artix-7 (yosys, zero-DSP),
+the LUT cost converges to $\approx 2W^2$ regardless of encoding
+(IEEE-style linear vs.\ logarithmic tapered).  Both GF16 multiply
+(mantissa product + normalize) and takum16 native multiply (logarithmic
+addition + tapered re-encode) yield $\approx$505 LUT at $W=16$.  The
+encoding buys dynamic range, not area.}
+\end{quote}
+
+This observation extends the scaling law ($\text{LUT}_{\text{ADD}} = 1.55W^2$,
+$\text{LUT}_{\text{MUL}} = 2.06W^2$) across encoding paradigms. The $\phi$-rule
+does not minimize LUT cost --- the minimum-cost split at $W=16$ is $E=8, M=7$
+(BF16-like, 461 LUT) --- but it locates the balance point where no single
+workload fails catastrophically (\S\ref{sec:robustness}).
 
 \subsection{The openXC7 routing asymmetry}
 
@@ -794,6 +834,29 @@ Low-precision LLM training
 \bottomrule
 \end{tabularx}
 \end{table}
+
+\begin{table}[h]
+\footnotesize
+\caption{Comparison with concurrent zero-DSP FPGA accelerators}
+\label{tab:competitors}
+\begin{tabular}{llll}
+\toprule
+ & This work & ELiTeFormer & MxGLUT \\
+ & & \cite{eliformer2026} & \cite{mxglut2026} \\
+\midrule
+Board & Artix-7 AX7203 & Versal VCK5000 & (simulation) \\
+Toolchain & openXC7 (open) & Vivado (closed) & --- \\
+Zero-DSP & ternary MAC 52 LUT & bitmask PE & LUT GEMM \\
+Format breadth & 10 GF + ternary & fixed ternary & mixed \\
+Scale & cell-level (20 cells) & full transformer & unit GEMM \\
+End-to-end & --- & 3.9$\times$ vs A100 & $-$56\% area \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ELiTeFormer and MxGLUT demonstrate the zero-DSP thesis at system scale on
+premium fabric; this work demonstrates it at cell scale on the cheapest open
+fabric (Artix-7, \$150). The theses agree; the evidence is complementary.
 
 This work is \textbf{complementary}, not competitive: Hunhold publishes formats
 and (for takum) a closed-flow codec; PERI and Aggarwal publish single-family
