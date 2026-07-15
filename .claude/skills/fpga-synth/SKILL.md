@@ -96,4 +96,4 @@ Timeline:
 37. **72/72 formats have conformance vectors** — 791,115 vectors via `make vectors`
 38. **`make vectors`** — generates JSON vectors for all 72 oracle formats from clean clone
 39. **MUL vectors generated** — 72 ADD + 72 MUL = 144 files, 1,559,190 total vectors
-40. **Honest catalog coverage = 69/83 strict** — 15 oracle modules, 81 format names. Remaining: 11 structural + 3 concrete (afp, gf512, gf1024)
+40. **Honest catalog coverage = 72/83 THEORETICAL MAX** — 15 oracle modules, 84 format names. Remaining 11 are structural (no decode law). Zero concrete gaps.
