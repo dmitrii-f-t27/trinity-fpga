@@ -97,3 +97,6 @@ Timeline:
 38. **`make vectors`** — generates JSON vectors for all 72 oracle formats from clean clone
 39. **MUL vectors generated** — 72 ADD + 72 MUL = 144 files, 1,559,190 total vectors
 40. **Honest catalog coverage = 72/83 THEORETICAL MAX** — 15 oracle modules, 84 format names. Remaining 11 are structural (no decode law). Zero concrete gaps.
+41. **SUB vectors generated** — 287 total JSON files (ADD+MUL+SUB), 2,426,879 vectors
+42. **61 CI workflows** (was 3388 → 102 → 61). 41 orphan May-era workflows deleted.
+43. **arXiv submission checklist** — ALL items checked except "Upload" (user action)
