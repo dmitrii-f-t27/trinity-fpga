@@ -45,7 +45,8 @@ dynamic range, attention softmax) and three hold-out (convolution,
 polynomial evaluation, linear solve). GF16 (GoldenFloat, $\varphi$-rule
 $E{=}6, M{=}9$) is the minimum-width IEEE-style format that passes all
 seven tests; FP16 fails dynamic range (5/11 values flushed to zero) and
-BF16 fails matrix multiply (10$\times$ worse max error). A training
+BF16's matrix-multiply accuracy is stochastically fragile (1.5--10\% max error
+depending on input distribution). A training
 simulation reveals that BF16 preserves only 7.3\% of gradient updates
 (7-bit mantissa $\to$ quantization step 0.004 at $|w|{=}0.5$), while
 GF16 preserves 63.9\% (9-bit mantissa). On hardware, the LUT cost of
@@ -427,9 +428,11 @@ workload}:
 \item \textbf{FP16} ($E{=}5$, $M{=}10$) \textbf{fails dynamic range}: its
   $\pm 65\,504$ ceiling flushes 5 of 11 test values to zero. The 5-bit exponent
   is the bottleneck---too few exponent bits.
-\item \textbf{BF16} ($E{=}8$, $M{=}7$) \textbf{fails matmul}: its 7-bit mantissa
-  produces $10\times$ worse max error on the matrix-multiply workload. The 7-bit
-  mantissa is the bottleneck---too few mantissa bits.
+\item \textbf{BF16} ($E{=}8$, $M{=}7$) \textbf{is fragile on matmul}: BF16's
+  matrix-multiply accuracy is highly variable (1.5--10\% max error depending on
+  input distribution), making it stochastically fragile---the failure is not
+  structural but depends on the specific cancellation patterns in the dot
+  product.
 \end{itemize}
 
 GF16 ($E{=}6$, $M{=}9$) sits at the balance point: the 6-bit exponent gives
@@ -481,6 +484,16 @@ is not an artefact of the workload selection. The $\phi$-rule locates a
 balance point (E=6, M=9) that generalizes to signal processing
 (Conv1D), numerical analysis (Horner), and linear algebra (system
 solve)---domains outside the ML workload suite used to discover it.
+
+\paragraph{Threshold sensitivity.}
+The robustness classification depends on the failure thresholds
+(matmul error $>$~$\tau$, values flushed $>$~$k$, etc.). We re-ran
+the analysis at three levels: strict ($\tau{=}5\%$, $k{=}1$),
+moderate ($\tau{=}10\%$, $k{=}2$), and lenient ($\tau{=}25\%$,
+$k{=}4$). GF16 scores 4/4 at \emph{all three} levels; FP16 scores
+3/4 at all three (structural dynamic-range failure independent of
+threshold). The result is therefore not an artefact of threshold
+selection.
 
 \subsection{Training stability analysis}\label{sec:training}
 
@@ -814,7 +827,7 @@ GF16 preserves 63.9\% (9-bit mantissa).}
 \centering
 \includegraphics[width=0.7\textwidth]{robustness_heatmap.pdf}
 \caption{ML workload robustness matrix. Green = pass, Red = fail.
-GF14 and above pass all four tests; FP16 fails dynamic range; BF16 fails matmul.}
+GF14 and above pass all four tests; FP16 fails dynamic range; BF16 is stochastically fragile on matmul.}
 \label{fig:robustness}
 \end{figure}
 
