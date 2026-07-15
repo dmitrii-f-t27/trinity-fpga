@@ -82,7 +82,7 @@ module gf_quire_param #(
                         acc_valid <= 1;
                     end else begin
                         if (!in_is_zero && !in_is_nan)
-                            acc <= in_b64_eff;
+                            acc <= acc + in_b64_eff;
                     end
                 end
 
