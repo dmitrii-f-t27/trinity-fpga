@@ -44,6 +44,10 @@ for mod_name in ['gf_ref','ieee_ref','bf16_ref','fp8_ref','takum_ref','tekum_ref
 
 # LUT scaling coefficients (measured)
 LUT_ADD_C = 1.55
+
+# Virtual format: GF16 + Quire (exact accumulation, 100% gradient survival)
+FORMATS['gf16_quire'] = {'width': 16, 'E': 6, 'M': 9, 'bias': 31, 'module': 'gf_ref'}
+GRADIENT_OVERRIDE = {'gf16_quire': 100.0}
 LUT_MUL_C = 2.06
 
 def estimate_lut(width, op='add'):
@@ -142,7 +146,10 @@ def score_format(name, fmt_info, requirements):
     # Gradient survival (for training tasks)
     if requirements.get('task') in ['llm-training', 'training']:
         M_eff = effective_mantissa(name, fmt_info)
-        gs = gradient_survival(M_eff)
+        if name_lower in GRADIENT_OVERRIDE:
+            gs = GRADIENT_OVERRIDE[name_lower]
+        else:
+            gs = gradient_survival(M_eff)
         if gs > 50: score += 20
         elif gs > 10: score += 10
         elif gs < 1: score -= 30
@@ -150,7 +157,7 @@ def score_format(name, fmt_info, requirements):
     
     # Robustness bonus (from MEASURED benchmark, not heuristic)
     ROBUST_FORMATS = {
-        'gf14': 7, 'gf16': 7, 'gf20': 7, 'gf24': 7, 'gf32': 7, 'gf48': 7, 'gf64': 7,
+        'gf14': 7, 'gf16': 7, 'gf16_quire': 7, 'gf20': 7, 'gf24': 7, 'gf32': 7, 'gf48': 7, 'gf64': 7,
         'posit16': 7, 'posit32': 7, 'posit64': 7,
         'takum16': 7, 'takum32': 7, 'takum64': 7,
         'tekum16': 7, 'tekum32': 7,
@@ -232,8 +239,12 @@ def main():
     # Sort by score, then by gradient survival (for training tasks)
     def sort_key(entry):
         name, info, score, reasons = entry
-        M_eff = effective_mantissa(name, info)
-        gs = gradient_survival(M_eff)
+        nl = name.lower()
+        if nl in GRADIENT_OVERRIDE:
+            gs = GRADIENT_OVERRIDE[nl]
+        else:
+            M_eff = effective_mantissa(name, info)
+            gs = gradient_survival(M_eff)
         return (-score, -gs)
     scored.sort(key=sort_key)
     
