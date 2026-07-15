@@ -507,6 +507,18 @@ $k{=}4$). GF16 scores 4/4 at \emph{all three} levels; FP16 scores
 threshold). The result is therefore not an artefact of threshold
 selection.
 
+\paragraph{Multi-width generalization.}
+We tested whether the $\varphi$-rule selects a robust $E/M$ split at
+other widths. For each $W \in \{10, 12, 14, 16, 20, 24, 32\}$, we
+swept $E$ from 1 to $W{-}2$ and identified the minimum $E$ achieving
+4/4 robustness (moderate threshold). Results: at $W{=}10$, no split
+achieves robustness (too narrow); at $W{=}12$, the minimum robust $E$
+is 5, but the $\varphi$-rule selects $E{=}4$ (GF12 fails dynamic
+range); at $W{=}14$ and above, the $\varphi$-rule always selects
+$E \geq E_{\min}$, making it sufficient for robustness. The
+$\varphi$-rule becomes reliable starting at $W{=}14$ and grows
+increasingly conservative at larger widths.
+
 \subsection{Training stability analysis}\label{sec:training}
 
 The robustness analysis of \S\ref{sec:robustness} scores formats on whether they
@@ -934,6 +946,15 @@ fabric (Artix-7, \$150). The theses agree; the evidence is complementary.
 This work is \textbf{complementary}, not competitive: Hunhold publishes formats
 and (for takum) a closed-flow codec; PERI and Aggarwal publish single-family
 FPGA numbers on closed flows; this work contributes breadth on an open flow.
+
+The IEEE~P3109 draft~\cite{fitzgibbon2026p3109} defines parameterized
+ML float formats by $(N, e, m)$. GoldenFloat maps directly to P3109
+configured formats: GF16 is a P3109 format with $N{=}16, e{=}6,
+m{=}9$. The $\varphi$-rule provides a heuristic for selecting P3109
+parameters: $e = \mathrm{round}((N{-}1)/\varphi^2)$, $m = N{-}1{-}e$.
+The robustness analysis (\S\ref{sec:robustness}) provides empirical
+validation that this heuristic selects non-failing configurations for
+$N \geq 14$.
 
 % =========================================================================
 \section{Discussion---limitations of openXC7}\label{sec:discussion}
