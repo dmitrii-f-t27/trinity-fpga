@@ -125,6 +125,12 @@ claim is made (the openXC7 flow targets small designs, and scaling to full
 attention blocks is unproven); and LUT-only is not claimed to be preferable to
 DSP---it is a constraint imposed by the toolchain.
 
+The ratio $E/(E{+}M) \approx 1/\varphi^{2} \approx 0.382$ is not derived from a
+physical principle; it is an empirically-located design heuristic. The robustness
+analysis (\S\ref{sec:robustness}) and its hold-out validation demonstrate that
+this ratio produces formats that do not catastrophically fail on any tested
+workload, but no optimality claim is made.
+
 % =========================================================================
 \section{Background---the number-format landscape}\label{sec:background}
 
@@ -591,6 +597,16 @@ takum16 & 0.1399 & 0.0018 & converged & 0.0000 \\
 \end{tabular}
 \end{table}
 
+We also trained a character-level MLP language model (3{,}087 parameters,
+31-character vocabulary, 300 steps with per-step weight re-quantization).
+All 16-bit formats (FP16, BF16, GF16, GF14, GF12, posit16, takum16)
+converged without divergence; 8-bit formats (GF8, FP8) also trained
+without freezing, suggesting that quantization acts as regularization
+on small models. The robustness gap identified in the noise-floor
+analysis (\S\ref{sec:training}) manifests on larger models and harder
+workloads (matrix multiply, gradient accumulation) rather than on
+this minimal task.
+
 The noise-floor analysis predicts that GF16 is the minimum-width format where
 low-precision training can converge without loss scaling or stochastic rounding.
 An open training pipeline (trios-trainer-igla) uses GF16-quantized weights; the
@@ -946,35 +962,55 @@ FPGA numbers on closed flows; this work contributes breadth on an open flow.
 % =========================================================================
 \section{Conclusion}\label{sec:conclusion}
 
-Three contributions, restated without superlatives:
+Seven findings, restated without superlatives:
 
-\begin{itemize}[leftmargin=*]
-\item \textbf{Breadth.} ${\sim}41$ / 83 catalog formats carry at least one
-  bit-exact decode cell on silicon (41 decode ports); 10 GF formats (GF4, GF6,
-  GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32) additionally carry bit-exact
-  compute cells (ADD/MUL)---on a Xilinx Artix-7 (XC7A200T) via a fully open
-  toolchain, each shipped with a reproducible evidence chain.
+\begin{enumerate}[label=\textbf{F\arabic*.},leftmargin=*]
+\item \textbf{Oracle coverage.} 72 of 83 catalog formats carry an independent
+  exact-arithmetic (decode+add+mul) oracle; the remaining 11 are
+  structural-by-design.
 
-\item \textbf{Methodology.} Four decode templates (algebraic, table-$2^{x}$,
-  transcendental-exp-via-tables, truncated-multiply) plus a truncation sweep
-  make ``does format X route on openXC7?'' a one-command question.
+\item \textbf{Silicon proof.} ${\sim}41$/83 formats carry bit-exact decode cells
+  on openXC7 silicon, and 10 GF formats (GF4, GF6, GF8, GF10, GF12, GF14, GF16,
+  GF20, GF24, GF32) additionally carry bit-exact compute (ADD/MUL) cells on a
+  Xilinx Artix-7 (XC7A200T) via a fully open toolchain---each shipped with a
+  reproducible evidence chain (CI synth $\to$ bitstream SHA-256 $\to$ JTAG flash
+  $\to$ UART verify).
 
-\item \textbf{Toolchain finding.} The LUT-only constraint imposed by partial DSP
-  documentation, and the wide-multiply-vs-wide-table routing asymmetry, are
-  reported as open-toolchain limitations with concrete datapoints (decimal128
-  routes at 336-bit; takum64's 140-bit multiply fails across 32 seeds and is
-  rescued by sticky-OR truncation to 72-bit).
-\end{itemize}
+\item \textbf{GF16 robustness.} GF16 \texttt{[1|6|9]} is the minimum-width
+  IEEE-style format achieving full workload robustness (7/7 across the four ML
+  workloads and the three hold-out workloads); FP16 and BF16 each fail one.
 
-The head-to-head accuracy benchmark confirms what the literature already
-suggests: no single 16-bit format dominates across arithmetic, dynamic range,
-and cancellation. Tapered designs (posit, takum) have the dynamic-range and
-cancellation-resilience edge; conventional linear designs (FP16, GF16) win on
-raw arithmetic accuracy at the cost of a narrower range; block-scaled element
-formats (MXFP8) are unsuitable standalone. GoldenFloat GF16 occupies a
-favorable LUT/accuracy corner on the open flow but makes no accuracy claim over
-tapered competitors---the $\varphi$-ratio selection rule is treated as a design
-heuristic, consistent with~\cite{kuzmin2022fp8quant}.
+\item \textbf{BF16 gradient loss.} BF16's 7-bit mantissa loses 92.7\% of gradient
+  updates to quantization, versus 36.1\% for GF16---an $8.7\times$ edge that
+  arises purely from mantissa width.
+
+\item \textbf{MLP training.} In end-to-end 2-layer MLP training with per-step
+  re-quantization, GF16 reaches $\sim$4$\times$ lower final loss than BF16
+  (0.0019 vs 0.0074) and $14\times$ lower weight MSE.
+
+\item \textbf{LUT information floor.} Floating-point LUT cost on Artix-7
+  (zero-DSP) follows $\text{LUT}_{\text{ADD}} = 1.55W^{2}$ (R$^{2}{=}0.88$) and
+  $\text{LUT}_{\text{MUL}} = 2.06W^{2}$ (R$^{2}{=}0.97$) across four orders of
+  magnitude in width.
+
+\item \textbf{Encoding invariance.} GF16 MUL and a native takum16 MUL both cost
+  505 LUT in the zero-DSP regime: $\text{GF16} \equiv \text{takum16}$. The
+  encoding buys dynamic range, not area.
+\end{enumerate}
+
+The methodology---four decode templates (algebraic, table-$2^{x}$,
+transcendental-exp-via-tables, truncated-multiply) plus a truncation sweep---makes
+``does format X route on openXC7?'' a one-command question. The LUT-only
+constraint imposed by partial DSP documentation, and the wide-multiply-vs-wide-table
+routing asymmetry it implies (decimal128 routes at 336-bit; takum64's 140-bit
+multiply fails across 32 seeds and is rescued by sticky-OR truncation to 72-bit),
+are open-toolchain limitations, not design choices.
+
+The head-to-head accuracy benchmark confirms that no single 16-bit format
+dominates across arithmetic, dynamic range, and cancellation. GoldenFloat GF16
+occupies a favorable LUT/accuracy corner on the open flow but makes no accuracy
+claim over tapered competitors---the $\varphi$-ratio selection rule is an
+empirically-located design heuristic, not an optimality theorem.
 
 \paragraph{Future work.}
 \begin{enumerate}[label=(\roman*),leftmargin=*]
