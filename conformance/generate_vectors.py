@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-generate_vectors.py — Generator of ADD and MUL conformance vectors for ALL 72
-oracle formats across the 12 reference modules (gf, tekum, posit, bf16, fp8,
-mxfp, takum, decimal, ieee, legacy, lns, int).
+generate_vectors.py — Generator of ADD and MUL conformance vectors for ALL 81
+oracle formats across the 15 reference modules (gf, tekum, posit, bf16, fp8,
+mxfp, takum, decimal, ieee, legacy, lns, int, nf4, gfternary, extended).
 
 For each format and each operation emits:
     conformance/vectors/{format}_{op}.json   where op in {add, mul}
@@ -31,7 +31,7 @@ Specials (Inf/NaN/NaR) are exposed both (a) as a named legend under "specials"
 and (b) as raw hex bit-patterns inside vectors (the DUT sees bits, produces bits).
 
 A format/op is skipped ONLY if that op's function is genuinely absent in the
-module. All 12 modules define both add and mul, so all 72 formats get both an
+module. All 15 modules define both add and mul, so all 81 formats get both an
 _add.json and a _mul.json. Note: LNS MUL is exact in the log domain
 (log_a + log_b, then RNE) — the transcendental step is LNS ADD, not MUL; both
 are emitted and the distinction is recorded in the per-file "note".
@@ -52,18 +52,21 @@ VECTORS_DIR = os.path.join(HERE, "vectors")
 
 # (module_name, add_function_name, mul_function_name, family_tag)
 MODULES = [
-    ("gf_ref",      "gf_add",      "gf_mul",      "gf"),
-    ("tekum_ref",   "tekum_add",   "tekum_mul",   "tekum"),
-    ("posit_ref",   "format_add",  "format_mul",  "posit"),
-    ("bf16_ref",    "format_add",  "format_mul",  "bfloat"),
-    ("fp8_ref",     "format_add",  "format_mul",  "fp8"),
-    ("mxfp_ref",    "format_add",  "format_mul",  "mxfp"),
-    ("takum_ref",   "format_add",  "format_mul",  "takum"),
-    ("decimal_ref", "format_add",  "format_mul",  "decimal"),
-    ("ieee_ref",    "format_add",  "format_mul",  "ieee"),
-    ("legacy_ref",  "format_add",  "format_mul",  "legacy"),
-    ("lns_ref",     "format_add",  "format_mul",  "lns"),
-    ("int_ref",     "format_add",  "format_mul",  "int"),
+    ("gf_ref",        "gf_add",      "gf_mul",      "gf"),
+    ("tekum_ref",     "tekum_add",   "tekum_mul",   "tekum"),
+    ("posit_ref",     "format_add",  "format_mul",  "posit"),
+    ("bf16_ref",      "format_add",  "format_mul",  "bfloat"),
+    ("fp8_ref",       "format_add",  "format_mul",  "fp8"),
+    ("mxfp_ref",      "format_add",  "format_mul",  "mxfp"),
+    ("takum_ref",     "format_add",  "format_mul",  "takum"),
+    ("decimal_ref",   "format_add",  "format_mul",  "decimal"),
+    ("ieee_ref",      "format_add",  "format_mul",  "ieee"),
+    ("legacy_ref",    "format_add",  "format_mul",  "legacy"),
+    ("lns_ref",       "format_add",  "format_mul",  "lns"),
+    ("int_ref",       "format_add",  "format_mul",  "int"),
+    ("nf4_ref",       "format_add",  "format_mul",  "nf4"),
+    ("gfternary_ref", "format_add",  "format_mul",  "gfternary"),
+    ("extended_ref",  "format_add",  "format_mul",  "extended"),
 ]
 
 # (op_tag, index_into_module_tuple_for_fn_name)
@@ -138,7 +141,12 @@ def real_specials(fmt, family, width):
             if getattr(fmt, "has_inf", False):
                 add("pos_inf")
                 add("neg_inf")
-    # legacy / int: decode never yields a Special
+    elif family == "extended":
+        # double_double / quad_double: IEEE-style specials in the hi-limb.
+        add("pos_inf")
+        add("neg_inf")
+        add("quiet_nan")
+    # legacy / int / nf4 / gfternary: decode never yields a Special
     return out
 
 

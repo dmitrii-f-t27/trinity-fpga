@@ -21,6 +21,7 @@ class IntFormat:
     name: str
     bits: int
     signed: bool
+    bcd: bool = False          # Binary-coded decimal: 4 bits per decimal digit
 
     @property
     def mask(self): return (1 << self.bits) - 1
@@ -29,10 +30,17 @@ class IntFormat:
     @property
     def sign_shift(self): return self.bits - 1
     @property
+    def n_digits(self):
+        return self.bits // 4
+    @property
     def max_val(self):
+        if self.bcd:
+            return 10 ** self.n_digits - 1
         return (1 << (self.bits - 1)) - 1 if self.signed else self.mask
     @property
     def min_val(self):
+        if self.bcd:
+            return 0     # BCD represents non-negative decimals (unsigned)
         return -(1 << (self.bits - 1)) if self.signed else 0
     @property
     def pos_zero(self): return 0
@@ -51,6 +59,10 @@ FORMATS = {
     "uint8":  IntFormat("uint8",  bits=8,   signed=False),
     "uint16": IntFormat("uint16", bits=16,  signed=False),
     "uint32": IntFormat("uint32", bits=32,  signed=False),
+    # Binary-coded decimal — 2-digit packed BCD (8 bits, value 0..99).
+    # Matches conformance/bcd_decode_conformance_ax7203.py (golden_bcd) and
+    # fpga/openxc7-synth/bcd_decode.v (Corona RTL).
+    "bcd":    IntFormat("bcd",    bits=8,   signed=False, bcd=True),
 }
 
 
@@ -61,18 +73,41 @@ def pow2(e: int) -> Fraction:
 
 
 def decode(fmt: IntFormat, raw: int) -> Fraction:
-    """raw -> exact integer value as Fraction."""
+    """raw -> exact integer value as Fraction.
+
+    For BCD: each nibble is one decimal digit (0..9); value = sum digit_i * 10^i.
+    Invalid nibbles (>9) decode as if the nibble were its raw value (best-effort
+    wraparound); callers wanting strict BCD should validate separately.
+    """
     raw &= fmt.mask
+    if fmt.bcd:
+        val = 0
+        for i in range(fmt.n_digits):
+            nib = (raw >> (4 * i)) & 0xF
+            val += nib * (10 ** i)
+        return Fraction(val)
     if fmt.signed and (raw >> fmt.sign_shift):
         return Fraction(raw - (1 << fmt.bits))
     return Fraction(raw)
 
 
 def encode(fmt: IntFormat, value) -> int:
-    """Exact integer -> raw (two's complement for signed). Out-of-range wraps (modular)."""
+    """Exact integer -> raw (two's complement for signed; packed BCD for bcd).
+
+    Out-of-range wraps (modular): for BCD, value mod 10^n_digits, each decimal
+    digit packed into 4 bits.
+    """
     v = Fraction(value)
     assert v.denominator == 1, "int encode requires integer value"
     n = v.numerator
+    if fmt.bcd:
+        mod = 10 ** fmt.n_digits
+        n %= mod
+        raw = 0
+        for i in range(fmt.n_digits):
+            digit = (n // (10 ** i)) % 10
+            raw |= digit << (4 * i)
+        return raw & fmt.mask
     return n & fmt.mask
 
 
@@ -133,7 +168,11 @@ def _selftest():
         check(decode(fmt, r) == 2, f"{fname}: 1+1=2 (got {decode(fmt, r)})")
         # 0 + 0 = 0
         check(format_add(fmt, 0, 0) == 0, f"{fname}: 0+0=0")
-        # x + 0 == x (bit-exact for all x): exhaustive for tiny, sampled otherwise
+        # x + 0 == x (bit-exact for all x): exhaustive for tiny, sampled otherwise.
+        # BCD skips this — invalid nibbles (>9) don't round-trip bit-exactly
+        # (BCD-specific x+0 covered by dedicated checks below).
+        if fmt.bcd:
+            continue
         if fmt.bits <= 16:
             check_range = range(0, 1 << fmt.bits)
         else:
@@ -164,6 +203,30 @@ def _selftest():
     check(decode(i8, format_add(i8, encode(i8, -1), encode(i8, 1))) == 0, "int8: -1+1=0")
     u4 = FORMATS["uint4"]
     check(decode(u4, 0xF) == 15, "uint4: 0xF -> 15")
+
+    # BCD: matches conformance/bcd_decode_conformance_ax7203.py (golden_bcd).
+    bcd = FORMATS["bcd"]
+    check(decode(bcd, 0x00) == 0, "bcd: 0x00 -> 0")
+    check(decode(bcd, 0x01) == 1, "bcd: 0x01 -> 1")
+    check(decode(bcd, 0x09) == 9, "bcd: 0x09 -> 9")
+    check(decode(bcd, 0x10) == 10, "bcd: 0x10 -> 10")
+    check(decode(bcd, 0x99) == 99, "bcd: 0x99 -> 99")
+    check(decode(bcd, 0x45) == 45, "bcd: 0x45 -> 45")
+    check(encode(bcd, 0) == 0x00, "bcd: encode 0")
+    check(encode(bcd, 9) == 0x09, "bcd: encode 9")
+    check(encode(bcd, 10) == 0x10, "bcd: encode 10")
+    check(encode(bcd, 99) == 0x99, "bcd: encode 99")
+    # wraparound: 100 mod 100 = 0
+    check(encode(bcd, 100) == 0x00, "bcd: encode 100 wraps to 0")
+    # 1 + 1 = 2
+    check(decode(bcd, format_add(bcd, encode(bcd, 1), encode(bcd, 1))) == 2,
+          "bcd: 1+1=2")
+    # 99 + 1 wraps to 0 (mod 100)
+    check(decode(bcd, format_add(bcd, encode(bcd, 99), encode(bcd, 1))) == 0,
+          "bcd: 99+1 wraps to 0")
+    # 50 + 50 = 100 -> wraps to 0
+    check(decode(bcd, format_add(bcd, encode(bcd, 50), encode(bcd, 50))) == 0,
+          "bcd: 50+50 wraps to 0")
 
     if failures:
         print("SELF-TEST: FAIL (%d)" % len(failures))

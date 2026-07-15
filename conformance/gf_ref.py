@@ -109,8 +109,11 @@ FORMATS = {
     "gf20": GFFormat("gf20", exp_bits=7, mant_bits=12, bias=63),
     "gf24": GFFormat("gf24", exp_bits=9, mant_bits=14, bias=255),
     "gf32": GFFormat("gf32", exp_bits=12, mant_bits=19, bias=2047),
-    # Canonical φ-rule family (arXiv:2606.05017) — wide formats
+    # Canonical φ-rule family (arXiv:2606.05017) — wide formats.
+    # E = round((N-1)/φ²) = round((N-1)/2.618), M = (N-1) - E.
+    "gf48": GFFormat("gf48", exp_bits=18, mant_bits=29, bias=(1 << 17) - 1),
     "gf64": GFFormat("gf64", exp_bits=24, mant_bits=39, bias=8388607),
+    "gf96": GFFormat("gf96", exp_bits=36, mant_bits=59, bias=(1 << 35) - 1),
     "gf128": GFFormat("gf128", exp_bits=49, mant_bits=78, bias=281474976710655),
     "gf256": GFFormat("gf256", exp_bits=97, mant_bits=158, bias=79228162514264337593543950335),
 }
@@ -365,7 +368,7 @@ if __name__ == "__main__":
             assert gf_add(fmt, one, one) != one, f"{name}: 1+1 == 1"
         ok += 1
     # Wide formats: quick check only
-    for name in ["gf64", "gf128", "gf256"]:
+    for name in ["gf48", "gf64", "gf96", "gf128", "gf256"]:
         fmt = FORMATS[name]
         assert gf_add(fmt, 0, 0) == 0, f"{name}: 0+0 != 0"
         ok += 1

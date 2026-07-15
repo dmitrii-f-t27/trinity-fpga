@@ -26,12 +26,14 @@ from dataclasses import dataclass
 class LegacyFormat:
     name: str
     width: int
-    kind: str               # 'vax' | 'ibm' | 'cray' | 'x87'
+    kind: str               # 'vax' | 'ibm' | 'cray' | 'x87' | 'mbf'
     exp_bits: int
     mant_bits: int
     bias: int
     base: int = 2           # 2 or 16
     explicit_int_bit: bool = False   # Cray/x87: leading bit explicit (no hidden)
+    min_exp_field: int = 1  # exp fields below this are reserved (flush to zero)
+                             # VAX=1, MBF=3 (Microsoft Binary Format reserves 0..2)
 
     @property
     def mask(self): return (1 << self.width) - 1
@@ -65,6 +67,10 @@ FORMATS = {
     "pdp11_float": LegacyFormat("pdp11_float", width=32,  kind='vax',  exp_bits=8,  mant_bits=23, bias=128),
     "x87_fp80":    LegacyFormat("x87_fp80",    width=80,  kind='x87',  exp_bits=15, mant_bits=64, bias=16383, explicit_int_bit=True),
     "x87_48bit":   LegacyFormat("x87_48bit",   width=48,  kind='x87',  exp_bits=15, mant_bits=32, bias=16383, explicit_int_bit=True),
+    # Microsoft Binary Format (pre-IEEE, bias=129). exp_field 0..2 reserved (zero).
+    # Matches conformance/ms_mbf32_decode_conformance_ax7203.py:golden_mbf32.
+    "ms_mbf32":    LegacyFormat("ms_mbf32",    width=32,  kind='mbf',  exp_bits=8,  mant_bits=23, bias=129, min_exp_field=3),
+    "ms_mbf64":    LegacyFormat("ms_mbf64",    width=64,  kind='mbf',  exp_bits=8,  mant_bits=55, bias=129, min_exp_field=3),
 }
 
 
@@ -128,9 +134,10 @@ def decode(fmt: LegacyFormat, raw: int):
         value = Fraction(mant, 1 << fmt.mant_bits) * (Fraction(fmt.base) ** (exp - fmt.bias))
         return -value if sign else value
 
-    if fmt.kind == 'vax':
-        if exp == 0:
-            return Fraction(0)        # VAX reserves exp=0 for zero
+    if fmt.kind in ('vax', 'mbf'):
+        min_e = getattr(fmt, 'min_exp_field', 1)
+        if exp < min_e:
+            return Fraction(0)        # VAX/MBF reserves exp<min_exp_field for zero
         value = (1 + Fraction(mant, 1 << fmt.mant_bits)) * pow2(exp - fmt.bias)
         return -value if sign else value
 
@@ -188,8 +195,9 @@ def encode(fmt: LegacyFormat, value):
             return _sat_raw(fmt, sign)
         return (sign << fmt.sign_shift) | (E << M) | (F & fmt.mant_max)
 
-    if fmt.kind == 'vax':
+    if fmt.kind in ('vax', 'mbf'):
         M = fmt.mant_bits
+        min_e = getattr(fmt, 'min_exp_field', 1)
         E2 = ilog2_base(a, 2)
         frac = a / pow2(E2) - 1                # [0,1)
         F, carry = _round_half_even(frac * (1 << M), cap=(1 << M))
@@ -197,8 +205,8 @@ def encode(fmt: LegacyFormat, value):
         if carry:
             F = 0
             e += 1
-        if e <= 0:
-            return fmt.pos_zero                # VAX flushes denormals to zero
+        if e < min_e:
+            return fmt.pos_zero                # VAX/MBF flushes denormals to zero
         if e > fmt.exp_max:
             return _sat_raw(fmt, sign)
         return (sign << fmt.sign_shift) | (e << M) | (F & fmt.mant_max)
@@ -277,6 +285,29 @@ def _selftest():
     check(decode(ibm32, 0x41100000) == 1, "ibm_hfp32: 0x41100000 -> +1")
     check(decode(ibm32, 0xC1100000) == -1, "ibm_hfp32: 0xC1100000 -> -1")
     check(decode(ibm32, 0x41200000) == 2, "ibm_hfp32: 0x41200000 -> +2")
+
+    # MBF32 known vectors from conformance/ms_mbf32_decode_conformance_ax7203.py
+    # MBF32 raw → IEEE-754 binary32 raw equivalence: code 0x40800000 (exp=129, mant=0)
+    # equals 1.0; decoded Fraction here is the exact value, not IEEE raw.
+    mbf32 = FORMATS["ms_mbf32"]
+    check(decode(mbf32, 0x00000000) == 0, "ms_mbf32: 0 -> 0")
+    check(decode(mbf32, 0x40800000) == 1, "ms_mbf32: 0x40800000 -> +1 (bias 129)")
+    check(decode(mbf32, 0xC0800000) == -1, "ms_mbf32: 0xC0800000 -> -1")
+    check(decode(mbf32, 0x41000000) == 2, "ms_mbf32: 0x41000000 -> +2")
+    check(decode(mbf32, 0x41400000) == Fraction(3), "ms_mbf32: 0x41400000 -> +3")
+    # exp_field <= 2 reserved as zero (MBF convention).
+    check(decode(mbf32, 0x01000000) == 0, "ms_mbf32: exp_field=2 flushes to 0")
+    check(encode(mbf32, Fraction(1)) == 0x40800000, "ms_mbf32: encode 1.0")
+    check(encode(mbf32, Fraction(2)) == 0x41000000, "ms_mbf32: encode 2.0")
+    check(encode(mbf32, Fraction(-1)) == 0xC0800000, "ms_mbf32: encode -1.0")
+
+    # MBF64 known vectors from conformance/ms_mbf64_decode_conformance_ax7203.py
+    mbf64 = FORMATS["ms_mbf64"]
+    check(decode(mbf64, 0x0000000000000000) == 0, "ms_mbf64: 0 -> 0")
+    check(decode(mbf64, 0x4080000000000000) == 1, "ms_mbf64: bias-129 +1.0")
+    check(decode(mbf64, 0xC080000000000000) == -1, "ms_mbf64: -1.0")
+    check(decode(mbf64, 0x4100000000000000) == 2, "ms_mbf64: +2.0")
+    check(encode(mbf64, Fraction(1)) == 0x4080000000000000, "ms_mbf64: encode 1.0")
 
     for fname, fmt in FORMATS.items():
         check(decode(fmt, 0) == 0, f"{fname}: +0")

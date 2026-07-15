@@ -120,11 +120,11 @@ stoch_tb: synth_check_no_star_stoch
 # ─── Reproducibility targets (Wave 15) ───
 .PHONY: oracle repro bench lut vectors
 
-# Generate ADD conformance vectors for all 72 oracle formats
+# Generate ADD conformance vectors for all 81 oracle formats
 vectors:
 	@python3 conformance/generate_vectors.py
 
-# Run all 12 oracle self-tests
+# Run all 15 oracle self-tests
 oracle:
 	@echo "=== Running all oracle self-tests ==="
 	@for f in conformance/*_ref.py; do \
