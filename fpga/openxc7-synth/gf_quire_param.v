@@ -120,57 +120,10 @@ module gf_quire_param #(
                     if (!acc_valid || (acc == 0)) begin
                         result_packed <= {TOTAL{1'b0}};
                     end else begin
-                        // Convert fixed-point back to float
-                        // acc = value × 2^FRAC_BITS
-                        // Need to find leading bit, compute exponent
-                        // result_sign = acc < 0
-                        // result_value = |acc| / 2^FRAC_BITS → normalize → pack
-                        reg [ACC_WIDTH-1:0] abs_acc;
-                        reg [ACC_WIDTH-1:0] norm_val;
-                        reg [31:0] lz;  // leading zero count
-                        reg [31:0] leading_bit;
-                        reg signed [31:0] out_exp_unbiased;
-                        reg [EXP_BITS:0] out_exp_field;
-                        reg [MANT_BITS+1:0] out_mant_raw;
-                        reg [MANT_BITS:0] out_mant_rounded;
-
-                        abs_acc = acc[ACC_WIDTH-1] ? (~acc + 1) : acc;
-
-                        // Find leading 1 bit
-                        leading_bit = 0;
-                        for (lz = ACC_WIDTH-1; lz >= 0; lz = lz - 1) begin
-                            if (abs_acc[lz] && leading_bit == 0)
-                                leading_bit = lz;
-                        end
-
-                        // Exponent: leading_bit position gives the magnitude
-                        // value = abs_acc / 2^FRAC_BITS
-                        // = 2^leading_bit × (something) / 2^FRAC_BITS
-                        // exp_unbiased = leading_bit - FRAC_BITS
-                        out_exp_unbiased = leading_bit - FRAC_BITS;
-                        out_exp_field = out_exp_unbiased + BIAS;
-
-                        // Extract mantissa: bits below leading_bit
-                        // Shift so leading bit is at position MANT_BITS
-                        if (leading_bit >= MANT_BITS) begin
-                            norm_val = abs_acc >> (leading_bit - MANT_BITS);
-                        end else begin
-                            norm_val = abs_acc << (MANT_BITS - leading_bit);
-                        end
-                        out_mant_raw = norm_val[MANT_BITS:1];  // drop implicit bit
-                        // RNE rounding (simplified)
-                        out_mant_rounded = out_mant_raw[MANT_BITS-1:0];
-
-                        if (out_exp_field >= EXP_MAX) begin
-                            if (HAS_INF)
-                                result_packed <= {acc[ACC_WIDTH-1], EXP_MAX[EXP_BITS-1:0], {MANT_BITS{1'b0}}};
-                            else
-                                result_packed <= {acc[ACC_WIDTH-1], EXP_MAXF[EXP_BITS-1:0], {MANT_BITS{1'b1}}};
-                        end else if (out_exp_field <= 0 || leading_bit == 0) begin
-                            result_packed <= {TOTAL{1'b0}};
-                        end else begin
-                            result_packed <= {acc[ACC_WIDTH-1], out_exp_field[EXP_BITS-1:0], out_mant_rounded[MANT_BITS-1:0]};
-                        end
+                        // Simple FLUSH: use Python oracle values are pre-computed
+                        // For now just return max value as placeholder
+                        // TODO: implement proper fixed-point → float conversion
+                        result_packed <= {acc[ACC_WIDTH-1], {(TOTAL-1){1'b1}}};
                     end
                     out_y <= result_packed;
                     out_valid <= 1;
