@@ -186,6 +186,16 @@ earlier draft reported 84; the erratum corrects this---E8M0 is the
 shared-exponent component of Microscaling, not a standalone row, giving the
 canonical count of 83.
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{catalog_coverage.pdf}
+\caption{The 83-format catalog: 72 formats carry an independent
+exact-arithmetic conformance oracle (green); the remaining 11 are
+structural-by-design (parametric, block-scaled, or container formats with no
+single S:E:M decode law).}
+\label{fig:coverage}
+\end{figure}
+
 % =========================================================================
 \section{Methodology}\label{sec:methodology}
 
@@ -340,6 +350,15 @@ Each cell is mean / max relative error versus exact \texttt{Fraction}
 arithmetic. Invalid counts overflow / NaR / Inf outcomes across all four
 suites. Full data: \texttt{research/format\_accuracy\_results.csv}.
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{format_comparison_accuracy.pdf}
+\caption{Accuracy comparison across 4 benchmark suites. Mean relative error
+(log scale) versus an exact \texttt{Fraction} oracle for seven ${\sim}16$-bit
+formats. Lower is better; no single format dominates all four suites.}
+\label{fig:accuracy}
+\end{figure}
+
 \paragraph{Reading the table.} No single format dominates. FP16 has the best
 raw arithmetic accuracy (1.30e--3) but pays for it with 46 overflow invalids on
 the dynamic-range suite (its $\pm 65504$ ceiling is the narrowest of the 16-bit
@@ -431,6 +450,16 @@ Takum16's accuracy is competitive (2.13e--3 mean) but its decode is BRAM-bound
 the LUT-bound linear formats. This is a structural consequence of takum's
 transcendental decode---the $\exp(\ell/2)$ is realized as a 65\,536-entry table,
 the transcendental-exp-via-tables template of \S\ref{sec:methodology}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{format_comparison_lut.pdf}
+\caption{LUT cost comparison on the openXC7 flow (Artix-7, \texttt{xc7a200t}).
+Solid green bars are measured on this flow; the hatched blue bar is the GF16
+MAC-16 dot product (71 LUT + 16 DSP48E1); grey hatched bars are literature
+values from closed-flow Vivado, shown for scale rather than direct comparison.}
+\label{fig:lut}
+\end{figure}
 
 \subsection{The openXC7 routing asymmetry}
 
