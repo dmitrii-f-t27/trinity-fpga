@@ -100,3 +100,8 @@ Timeline:
 41. **SUB vectors generated** — 287 total JSON files (ADD+MUL+SUB), 2,426,879 vectors
 42. **61 CI workflows** (was 3388 → 102 → 61). 41 orphan May-era workflows deleted.
 43. **arXiv submission checklist** — ALL items checked except "Upload" (user action)
+44. **Paper 1 (2606.05017) needs v4**: add GF64 ceiling, takum comparison, FL-002 update
+45. **Paper 2 (2606.09686) needs v3**: add 72-oracle suite, reproducibility, replace φ-anchor
+46. **Zero citations on both papers** — 3-6 weeks old, no community uptake
+47. **Biggest competitor**: Hunhold takum (2404.18603 + FPGA codec 2408.10594)
+48. **EXISTENTIAL risk**: OCP-MX (9 citations, silicon shipping) + IEEE P3109 (standards-track)
