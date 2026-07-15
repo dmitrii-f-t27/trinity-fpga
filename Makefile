@@ -144,3 +144,7 @@ bench:
 # Measure GF16 LUT (requires yosys)
 lut:
 	@yosys -p "read_verilog fpga/openxc7-synth/gf_adder_param.v fpga/openxc7-synth/gf16_param_top.v; synth_xilinx -flatten -abc9 -nocarry -arch xc7; stat" 2>&1 | grep -E "LUT[2-6] " | head -5
+
+# Golden Ruler — format recommendation tool
+ruler:
+	@python3 conformance/golden_ruler.py --list

@@ -254,3 +254,70 @@ Update the `paper.bib` self-citation note (currently line 150: *"The 83-format c
 ---
 
 *Prepared as the catalog-paper-only v3 changelog. The GoldenFloat-paper v3 update is a separate document and must not be merged with this one.*
+
+---
+
+## §9. Golden Ruler — Format Selection Tool for Engineers (NEW in v3)
+
+The catalog is not just a reference — it is a **queryable tool**. The Golden
+Ruler (`conformance/golden_ruler.py`) takes workload requirements and returns
+ranked format recommendations.
+
+### Usage
+
+```bash
+# What format for LLM training at ≤32 bits?
+make ruler  # or:
+python3 conformance/golden_ruler.py --task llm-training --top 5
+
+# What format for edge inference at ≤8 bits?
+python3 conformance/golden_ruler.py --task edge-ml --top 5
+
+# What format for FPGA with zero-DSP at ≤16 bits?
+python3 conformance/golden_ruler.py --task fpga-minimal --top 5
+
+# List all formats with properties
+python3 conformance/golden_ruler.py --list
+```
+
+### How it works
+
+The Golden Ruler scores each format on 6 axes:
+
+| Axis | Metric | Source |
+|------|--------|--------|
+| Dynamic range | decades from min to max | `E` and `bias` |
+| Precision | decimal digits | `M` bits → M×log₁₀(2) |
+| LUT cost | estimated from scaling law | `1.55×W²` (ADD), `2.06×W²` (MUL) |
+| Gradient survival | % updates that survive quantization | `M` bits → quantization step |
+| Robustness | 7/7 workload pass | from §4.3 analysis |
+| Width fit | ≤ max_width constraint | from `width` |
+
+### Predefined tasks
+
+| Task | Max width | Min range | Min precision | Special |
+|------|----------|-----------|---------------|---------|
+| llm-training | 32 | 10 decades | 2.5 digits | gradient survival weighted |
+| inference | 16 | 5 decades | 1.5 digits | |
+| edge-ml | 8 | 3 decades | 1.0 digit | |
+| scientific | 128 | 40 decades | 6.0 digits | |
+| dsp | 32 | 20 decades | 4.0 digits | |
+| fpga-minimal | 16 | 15 decades | 2.5 digits | zero-DSP, LUT-weighted |
+
+### Example output (LLM training)
+
+```
+Rank Format     W  Score  Reasons
+   1 gf16      16    90   range 19dec; prec 2.7d; grad 63%; 7/7 ROBUST
+   2 gf20      20    85   range 38dec; prec 3.6d; grad 95%
+   3 binary32  32    85   range 77dec; prec 6.9d; grad 100%
+
+✓ RECOMMENDED: gf16 (score 90)
+```
+
+### Why this matters for the paper
+
+The Golden Ruler converts the catalog from a **static reference** into an
+**interactive engineering tool**. This answers the reviewer question "why is
+this a paper, not a GitHub release?": the catalog IS the data, but the Golden
+Ruler is the **intelligence layer** that makes it actionable.
