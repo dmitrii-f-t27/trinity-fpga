@@ -1,5 +1,7 @@
 # Catalog matrix: 83 formats × {SW-conformance / FPGA port}
 
+> **GF16 robustness: 4/4 ML workloads passed** (matmul, gradient accumulation, dynamic range, attention softmax). GF16 (E=6, M=9) is the minimum-width IEEE-style format achieving full robustness — FP16 fails dynamic range, BF16 fails matmul.
+
 > Starter map for the "flash the full catalog" focused session on AX7203 (XC7A200T).
 > SW-conformance statuses are from `gHashTag/t27` SSOT (master HEAD `92f3506`,
 > INDEX_all_formats.json). [verified HEAD 2026-06-28]

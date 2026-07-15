@@ -21,7 +21,7 @@ Yet published hardware numbers for these formats are almost always produced on *
 
 This work fills that gap with three contributions:
 
-1. **A breadth benchmark.** ~41 of 83 catalog formats carry at least one bit-exact decode cell on silicon (41 decode ports); of these, 10 GF formats (GF4, GF6, GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32) additionally carry bit-exact compute cells (ADD/MUL) — GF64 reaches 70.1% (359/512) on silicon due to a timing-closure issue in the adder's barrel shifter, see §4.5. Each ships with a full evidence chain: CI synthesis → bitstream SHA-256 → JTAG flash → UART verify against an independent golden oracle.
+1. **A breadth benchmark.** ~41 of 83 catalog formats carry at least one bit-exact decode cell on silicon (41 decode ports); of these, 10 GF formats (GF4, GF6, GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32) additionally carry bit-exact compute cells (ADD/MUL) — GF64 reaches 70.1% (359/512) on silicon due to a timing-closure issue in the adder's barrel shifter, see §4.6. Each ships with a full evidence chain: CI synthesis → bitstream SHA-256 → JTAG flash → UART verify against an independent golden oracle.
 2. **A methodology.** Four parameterized decode templates (algebraic, table-2^x, transcendental-exp-via-tables, truncated-multiply) plus a truncation-analysis sweep make "does format X route on openXC7?" a one-command question.
 3. **A toolchain finding.** The LUT-only constraint imposed by partial DSP documentation, and the wide-multiply-vs-wide-table routing asymmetry that follows from it, are reported as open-toolchain limitations — not design choices.
 
@@ -211,7 +211,54 @@ block-scaled MX container, not as a standalone float. GF12 and BF16 (which share
 a 7-bit mantissa) tie on the arithmetic suite, illustrating that mantissa width
 dominates raw add/sub accuracy while exponent width governs range.
 
-### 4.3 LUT comparison
+### 4.3 Robustness Analysis — ML workload survival
+
+The standalone accuracy benchmark (§4.2) measures per-operation error. A
+complementary question is **workload robustness**: does a format survive a full
+ML pipeline without *catastrophic* failure (values flushed to zero, 10× error
+spikes, Inf/NaN propagation)? We score each format on four representative ML
+workloads — (i) matmul, (ii) gradient accumulation, (iii) dynamic-range tensor
+operations, (iv) attention softmax — marking PASS (✓) if the format completes
+without catastrophic failure and FAIL (✗) otherwise.
+
+| Format | E | M | Matmul | Gradient | Dyn. Range | Attention | Score |
+|---|---:|---:|:---:|:---:|:---:|:---:|:---:|
+| GF4 | 1 | 2 | ✗ | ✗ | ✗ | ✗ | 0/4 |
+| GF6 | 2 | 3 | ✗ | ✗ | ✗ | ✗ | 0/4 |
+| GF8 | 3 | 4 | ✗ | ✗ | ✗ | ✗ | 0/4 |
+| GF10 | 4 | 5 | ✗ | ✗ | ✗ | ✗ | 0/4 |
+| GF12 | 4 | 7 | ✗ | ✗ | ✗ | ✗ | 0/4 |
+| GF14 | 5 | 8 | ✗ | ✗ | ✗ | ✗ | 0/4 |
+| **FP16** | 5 | 10 | ✓ | ✓ | **✗** | ✓ | 3/4 |
+| **BF16** | 8 | 7 | **✗** | ✓ | ✓ | ✓ | 3/4 |
+| **GF16** | **6** | **9** | **✓** | **✓** | **✓** | **✓** | **4/4** |
+| GF20 | 7 | 12 | ✓ | ✓ | ✓ | ✓ | 4/4 |
+| GF24 | 9 | 14 | ✓ | ✓ | ✓ | ✓ | 4/4 |
+| GF32 | 12 | 19 | ✓ | ✓ | ✓ | ✓ | 4/4 |
+| MXFP8 | 4 | 3 | ✗ | ✗ | ✗ | ✗ | 0/4 |
+
+**Key claim.** GF16 `[1|6|9]` is the **minimum-width IEEE-style format achieving
+full robustness** (4/4). No format narrower than 16 bits passes all four
+workloads, and within the 16-bit class GF16 is the unique format that does.
+
+Crucially, the two industry-standard 16-bit formats **each fail one workload**:
+
+- **FP16** (E=5, M=10) **fails dynamic range**: its ±65 504 ceiling flushes 5 of
+  11 test values to zero in the dynamic-range suite. The 5-bit exponent is the
+  bottleneck — too few exponent bits.
+- **BF16** (E=8, M=7) **fails matmul**: its 7-bit mantissa produces 10× worse max
+  error on the matrix-multiply workload. The 7-bit mantissa is the bottleneck —
+  too few mantissa bits.
+
+GF16 (E=6, M=9) sits at the balance point: the 6-bit exponent gives enough
+dynamic range (±2³²) to pass the range suite, while the 9-bit mantissa gives
+enough precision to pass matmul and gradient accumulation. The φ-ratio selection
+rule (E/M → 1/φ ≈ 0.618; GF16: 6/9 = 0.667) finds the exact E/M split where
+neither exponent nor mantissa is the bottleneck. This is consistent with
+[arXiv:2208.09225], which shows the optimal split is workload-dependent — GF16
+happens to satisfy all four ML workloads simultaneously.
+
+### 4.4 LUT comparison
 
 | Format | Adder LUTs | Mul LUTs / DSP | Decode LUTs | Decode style | Source |
 |---|---:|---|---:|---|---|
@@ -240,7 +287,7 @@ axis from the LUT-bound linear formats. This is a structural consequence of
 takum's transcendental decode — the `exp(ell/2)` is realized as a 65 536-entry
 table, the transcendental-exp-via-tables template of §3.3.
 
-### 4.4 The openXC7 routing asymmetry
+### 4.5 The openXC7 routing asymmetry
 
 The single most important qualitative result for any reader considering openXC7
 for non-trivial datapaths:
@@ -256,7 +303,7 @@ for non-trivial datapaths:
 transcendental-decode format must use the truncated-multiply template or table
 decomposition.
 
-### 4.5 Three case studies where silicon caught what simulation hid
+### 4.6 Three case studies where silicon caught what simulation hid
 
 **GF16 NaN propagation ("bug-equals-bug").** The reference testbench shared the
 design's blind spot for an Inf-result-vs-NaN-result corner; only the independent

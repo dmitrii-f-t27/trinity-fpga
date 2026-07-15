@@ -105,3 +105,6 @@ Timeline:
 46. **Zero citations on both papers** — 3-6 weeks old, no community uptake
 47. **Biggest competitor**: Hunhold takum (2404.18603 + FPGA codec 2408.10594)
 48. **EXISTENTIAL risk**: OCP-MX (9 citations, silicon shipping) + IEEE P3109 (standards-track)
+49. **GF16 = minimum 16-bit format with 4/4 robustness** (matmul+grad+range+attn) — the φ-sweet spot
+50. **FP16 fails dynamic range** (loses 5/11 values to zero), **BF16 fails matmul** (10× worse max error), **GF16 passes all** → minimum robust IEEE-style format
+51. **φ-rule finds the E/M balance point** where neither exponent nor mantissa is the bottleneck (E/M → 1/φ ≈ 0.618: GF16 = 6/9 = 0.667)

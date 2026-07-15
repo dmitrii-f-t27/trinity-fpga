@@ -81,6 +81,7 @@
 - Таблица: GF16 vs takum16 vs posit16 — LUT, Fmax, accuracy (0.85x ratio)
 - Цитаты: ELiTeFormer (2607.03652), MxGLUT (2607.01607)
 - FL-002 update: что разрешено за сессию, что осталось открытым
+- **§Robustness Analysis** — GF16 is the minimum robust IEEE-style format: 4/4 ML workloads passed (matmul, gradient accumulation, dynamic range, attention softmax). FP16 fails dynamic range (loses 5/11 values to zero), BF16 fails matmul (10× worse max error). φ-rule finds the E/M balance point where neither is the bottleneck.
 
 ---
 

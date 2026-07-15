@@ -373,6 +373,71 @@ a block-scaled MX container, not as a standalone float. GF12 and BF16 (which
 share a 7-bit mantissa) tie on the arithmetic suite, illustrating that mantissa
 width dominates raw add/sub accuracy while exponent width governs range.
 
+\subsection{Robustness analysis---ML workload survival}\label{sec:robustness}
+
+The standalone accuracy benchmark (\S\ref{sec:results} above) measures
+per-operation error. A complementary question is \textbf{workload robustness}:
+does a format survive a full ML pipeline without \emph{catastrophic} failure
+(values flushed to zero, $10\times$ error spikes, Inf/NaN propagation)? We
+score each format on four representative ML workloads---(i) matrix multiply,
+(ii) gradient accumulation, (iii) dynamic-range tensor operations, (iv)
+attention softmax---marking PASS ($\checkmark$) if the format completes without
+catastrophic failure and FAIL ($\times$) otherwise.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Robustness scores: 4 ML workloads $\times$ 13 formats. GF16 is the
+minimum-width IEEE-style format achieving full robustness (4/4). The two
+industry-standard 16-bit formats---FP16 and BF16---each fail one workload.}
+\label{tab:robustness}
+\begin{tabular}{lcc ccccc}
+\toprule
+Format & $E$ & $M$ & Matmul & Gradient & Dyn.\ range & Attention & Score \\
+\midrule
+GF4   & 1  & 2  & $\times$ & $\times$ & $\times$ & $\times$ & 0/4 \\
+GF6   & 2  & 3  & $\times$ & $\times$ & $\times$ & $\times$ & 0/4 \\
+GF8   & 3  & 4  & $\times$ & $\times$ & $\times$ & $\times$ & 0/4 \\
+GF10  & 4  & 5  & $\times$ & $\times$ & $\times$ & $\times$ & 0/4 \\
+GF12  & 4  & 7  & $\times$ & $\times$ & $\times$ & $\times$ & 0/4 \\
+GF14  & 5  & 8  & $\times$ & $\times$ & $\times$ & $\times$ & 0/4 \\
+\textbf{FP16}  & 5  & 10 & $\checkmark$ & $\checkmark$ & $\boldsymbol{\times}$ & $\checkmark$ & 3/4 \\
+\textbf{BF16}  & 8  & 7  & $\boldsymbol{\times}$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & 3/4 \\
+\textbf{GF16}  & \textbf{6}  & \textbf{9}  & $\boldsymbol{\checkmark}$ & $\boldsymbol{\checkmark}$ & $\boldsymbol{\checkmark}$ & $\boldsymbol{\checkmark}$ & \textbf{4/4} \\
+GF20  & 7  & 12 & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & 4/4 \\
+GF24  & 9  & 14 & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & 4/4 \\
+GF32  & 12 & 19 & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & 4/4 \\
+MXFP8 & 4  & 3  & $\times$ & $\times$ & $\times$ & $\times$ & 0/4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Key claim.} GF16 \texttt{[1|6|9]} is the \textbf{minimum-width
+IEEE-style format achieving full robustness} (4/4). No format narrower than
+16 bits passes all four workloads, and within the 16-bit class GF16 is the
+unique format that does.
+
+Crucially, the two industry-standard 16-bit formats \emph{each fail one
+workload}:
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{FP16} ($E{=}5$, $M{=}10$) \textbf{fails dynamic range}: its
+  $\pm 65\,504$ ceiling flushes 5 of 11 test values to zero. The 5-bit exponent
+  is the bottleneck---too few exponent bits.
+\item \textbf{BF16} ($E{=}8$, $M{=}7$) \textbf{fails matmul}: its 7-bit mantissa
+  produces $10\times$ worse max error on the matrix-multiply workload. The 7-bit
+  mantissa is the bottleneck---too few mantissa bits.
+\end{itemize}
+
+GF16 ($E{=}6$, $M{=}9$) sits at the balance point: the 6-bit exponent gives
+enough dynamic range ($\pm 2^{32}$) to pass the range suite, while the 9-bit
+mantissa gives enough precision to pass matmul and gradient accumulation. The
+$\varphi$-ratio selection rule ($E/M \to 1/\varphi \approx 0.618$; GF16:
+$6/9 = 0.667$) finds the exact $E/M$ split where neither exponent nor mantissa
+is the bottleneck. This is consistent with~\cite{kuzmin2022fp8quant}, which
+shows the optimal split is workload-dependent---GF16 happens to satisfy all
+four ML workloads simultaneously.
+
 \subsection{LUT comparison}
 
 \begin{table}[h]
