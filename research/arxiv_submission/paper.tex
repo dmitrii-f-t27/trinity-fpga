@@ -674,6 +674,33 @@ figure. The definitive fix is a 2-stage pipeline (future work). GF64 is
 therefore reported honestly at 70.1\%, not bit-exact.
 
 % =========================================================================
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{training_noise_floor.pdf}
+\caption{Training noise floor: percentage of gradient updates that survive
+quantization for each format. BF16 preserves only 7.3\% (7-bit mantissa);
+GF16 preserves 63.9\% (9-bit mantissa).}
+\label{fig:noisefloor}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{robustness_heatmap.pdf}
+\caption{ML workload robustness matrix. Green = pass, Red = fail.
+GF14 and above pass all four tests; FP16 fails dynamic range; BF16 fails matmul.}
+\label{fig:robustness}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{lut_scaling_law.pdf}
+\caption{Hardware cost scaling: LUT $\approx$ 2.3 $\times$ $W^2$ for all formats.
+GF16 and takum16 both cost 505 LUT in the zero-DSP regime.}
+\label{fig:lutlaw}
+\end{figure}
+
 \section{Related work}\label{sec:related}
 
 \begin{table}[h]
