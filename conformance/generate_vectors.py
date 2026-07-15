@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-generate_vectors.py — Generator of ADD and MUL conformance vectors for ALL 81
+generate_vectors.py — Generator of ADD, MUL and SUB conformance vectors for ALL
 oracle formats across the 15 reference modules (gf, tekum, posit, bf16, fp8,
 mxfp, takum, decimal, ieee, legacy, lns, int, nf4, gfternary, extended).
 
 For each format and each operation emits:
-    conformance/vectors/{format}_{op}.json   where op in {add, mul}
+    conformance/vectors/{format}_{op}.json   where op in {add, mul, sub}
   {
     "format": "gf16",
-    "operation": "add" | "mul",
+    "operation": "add" | "mul" | "sub",
     "oracle": "gf_ref.py",
     "family": "gf",
     "width": 16,
@@ -18,7 +18,7 @@ For each format and each operation emits:
     "vectors": [ {"a":"0x...","b":"0x...","expected":"0x..."}, ... ]
   }
 
-Coverage policy per format width W (same for ADD and MUL):
+Coverage policy per format width W (same for ADD, MUL and SUB):
   W <= 8  : exhaustive (all 2^W x 2^W ordered pairs) + edge x edge
   W <= 16 : edge x edge + 200 seeded random pairs
   W >  16 : edge x edge + 50 seeded random pairs (Fraction arithmetic is slow)
@@ -31,10 +31,20 @@ Specials (Inf/NaN/NaR) are exposed both (a) as a named legend under "specials"
 and (b) as raw hex bit-patterns inside vectors (the DUT sees bits, produces bits).
 
 A format/op is skipped ONLY if that op's function is genuinely absent in the
-module. All 15 modules define both add and mul, so all 81 formats get both an
-_add.json and a _mul.json. Note: LNS MUL is exact in the log domain
-(log_a + log_b, then RNE) — the transcendental step is LNS ADD, not MUL; both
-are emitted and the distinction is recorded in the per-file "note".
+module. All 15 modules define both add and mul, so every signed format gets an
+_add.json, a _mul.json and a _sub.json. SUB is computed as ADD(a, negate(b)),
+so no separate oracle function is required; it reuses the exact-Fraction ADD
+oracle. Negation is family-aware (see negate_raw):
+  * sign-magnitude floats (gf, ieee, bf16, fp8, mxfp, decimal, legacy,
+    extended, lns, takum, tekum): flip the sign bit (MSB);
+  * two's-complement full-word (posit): (0 - raw) & mask;
+  * signed integers (two's complement): (0 - raw) & mask  (modular);
+  * code-table formats (nf4, gfternary): encode(-decode(raw));
+  * unsigned integers (uint*, bcd): SUB is undefined -> skipped.
+
+Note: LNS MUL is exact in the log domain (log_a + log_b, then RNE) — the
+transcendental step is LNS ADD, not MUL; all three ops are emitted and the
+distinction is recorded in the per-file "note".
 
 Honesty: Trinity conformance team (AGENT F). Run: python3 conformance/generate_vectors.py
 """
@@ -69,11 +79,15 @@ MODULES = [
     ("extended_ref",  "format_add",  "format_mul",  "extended"),
 ]
 
-# (op_tag, index_into_module_tuple_for_fn_name)
-OPERATIONS = [("add", 1), ("mul", 2)]
+# (op_tag, mode)
+#   "add"/"mul" -> direct oracle call via the module's add/mul function
+#   "sub"       -> SUB = ADD(a, negate(b)); reuses the ADD oracle (see negate_raw).
+#                  Undefined for unsigned integer formats (uint*, bcd) -> skipped.
+OPERATIONS = [("add", "add"), ("mul", "mul"), ("sub", "sub")]
 
 # Per-family notes, split by operation. The LNS distinction matters: MUL is the
-# exact log-domain operation; ADD is the one with a transcendental step.
+# exact log-domain operation; ADD is the one with a transcendental step. SUB
+# inherits ADD's per-family caveats (it IS add + negate).
 _ADD_NOTES = {
     "lns": "lns add uses a transcendental step (math.log2); result is the "
            "oracle's rounded-log approximation, not exact-Fraction.",
@@ -89,8 +103,15 @@ _MUL_NOTES = {
 
 
 def op_note(family, op):
-    table = _MUL_NOTES if op == "mul" else _ADD_NOTES
-    verb = "decode/mul/encode" if op == "mul" else "decode/add/encode"
+    if op == "mul":
+        table = _MUL_NOTES
+        verb = "decode/mul/encode"
+    elif op == "sub":
+        table = _ADD_NOTES
+        verb = "decode/sub/encode (SUB = ADD(a, negate(b)))"
+    else:
+        table = _ADD_NOTES
+        verb = "decode/add/encode"
     return table.get(family, f"exact Fraction {verb}, round-ties-even.")
 
 def hexstr(raw, width):
@@ -167,6 +188,60 @@ def get_mask(fmt):
 
 def is_int_family(fmt):
     return hasattr(fmt, "signed")
+
+
+def negate_raw(fmt, mod, family, raw, mask):
+    """Return the raw bit-pattern of -value(raw), family-aware. Used for SUB.
+
+    SUB = ADD(a, negate(b)). Negation rules (derived from each oracle's decode):
+      * sign-magnitude floats (gf, ieee, bf16, fp8, mxfp, decimal, legacy,
+        extended, lns, takum, tekum): flip the sign bit (MSB = bit width-1).
+        Correct for every finite value and for Inf/NaN/NaR (flip turns +Inf into
+        -Inf, +0 into -0, leaves NaN a NaN).
+      * posit: negation is the two's complement of the FULL word, so
+        (0 - raw) & mask (matches posit_ref decode: mag = (1<<n) - raw when S=1).
+      * signed integers (two's complement): (0 - raw) & mask -> modular negate.
+      * code-table formats (nf4, gfternary): encode(-decode(raw)).
+      * unsigned integers (uint*, bcd): SUB is undefined -> return None; the
+        caller skips emitting a _sub.json for these formats.
+
+    LNS encodes zero (sign 0) and NaR (sign 1) in the SAME field_min pattern, so
+    a bare sign flip would swap zero<->NaR; those two specials are pinned here.
+    """
+    raw &= mask
+
+    if is_int_family(fmt):
+        if not getattr(fmt, "signed", False):
+            return None                     # unsigned: SUB not defined
+        return (0 - raw) & mask             # two's complement (modular)
+
+    if family == "posit":
+        return (0 - raw) & mask             # posit negate = 2's complement of word
+
+    if family in ("nf4", "gfternary"):
+        return mod.encode(fmt, -mod.decode(fmt, raw)) & mask
+
+    if family == "lns":
+        nar = getattr(fmt, "nar", None)
+        if nar is not None and raw == (nar & mask):
+            return nar & mask               # -NaR = NaR
+        field_mask = getattr(fmt, "field_mask", None)
+        field_min = getattr(fmt, "field_min", None)
+        if field_mask is not None and field_min is not None \
+                and (raw & field_mask) == (field_min & field_mask):
+            return getattr(fmt, "pos_zero", 0) & mask   # -0 = +0 (LNS has no -0)
+
+    # sign-magnitude float families: flip the MSB
+    sign_bit = 1 << (get_width(fmt) - 1)
+    return (raw ^ sign_bit) & mask
+
+
+def make_sub_fn(add_fn, mod, family):
+    """Return an op-fn implementing SUB = ADD(a, negate(b)) via the ADD oracle."""
+    def sub_fn(fmt, a_raw, b_raw):
+        nb = negate_raw(fmt, mod, family, b_raw, get_mask(fmt))
+        return add_fn(fmt, a_raw, nb)
+    return sub_fn
 
 
 def edge_raws(fmt, mod, family, width, mask):
@@ -343,15 +418,15 @@ def main():
     os.makedirs(VECTORS_DIR, exist_ok=True)
 
     # Deterministic per-format seeds derived from (module index, format name).
-    # The seed is INDEPENDENT of the operation, so {format}_add.json and
-    # {format}_mul.json exercise the SAME (a, b) input pairs — only the
-    # expected output differs. This keeps ADD vector byte-identical to the
-    # previous (add-only) generator and makes add-vs-mul cross-checks trivial.
+    # The seed is INDEPENDENT of the operation, so {format}_add.json,
+    # {format}_mul.json and {format}_sub.json exercise the SAME (a, b) input
+    # pairs — only the expected output differs. This keeps ADD/MUL vectors
+    # byte-identical to the previous generator and makes cross-op checks trivial.
     files_written = []
     total_vectors = 0
     total_errors = 0
     skipped = []
-    per_format = []   # (fname, family, width, n_add, n_mul)
+    per_format = []   # (fname, family, width, counts_dict)
 
     t0 = time.time()
 
@@ -359,24 +434,33 @@ def main():
     for mi, (mod_name, add_name, mul_name, family) in enumerate(MODULES):
         mod = importlib.import_module(mod_name)
 
-        # resolve operation functions; if a module lacks an op, skip all its
-        # formats for that op with an explicit message (none do today).
-        op_fns = {}
-        for op, fn_idx in OPERATIONS:
-            fn_name = (add_name, mul_name)[fn_idx - 1]
-            fn = getattr(mod, fn_name, None)
-            if fn is None:
-                for fname in mod.FORMATS:
-                    skipped.append(f"{fname}/{op} (no {fn_name} in {mod_name})")
-            else:
-                op_fns[op] = fn
+        add_fn = getattr(mod, add_name, None)
+        mul_fn = getattr(mod, mul_name, None)
+        # SUB reuses the ADD oracle with a negated second operand.
+        sub_fn = make_sub_fn(add_fn, mod, family) if add_fn is not None else None
+        if add_fn is None:
+            for fname in mod.FORMATS:
+                skipped.append(f"{fname}/add (no {add_name} in {mod_name})")
+        if mul_fn is None:
+            for fname in mod.FORMATS:
+                skipped.append(f"{fname}/mul (no {mul_name} in {mod_name})")
 
         for fname, fmt in mod.FORMATS.items():
             seed = (mi + 1) * 100003 + sum(ord(c) for c in fname)
             ft0 = time.time()
             counts = {}
-            for op, _ in OPERATIONS:
-                fn = op_fns.get(op)
+            for op, mode in OPERATIONS:
+                if mode == "add":
+                    fn = add_fn
+                elif mode == "mul":
+                    fn = mul_fn
+                else:  # sub
+                    fn = sub_fn
+                    # SUB undefined for unsigned integer formats -> skip.
+                    if is_int_family(fmt) and not getattr(fmt, "signed", False):
+                        skipped.append(f"{fname}/sub (unsigned int: SUB undefined)")
+                        counts[op] = None
+                        continue
                 if fn is None:
                     counts[op] = None
                     continue
@@ -395,32 +479,37 @@ def main():
                 total_vectors += doc["vector_count"]
                 total_errors += errs
                 counts[op] = doc["vector_count"]
-            per_format.append((fname, family, get_width(fmt), counts.get("add"), counts.get("mul")))
+            per_format.append((fname, family, get_width(fmt), counts))
             n_add = counts.get("add")
             n_mul = counts.get("mul")
+            n_sub = counts.get("sub")
             print(f"  {fname:<14} w={get_width(fmt):>3}  "
-                  f"add={str(n_add):>7}  mul={str(n_mul):>7}  "
+                  f"add={str(n_add):>7}  mul={str(n_mul):>7}  sub={str(n_sub):>7}  "
                   f"({time.time()-ft0:.1f}s)", flush=True)
 
     dt = time.time() - t0
 
     # ---------------- report ----------------
-    print("=" * 72)
-    print("TRINITY conformance vector generator (AGENT F) — ADD + MUL operations")
-    print("=" * 72)
-    print(f"{'format':<14}{'family':<9}{'width':>6}{'add':>10}{'mul':>10}")
-    print("-" * 72)
-    n_add_files = n_mul_files = 0
-    for fname, fam, w, na, nm in per_format:
-        print(f"{fname:<14}{fam:<9}{w:>6}{str(na):>10}{str(nm):>10}")
+    print("=" * 82)
+    print("TRINITY conformance vector generator (AGENT F) — ADD + MUL + SUB operations")
+    print("=" * 82)
+    print(f"{'format':<14}{'family':<9}{'width':>6}{'add':>10}{'mul':>10}{'sub':>10}")
+    print("-" * 82)
+    n_add_files = n_mul_files = n_sub_files = 0
+    for fname, fam, w, counts in per_format:
+        na, nm, ns = counts.get("add"), counts.get("mul"), counts.get("sub")
+        print(f"{fname:<14}{fam:<9}{w:>6}{str(na):>10}{str(nm):>10}{str(ns):>10}")
         if na is not None:
             n_add_files += 1
         if nm is not None:
             n_mul_files += 1
-    print("-" * 72)
+        if ns is not None:
+            n_sub_files += 1
+    print("-" * 82)
     print(f"formats covered : {len(per_format)}")
     print(f"_add.json files : {n_add_files}")
     print(f"_mul.json files : {n_mul_files}")
+    print(f"_sub.json files : {n_sub_files}  (unsigned ints skipped: SUB undefined)")
     print(f"files written   : {len(files_written)}  -> {VECTORS_DIR}")
     print(f"total vectors   : {total_vectors}")
     print(f"skipped (op/fmt): {len(skipped)}")
@@ -429,7 +518,7 @@ def main():
     if total_errors:
         print(f"vector errors   : {total_errors} (pairs that raised and were dropped)")
     print(f"elapsed         : {dt:.1f}s")
-    print("=" * 72)
+    print("=" * 82)
     return 0
 
 
