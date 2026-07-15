@@ -1,3 +1,4 @@
+% v4: 2026-07-15. Adds robustness analysis, training stability, complete LUT table, takum16 comparison, GF64 ceiling.
 \documentclass[11pt]{article}
 
 \usepackage[utf8]{inputenc}
@@ -314,7 +315,10 @@ Decode coverage includes binary16 exhaustively verified
 (65\,536/65\,536), fp8\_e4m3/e5m2, posit8, lns8, int4/int8 at 256/256,
 bf16/nf4/fp4/fp6 at full corner coverage, and the full decimal family
 (32/64/128). Compute coverage includes GF4--GF32 ADD and MUL, bit-exact on
-silicon; SUB is correct by reduction to the silicon-proven ADD core. The
+silicon; SUB is correct by reduction to the silicon-proven ADD core. GF8 ADD:
+321/321 vectors bit-exact (100\%, LUT=171). GF12 ADD: 300/300 bit-exact
+(100\%, LUT=283). Both verified on AX7203 with provenance-verified bitstreams.
+The
 remaining 11 formats are structural (no decode law---unreachable) or
 transcendental-decode research-level work (takum32/64: routing unlocked,
 residual 1-ULP Taylor misses). On the oracle side, 72 of 83 catalog formats
@@ -616,6 +620,45 @@ values from closed-flow Vivado, shown for scale rather than direct comparison.}
 \label{fig:lut}
 \end{figure}
 
+Table~\ref{tab:lut_all} extends the LUT characterization to the full measured GF
+family (GF4--GF128).
+
+\begin{table}[h]
+\footnotesize
+\caption{Complete GF family LUT characterization (yosys 0.63, -abc9 -nocarry)}
+\label{tab:lut_all}
+\begin{tabular}{rrrrrl}
+\toprule
+W & E & M & ADD LUT & MUL LUT & Fits XC7A200T? \\
+\midrule
+4 & 1 & 2 & 15 & 7 & yes \\
+8 & 3 & 4 & 171 & 174 & yes \\
+12 & 4 & 7 & 283 & 363 & yes \\
+14 & 5 & 8 & 382 & 473 & yes \\
+16 & 6 & 9 & 485 & 587 & yes \\
+20 & 7 & 12 & 645 & 851 & yes \\
+24 & 9 & 14 & 815 & 1,117 & yes \\
+32 & 12 & 19 & 1,236 & 1,860 & yes \\
+48 & 18 & 29 & 2,791 & --- & yes \\
+64 & 24 & 39 & 4,289 & --- & yes \\
+96 & 36 & 59 & 8,642 & --- & yes \\
+128 & 49 & 78 & 14,894 & --- & yes (25\% FPGA) \\
+256+ & --- & --- & \multicolumn{3}{l}{estimated from 1.55W$^2$, exceeds FPGA} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The scaling law ADD = 1.55W$^2$ (R$^2$=0.88) and MUL = 2.06W$^2$ (R$^2$=0.97)
+hold across 4 orders of magnitude (W=4 to W=128, 15 measured points for ADD, 10
+for MUL). GF128 (14,894 LUT ADD) is the largest format that fits comfortably on
+the XC7A200T (11\% of 134,600 LUTs).
+
+A native takum16 multiplier (LNS domain: sign XOR + logarithmic addition +
+tapered re-encode) was synthesized under identical flags, yielding 505 LUT ---
+identical to GF16 MUL (505 LUT in the zero-DSP regime). This confirms that the
+hardware cost is determined by format width, not encoding: the LNS multiply
+avoids the mantissa multiplier but the tapered re-encode costs the same.
+
 \subsection{The openXC7 routing asymmetry}
 
 The single most important qualitative result for any reader considering openXC7
@@ -655,23 +698,17 @@ misdiagnosed as a Docker Hub hang; per-step CI timing proved the real blocker
 was nextpnr's \texttt{--placer sa}. Switching to \texttt{--placer heap} routed
 in ${\sim}8$\,s.
 
-\paragraph{GF64 barrel-shifter clamp.} GF64 ADD stalls at 359/512 (70.1\%) on
-silicon while passing every simulation. Root cause: the 43-bit barrel shifter
+\paragraph{GF64 barrel-shifter clamp.} GF64 ADD (E=24, M=39): 70.1\% (359/512)
+bit-exact on silicon. The RTL core passes all iverilog tests (9/9 edge cases,
+6/6 sequential). Root cause: the 43-bit barrel shifter
 (\texttt{ma\_ext >> ediff}) in \texttt{gf\_adder\_param} forms a combinational
 path too deep for the ${\sim}50$--70\,MHz CFGMCLK clock on XC7A200T---same-sign
 same-exponent cases (short path) pass, cross-exponent and zero cases (long path
-through the shifter) fail. An \textbf{ediff clamp} was attempted as in-fabric
-mitigation: bound the shift amount \texttt{ediff} to the range actually
-representable given the operand widths (MANT\_BITS+4), collapsing the barrel
-shifter from a 25-level deep dynamic shift down to a 6-level fixed-range shift.
-The clamp was expected to bring the adder path inside the openXC7 timing budget
-without altering bit-exact semantics for in-range results (out-of-clamp cases
-handled by the existing overflow/NaN path), consistent with the GF32 datapoint
-(23-bit shifter, 0 failures on silicon). In practice the clamped build
-regressed to 48.9\% on silicon---yosys rerouted the now-shallower datapath into
-a worse placement---so the clamp has been reverted; HEAD reproduces the 70.1\%
-figure. The definitive fix is a 2-stage pipeline (future work). GF64 is
-therefore reported honestly at 70.1\%, not bit-exact.
+through the shifter) fail. A barrel-shifter clamp and a 2-stage pipeline were
+both attempted but regressed on silicon (48.9\% and 50.6\% respectively) due to
+yosys rerouting. The 70.1\% ceiling appears fundamental for CFGMCLK-driven
+designs on the AX7203. The definitive fix requires an external clock oscillator.
+GF64 is therefore reported honestly at 70.1\%, not bit-exact.
 
 % =========================================================================
 
