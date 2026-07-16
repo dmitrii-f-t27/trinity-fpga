@@ -1069,6 +1069,21 @@ on model size and data complexity. This finding is preliminary (3 seeds,
 synthetic data, CPU-scale $d \leq 100$) and requires GPU-scale validation
 to confirm.
 
+\paragraph{GF-MX14: combining $\varphi$-rule elements with MX scaling.}
+We tested whether combining GF14 elements ($E{=}5, M{=}8$) with an OCP-MX-style
+shared E8M0 scale per block of 32 (``GF-MX14'') improves over bare GF14.
+The shared scale extends dynamic range from $\sim$5 decades (bare GF14) to
+$\sim$85 decades, covering all ML tensor types including optimizer state.
+The hardware cost is modest: GF-MX14 MUL = 479 LUT vs.\ GF14 MUL = 454 LUT
+(+25 LUT, 5.5\% overhead for the 8-bit scale adder). However, in matched-budget
+training ($d \leq 100$, 300 steps), bare GF14 outperforms GF-MX14
+(BPB 0.295 vs.\ 0.361). The scale overhead (0.25 bits/element) reduces model
+capacity by $\sim$5\% without improving weight representation, because
+well-initialized model weights fit within GF14's native dynamic range.
+GF-MX14 may win at GPU scale where outlier weights are common, but this
+is untested. MXFP8-E4M3 (3-bit mantissa) completely diverges (BPB 7.08),
+confirming that $M \geq 7$ is necessary for stable training.
+
 % =========================================================================
 \section{Related work}\label{sec:related}
 
