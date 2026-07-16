@@ -28,7 +28,8 @@
        on Open-Source Silicon}
 
 \author{Dmitrii Vasilev\\
-        \small ORCID \texttt{0009-0008-4294-6159}}
+        \small ORCID \texttt{0009-0008-4294-6159}\\
+        \small \textit{Independent researcher}}
 
 \date{v4, 2026-07-15}
 
@@ -308,6 +309,53 @@ GoldenFloat reuses the canonical \texttt{conformance/gf\_ref.py} oracle so its
 numbers match the silicon-conformance reference exactly. The benchmark script
 and CSV are committed at \texttt{research/format\_benchmark.py} and
 \texttt{research/format\_accuracy\_results.csv}.
+
+% =========================================================================
+\subsection{Named results}\label{sec:named}
+
+We state four named empirical results that emerge from this work. Each
+is supported by measured data in the subsequent sections.
+
+\paragraph{Vasilev Floor.}
+On Xilinx Artix-7 (LUT6 architecture, Yosys 0.63 + ABC9), the LUT cost
+of $W$-bit floating-point arithmetic follows:
+\begin{equation}
+\text{LUT}_{\text{ADD}} \approx 1.55\,W^2, \quad
+\text{LUT}_{\text{MUL}} \approx 2.06\,W^2
+\end{equation}
+validated across $W{=}4$ to $W{=}128$ ($R^2 \geq 0.88$). This floor is
+\emph{encoding-independent}: a native takum16 LNS multiply (log-domain
+addition + tapered re-encode) yields the same 505 LUT as a GF16 IEEE-style
+multiply. The encoding buys dynamic range, not area.
+
+\paragraph{Vasilev Constraint.}
+ML workloads impose two hard constraints on the exponent/mantissa split
+at $W{=}16$:
+\begin{itemize}
+\item Dynamic range requires $E \geq 6$ (FP16 at $E{=}5$ loses 5/11 values).
+\item Matrix-multiply precision requires $M \geq 9$ (BF16 at $M{=}7$ is
+  stochastically fragile).
+\end{itemize}
+The feasible corner $(E{=}6, M{=}9)$ yields $E/(E{+}M) = 0.40 \approx
+1/\varphi^2 = 0.382$ (within 4.5\%). The $\varphi$-rule is reliable for
+$W \geq 14$.
+
+\paragraph{Gradient Survival Identity.}
+The fraction of gradient updates that survive weight re-quantization is:
+\begin{equation}
+P_{\text{survive}} = 1 - 2\,\Phi\!\left(\frac{\Delta_q}{\sigma_g}\right)
+\end{equation}
+where $\Delta_q = 2^{-(M+1)} \cdot |w|$ is the quantization step at
+weight magnitude $|w|$, $\sigma_g$ is the gradient standard deviation,
+and $\Phi$ is the standard normal CDF. For BF16 ($M{=}7$) at $|w|{=}0.5$:
+$P_{\text{survive}} = 7.3\%$. For GF16 ($M{=}9$): $P_{\text{survive}} = 63.9\%$.
+
+\paragraph{Encoding Equivalence (505 = 505).}
+At $W{=}16$ in the zero-DSP regime (Yosys \texttt{-nodsp}), a GoldenFloat
+IEEE-style multiply and a takum16 native LNS multiply yield identical
+LUT counts ($\approx$505). This is not coincidence: both perform a
+$W$-bit nonlinear map, and the LUT cost is determined by information
+content ($\sim$2$W^2$), not by the encoding's algebraic structure.
 
 % =========================================================================
 \section{Results}\label{sec:results}
@@ -1091,26 +1139,34 @@ Seven findings, restated without superlatives:
   reproducible evidence chain (CI synth $\to$ bitstream SHA-256 $\to$ JTAG flash
   $\to$ UART verify).
 
-\item \textbf{GF16 robustness.} GF16 \texttt{[1|6|9]} is the minimum-width
-  IEEE-style format achieving full workload robustness (7/7 across the four ML
-  workloads and the three hold-out workloads); FP16 and BF16 each fail one.
+\item \textbf{GF16 robustness (Vasilev Constraint).} GF16 \texttt{[1|6|9]} is
+  the minimum-width IEEE-style format achieving full workload robustness
+  (7/7 across the four ML workloads and the three hold-out workloads); FP16
+  and BF16 each fail one. The feasible corner $(E{=}6, M{=}9)$ is the
+  unique intersection of the two hard constraints of the Vasilev Constraint
+  (\S\ref{sec:named}).
 
-\item \textbf{BF16 gradient loss.} BF16's 7-bit mantissa loses 92.7\% of gradient
-  updates to quantization, versus 36.1\% for GF16---an $8.7\times$ edge that
-  arises purely from mantissa width.
+\item \textbf{BF16 gradient loss (Gradient Survival Identity).} By the
+  Gradient Survival Identity (\S\ref{sec:named}), BF16's 7-bit mantissa
+  loses 92.7\% of gradient updates to quantization, versus 36.1\% for
+  GF16---an $8.7\times$ edge that arises purely from mantissa width.
 
-\item \textbf{MLP training.} In end-to-end 2-layer MLP training with per-step
-  re-quantization, GF16 reaches $\sim$4$\times$ lower final loss than BF16
-  (0.0019 vs 0.0074) and $14\times$ lower weight MSE.
+\item \textbf{MLP training.} The Gradient Survival Identity
+  (\S\ref{sec:named}) predicts the end-to-end outcome: in 2-layer MLP
+  training with per-step re-quantization, GF16 reaches $\sim$4$\times$
+  lower final loss than BF16 (0.0019 vs 0.0074) and $14\times$ lower
+  weight MSE.
 
-\item \textbf{LUT information floor.} Floating-point LUT cost on Artix-7
-  (zero-DSP) follows $\text{LUT}_{\text{ADD}} = 1.55W^{2}$ (R$^{2}{=}0.88$) and
-  $\text{LUT}_{\text{MUL}} = 2.06W^{2}$ (R$^{2}{=}0.97$) across four orders of
-  magnitude in width.
+\item \textbf{LUT information floor (Vasilev Floor).} By the Vasilev Floor
+  (\S\ref{sec:named}), floating-point LUT cost on Artix-7 (zero-DSP)
+  follows $\text{LUT}_{\text{ADD}} = 1.55W^{2}$ (R$^{2}{=}0.88$) and
+  $\text{LUT}_{\text{MUL}} = 2.06W^{2}$ (R$^{2}{=}0.97$) across four
+  orders of magnitude in width.
 
-\item \textbf{Encoding invariance.} GF16 MUL and a native takum16 MUL both cost
-  505 LUT in the zero-DSP regime: $\text{GF16} \equiv \text{takum16}$. The
-  encoding buys dynamic range, not area.
+\item \textbf{Encoding invariance (Encoding Equivalence).} By the Encoding
+  Equivalence (\S\ref{sec:named}), GF16 MUL and a native takum16 MUL both
+  cost 505 LUT in the zero-DSP regime: $\text{GF16} \equiv \text{takum16}$.
+  The encoding buys dynamic range, not area.
 \end{enumerate}
 
 The methodology---four decode templates (algebraic, table-$2^{x}$,
