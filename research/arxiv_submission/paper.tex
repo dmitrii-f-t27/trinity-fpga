@@ -1353,3 +1353,20 @@ proliferating low-precision-format space.
 \bibliography{paper}
 
 \end{document}
+
+\paragraph{Beyond floating-point: INT7 at matched budget.}
+A systematic comparison across six format families (floating-point, integer,
+NormalFloat, power-of-2, ternary, microscaling) at matched artifact budget
+reveals that 7-bit integer quantization with per-tensor scale (INT7) achieves
+lower BPB than any floating-point format tested: 0.278 vs.\ GF14's 0.301
+(7.6\% better) and FP32's 0.321 (13.3\% better). INT7 also requires
+$\sim$50 LUT per MAC---17$\times$ less than GF14's 851 LUT. The advantage
+stems from fitting 38\% more parameters (d=116 vs.\ d=84) in the same byte
+budget, with sufficient precision (128 levels) for stable QAT. Below 7 bits
+(INT5: 32 levels), training diverges. The $\varphi$-rule floating-point
+family remains uniquely valuable for its 7/7 robustness and dynamic range
+properties, but at matched budget for well-initialized models with
+near-Gaussian weight distributions, integer quantization is accuracy-optimal.
+This finding is consistent with Dettmers et al.~\cite{dettmers2022llmint8},
+who showed INT8 is sufficient for LLM inference. We extend this to training:
+INT7 is the minimum-width stable format for QAT at this scale.
