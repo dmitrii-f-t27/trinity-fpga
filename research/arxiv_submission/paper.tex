@@ -1386,3 +1386,18 @@ format is therefore context-dependent: hybrid INT7/GF14 for QAT weight
 storage, GF14 (or GF16) for numerically sensitive computation, and INT7
 for maximum parameter count when robustness is handled at the algorithm
 level (e.g., outlier clipping).
+
+\paragraph{Hadamard rotation and LSQ at CPU scale (negative result).}
+Following UFP4~\cite{ufp4} and QuEST~\cite{quest}, we tested Random Hadamard
+Transform (RHT) pre-rotation and Learned Step Size Quantization (LSQ with
+RMS-optimal scale) on our INT formats. At CPU scale ($d \leq 128$, 300 steps),
+\emph{neither technique improves results}---in fact, both degrade performance.
+INT6+RHT diverges (BPB 1.56 vs.\ 0.26 without RHT); INT7+RHT diverges similarly
+(2.01 vs.\ 0.28). LSQ's RMS-based scale produces worse quantization than
+max-based per-tensor scale (1.31 vs.\ 0.26 for INT6). The failure mode is
+clear: RHT's outlier-smoothing effect requires large matrices ($d \geq 4096$)
+to be effective; at $d=128$, the rotation noise overwhelms any outlier benefit.
+This confirms a scale-dependent conclusion: at CPU scale, plain INT6/INT7
+with max-based per-tensor scale is optimal. At GPU scale ($\geq$1B parameters),
+RHT becomes essential and may push the optimal width to 4 bits, as reported
+in recent large-scale studies.
