@@ -24,7 +24,9 @@ SOCKET_PATH = "/tmp/trinity_flashed.sock"
 OPENOCD = "/opt/homebrew/bin/openocd"
 KEXT_UNLOAD = "/usr/sbin/kextunload"
 KEXT_LOAD = "/usr/sbin/kextload"
+KMUTIL = "/usr/bin/kmutil"
 APPLE_SERIAL = "com.apple.driver.AppleSerialShim"
+FTDI_NOSERIAL_KEXT = "/Library/Extensions/FTDINoSerial.kext"
 _REPO_ROOT = os.environ.get(
     "TRINITY_REPO",
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -41,14 +43,30 @@ def run_cmd(cmd, timeout=300):
     except Exception as e:
         return -2, "", str(e)
 
+def free_ftdi_for_libusb():
+    """Make FTDI available for libusb (openocd). macOS 26 compatible."""
+    # Load FTDINoSerial.kext which prevents serial driver from claiming FTDI
+    rc, _, _ = run_cmd([KMUTIL, "load", "-p", FTDI_NOSERIAL_KEXT], timeout=15)
+    return rc == 0
+
+def restore_serial():
+    """Restore serial driver access after JTAG. macOS 26 compatible."""
+    # Unload FTDINoSerial so Apple serial driver can reclaim FTDI
+    run_cmd([KMUTIL, "unload", "-p", FTDI_NOSERIAL_KEXT], timeout=10)
+    # Give the system time to re-match the serial driver
+    import time as _t
+    _t.sleep(2)
+    return True
+
 def handle_flash(bitstream):
-    """Flash bitstream: kextunload → openocd → kextload."""
+    """Flash bitstream: FTDINoSerial load → openocd → FTDINoSerial unload."""
     if not os.path.exists(bitstream):
         return {"ok": False, "msg": f"bitstream not found: {bitstream}"}
 
-    # Step 1: Unload serial shim
-    rc, out, err = run_cmd([KEXT_UNLOAD, "-b", APPLE_SERIAL], timeout=10)
-    # Ignore errors — kext might already be unloaded
+    # Step 1: Make FTDI available for libusb
+    free_ftdi_for_libusb()
+    import time as _t
+    _t.sleep(1)
 
     # Step 2: Flash via openocd
     rc2, out2, err2 = run_cmd([
@@ -60,8 +78,8 @@ def handle_flash(bitstream):
         "-c", "shutdown"
     ], timeout=600)
 
-    # Step 3: Reload serial shim for UART
-    run_cmd([KEXT_LOAD, "-b", APPLE_SERIAL], timeout=10)
+    # Step 3: Restore serial driver for UART access
+    restore_serial()
 
     if rc2 == 0:
         return {"ok": True, "msg": f"flashed {bitstream}"}
@@ -70,7 +88,9 @@ def handle_flash(bitstream):
 
 def handle_jtag_scan():
     """Quick JTAG scan."""
-    rc, out, err = run_cmd([KEXT_UNLOAD, "-b", APPLE_SERIAL], timeout=10)
+    free_ftdi_for_libusb()
+    import time as _t
+    _t.sleep(1)
     rc2, out2, err2 = run_cmd([
         OPENOCD, "-f", CFG,
         "-c", "adapter speed 100",
@@ -78,7 +98,7 @@ def handle_jtag_scan():
         "-c", "scan_chain",
         "-c", "shutdown"
     ], timeout=30)
-    run_cmd([KEXT_LOAD, "-b", APPLE_SERIAL], timeout=10)
+    restore_serial()
     combined = out2 + err2
     return {"ok": rc2 == 0, "msg": combined[-500:]}
 
@@ -93,11 +113,13 @@ def handle_client(conn):
         elif req["cmd"] == "jtag_scan":
             resp = handle_jtag_scan()
         elif req["cmd"] == "kextunload":
-            rc, _, _ = run_cmd([KEXT_UNLOAD, "-b", APPLE_SERIAL], timeout=10)
-            resp = {"ok": rc == 0, "msg": "kext unloaded"}
+            # Legacy: now means "free FTDI for libusb"
+            ok = free_ftdi_for_libusb()
+            resp = {"ok": ok, "msg": "ftdi freed for libusb" if ok else "failed"}
         elif req["cmd"] == "kextload":
-            rc, _, _ = run_cmd([KEXT_LOAD, "-b", APPLE_SERIAL], timeout=10)
-            resp = {"ok": rc == 0, "msg": "kext loaded"}
+            # Legacy: now means "restore serial driver"
+            restore_serial()
+            resp = {"ok": True, "msg": "serial restored"}
         elif req["cmd"] == "ping":
             resp = {"ok": True, "msg": "pong"}
         elif req["cmd"] == "run":
