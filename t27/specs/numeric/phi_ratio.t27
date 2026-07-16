@@ -169,25 +169,27 @@ module PhiRatio {
     // Proof that φ-split minimizes information loss
     // for a given bit budget under scale-invariant assumptions.
 
-    fn phi_optimality_proof() -> string {
-        // For floating point formats, we want to allocate bits
-        // to maximize: log(dynamic_range) * log(precision)
+    fn phi_ratio_derivation() -> string {
+        // The φ-ratio E/M split is a DESIGN HEURISTIC, not an optimization theorem.
         //
-        // Let N = exp_bits + mant_bits (fixed budget)
-        // Let r = exp_bits / mant_bits (ratio)
+        // Maximizing E*M subject to E+M=N yields E=M (ratio=1), NOT 1/φ.
+        // This was incorrectly claimed as an optimization result in earlier drafts.
         //
-        // Dynamic range ~ 2^exp
-        // Precision ~ 2^mant
+        // The actual motivation is the golden-section partition:
+        //   Divide N into E and M such that E/(E+M) = 1/φ² ≈ 0.382
+        //   This is the classical golden section (Euclid, Book VI).
         //
-        // We maximize: exp * mant = r * mant * mant = r * (N/(1+r))^2
+        // E = round(N / φ²)  gives the golden-section exponent allocation.
+        // The REMAINING bits go to mantissa: M = N - 1(sign) - E.
         //
-        // Taking derivative and setting to zero:
-        //   d/dr [r * (N/(1+r))^2] = 0
-        //   r = 1/(1+r)  →  r^2 + r - 1 = 0
-        //   r = (sqrt(5) - 1) / 2 = 1/φ
+        // This is empirically validated (not proven optimal):
+        //   - GF16 (E=6,M=9) passes 7/7 robustness tests
+        //   - GF16 is the minimum-width IEEE-style format to do so
+        //   - The 1/φ ratio produces a COHERENT family across all widths
         //
-        // Therefore: exp/mant = 1/φ is optimal
-        return "exp/mant = 1/φ maximizes (dynamic_range * precision) for fixed bit budget";
+        // See FL-002 [Open Conjecture]: φ-ratio as optimal E/M split
+        // remains unproven. The golden section is the design principle.
+        return "E = round(N/φ²) is a golden-section design heuristic, empirically validated but not proven optimal";
     }
 
     // ═════════════════════════════════════════════════════════════════

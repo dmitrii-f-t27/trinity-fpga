@@ -39,7 +39,7 @@
 % =========================================================================
 \begin{abstract}
 Number-format proliferation in ML hardware has outpaced understanding of
-\emph{when formats fail}. We present the first systematic robustness
+\emph{when formats fail}. We present a systematic robustness
 analysis of 16-bit floating-point formats on open-source silicon
 (Artix-7 XC7A200T, openXC7 toolchain), testing seven formats across
 seven workloads---four ML (matrix multiply, gradient accumulation,
@@ -329,10 +329,11 @@ is supported by measured data in the subsequent sections.
 On Xilinx Artix-7 (LUT6 architecture, Yosys 0.63 + ABC9), the LUT cost
 of $W$-bit floating-point arithmetic follows:
 \begin{equation}
-\text{LUT}_{\text{ADD}} \approx 1.55\,W^2, \quad
-\text{LUT}_{\text{MUL}} \approx 2.06\,W^2
+\text{LUT}_{\text{ADD}} \approx 1.63\,W^2, \quad
+\text{LUT}_{\text{MUL}} \approx 2.09\,W^2
 \end{equation}
-validated across $W{=}4$ to $W{=}128$ ($R^2 \geq 0.88$). This floor is
+validated across $W{=}4$ to $W{=}24$ (11 measured points, $R^2 \geq 0.97$).
+This floor is
 \emph{encoding-independent}: a native takum16 LNS multiply (log-domain
 addition + tapered re-encode) yields the same 505 LUT as a GF16 IEEE-style
 multiply. The encoding buys dynamic range, not area.
@@ -1049,6 +1050,22 @@ bit-exact. Representative results:
 At 2 bytes/parameter, GF16+ fits 8M parameters in the 16~MB Parameter
 Golf artifact limit. The Trinity model ($d{=}144$, 7 layers, $\varphi$-scaled
 FFN) totals 8.29M parameters at 15.81~MB---within budget.
+
+\paragraph{Matched-budget etalon: GF14.}
+When comparing number formats at a \emph{matched artifact budget} (fixing total
+bytes, not parameter count), narrower formats allow larger models. A controlled
+sweep ($W \in \{12,14,16,32\}$, 2-layer transformer, 300 steps, synthetic
+Markov text) reveals that GF14 ($E{=}5, M{=}8$) achieves the lowest BPB at
+matched budget: 0.295 vs.\ FP32's 0.346 (14.6\% better) and GF16's 0.336
+(12.2\% better). The mechanism is straightforward: at 1.75~B/param vs.\ 2.0,
+GF14 fits $\sim$18\% more parameters in the same byte budget, and the precision
+loss from $M{=}8$ vs.\ $M{=}9$ is insufficient to negate the gains from
+additional model capacity. Stochastic rounding \emph{hurts} at this scale
+(GF14+SR: 0.304 $>$ GF14: 0.295), consistent with the model being
+underfit rather than overfit. This finding is preliminary (single seed,
+synthetic data, CPU-scale model) but suggests that the $\varphi$-rule's
+value extends beyond robustness: at matched budget, the optimal operating
+point may be narrower than GF16.
 
 % =========================================================================
 \section{Related work}\label{sec:related}
