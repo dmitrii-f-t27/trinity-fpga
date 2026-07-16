@@ -44,18 +44,22 @@ def run_cmd(cmd, timeout=300):
         return -2, "", str(e)
 
 def free_ftdi_for_libusb():
-    """Make FTDI available for libusb (openocd). macOS 26 compatible."""
-    # Load FTDINoSerial.kext which prevents serial driver from claiming FTDI
-    rc, _, _ = run_cmd([KMUTIL, "load", "-p", FTDI_NOSERIAL_KEXT], timeout=15)
-    return rc == 0
+    """Make FTDI available for libusb (openocd). macOS 26 compatible.
+    Strategy: kill AppleUSBSLCOM (user-space serial DEXT) to release FTDI interface.
+    Do NOT load FTDINoSerial — it causes FTDI to disappear from USB on macOS 26."""
+    # Kill the user-space serial driver that claims the FTDI
+    run_cmd(["/usr/bin/pkill", "-f", "AppleUSBSLCOM"], timeout=5)
+    run_cmd(["/usr/bin/pkill", "-f", "IOUserUSBSerial"], timeout=5)
+    import time as _t
+    _t.sleep(2)  # Wait for interface to release
+    return True
 
 def restore_serial():
-    """Restore serial driver access after JTAG. macOS 26 compatible."""
-    # Unload FTDINoSerial so Apple serial driver can reclaim FTDI
-    run_cmd([KMUTIL, "unload", "-p", FTDI_NOSERIAL_KEXT], timeout=10)
-    # Give the system time to re-match the serial driver
+    """Restore serial driver access after JTAG.
+    On macOS 26: serial DEXT auto-restarts on USB replug.
+    For CP2102N UART: no restore needed (different USB device)."""
     import time as _t
-    _t.sleep(2)
+    _t.sleep(1)
     return True
 
 def handle_flash(bitstream):
