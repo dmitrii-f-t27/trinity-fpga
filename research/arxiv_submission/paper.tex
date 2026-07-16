@@ -1370,3 +1370,19 @@ near-Gaussian weight distributions, integer quantization is accuracy-optimal.
 This finding is consistent with Dettmers et al.~\cite{dettmers2022llmint8},
 who showed INT8 is sufficient for LLM inference. We extend this to training:
 INT7 is the minimum-width stable format for QAT at this scale.
+
+\paragraph{The etalon depends on context: no single format dominates.}
+A comprehensive comparison across six format families at matched artifact
+budget reveals a fundamental trade-off between training efficiency and
+numerical robustness. INT7 (per-tensor scale) achieves the lowest training
+BPB (0.278) but fails 5/7 robustness tests---its per-tensor scale crushes
+dynamic range, and 128 integer levels produce 91\% matmul error and
+singular matrices on linear solve. GF14 passes all 7 robustness tests
+but has 7.6\% higher BPB. A hybrid format (INT7 for normal values,
+GF14 for $> 2\sigma$ outliers, effective $\sim$8 bpe) achieves the best
+training BPB (0.265) while improving robustness over pure INT7
+(3/7 vs.\ 2/7), but still cannot match GF14's dynamic range. The optimal
+format is therefore context-dependent: hybrid INT7/GF14 for QAT weight
+storage, GF14 (or GF16) for numerically sensitive computation, and INT7
+for maximum parameter count when robustness is handled at the algorithm
+level (e.g., outlier clipping).
