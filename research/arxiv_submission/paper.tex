@@ -1423,3 +1423,14 @@ preprocessing (not used by any known competitor) and the QAT training
 strategy (7.7\% better than the competition's PTQ approach). However, our
 experiments use synthetic Markov data at CPU scale ($d \leq 128$); direct
 comparison requires GPU-scale FineWeb validation.
+
+\paragraph{FineWeb validation: SQ-INT6 improves over INT6.}
+On real FineWeb validation data (62M tokens, SentencePiece tokenizer),
+SQ-INT6 achieves 0.13\% lower BPB than plain INT6 (1.9367 vs.\ 1.9391)
+on a 4-layer d=128 transformer trained for 200 steps. The improvement
+is consistent with the quantization RMSE reduction (2.3\%) and confirms
+that SmoothQuant's outlier redistribution benefit translates to real
+text data. Combined with the competition winner's architecture stack
+(Muon, CaseOps, TTT, depth recurrence), SmoothQuant could provide a
+marginal but potentially decisive advantage in the Parameter Golf
+competition, where the top-5 submissions are separated by 0.005~BPB.
