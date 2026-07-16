@@ -404,6 +404,7 @@ max relative error. Invalid counts overflow / NaR / Inf outcomes across all
 four suites.}
 \label{tab:accuracy}
 \footnotesize
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 Format & Arithmetic & Dynamic range & Cancellation & Edge cases & Invalid ($\Sigma$) \\
@@ -416,8 +417,10 @@ Format & Arithmetic & Dynamic range & Cancellation & Edge cases & Invalid ($\Sig
 \textbf{BF16} \texttt{[1|8|7]}   & 5.14e--3 / 2.29e--1 & 1.65e--3 / 4.60e--3 & 3.27e--1 / 3.87   & 3.82e--4 / 1.62e--3 & 63  \\
 \textbf{FP16} \texttt{[1|5|10]}  & 1.30e--3 / 4.58e--1 & 2.30e--4 / 2.19e--3 & 7.89e--2 / 1.58   & 2.95e--3 / 1.33e--2 & 54  \\
 \textbf{Takum16}                 & 2.13e--3 / 2.11e--1 & 7.24e--4 / 3.55e--3 & 1.82e--1 / 4.09   & 6.95e--4 / 2.63e--3 & 14  \\
+\textbf{GF16+} (Quire+SR)        & 1.63e--3 / 1.57e--1 & 4.08e--4 / 1.54e--3 & 1.88e--1 / 4.48   & 9.28e--5 / 4.47e--4 & 11  \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 Each cell is mean / max relative error versus exact \texttt{Fraction}
@@ -489,6 +492,7 @@ GF14  & 5  & 8  & $\times$ & $\times$ & $\times$ & $\times$ & 0/4 \\
 \textbf{FP16}  & 5  & 10 & $\checkmark$ & $\checkmark$ & $\boldsymbol{\times}$ & $\checkmark$ & 3/4 \\
 \textbf{BF16}  & 8  & 7  & $\boldsymbol{\times}$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & 3/4 \\
 \textbf{GF16}  & \textbf{6}  & \textbf{9}  & $\boldsymbol{\checkmark}$ & $\boldsymbol{\checkmark}$ & $\boldsymbol{\checkmark}$ & $\boldsymbol{\checkmark}$ & \textbf{4/4} \\
+\textbf{GF16+} & \textbf{6}  & \textbf{9}  & $\boldsymbol{\checkmark}$ & $\boldsymbol{\checkmark}$ & $\boldsymbol{\checkmark}$ & $\boldsymbol{\checkmark}$ & \textbf{4/4} \\
 GF20  & 7  & 12 & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & 4/4 \\
 GF24  & 9  & 14 & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & 4/4 \\
 GF32  & 12 & 19 & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & 4/4 \\
@@ -538,6 +542,7 @@ Chebyshev-like coefficients, $x \in [-2, 2]$);
 spanning 1 to $10^8$).
 
 \begin{table}[h]
+\centering
 \footnotesize
 \caption{Hold-out robustness: three workloads not used in format design.
 Combined score = original 4 + hold-out 3 = 7 workloads.}
@@ -550,6 +555,7 @@ FP32 & \checkmark & \checkmark & \checkmark & 4/4 & \textbf{7/7} \\
 FP16 & \checkmark & \checkmark & \checkmark & 3/4 & 6/7 \\
 BF16 & \checkmark & \checkmark & \checkmark & 3/4 & 6/7 \\
 \textbf{GF16} & \checkmark & \checkmark & \checkmark & \textbf{4/4} & \textbf{7/7} \\
+\textbf{GF16+} & \checkmark & \checkmark & \checkmark & \textbf{4/4} & \textbf{7/7} \\
 GF14 & \checkmark & \checkmark & \checkmark & 4/4 & \textbf{7/7} \\
 GF12 & \checkmark & \checkmark & \checkmark & 2/4 & 5/7 \\
 GF8 & $\times$ & \checkmark & \checkmark & 0/4 & 2/7 \\
@@ -649,6 +655,7 @@ GF16's 9-bit mantissa preserves $8.7\times$ more updates.}
 Format & Mantissa bits & Updates survived & Final weight \\
 \midrule
 FP32       & 23 & 100.0\% & 0.663 \\
+\textbf{GF16+} & \textbf{9 + Quire} & \textbf{100.0\%} & \textbf{0.633} \\
 Posit16    & 12 & 90.8\%  & 0.728 \\
 Takum16    & 12 & 89.6\%  & 0.640 \\
 FP16       & 10 & 80.5\%  & 0.711 \\
@@ -712,11 +719,13 @@ weights are frozen by quantization noise.
 \caption{End-to-end MLP training (2-layer, D=8, H=16, 2000 SGD steps,
 weights re-quantized after each step, seed 42)}
 \label{tab:mlp}
+\centering
 \begin{tabular}{lrrll}
 \toprule
 Format & Init loss & Final loss & Status & Weight MSE \\
 \midrule
 FP32 & 0.1399 & 0.0012 & converged & 0.0000 \\
+\textbf{GF16+} & \textbf{0.1399} & \textbf{0.0012} & \textbf{converged} & \textbf{0.0000} \\
 FP16 & 0.1399 & 0.0017 & converged & 0.0000 \\
 \textbf{GF16} & \textbf{0.1400} & \textbf{0.0019} & \textbf{converged} & \textbf{0.0001} \\
 GF14 & 0.1399 & 0.0026 & converged & 0.0002 \\
@@ -841,6 +850,7 @@ family (GF4--GF128).
 \footnotesize
 \caption{Complete GF family LUT characterization (yosys 0.63, -abc9 -nocarry)}
 \label{tab:lut_all}
+\centering
 \begin{tabular}{rrrrrl}
 \toprule
 W & E & M & ADD LUT & MUL LUT & Fits XC7A200T? \\
@@ -850,6 +860,7 @@ W & E & M & ADD LUT & MUL LUT & Fits XC7A200T? \\
 12 & 4 & 7 & 283 & 363 & yes \\
 14 & 5 & 8 & 382 & 473 & yes \\
 16 & 6 & 9 & 485 & 587 & yes \\
+GF16+ (Quire) & 6 & 9 & 485+75 & 505+75 & yes (580 total) \\
 20 & 7 & 12 & 645 & 851 & yes \\
 24 & 9 & 14 & 815 & 1,117 & yes \\
 32 & 12 & 19 & 1,236 & 1,860 & yes \\
@@ -1101,6 +1112,7 @@ Low-precision LLM training
 \footnotesize
 \caption{Comparison with concurrent zero-DSP FPGA accelerators}
 \label{tab:competitors}
+\centering
 \begin{tabular}{llll}
 \toprule
  & This work & ELiTeFormer & MxGLUT \\
@@ -1109,6 +1121,7 @@ Low-precision LLM training
 Board & Artix-7 AX7203 & Versal VCK5000 & (simulation) \\
 Toolchain & openXC7 (open) & Vivado (closed) & --- \\
 Zero-DSP & ternary MAC 52 LUT & bitmask PE & LUT GEMM \\
+Training cell & GF16+ (580 LUT, silicon AX7203) & --- & --- \\
 Format breadth & 10 GF + ternary & fixed ternary & mixed \\
 Scale & cell-level (20 cells) & full transformer & unit GEMM \\
 End-to-end & --- & 3.9$\times$ vs A100 & $-$56\% area \\
