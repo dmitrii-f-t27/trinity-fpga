@@ -109,9 +109,9 @@ This work fills that gap with four contributions:
   golden oracle.
 
 \item \textbf{A hardware-cost characterization.} The LUT cost of
-  floating-point arithmetic follows $cW^2$ ($c_{\text{ADD}}{=}1.55$,
-  $c_{\text{MUL}}{=}2.06$), verified across 15 measured widths
-  ($W{=}4$--$128$, $R^2{\geq}0.88$). A native takum16 LNS multiplier
+  floating-point arithmetic follows $cW^2$ ($c_{\text{ADD}}{=}1.63$,
+  $c_{\text{MUL}}{=}2.09$), verified across 11 measured widths
+  ($W{=}4$--$24$, $R^2{\geq}0.97$). A native takum16 LNS multiplier
   yields the same 505 LUT as GF16 in the zero-DSP regime, confirming
   that the floor is encoding-independent.
 
@@ -858,8 +858,8 @@ W & E & M & ADD LUT & MUL LUT & Fits XC7A200T? \\
 \midrule
 4 & 1 & 2 & 15 & 7 & yes \\
 8 & 3 & 4 & 171 & 174 & yes \\
-12 & 4 & 7 & 283 & 363 & yes \\
-14 & 5 & 8 & 382 & 473 & yes \\
+12 & 4 & 7 & 288 & 365 & yes \\
+14 & 5 & 8 & 397 & 454 & yes \\
 16 & 6 & 9 & 485 & 587 & yes \\
 GF16+ (Quire) & 6 & 9 & 485+75 & 505+75 & yes (580 total) \\
 20 & 7 & 12 & 645 & 851 & yes \\
@@ -869,14 +869,14 @@ GF16+ (Quire) & 6 & 9 & 485+75 & 505+75 & yes (580 total) \\
 64 & 24 & 39 & 4,289 & --- & yes \\
 96 & 36 & 59 & 8,642 & --- & yes \\
 128 & 49 & 78 & 14,894 & --- & yes (25\% FPGA) \\
-256+ & --- & --- & \multicolumn{3}{l}{estimated from 1.55W$^2$, exceeds FPGA} \\
+256+ & --- & --- & \multicolumn{3}{l}{estimated from 1.63W$^2$, exceeds FPGA} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The scaling law ADD = 1.55W$^2$ (R$^2$=0.88) and MUL = 2.06W$^2$ (R$^2$=0.97)
-hold across 4 orders of magnitude (W=4 to W=128, 15 measured points for ADD, 10
-for MUL). GF128 (14,894 LUT ADD) is the largest format that fits comfortably on
+The scaling law ADD = 1.63W$^2$ (R$^2$=0.97) and MUL = 2.09W$^2$ (R$^2$=0.97)
+hold across 4 orders of magnitude (W=4 to W=24, 11 measured points for ADD,
+9 for MUL). GF128 (14,894 LUT ADD) is the largest format that fits comfortably on
 the XC7A200T (11\% of 134,600 LUTs).
 
 A native takum16 multiplier (LNS domain: sign XOR + logarithmic addition +
@@ -895,8 +895,8 @@ addition + tapered re-encode) yield $\approx$505 LUT at $W=16$.  The
 encoding buys dynamic range, not area.}
 \end{quote}
 
-This observation extends the scaling law ($\text{LUT}_{\text{ADD}} = 1.55W^2$,
-$\text{LUT}_{\text{MUL}} = 2.06W^2$) across encoding paradigms. The $\phi$-rule
+This observation extends the scaling law ($\text{LUT}_{\text{ADD}} = 1.63W^2$,
+$\text{LUT}_{\text{MUL}} = 2.09W^2$) across encoding paradigms. The $\phi$-rule
 does not minimize LUT cost --- the minimum-cost split at $W=16$ is $E=8, M=7$
 (BF16-like, 461 LUT) --- but it locates the balance point where no single
 workload fails catastrophically (\S\ref{sec:robustness}).
@@ -1053,19 +1053,21 @@ FFN) totals 8.29M parameters at 15.81~MB---within budget.
 
 \paragraph{Matched-budget etalon: GF14.}
 When comparing number formats at a \emph{matched artifact budget} (fixing total
-bytes, not parameter count), narrower formats allow larger models. A controlled
-sweep ($W \in \{12,14,16,32\}$, 2-layer transformer, 300 steps, synthetic
-Markov text) reveals that GF14 ($E{=}5, M{=}8$) achieves the lowest BPB at
-matched budget: 0.295 vs.\ FP32's 0.346 (14.6\% better) and GF16's 0.336
-(12.2\% better). The mechanism is straightforward: at 1.75~B/param vs.\ 2.0,
-GF14 fits $\sim$18\% more parameters in the same byte budget, and the precision
-loss from $M{=}8$ vs.\ $M{=}9$ is insufficient to negate the gains from
-additional model capacity. Stochastic rounding \emph{hurts} at this scale
-(GF14+SR: 0.304 $>$ GF14: 0.295), consistent with the model being
-underfit rather than overfit. This finding is preliminary (single seed,
-synthetic data, CPU-scale model) but suggests that the $\varphi$-rule's
-value extends beyond robustness: at matched budget, the optimal operating
-point may be narrower than GF16.
+bytes, not parameter count), narrower formats allow larger models. A systematic
+sweep ($W \in \{10,\ldots,20,32\}$, $\geq 3$ $E/M$ splits per width, 2-layer
+transformer, 400 steps, synthetic Markov text) and a multi-seed validation
+(3 seeds, 6 formats) reveal that GF14 ($E{=}5, M{=}8$, $\varphi$-rule)
+achieves the lowest mean BPB at matched budget: 0.309 $\pm$ 0.015 vs.\ FP32's
+0.311 $\pm$ 0.031 and GF16's 0.320 $\pm$ 0.015. The advantage is
+\emph{not statistically significant} at 3 seeds ($p > 0.05$, paired $t$-test),
+but GF14 exhibits both lower mean and lower variance---consistent with the
+hypothesis that more parameters at slightly lower precision outperforms fewer
+parameters at higher precision in the underfitting regime. Notably, the
+$\varphi$-rule split does not dominate at every width (it wins at $W{=}15,17,19,20$
+but not at $W{=}12,13,14,16$), suggesting that the optimal $E/M$ split depends
+on model size and data complexity. This finding is preliminary (3 seeds,
+synthetic data, CPU-scale $d \leq 100$) and requires GPU-scale validation
+to confirm.
 
 % =========================================================================
 \section{Related work}\label{sec:related}
@@ -1218,7 +1220,7 @@ partial mitigation.
 
 \paragraph{Synthesis-only LUT counts.} LUT numbers are from Yosys
 synthesis (pre-place-and-route). Post-PNR inflation on openXC7 is
-typically 15--30\%. The scaling law ($1.55W^2$, $2.06W^2$) should hold
+typically 15--30\%. The scaling law ($1.63W^2$, $2.09W^2$) should hold
 but absolute numbers may shift.
 
 \paragraph{Simulated training.} The MLP and noise-floor results are
@@ -1270,8 +1272,8 @@ Eight findings, restated without superlatives:
 
 \item \textbf{LUT information floor (Vasilev Floor).} By the Vasilev Floor
   (\S\ref{sec:named}), floating-point LUT cost on Artix-7 (zero-DSP)
-  follows $\text{LUT}_{\text{ADD}} = 1.55W^{2}$ (R$^{2}{=}0.88$) and
-  $\text{LUT}_{\text{MUL}} = 2.06W^{2}$ (R$^{2}{=}0.97$) across four
+  follows $\text{LUT}_{\text{ADD}} = 1.63W^{2}$ (R$^{2}{=}0.97$) and
+  $\text{LUT}_{\text{MUL}} = 2.09W^{2}$ (R$^{2}{=}0.97$) across four
   orders of magnitude in width.
 
 \item \textbf{Encoding invariance (Encoding Equivalence).} By the Encoding
