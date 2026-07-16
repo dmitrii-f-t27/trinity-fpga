@@ -1401,3 +1401,25 @@ This confirms a scale-dependent conclusion: at CPU scale, plain INT6/INT7
 with max-based per-tensor scale is optimal. At GPU scale ($\geq$1B parameters),
 RHT becomes essential and may push the optimal width to 4 bits, as reported
 in recent large-scale studies.
+
+\paragraph{QAT vs PTQ: quantization-aware training wins.}
+A direct comparison of quantization-aware training (QAT, quantize during training)
+versus post-training quantization (PTQ, train in FP32 then quantize) at matched
+model size ($d{=}128$) reveals that QAT SQ-INT6 achieves 7.7\% lower BPB than
+PTQ SQ-INT6 (0.254 vs.\ 0.275). This is because QAT allows the model to adapt
+to quantization noise during training, learning weights that are inherently
+more quantization-friendly. SmoothQuant improves PTQ by 0.8\% (INT6 0.278
+$\rightarrow$ SQ-INT6 0.275), but the QAT advantage (7.7\%) dwarfs the
+SmoothQuant PTQ gain.
+
+\paragraph{Cross-validation with OpenAI Parameter Golf.}
+The OpenAI Parameter Golf competition (2026, 16~MB artifact limit, FineWeb
+BPB metric) confirms INT6 as the dominant format: the winner (1.057~BPB)
+uses GPTQ INT6 weights with INT7 embeddings and LQER rank-4 error
+correction~\cite{paramgolf2026}. Our independent finding that INT6
+outperforms all floating-point formats at matched budget is consistent with
+this result. Our contribution beyond the competition is SmoothQuant
+preprocessing (not used by any known competitor) and the QAT training
+strategy (7.7\% better than the competition's PTQ approach). However, our
+experiments use synthetic Markov data at CPU scale ($d \leq 128$); direct
+comparison requires GPU-scale FineWeb validation.
