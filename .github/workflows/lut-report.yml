@@ -15,147 +15,71 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── Job 1: yosys synthesis (fast, ~2 min) ──
   yosys-synth:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install yosys (use latest from source for abc9 + synth_xilinx)
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq build-essential clang bison flex \
-            libreadline-dev gawk tcl-dev libffi-dev git \
-            graphviz xdot pkg-config python3 libboost-system-dev \
-            libboost-python-dev libboost-filesystem-dev libboost-program-options-dev
-          git clone --depth 1 --branch yosys-0.63 https://github.com/YosysHQ/yosys.git /tmp/yosys 2>/dev/null || \
-            git clone --depth 1 https://github.com/YosysHQ/yosys.git /tmp/yosys
-          cd /tmp/yosys
-          make -j$(nproc) PREFIX=/usr/local
-          sudo make install PREFIX=/usr/local
-          yosys -V
-
-      - name: Synthesize and generate yosys-stat LUT report
+      - name: Synthesize via Docker (yosys 0.63 from openXC7 image)
         run: |
           mkdir -p lut_reports
-          cat > lut_reports/yosys_report.md << 'HDR'
-          # Yosys Synthesis LUT Report (pre-P&R)
-          HDR
-          echo "Generated: $(date -u)" >> lut_reports/yosys_report.md
-          echo "Tool: $(yosys -V)" >> lut_reports/yosys_report.md
-          echo "Flags: synth_xilinx -flatten -abc9 -nocarry [-nodsp] -arch xc7" >> lut_reports/yosys_report.md
-          echo "" >> lut_reports/yosys_report.md
-          echo "| Format | W | E | M | ADD LUT | MUL LUT |" >> lut_reports/yosys_report.md
-          echo "|--------|---|---|---|---------|---------|" >> lut_reports/yosys_report.md
-
-          for spec in \
-            "GF4:1:2" "GF6:2:3" "GF8:3:4" "GF12:4:7" \
-            "GF14:5:8" "GF16:6:9" "GF20:7:12" "GF24:9:14"; do
-            IFS=: read name eb mb <<< "$spec"
-            w=$((1 + eb + mb))
-            bias=$(((1 << (eb - 1)) - 1))
-
-            # Generate wrapper
-            cat > /tmp/wrap.v << EOV
-          module top(input clk, input rst, input in_valid,
-              input [$((w-1)):0] in_a, input [$((w-1)):0] in_b, output in_ready,
-              output reg out_valid, output reg [$((w-1)):0] out_y, input out_ready);
-            PARAM_INST u(.clk(clk),.rst(rst),.in_valid(in_valid),.in_a(in_a),.in_b(in_b),
-              .in_ready(in_ready),.out_valid(out_valid),.out_y(out_y),.out_ready(out_ready));
-          endmodule
-          EOV
-
-            # ADD
-            sed "s/PARAM_INST/gf_adder_param #(.EXP_BITS($eb),.MANT_BITS($mb),.TOTAL($w),.BIAS($bias),.HAS_INF(0))/" /tmp/wrap.v > /tmp/add.v
-            add_lut=$(yosys -p "read_verilog /tmp/add.v; read_verilog fpga/openxc7-synth/gf_adder_param.v; synth_xilinx -flatten -abc9 -nocarry -arch xc7; stat" 2>&1 | \
-              awk '/Printing statistics/{f=1} f&&/LUT[1-6]/{s+=$1} f&&/MUXF[78]/{s+=$1} f&&/^$/{if(s>0)exit} END{print s+0}')
-
-            # MUL
-            sed "s/PARAM_INST/gf_mul_param #(.EXP_BITS($eb),.MANT_BITS($mb),.TOTAL($w),.BIAS($bias),.HAS_INF(0))/" /tmp/wrap.v > /tmp/mul.v
-            mul_lut=$(yosys -p "read_verilog /tmp/mul.v; read_verilog fpga/openxc7-synth/gf_mul_param.v; synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7; stat" 2>&1 | \
-              awk '/Printing statistics/{f=1} f&&/LUT[1-6]/{s+=$1} f&&/MUXF[78]/{s+=$1} f&&/^$/{if(s>0)exit} END{print s+0}')
-
-            echo "| $name | $w | $eb | $mb | $add_lut | $mul_lut |" >> lut_reports/yosys_report.md
-          done
-
-      - name: Upload yosys report
-        uses: actions/upload-artifact@v4
-        with:
-          name: yosys-lut-report
-          path: lut_reports/
-
-  # ── Job 2: nextpnr place-and-route (slower, uses Docker) ──
-  nextpnr-par:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run yosys + nextpnr in Docker (post-P&R LUT)
-        run: |
-          mkdir -p par_reports
-
-          # Use the openXC7 Docker image which has yosys + nextpnr + chipdb
-          # Focus on GF16 ADD (canonical reference point)
           docker run --rm \
             -v ${{ github.workspace }}:/work \
             -w /work \
             regymm/openxc7:latest \
             bash -c '
               set -e
+              mkdir -p /work/lut_reports
+
+              echo "# Yosys Synthesis LUT Report (pre-P&R)" > /work/lut_reports/yosys_report.md
+              echo "Generated: $(date -u)" >> /work/lut_reports/yosys_report.md
+              echo "Tool: $(yosys -V)" >> /work/lut_reports/yosys_report.md
+              echo "Flags: synth_xilinx -flatten -abc9 -nocarry [-nodsp] -arch xc7" >> /work/lut_reports/yosys_report.md
+              echo "" >> /work/lut_reports/yosys_report.md
+              echo "| Format | W | E | M | ADD LUT | MUL LUT |" >> /work/lut_reports/yosys_report.md
+              echo "|--------|---|---|---|---------|---------|" >> /work/lut_reports/yosys_report.md
+
               cd /work/fpga/openxc7-synth
 
-              # Synthesize GF16 ADD
-              cat > /tmp/gf16_add_top.v << EOV
+              for spec in GF4:1:2 GF8:3:4 GF12:4:7 GF14:5:8 GF16:6:9 GF20:7:12; do
+                IFS=: read name eb mb <<< "$spec"
+                w=$((1 + eb + mb))
+                bias=$(((1 << (eb - 1)) - 1))
+
+                # ADD
+                cat > /tmp/add.v << EOV
               module top(input clk, input rst, input in_valid,
-                  input [15:0] in_a, input [15:0] in_b, output in_ready,
-                  output reg out_valid, output reg [15:0] out_y, input out_ready);
-                gf_adder_param #(.EXP_BITS(6),.MANT_BITS(9),.TOTAL(16),.BIAS(31),.HAS_INF(1)) u(
+                  input [$w:0] in_a, input [$w:0] in_b, output in_ready,
+                  output reg out_valid, output reg [$w:0] out_y, input out_ready);
+                gf_adder_param #(.EXP_BITS($eb),.MANT_BITS($mb),.TOTAL($((w+1))),.BIAS($bias),.HAS_INF(0)) u(
                   .clk(clk),.rst(rst),.in_valid(in_valid),.in_a(in_a),.in_b(in_b),
                   .in_ready(in_ready),.out_valid(out_valid),.out_y(out_y),.out_ready(out_ready));
               endmodule
-          EOV
+              EOV
+                add_lut=$(yosys -p "read_verilog /tmp/add.v; read_verilog gf_adder_param.v; synth_xilinx -flatten -abc9 -nocarry -arch xc7; stat" 2>&1 | \
+                  awk "/Printing statistics/{f=1} f&&/LUT[1-6]/{s+=\$1} f&&/MUXF[78]/{s+=\$1} f&&/^\$/{if(s>0)exit} END{print s+0}")
 
-              echo "=== Step 1: yosys synthesis ==="
-              yosys -p "
-                read_verilog /tmp/gf16_add_top.v
-                read_verilog gf_adder_param.v
-                synth_xilinx -flatten -abc9 -nocarry -arch xc7 -top top
-                write_json /work/par_reports/gf16_add_synth.json
-              " 2>&1 | tail -5
+                # MUL
+                cat > /tmp/mul.v << EOV
+              module top(input clk, input rst, input in_valid,
+                  input [$w:0] in_a, input [$w:0] in_b, output in_ready,
+                  output reg out_valid, output reg [$w:0] out_y, input out_ready);
+                gf_mul_param #(.EXP_BITS($eb),.MANT_BITS($mb),.TOTAL($((w+1))),.BIAS($bias),.HAS_INF(0)) u(
+                  .clk(clk),.rst(rst),.in_valid(in_valid),.in_a(in_a),.in_b(in_b),
+                  .in_ready(in_ready),.out_valid(out_valid),.out_y(out_y),.out_ready(out_ready));
+              endmodule
+              EOV
+                mul_lut=$(yosys -p "read_verilog /tmp/mul.v; read_verilog gf_mul_param.v; synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7; stat" 2>&1 | \
+                  awk "/Printing statistics/{f=1} f&&/LUT[1-6]/{s+=\$1} f&&/MUXF[78]/{s+=\$1} f&&/^\$/{if(s>0)exit} END{print s+0}")
 
-              echo "=== Step 2: nextpnr place-and-route ==="
-              nextpnr-xilinx \
-                --chipdb /chipdb/xc7a200t.bin \
-                --json /work/par_reports/gf16_add_synth.json \
-                --write /work/par_reports/gf16_add_pnr.json \
-                --verbose 2>&1 | tee /work/par_reports/nextpnr_log.txt | tail -20
-
-              # Extract LUT count from nextpnr output
-              echo "=== Post-P&R LUT count ==="
-              grep -i "LUT\|LC\|logic cell" /work/par_reports/nextpnr_log.txt | tail -5 || true
+                echo "| $name | $((w+1)) | $eb | $mb | $add_lut | $mul_lut |" >> /work/lut_reports/yosys_report.md
+                echo "  $name W=$((w+1)): ADD=$add_lut MUL=$mul_lut"
+              done
+              cat /work/lut_reports/yosys_report.md
             '
-        continue-on-error: true
 
-      - name: Save post-P&R report
-        if: always()
-        run: |
-          echo "# Post-P&R LUT Report (nextpnr-xilinx)" > par_reports/pnr_report.md
-          echo "Target: XC7A200T-FBG484-2" >> par_reports/pnr_report.md
-          echo "Date: $(date -u)" >> par_reports/pnr_report.md
-          echo "" >> par_reports/pnr_report.md
-          if [ -f par_reports/nextpnr_log.txt ]; then
-            echo "## nextpnr output (key lines)" >> par_reports/pnr_report.md
-            echo '```' >> par_reports/pnr_report.md
-            grep -i "LUT\|LC\|logic cell\|wire\|cell" par_reports/nextpnr_log.txt | tail -10 >> par_reports/pnr_report.md || true
-            echo '```' >> par_reports/pnr_report.md
-          else
-            echo "nextpnr did not complete (Docker image pull or chipdb issue)" >> par_reports/pnr_report.md
-          fi
-
-      - name: Upload P&R report
-        if: always()
+      - name: Upload yosys report
         uses: actions/upload-artifact@v4
         with:
-          name: nextpnr-lut-report
-          path: par_reports/
+          name: yosys-lut-report
+          path: lut_reports/
