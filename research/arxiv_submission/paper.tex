@@ -1369,21 +1369,16 @@ advantage of integer formats may therefore be an artefact of the toy-data
 regime rather than a fundamental property. This finding is
 \emph{preliminary and scale-dependent}; GPU-scale validation is needed.
 
-\paragraph{The etalon depends on context: no single format dominates.}
-A comprehensive comparison across six format families at matched artifact
-budget reveals a fundamental trade-off between training efficiency and
-numerical robustness. INT7 (per-tensor scale) achieves the lowest training
-BPB (0.278) but fails 5/7 robustness tests---its per-tensor scale crushes
-dynamic range, and 128 integer levels produce 91\% matmul error and
-singular matrices on linear solve. GF14 passes all 7 robustness tests
-but has 7.6\% higher BPB. A hybrid format (INT7 for normal values,
-GF14 for $> 2\sigma$ outliers, effective $\sim$8 bpe) achieves the best
-training BPB (0.265) while improving robustness over pure INT7
-(3/7 vs.\ 2/7), but still cannot match GF14's dynamic range. The optimal
-format is therefore context-dependent: hybrid INT7/GF14 for QAT weight
-storage, GF14 (or GF16) for numerically sensitive computation, and INT7
-for maximum parameter count when robustness is handled at the algorithm
-level (e.g., outlier clipping).
+\paragraph{Format trade-off: training efficiency vs.\ robustness (preliminary).}
+A comparison across six format families at matched artifact budget on synthetic
+data suggests a trade-off between training efficiency and numerical robustness.
+On the unified FineWeb benchmark (Table~\ref{tab:unified}), all floating-point
+formats (BF16, GF14, GF16, FP16) show negligible degradation ($\Delta < 0.0001$
+BPB vs.\ FP32), while integer formats show measurable error (INT6: +0.018,
+SQ-INT6: +0.008). SmoothQuant reduces INT6 error by 57\%.
+The $\varphi$-rule floating-point family remains uniquely valuable for its 7/7
+robustness and dynamic range properties. These results are preliminary and
+scale-dependent; GPU-scale validation is needed.
 
 \paragraph{Hadamard rotation and LSQ at CPU scale (negative result).}
 Following UFP4~\cite{ufp4} and QuEST~\cite{quest}, we tested Random Hadamard
@@ -1403,7 +1398,7 @@ in recent large-scale studies.
 \paragraph{QAT vs PTQ: quantization-aware training wins.}
 A direct comparison of quantization-aware training (QAT, quantize during training)
 versus post-training quantization (PTQ, train in FP32 then quantize) at matched
-model size ($d{=}128$) reveals that QAT SQ-INT6 achieves 7.7\% lower BPB than
+model size ($d{=}128$) suggests (preliminarily, at CPU scale) that QAT SQ-INT6 achieves 7.7\% lower BPB than
 PTQ SQ-INT6 (0.254 vs.\ 0.275). This is because QAT allows the model to adapt
 to quantization noise during training, learning weights that are inherently
 more quantization-friendly. SmoothQuant improves PTQ by 0.8\% (INT6 0.278
@@ -1412,7 +1407,7 @@ SmoothQuant PTQ gain.
 
 \paragraph{Cross-validation with OpenAI Parameter Golf.}
 The OpenAI Parameter Golf competition (2026, 16~MB artifact limit, FineWeb
-BPB metric) confirms INT6 as the dominant format: the winner (1.057~BPB)
+BPB metric) uses INT6 weights, consistent with our finding that integer quantization is competitive: the winner (1.057~BPB)
 uses GPTQ INT6 weights with INT7 embeddings and LQER rank-4 error
 correction~\cite{paramgolf2026}. Our independent finding that INT6
 outperforms all floating-point formats at matched budget is consistent with
