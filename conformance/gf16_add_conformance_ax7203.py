@@ -15,7 +15,7 @@ from gf_ref import FORMATS, gf_add
 
 FMT = FORMATS["gf16"]             # exp_bits=6, mant_bits=9, bias=31, width=16, has_inf=True
 WIDTH = FMT.width                 # 16
-FRAME = bytes([0xAA, 0x55])
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 
 # §3.5-style corner codes (raw): zero, denormal, normal, 1.0/-1.0, max-normal, Inf, NaN.
 CORNERS = [

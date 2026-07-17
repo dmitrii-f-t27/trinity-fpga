@@ -1,0 +1,83 @@
+name: Yosys Synthesis LUT Report
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fpga/openxc7-synth/gf_adder_param.v'
+      - 'fpga/openxc7-synth/gf_mul_param.v'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'fpga/openxc7-synth/gf_adder_param.v'
+      - 'fpga/openxc7-synth/gf_mul_param.v'
+  workflow_dispatch:
+
+jobs:
+  yosys-synth:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yosys
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq yosys
+
+      - name: Synthesize GF formats and generate LUT report
+        run: |
+          mkdir -p lut_reports
+          echo "# Yosys Synthesis LUT Report" > lut_reports/README.md
+          echo "Generated: $(date -u)" >> lut_reports/README.md
+          echo "Tool: yosys $(yosys -V)" >> lut_reports/README.md
+          echo "Flags: -flatten -abc9 -nocarry -arch xc7 (ADD), -nodsp (MUL)" >> lut_reports/README.md
+          echo "" >> lut_reports/README.md
+          echo "| Format | W | E | M | ADD LUT | MUL LUT |" >> lut_reports/README.md
+          echo "|--------|---|---|---|---------|---------|" >> lut_reports/README.md
+
+          for spec in \
+            "GF4:1:2" "GF6:2:3" "GF8:3:4" "GF10:3:6" \
+            "GF12:4:7" "GF14:5:8" "GF16:6:9" "GF20:7:12" \
+            "GF24:9:14" "GF32:12:19"; do
+            IFS=: read name eb mb <<< "$spec"
+            w=$((1 + eb + mb))
+            bias=$(((1 << (eb - 1)) - 1))
+
+            # ADD synthesis
+            cat > /tmp/synth_add.v << EOV
+          module top(input clk, input rst, input in_valid,
+              input [$((w-1)):0] in_a, input [$((w-1)):0] in_b, output in_ready,
+              output reg out_valid, output reg [$((w-1)):0] out_y, input out_ready);
+              gf_adder_param #(.EXP_BITS($eb), .MANT_BITS($mb), .TOTAL($w), .BIAS($bias), .HAS_INF(0)) u(
+                  .clk(clk), .rst(rst), .in_valid(in_valid), .in_a(in_a), .in_b(in_b),
+                  .in_ready(in_ready), .out_valid(out_valid), .out_y(out_y), .out_ready(out_ready));
+          endmodule
+          EOV
+
+            add_lut=$(yosys -p "read_verilog /tmp/synth_add.v; read_verilog fpga/openxc7-synth/gf_adder_param.v; synth_xilinx -flatten -abc9 -nocarry -arch xc7; stat" 2>&1 | \
+              awk '/Printing statistics/{found=1} found && /LUT[1-6]/{sum+=$1} found && /^ARC/{} found && /^$/{if(sum>0)exit} END{print sum+0}')
+
+            # MUL synthesis
+            cat > /tmp/synth_mul.v << EOV
+          module top(input clk, input rst, input in_valid,
+              input [$((w-1)):0] in_a, input [$((w-1)):0] in_b, output in_ready,
+              output reg out_valid, output reg [$((w-1)):0] out_y, input out_ready);
+              gf_mul_param #(.EXP_BITS($eb), .MANT_BITS($mb), .TOTAL($w), .BIAS($bias), .HAS_INF(0)) u(
+                  .clk(clk), .rst(rst), .in_valid(in_valid), .in_a(in_a), .in_b(in_b),
+                  .in_ready(in_ready), .out_valid(out_valid), .out_y(out_y), .out_ready(out_ready));
+          endmodule
+          EOV
+
+            mul_lut=$(yosys -p "read_verilog /tmp/synth_mul.v; read_verilog fpga/openxc7-synth/gf_mul_param.v; synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7; stat" 2>&1 | \
+              awk '/Printing statistics/{found=1} found && /LUT[1-6]/{sum+=$1} found && /^$/{if(sum>0)exit} END{print sum+0}')
+
+            echo "| $name | $w | $eb | $mb | $add_lut | $mul_lut |" >> lut_reports/README.md
+            echo "  $name: ADD=$add_lut MUL=$mul_lut"
+          done
+
+      - name: Upload LUT report
+        uses: actions/upload-artifact@v4
+        with:
+          name: yosys-lut-report
+          path: lut_reports/
+          retention-days: 90

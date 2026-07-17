@@ -15,7 +15,7 @@ from gf_ref import FORMATS, gf_add
 
 FMT = FORMATS["gf24"]             # exp_bits=9, mant_bits=14, bias=255, width=24, no Inf
 WIDTH = FMT.width                 # 24
-FRAME = bytes([0xAA, 0x55])
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 
 CORNERS = [
     0x000000, 0x800000, 0x000001, 0x003FFF,   # +0, -0, smallest/largest denormal

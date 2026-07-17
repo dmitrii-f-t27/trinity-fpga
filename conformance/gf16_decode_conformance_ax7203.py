@@ -16,7 +16,7 @@
 # iverilog witness (tb_gf_decode.v, 65536/65536 PASS, fpga/witness/gf_decode/).
 import argparse, sys, struct, random
 
-FRAME = bytes([0xAA, 0x55])
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 FMT_GF16 = 0x0D  # informational; single-format wrapper ignores the fmt byte
 
 # gf16 parameters

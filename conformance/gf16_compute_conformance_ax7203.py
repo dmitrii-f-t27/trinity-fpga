@@ -7,7 +7,7 @@ sys.path.insert(0, "conformance")
 from gf_ref import GFFormat, FORMATS, decode, encode, Special, pow2
 
 FMT = FORMATS["gf16"]  # exp=6, mant=9, bias=31, has_inf=True
-FRAME = bytes([0xAA, 0x55])
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 
 
 def golden_add(a_raw, b_raw):

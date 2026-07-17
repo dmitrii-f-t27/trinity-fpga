@@ -11,7 +11,7 @@ from gf_ref import FORMATS, gf_mul
 
 FMT = FORMATS["gf6"]            # exp_bits=2, mant_bits=3, bias=1, width=6
 WIDTH = FMT.width              # 6
-FRAME = bytes([0xAA, 0x55])
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 CORNERS = [0x00, 0x20, 0x01, 0x07, 0x10, 0x1F, 0x38, 0x08]
 
 

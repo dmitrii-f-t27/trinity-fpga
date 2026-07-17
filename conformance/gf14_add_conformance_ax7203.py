@@ -14,7 +14,7 @@ def golden_add(a, b):
     return gf_add(GFMT, a, b)
 
 
-FRAME = bytes([0xAA, 0x55])
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 
 
 def hw_exchange(ser, a, b):

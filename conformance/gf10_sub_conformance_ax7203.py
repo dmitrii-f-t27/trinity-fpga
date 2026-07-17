@@ -11,7 +11,7 @@ GFMT = FORMATS["gf10"]; SIGN = 1 << (GFMT.exp_bits + GFMT.mant_bits); T = 1 << 1
 def golden_sub(a, b):
     return gf_add(GFMT, a, b ^ SIGN)
 
-FRAME = bytes([0xAA, 0x55])
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 
 def hw_exchange(ser, a, b):
     pkt = FRAME + bytes([a & 0xFF, (a >> 8) & 0xFF, b & 0xFF, (b >> 8) & 0xFF, 0x00])

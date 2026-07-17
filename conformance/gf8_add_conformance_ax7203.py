@@ -26,7 +26,7 @@ FMT = FORMATS["gf8"]
 
 
 # ---- protocol ----
-FRAME = bytes([0xAA, 0x55])  # + a_lo a_hi b_lo b_hi + trigger
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt  # + a_lo a_hi b_lo b_hi + trigger
 
 
 def hw_exchange(ser, a, b):

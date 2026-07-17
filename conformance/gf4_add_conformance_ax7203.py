@@ -14,7 +14,7 @@ from gf_ref import FORMATS, gf_add
 
 FMT = FORMATS["gf4"]              # exp_bits=1, mant_bits=2, bias=0, width=4, no Inf
 WIDTH = FMT.width
-FRAME = bytes([0xAA, 0x55])
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 
 
 def hw_exchange(ser, a, b):

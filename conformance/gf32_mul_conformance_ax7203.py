@@ -16,7 +16,7 @@ def golden_mul(a, b):
     return gf_mul(GFMT, a, b)
 
 
-FRAME = bytes([0xAA, 0x55])
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 
 
 def hw_exchange(ser, a, b):

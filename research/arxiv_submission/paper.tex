@@ -1356,22 +1356,18 @@ proliferating low-precision-format space.
 
 \end{document}
 
-\paragraph{Beyond floating-point: INT7 at matched budget.}
+\paragraph{Beyond floating-point: INT7 at matched budget (preliminary).}
 A systematic comparison across six format families (floating-point, integer,
 NormalFloat, power-of-2, ternary, microscaling) at matched artifact budget
-reveals that 7-bit integer quantization with per-tensor scale (INT7) achieves
-lower BPB than any floating-point format tested: 0.278 vs.\ GF14's 0.301
-(7.6\% better) and FP32's 0.321 (13.3\% better). INT7 also requires
-$\sim$50 LUT per MAC---17$\times$ less than GF14's 851 LUT. The advantage
-stems from fitting 38\% more parameters (d=116 vs.\ d=84) in the same byte
-budget, with sufficient precision (128 levels) for stable QAT. Below 7 bits
-(INT5: 32 levels), training diverges. The $\varphi$-rule floating-point
-family remains uniquely valuable for its 7/7 robustness and dynamic range
-properties, but at matched budget for well-initialized models with
-near-Gaussian weight distributions, integer quantization is accuracy-optimal.
-This finding is consistent with Dettmers et al.~\cite{dettmers2022llmint8},
-who showed INT8 is sufficient for LLM inference. We extend this to training:
-INT7 is the minimum-width stable format for QAT at this scale.
+on synthetic Markov data ($d{\leq}128$, 300 steps) suggests that integer
+quantization may achieve lower BPB than floating-point in the underfitting
+regime. However, on a unified FineWeb benchmark (Table~\ref{tab:unified})
+where all formats are evaluated on the same trained model, floating-point
+formats (BF16, GF14, GF16, FP16) show negligible degradation ($\Delta < 0.0001$
+BPB), while INT6 adds +0.018 BPB and SQ-INT6 adds +0.008 BPB. The matched-budget
+advantage of integer formats may therefore be an artefact of the toy-data
+regime rather than a fundamental property. This finding is
+\emph{preliminary and scale-dependent}; GPU-scale validation is needed.
 
 \paragraph{The etalon depends on context: no single format dominates.}
 A comprehensive comparison across six format families at matched artifact
@@ -1436,3 +1432,29 @@ text data. Combined with the competition winner's architecture stack
 (Muon, CaseOps, TTT, depth recurrence), SmoothQuant could provide a
 marginal but potentially decisive advantage in the Parameter Golf
 competition, where the top-5 submissions are separated by 0.005~BPB.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Unified FineWeb benchmark: all formats evaluated on the same trained
+model (4L, $d{=}128$, vocab 1024, seq 128, 300 steps, seed 42). PTQ applied
+post-training. $\Delta$ = BPB increase vs FP32 master. Floating-point formats
+show negligible degradation; integer formats show measurable but small error.}
+\label{tab:unified}
+\begin{tabular}{lcrr}
+\toprule
+Format & bpe & FineWeb BPB & $\Delta$ vs FP32 \\
+\midrule
+FP32 (master) & 32 & 1.8740 & --- \\
+FP16 (E5M10)  & 16 & 1.8740 & $-0.0000$ \\
+BF16 (E8M7)   & 16 & 1.8740 & $+0.0000$ \\
+GF16 (E6M9)   & 16 & 1.8740 & $+0.0000$ \\
+GF14 (E5M8)   & 14 & 1.8741 & $+0.0001$ \\
+INT8          &  8 & 1.8749 & $+0.0009$ \\
+INT7          &  7 & 1.8781 & $+0.0041$ \\
+\textbf{SQ-INT6} & \textbf{6} & \textbf{1.8818} & $\mathbf{+0.0078}$ \\
+INT6          &  6 & 1.8920 & $+0.0180$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+TEXEO

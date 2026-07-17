@@ -78,7 +78,7 @@ def golden_sqrt(a_code, b_code):
 
 GOLDEN_OPS = {"add": golden_add, "mul": golden_mul, "div": golden_div, "sqrt": golden_sqrt}
 
-FRAME = bytes([0xAA, 0x55])
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 
 def hw_exchange(ser, a, b, op_name):
     """Send gfternary compute request and read result."""

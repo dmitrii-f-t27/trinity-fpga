@@ -4,7 +4,7 @@
 # finite max (no Inf/NaN). Decode to FP32 exact. Golden mirrors the RTL.
 import argparse, sys, struct, serial, random
 
-FRAME = bytes([0xAA, 0x55])
+FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 FMT_GF10 = 0x17
 
 
