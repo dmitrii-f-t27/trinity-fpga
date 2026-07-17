@@ -1,0 +1,19 @@
+{
+  "date": "2026-07-17",
+  "hardware": "1×H100 SXM 80GB",
+  "pytorch": "2.4.1+cu124",
+  "config": "official train_gpt.py, 20000 iter target, 570s wallclock cap, TRAIN_BATCH_TOKENS=65536",
+  "actual_steps": 1563,
+  "results": {
+    "val_bpb": 1.4715,
+    "val_loss": 2.4846,
+    "artifact_bytes": 12144461,
+    "eval_time_s": 63.4
+  },
+  "comparison": {
+    "our_1gpu_1563steps": 1.4715,
+    "naive_baseline_8gpu": 1.2244,
+    "competition_winner": 1.0565
+  },
+  "note": "Baseline run on 1 GPU (not 8). Proper BPB via official sentencepiece byte counting. Gap to winner explained by: fewer steps (1563 vs 20000), no Muon optimizer, no TTT, no GPTQ, no CaseOps, no sliding eval."
+}
