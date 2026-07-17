@@ -1,0 +1,15 @@
+{
+  "date": "2026-07-17",
+  "gpu": "NVIDIA RTX PRO 4500 Blackwell (sm_120)",
+  "pytorch": "2.12.0.dev20260408+cu128",
+  "model": "6L d=256 seq=256 | 3,490,816 params | 500 steps",
+  "data": "FineWeb sp1024, 1M train tokens, 500K val tokens",
+  "results": {
+    "FP32": {"bpe": 32, "bpb": 0.4347, "delta": 0.0},
+    "BF16": {"bpe": 16, "bpb": 0.4347, "delta": 0.0},
+    "INT8": {"bpe": 8, "bpb": 0.4361, "delta": 0.0014},
+    "SQ-INT6": {"bpe": 6, "bpb": 0.4419, "delta": 0.0072},
+    "INT6": {"bpe": 6, "bpb": 0.4513, "delta": 0.0166}
+  },
+  "key_finding": "SQ-INT6 reduces INT6 quantization error by 57% (0.0072 vs 0.0166 BPB). Confirmed at d=256 scale on GPU."
+}
