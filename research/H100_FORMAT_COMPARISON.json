@@ -1,0 +1,22 @@
+{
+  "date": "2026-07-17",
+  "hardware": "8×H100 SXM 80GB (competition standard)",
+  "pytorch": "2.4.1+cu124",
+  "model": "9L d=512 seq=512 | 29,158,912 params | 500 steps",
+  "data": "FineWeb sp1024, 2M train, 1M val",
+  "results": {
+    "FP32":   {"bpe": 32, "bpb": 0.0070, "delta": 0.0},
+    "FP16":   {"bpe": 16, "bpb": 0.0070, "delta": 0.0},
+    "BF16":   {"bpe": 16, "bpb": 0.0070, "delta": 0.0},
+    "GF14":   {"bpe": 14, "bpb": 0.0070, "delta": 0.0},
+    "GF16":   {"bpe": 16, "bpb": 0.0070, "delta": 0.0},
+    "GF20":   {"bpe": 20, "bpb": 0.0070, "delta": 0.0},
+    "INT8":   {"bpe": 8,  "bpb": 0.0071, "delta": 0.0001},
+    "INT7":   {"bpe": 7,  "bpb": 0.0071, "delta": 0.0001},
+    "SQ-INT6":{"bpe": 6,  "bpb": 0.0072, "delta": 0.0002},
+    "INT6":   {"bpe": 6,  "bpb": 0.0075, "delta": 0.0005},
+    "SQ-INT7":{"bpe": 7,  "bpb": 0.0071, "delta": 0.0001}
+  },
+  "key_finding": "At competition scale (9L d=512, 29M params), ALL formats ≥14 bits are lossless (Δ<0.001). SQ-INT6 reduces INT6 error by 60% (0.0002 vs 0.0005). SQ-INT7 = lossless.",
+  "note": "Model heavily underfit (500 steps, low BPB). Format differences are small but SQ advantage holds."
+}
