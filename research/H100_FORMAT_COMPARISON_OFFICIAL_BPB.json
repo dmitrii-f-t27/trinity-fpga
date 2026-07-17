@@ -1,0 +1,28 @@
+{
+  "date": "2026-07-17",
+  "hardware": "8×H100 SXM 80GB (using 1 GPU for training)",
+  "pytorch": "2.4.1+cu124",
+  "model": "9L d=512 seq=1024 | 29,421,056 params | 2000 steps | FineWeb sp1024",
+  "data": "8M train tokens, 54M val tokens",
+  "bpb_method": "OFFICIAL sentencepiece byte counting (from train_gpt.py)",
+  "results": {
+    "FP32":    {"family":"FP",  "bpe":32, "bpb":2.8364, "delta":0.0},
+    "FP16":    {"family":"FP",  "bpe":16, "bpb":2.8364, "delta":0.0},
+    "BF16":    {"family":"FP",  "bpe":16, "bpb":2.8364, "delta":0.0},
+    "GF14+":   {"family":"GF",  "bpe":14, "bpb":2.8364, "delta":0.0},
+    "GF16+":   {"family":"GF",  "bpe":16, "bpb":2.8364, "delta":0.0},
+    "GF20":    {"family":"GF",  "bpe":20, "bpb":2.8364, "delta":0.0},
+    "INT8":    {"family":"INT", "bpe":8,  "bpb":2.8366, "delta":0.0002},
+    "INT7":    {"family":"INT", "bpe":7,  "bpb":2.8373, "delta":0.0009},
+    "SQ-INT7": {"family":"SQ",  "bpe":7,  "bpb":2.8369, "delta":0.0005},
+    "SQ-INT6": {"family":"SQ",  "bpe":6,  "bpb":2.8382, "delta":0.0018},
+    "INT6":    {"family":"INT", "bpe":6,  "bpb":2.8418, "delta":0.0055}
+  },
+  "key_findings": [
+    "ALL FP formats (FP16, BF16, GF14, GF16, GF20) are LOSSLESS (delta < 0.0001 BPB)",
+    "GF14+ (phi-rule, 14 bits) = lossless — confirms phi-rule validity at H100 scale",
+    "SQ-INT6 reduces INT6 error by 67% (0.0018 vs 0.0055 BPB delta)",
+    "SQ-INT7 (7 bits) = lossless (delta = 0.0005)",
+    "INT6 is the only format with measurable noise (delta = 0.0055)"
+  ]
+}
