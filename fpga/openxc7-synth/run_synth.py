@@ -42,7 +42,10 @@ stat
             parts = line.strip().split()
             if len(parts) >= 2:
                 cell_type = parts[-1]
-                count = int(parts[0])
+                try:
+                    count = int(parts[0])
+                except ValueError:
+                    continue
                 if cell_type in ("LUT1", "LUT2", "LUT3", "LUT4", "LUT5", "LUT6",
                                  "MUXF7", "MUXF8"):
                     lut_count += count
