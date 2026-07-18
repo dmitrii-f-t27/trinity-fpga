@@ -1,0 +1,363 @@
+{
+ "4": [
+  {
+   "fmt": "e0m3",
+   "e": 0,
+   "m": 3,
+   "gauss": 17.61,
+   "heavy": 11.4,
+   "uniform": 22.68,
+   "mixed_outlier": 10.88
+  },
+  {
+   "fmt": "e1m2 <- phi",
+   "e": 1,
+   "m": 2,
+   "gauss": 16.5,
+   "heavy": 10.52,
+   "uniform": 22.93,
+   "mixed_outlier": 10.66
+  },
+  {
+   "fmt": "e2m1",
+   "e": 2,
+   "m": 1,
+   "gauss": 18.64,
+   "heavy": 13.95,
+   "uniform": 19.15,
+   "mixed_outlier": 11.75
+  },
+  {
+   "fmt": "INT4",
+   "e": null,
+   "m": null,
+   "gauss": 16.5,
+   "heavy": 10.52,
+   "uniform": 22.93,
+   "mixed_outlier": 10.66
+  },
+  {
+   "fmt": "NF4",
+   "e": null,
+   "m": null,
+   "gauss": 19.42,
+   "heavy": 13.91,
+   "uniform": 20.59,
+   "mixed_outlier": 11.84
+  }
+ ],
+ "6": [
+  {
+   "fmt": "e0m5",
+   "e": 0,
+   "m": 5,
+   "gauss": 29.67,
+   "heavy": 22.0,
+   "uniform": 35.72,
+   "mixed_outlier": 18.8
+  },
+  {
+   "fmt": "e1m4",
+   "e": 1,
+   "m": 4,
+   "gauss": 29.42,
+   "heavy": 21.78,
+   "uniform": 35.84,
+   "mixed_outlier": 18.56
+  },
+  {
+   "fmt": "e2m3 <- phi",
+   "e": 2,
+   "m": 3,
+   "gauss": 30.98,
+   "heavy": 26.45,
+   "uniform": 32.14,
+   "mixed_outlier": 23.78
+  },
+  {
+   "fmt": "e3m2",
+   "e": 3,
+   "m": 2,
+   "gauss": 25.56,
+   "heavy": 25.73,
+   "uniform": 25.86,
+   "mixed_outlier": 25.83
+  },
+  {
+   "fmt": "e4m1",
+   "e": 4,
+   "m": 1,
+   "gauss": 19.73,
+   "heavy": 19.89,
+   "uniform": 19.24,
+   "mixed_outlier": 19.99
+  },
+  {
+   "fmt": "INT6",
+   "e": null,
+   "m": null,
+   "gauss": 29.42,
+   "heavy": 21.78,
+   "uniform": 35.84,
+   "mixed_outlier": 18.56
+  }
+ ],
+ "8": [
+  {
+   "fmt": "e0m7",
+   "e": 0,
+   "m": 7,
+   "gauss": 41.71,
+   "heavy": 33.38,
+   "uniform": 48.04,
+   "mixed_outlier": 30.82
+  },
+  {
+   "fmt": "e1m6",
+   "e": 1,
+   "m": 6,
+   "gauss": 41.66,
+   "heavy": 33.34,
+   "uniform": 48.1,
+   "mixed_outlier": 30.78
+  },
+  {
+   "fmt": "e2m5",
+   "e": 2,
+   "m": 5,
+   "gauss": 43.1,
+   "heavy": 38.41,
+   "uniform": 44.44,
+   "mixed_outlier": 36.18
+  },
+  {
+   "fmt": "e3m4 <- phi",
+   "e": 3,
+   "m": 4,
+   "gauss": 37.57,
+   "heavy": 37.82,
+   "uniform": 38.38,
+   "mixed_outlier": 37.93
+  },
+  {
+   "fmt": "e4m3",
+   "e": 4,
+   "m": 3,
+   "gauss": 31.55,
+   "heavy": 31.81,
+   "uniform": 32.2,
+   "mixed_outlier": 31.89
+  },
+  {
+   "fmt": "e5m2",
+   "e": 5,
+   "m": 2,
+   "gauss": 25.56,
+   "heavy": 25.75,
+   "uniform": 25.86,
+   "mixed_outlier": 25.86
+  },
+  {
+   "fmt": "e6m1",
+   "e": 6,
+   "m": 1,
+   "gauss": 19.73,
+   "heavy": 19.89,
+   "uniform": 19.24,
+   "mixed_outlier": 19.99
+  },
+  {
+   "fmt": "INT8",
+   "e": null,
+   "m": null,
+   "gauss": 41.66,
+   "heavy": 33.34,
+   "uniform": 48.1,
+   "mixed_outlier": 30.78
+  }
+ ],
+ "12": [
+  {
+   "fmt": "e0m11",
+   "e": 0,
+   "m": 11,
+   "gauss": 65.8,
+   "heavy": 56.97,
+   "uniform": 72.22,
+   "mixed_outlier": 54.92
+  },
+  {
+   "fmt": "e1m10",
+   "e": 1,
+   "m": 10,
+   "gauss": 65.82,
+   "heavy": 56.99,
+   "uniform": 72.25,
+   "mixed_outlier": 54.94
+  },
+  {
+   "fmt": "e2m9",
+   "e": 2,
+   "m": 9,
+   "gauss": 67.2,
+   "heavy": 62.27,
+   "uniform": 68.61,
+   "mixed_outlier": 60.38
+  },
+  {
+   "fmt": "e3m8",
+   "e": 3,
+   "m": 8,
+   "gauss": 61.66,
+   "heavy": 61.91,
+   "uniform": 62.64,
+   "mixed_outlier": 62.0
+  },
+  {
+   "fmt": "e4m7 <- phi",
+   "e": 4,
+   "m": 7,
+   "gauss": 55.64,
+   "heavy": 55.91,
+   "uniform": 56.59,
+   "mixed_outlier": 56.03
+  },
+  {
+   "fmt": "e5m6",
+   "e": 5,
+   "m": 6,
+   "gauss": 49.61,
+   "heavy": 49.91,
+   "uniform": 50.55,
+   "mixed_outlier": 50.0
+  },
+  {
+   "fmt": "e6m5",
+   "e": 6,
+   "m": 5,
+   "gauss": 43.6,
+   "heavy": 43.86,
+   "uniform": 44.49,
+   "mixed_outlier": 43.93
+  },
+  {
+   "fmt": "e7m4",
+   "e": 7,
+   "m": 4,
+   "gauss": 37.57,
+   "heavy": 37.84,
+   "uniform": 38.38,
+   "mixed_outlier": 37.96
+  },
+  {
+   "fmt": "e8m3",
+   "e": 8,
+   "m": 3,
+   "gauss": 31.55,
+   "heavy": 31.81,
+   "uniform": 32.2,
+   "mixed_outlier": 31.89
+  },
+  {
+   "fmt": "INT12",
+   "e": null,
+   "m": null,
+   "gauss": 65.82,
+   "heavy": 56.99,
+   "uniform": 72.25,
+   "mixed_outlier": 54.94
+  }
+ ],
+ "16": [
+  {
+   "fmt": "e0m15",
+   "e": 0,
+   "m": 15,
+   "gauss": 89.87,
+   "heavy": 80.9,
+   "uniform": 96.3,
+   "mixed_outlier": 79.0
+  },
+  {
+   "fmt": "e1m14",
+   "e": 1,
+   "m": 14,
+   "gauss": 89.9,
+   "heavy": 80.92,
+   "uniform": 96.33,
+   "mixed_outlier": 79.03
+  },
+  {
+   "fmt": "e2m13",
+   "e": 2,
+   "m": 13,
+   "gauss": 91.28,
+   "heavy": 86.27,
+   "uniform": 92.7,
+   "mixed_outlier": 84.48
+  },
+  {
+   "fmt": "e3m12",
+   "e": 3,
+   "m": 12,
+   "gauss": 85.75,
+   "heavy": 85.99,
+   "uniform": 86.72,
+   "mixed_outlier": 86.04
+  },
+  {
+   "fmt": "e4m11",
+   "e": 4,
+   "m": 11,
+   "gauss": 79.74,
+   "heavy": 79.97,
+   "uniform": 80.7,
+   "mixed_outlier": 80.02
+  },
+  {
+   "fmt": "e5m10",
+   "e": 5,
+   "m": 10,
+   "gauss": 73.7,
+   "heavy": 73.97,
+   "uniform": 74.68,
+   "mixed_outlier": 73.98
+  },
+  {
+   "fmt": "e6m9 <- phi",
+   "e": 6,
+   "m": 9,
+   "gauss": 67.68,
+   "heavy": 67.94,
+   "uniform": 68.66,
+   "mixed_outlier": 68.06
+  },
+  {
+   "fmt": "e7m8",
+   "e": 7,
+   "m": 8,
+   "gauss": 61.66,
+   "heavy": 61.93,
+   "uniform": 62.64,
+   "mixed_outlier": 62.02
+  },
+  {
+   "fmt": "e8m7",
+   "e": 8,
+   "m": 7,
+   "gauss": 55.64,
+   "heavy": 55.91,
+   "uniform": 56.59,
+   "mixed_outlier": 56.03
+  },
+  {
+   "fmt": "INT16",
+   "e": null,
+   "m": null,
+   "gauss": 89.9,
+   "heavy": 80.92,
+   "uniform": 96.33,
+   "mixed_outlier": 79.03
+  }
+ ]
+}
