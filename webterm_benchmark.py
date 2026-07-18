@@ -2,28 +2,20 @@
 """GPU Format Benchmark — ALL formats including GF8 and ternary"""
 import os, sys, json
 
-# Step 1: Install correct PyTorch
+# Step 1: ALWAYS install typing_extensions + correct PyTorch FIRST
+print("Installing deps...")
 os.system("pip3 install --upgrade typing_extensions -q 2>&1 | tail -1")
-
-import torch
-try:
-    x = torch.randn(10,10).cuda()
-    assert (x@x).sum() != 0
-except:
-    print("Installing PyTorch cu128...")
-    os.system("pip3 uninstall -y torch torchvision torchaudio 2>/dev/null")
-    os.system("pip3 install --upgrade typing_extensions -q")
-    os.system("pip3 install torch --pre --index-url https://download.pytorch.org/whl/nightly/cu128 -q 2>&1 | tail -3")
-    os.system("pip3 install --upgrade typing_extensions -q")
-    # Re-exec to get fresh import
-    os.execv(sys.executable, [sys.executable] + sys.argv)
-
+os.system("pip3 uninstall -y torch torchvision torchaudio 2>/dev/null")
+os.system("pip3 install torch --pre --index-url https://download.pytorch.org/whl/nightly/cu128 -q 2>&1 | tail -3")
+os.system("pip3 install --upgrade typing_extensions -q 2>&1 | tail -1")
 os.system("pip3 install sentencepiece huggingface-hub -q 2>&1 | tail -1")
 
-GPU = torch.cuda.get_device_name(0)
-print(f"GPU: {GPU} | PyTorch: {torch.__version__}")
+# Step 2: NOW import torch (fresh process not needed — packages are installed)
+import torch
 x = torch.randn(100,100).cuda()
-print(f"GPU test: {(x@x).sum().item():.1f} ✓")
+test = (x@x).sum().item()
+GPU = torch.cuda.get_device_name(0)
+print(f"GPU: {GPU} | PyTorch: {torch.__version__} | test={test:.1f}")
 
 # Setup
 os.chdir("/workspace")
@@ -155,10 +147,14 @@ for s in range(STEPS+1):
     if s%500==0:
         bpb=ev(model);print(f"  {s}/{STEPS}: loss={loss.item():.4f} bpb={bpb:.4f}",flush=True)
 
+# Save model checkpoint for GF+ benchmark
+torch.save(model.state_dict(), '/workspace/model_checkpoint.pt')
+print("Checkpoint saved: /workspace/model_checkpoint.pt")
+
 b=ev(model);P=sum(p.numel()for p in model.parameters())
 print(f"\n{'='*70}")
 print(f"COMPLETE FORMAT LEADERBOARD — {GPU}")
-print(f"Model:{NL}L d={D} seq={SEQ}|{P:,}params|{STEPS}steps|FineWeb official BPB")
+print(f"Model:{NL}L d={D} seq={SEQ}|{P:,}params|{STEPS}steps|FineWeb PTQ-proxy BPB")
 print(f"{'='*70}")
 print(f"\n{'Format':<16}{'Family':<8}{'bpe':>5}{'BPB':>9}{'Delta':>9}{'Status'}")
 print("-"*60)
