@@ -68,7 +68,7 @@ jobs:
       - name: nextpnr (seed search)
         run: |
           TOP=corona_compute_${{ matrix.cell }}_ax7203
-          CLEAN=0; for s in 1 2 3 4 5 6 7 8; do
+          CLEAN=0; for s in 1 2 3 4 5 6 7 8 9 10 11 12; do
             rm -f build/fmtcost/${TOP}_routed.json
             docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
               --chipdb /work/build/fmtcost/chipdb/xc7a200tfbg484-2.bin \
@@ -78,7 +78,15 @@ jobs:
               --freq 50.0 --seed $s --placer sa --router router1 --timing-allow-fail > /tmp/np_$s.log 2>&1 || true
             if grep -q "Failed to find a route" /tmp/np_$s.log || [ ! -f build/fmtcost/${TOP}_routed.json ]; then continue; fi
             cp /tmp/np_$s.log /tmp/np.log; CLEAN=$s; break
-          done; [ "$CLEAN" = "0" ] && { echo "::error::no clean seed"; exit 1; }; echo "seed=$CLEAN"
+          done
+          if [ "$CLEAN" = "0" ]; then
+            echo "::error::no clean seed"
+            for f in /tmp/np_*.log; do
+              echo "===== $f (errors) ====="; grep -iE "^ERROR|error|fatal|Failed" "$f" | head -10
+              echo "===== $f (tail) ====="; tail -25 "$f"
+            done
+            exit 1
+          fi; echo "seed=$CLEAN"
       - name: Extract metrics
         run: |
           mkdir -p metrics
