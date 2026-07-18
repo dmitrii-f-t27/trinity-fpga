@@ -40,18 +40,20 @@ jobs:
           TOP=corona_compute_${{ matrix.cell }}_ax7203
           mkdir -p build/fmtcost
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
-            read_verilog fpga/openxc7-synth/${TOP}.v;
+            read_verilog fpga/openxc7-synth/${TOP}.v fpga/openxc7-synth/gf_adder_param.v fpga/openxc7-synth/gf_mul_param.v;
             synth_xilinx -flatten -abc9 -nocarry -arch xc7 -top ${TOP};
             setundef -zero -params; write_json build/fmtcost/${TOP}.json" 2>&1 | tee /tmp/yosys_nocarry.log
           grep -E "Estimated|ERROR" /tmp/yosys_nocarry.log
+          ! grep -q "ERROR" /tmp/yosys_nocarry.log
       - name: Yosys (control, carry allowed)
         run: |
           TOP=corona_compute_${{ matrix.cell }}_ax7203
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
-            read_verilog fpga/openxc7-synth/${TOP}.v;
+            read_verilog fpga/openxc7-synth/${TOP}.v fpga/openxc7-synth/gf_adder_param.v fpga/openxc7-synth/gf_mul_param.v;
             synth_xilinx -flatten -abc9 -arch xc7 -top ${TOP};
             setundef -zero -params" 2>&1 | tee /tmp/yosys_carry.log
           grep -E "Estimated|ERROR" /tmp/yosys_carry.log
+          ! grep -q "ERROR" /tmp/yosys_carry.log
       - uses: actions/cache@v4
         id: chipdb
         with:
