@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """GPU Format Benchmark — ALL formats including GF8 and ternary"""
-import subprocess, sys, os, json
+import os, sys, json
 
-# Auto-install correct PyTorch
+# Step 1: Install correct PyTorch
+os.system("pip3 install --upgrade typing_extensions -q 2>&1 | tail -1")
+
 import torch
 try:
     x = torch.randn(10,10).cuda()
@@ -10,15 +12,18 @@ try:
 except:
     print("Installing PyTorch cu128...")
     os.system("pip3 uninstall -y torch torchvision torchaudio 2>/dev/null")
+    os.system("pip3 install --upgrade typing_extensions -q")
     os.system("pip3 install torch --pre --index-url https://download.pytorch.org/whl/nightly/cu128 -q 2>&1 | tail -3")
-    import importlib; importlib.reload(torch)
-    x = torch.randn(10,10).cuda()
-    assert (x@x).sum() != 0
+    os.system("pip3 install --upgrade typing_extensions -q")
+    # Re-exec to get fresh import
+    os.execv(sys.executable, [sys.executable] + sys.argv)
 
 os.system("pip3 install sentencepiece huggingface-hub -q 2>&1 | tail -1")
 
 GPU = torch.cuda.get_device_name(0)
 print(f"GPU: {GPU} | PyTorch: {torch.__version__}")
+x = torch.randn(100,100).cuda()
+print(f"GPU test: {(x@x).sum().item():.1f} ✓")
 
 # Setup
 os.chdir("/workspace")
@@ -46,8 +51,6 @@ for t in range(VOCAB):
     if d: bb[t] = len(d.encode('utf-8')); hs[t] = d[0]==' '
     if sp.is_unknown(t) or sp.is_control(t) or sp.is_byte(t): ib[t]=True; bb[t]=0
 
-print(f"Data: {len(train)} train, {len(val_t)} val")
-
 class M(nn.Module):
     def __init__(s):
         super().__init__()
@@ -59,8 +62,6 @@ class M(nn.Module):
         for b in s.l:h=b(h)
         return s.h(s.f(h))
 
-# ═══ ALL QUANTIZERS ═══
-
 def q_gf(E,Mm):
     B=(1<<(E-1))-1;EM=(1<<E)-1;MV=2.**(1-B-Mm);ms=float(1<<Mm)
     def f(t):
@@ -68,41 +69,34 @@ def q_gf(E,Mm):
         r=sg*(1+torch.round((ff-1)*ms)/ms)*(2.**(ef-B));return torch.where(torch.abs(t)<MV,torch.zeros_like(r),r)
     return f
 
-def q_gf8_scaled():
-    """GF8 e3m4 with per-row absmax scaling (φ-rule 8-bit)"""
-    E,BIAS,M = 3,3,4
-    MAX_NORM = (2.0**((1<<E)-1-BIAS)) * (2.0 - 2.0**(-M))  # 31.0
-    MV = 2.0**(1-BIAS-M)  # denorm threshold
-    ms = float(1<<M)
-    def f(t):
-        if t.dim()<2: return q_gf(3,4)(t)
-        scale = (t.abs().amax(dim=-1,keepdim=True)/MAX_NORM).clamp(min=1e-12)
-        ws = t/scale
-        sg=torch.sign(ws);a=torch.abs(ws).clamp(min=1e-45)
-        e=torch.clamp(torch.floor(torch.log2(a)),1-BIAS,(1<<E)-1-BIAS)
-        ff=a/(2.**e);ef=torch.clamp(e+BIAS,1,(1<<E)-1)
-        r=sg*(1+torch.round((ff-1)*ms)/ms)*(2.**(ef-BIAS))
-        # denormals
-        den = a < 2.0**(1-BIAS)
-        r_den = torch.round(a/(2.0**(1-BIAS-M)))*(2.0**(1-BIAS-M))
-        r = torch.where(den, sg*r_den, r)
-        r = torch.clamp(r, -MAX_NORM, MAX_NORM)
-        return r * scale
-    return f
-
-def q_fp8_e4m3():
-    """FP8 E4M3 (NVIDIA standard) — direct cast"""
-    def f(t):
-        return t.to(torch.float8_e4m3fn).to(t.dtype)
+def q_fp8_direct():
+    def f(t): return t.to(torch.float8_e4m3fn).to(t.dtype)
     return f
 
 def q_fp8_scaled():
-    """FP8 E4M3 with per-row absmax scaling (fair comparison with GF8)"""
-    MAX_NORM = 448.0  # e4m3fn max
+    MX=448.0
     def f(t):
         if t.dim()<2: return t.to(torch.float8_e4m3fn).to(t.dtype)
-        scale = (t.abs().amax(dim=-1,keepdim=True)/MAX_NORM).clamp(min=1e-12)
-        return (t/scale).to(torch.float8_e4m3fn).to(t.dtype)*scale
+        sc=(t.abs().amax(dim=-1,keepdim=True)/MX).clamp(min=1e-12)
+        return (t/sc).to(torch.float8_e4m3fn).to(t.dtype)*sc
+    return f
+
+def q_gf8_direct():
+    return q_gf(3,4)
+
+def q_gf8_scaled():
+    E,BIAS,Mm=3,3,4
+    MX=(2.0**((1<<E)-1-BIAS))*(2.0-2.0**(-Mm))
+    def f(t):
+        if t.dim()<2: return q_gf(3,4)(t)
+        sc=(t.abs().amax(dim=-1,keepdim=True)/MX).clamp(min=1e-12)
+        ws=t/sc
+        sg=torch.sign(ws);a=torch.abs(ws).clamp(min=2.0**(1-BIAS-Mm))
+        e=torch.floor(torch.log2(a));ef=torch.clamp(e+BIAS,1,(1<<E)-1)
+        ff=a/(2.**e)
+        ms=float(1<<Mm)
+        r=sg*(1+torch.round((ff-1)*ms)/ms)*(2.**(ef-BIAS))
+        return torch.clamp(r,-MX,MX)*sc
     return f
 
 def q_int(bits):
@@ -121,15 +115,10 @@ def q_sq(bits,a=0.5):
     return f
 
 def q_ternary():
-    """BitNet-style ternary {-1, 0, 1} with per-row scale"""
     def f(t):
         if t.dim()<2: return q_int(2)(t)
-        scale = t.abs().mean(dim=-1, keepdim=True)
-        thresh = 0.7 * scale
-        r = torch.zeros_like(t)
-        r[t > thresh] = 1
-        r[t < -thresh] = -1
-        return r * scale
+        sc=t.abs().mean(dim=-1,keepdim=True);th=0.7*sc
+        r=torch.zeros_like(t);r[t>th]=1;r[t<-th]=-1;return r*sc
     return f
 
 def ev(m,qf=None):
@@ -181,9 +170,9 @@ for nm,qf,w,fam in[
     ('GF14+ E5M8',q_gf(5,8),14,'GF'),
     ('GF16+ E6M9',q_gf(6,9),16,'GF'),
     ('GF20 E7M12',q_gf(7,12),20,'GF'),
-    ('FP8 E4M3',q_fp8_e4m3(),8,'FP8'),
+    ('FP8 E4M3',q_fp8_direct(),8,'FP8'),
     ('FP8+S E4M3',q_fp8_scaled(),8,'FP8'),
-    ('GF8 E3M4',q_gf(3,4),8,'GF8'),
+    ('GF8 E3M4',q_gf8_direct(),8,'GF8'),
     ('GF8+S E3M4',q_gf8_scaled(),8,'GF8'),
     ('INT8',q_int(8),8,'INT'),
     ('INT7',q_int(7),7,'INT'),
@@ -198,5 +187,4 @@ for nm,qf,w,fam in[
     print(f'{nm:<16}{fam:<8}{w:>5.1f}{r:>9.4f}{dl:>+9.4f} {st}{star}')
 
 json.dump(R,open('/workspace/full_leaderboard.json','w'),indent=2)
-print(f"\nSaved: /workspace/full_leaderboard.json")
-print("DONE")
+print(f"\nSaved. DONE")
