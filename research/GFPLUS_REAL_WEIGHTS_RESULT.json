@@ -1,0 +1,32 @@
+{
+  "date": "2026-07-18",
+  "hardware": "RTX PRO 4500 Blackwell",
+  "model": "9L d=512 | 29,421,056 params | 3000 steps | FineWeb sp1024",
+  "method": "GF+ adaptive per-row format selection on REAL trained weights",
+  "results": {
+    "4bit": {
+      "phi_e1m2": {"sqnr": 5.88},
+      "e0m3": {"sqnr": 17.56},
+      "e2m1": {"sqnr": 5.88},
+      "int4": {"sqnr": 16.51},
+      "nf4": {"sqnr": 19.27},
+      "GF+A": {"sqnr": 16.58, "pockets": {"int4": 42542, "nf4": 978}, "vs_best": "-2.69 dB vs NF4"}
+    },
+    "6bit": {
+      "phi_e2m3": {"sqnr": 17.66},
+      "e0m5": {"sqnr": 29.62},
+      "e3m2": {"sqnr": 22.78},
+      "int6": {"sqnr": 29.43},
+      "GF+A": {"sqnr": 29.43, "pockets": {"int6": 43520}, "vs_best": "-0.19 dB vs e0m5"}
+    },
+    "8bit": {
+      "phi_e3m4": {"sqnr": 34.81},
+      "e2m5": {"sqnr": 29.71},
+      "e4m3": {"sqnr": 31.67},
+      "int8": {"sqnr": 41.68},
+      "GF+A": {"sqnr": 41.68, "pockets": {"int8": 43520}, "vs_best": "0.00 dB = tied"}
+    }
+  },
+  "key_finding": "GF+A picks INT in 99.8% of rows at all widths. Float pockets never win on real weights with per-row scaling. NF4 wins 2.2% of rows at 4-bit but GF+A header overhead negates the gain.",
+  "honest_limitation": "This confirms MSE-level finding but does NOT measure downstream BPB. QAT may behave differently. Also: φ-rule float pockets never selected = φ-rule is not useful when per-row scaling is already applied."
+}
