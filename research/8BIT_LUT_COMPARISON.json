@@ -1,0 +1,19 @@
+{
+  "method": "yosys 0.63 -nocarry [-nodsp for MUL] -arch xc7, local measurement",
+  "target": "XC7A200T-FBG484-2",
+  "date": "2026-07-18",
+  "results": {
+    "GF8_ADD_E3M4": {"LUT2":29,"LUT3":27,"LUT4":30,"LUT5":42,"LUT6":43,"MUXF7":7,"MUXF8":2,"total":180},
+    "GF8_MUL_E3M4": {"LUT2":34,"LUT3":43,"LUT4":28,"LUT5":32,"LUT6":22,"MUXF7":1,"MUXF8":0,"total":160},
+    "FP8_ADD_E4M3": {"LUT2":39,"LUT3":42,"LUT4":46,"LUT5":28,"LUT6":29,"MUXF7":0,"MUXF8":0,"total":184},
+    "FP8_MUL_E4M3": {"LUT2":25,"LUT3":20,"LUT4":35,"LUT5":43,"LUT6":21,"MUXF7":1,"MUXF8":0,"total":145},
+    "INT8_ADD_CI":  {"total":144,"note":"CI yosys+nextpnr WITH corona UART wrapper"},
+    "INT8_MUL_CI":  {"total":172,"note":"CI yosys+nextpnr WITH corona UART wrapper"}
+  },
+  "comparison": {
+    "GF8_ADD_vs_FP8_ADD": "180 vs 184 = GF8 2% cheaper",
+    "GF8_MUL_vs_FP8_MUL": "160 vs 145 = GF8 10% MORE expensive",
+    "GF8_MAC_vs_FP8_MAC": "340 vs 329 = GF8 3% more expensive overall"
+  },
+  "note": "GF8 and FP8 are compute-core only (no UART). INT8 includes ~100 LUT UART overhead."
+}
