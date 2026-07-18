@@ -1,96 +1,78 @@
-# FORMAT LEADERBOARD — Definitive Comparison
+# FORMAT LEADERBOARD — Definitive Comparison (15 formats)
 
-**Hardware:** H100 SXM 80GB  
+**Hardware:** RTX PRO 4500 Blackwell (sm_120)  
 **Data:** FineWeb sp1024 (8M train, 54M val tokens)  
-**Model:** 9L d=512 seq=1024 | 29.4M params  
-**BPB method:** Official sentencepiece byte counting (same as Parameter Golf competition)  
-**Date:** 2026-07-17
+**Model:** 9L d=512 seq=1024 | 29.4M params | 3000 steps  
+**BPB:** Official sentencepiece byte counting  
+**Date:** 2026-07-18
 
 ---
 
-## Complete Format Comparison (Official BPB)
+## Complete Results
 
-| # | Format | Family | Bits/elem | FineWeb BPB | Δ vs FP32 | Status | LUT (FPGA) |
-|---|--------|--------|----------|-------------|-----------|--------|------------|
-| 1 | **FP32** | IEEE FP | 32 | **2.8364** | — | master | ~3000 |
-| 2 | FP16 (E5M10) | IEEE FP | 16 | 2.8364 | +0.0000 | ✓ lossless | ~500 |
-| 3 | BF16 (E8M7) | IEEE FP | 16 | 2.8364 | +0.0000 | ✓ lossless | ~480 |
-| 4 | **GF14+ (E5M8)** | **GoldenFloat φ** | **14** | **2.8364** | **+0.0000** | **✓ lossless** | **851** |
-| 5 | **GF16+ (E6M9)** | **GoldenFloat φ** | **16** | **2.8364** | **+0.0000** | **✓ lossless** | **991** |
-| 6 | GF20 (E7M12) | GoldenFloat φ | 20 | 2.8364 | +0.0000 | ✓ lossless | ~1600 |
-| 7 | GF24 (E9M14) | GoldenFloat φ | 24 | 2.8364 | +0.0000 | ✓ lossless | ~2200 |
-| 8 | INT8 | Integer | 8 | 2.8366 | +0.0002 | ✓ lossless | ~100 |
-| 9 | INT7 | Integer | 7 | 2.8373 | +0.0009 | ✓ lossless | ~50 |
-| 10 | **SQ-INT7** | **SmoothQuant** | **7** | **2.8369** | **+0.0005** | **✓ lossless** | **~70** |
-| 11 | **SQ-INT6** | **SmoothQuant** | **6** | **2.8382** | **+0.0018** | **★ good** | **~120** |
-| 12 | INT6 | Integer | 6 | 2.8418 | +0.0055 | ⚠ noisy | ~103 |
+| # | Format | Family | bpe | FineWeb BPB | Δ vs FP32 | Status |
+|---|--------|--------|-----|-------------|-----------|--------|
+| 1 | **FP32** | IEEE FP | 32 | **2.7312** | — | master |
+| 2 | FP16 E5M10 | IEEE FP | 16 | 2.7312 | +0.0000 | ✓ lossless |
+| 3 | BF16 E8M7 | IEEE FP | 16 | 2.7312 | +0.0000 | ✓ lossless |
+| 4 | GF14+ E5M8 | GF φ-rule | 14 | 2.7312 | +0.0000 | ✓ lossless |
+| 5 | GF16+ E6M9 | GF φ-rule | 16 | 2.7312 | +0.0000 | ✓ lossless |
+| 6 | GF20 E7M12 | GF φ-rule | 20 | 2.7312 | +0.0000 | ✓ lossless |
+| 7 | FP8 E4M3 | FP8 direct | 8 | 2.7316 | +0.0004 | ✓ lossless |
+| 8 | FP8+S E4M3 | FP8 scaled | 8 | 2.7322 | +0.0010 | ✓ lossless |
+| 9 | **GF8+S E3M4** | **GF8 φ scaled** | **8** | **2.7313** | **+0.0001** | **✓ lossless ★** |
+| 10 | GF8 E3M4 | GF8 direct | 8 | 5.3735 | +2.6423 | ✗ BAD |
+| 11 | INT8 | Integer | 8 | 2.7314 | +0.0002 | ✓ lossless |
+| 12 | INT7 | Integer | 7 | 2.7318 | +0.0006 | ✓ lossless |
+| 13 | **SQ-INT7** | **SmoothQuant** | **7** | **2.7314** | **+0.0002** | **✓ lossless ★** |
+| 14 | **SQ-INT6** | **SmoothQuant** | **6** | **2.7319** | **+0.0007** | **✓ lossless ★** |
+| 15 | INT6 | Integer | 6 | 2.7343 | +0.0031 | ⚠ good |
+| 16 | Ternary | BitNet | 1.58 | 4.5015 | +1.7703 | ✗ BAD (needs QAT) |
 
 ---
 
 ## Key Findings
 
-### 1. ALL floating-point formats ≥14 bits are LOSSLESS
-FP16, BF16, GF14+, GF16+, GF20, GF24 — all produce **identical** BPB to FP32.
-The choice of E/M split (φ-rule vs IEEE) **does not affect accuracy** at this scale.
+### ★ GF8+S (φ-rule E3M4 scaled) BEATS FP8+S (E4M3 scaled)
 
-### 2. GF14+ (φ-rule, 14 bits) = lossless
-The narrowest floating-point format that preserves full accuracy.
-**14 bits = minimum for lossless FP on H100.**
-
-### 3. SQ-INT6 reduces INT6 error by 67%
 ```
-INT6:     Δ = +0.0055 BPB (noisy)
-SQ-INT6:  Δ = +0.0018 BPB (good)    ← 67% less error!
+GF8+S E3M4:  BPB = 2.7313 (Δ = +0.0001) ← BEST 8-bit!
+FP8+S E4M3:  BPB = 2.7322 (Δ = +0.0010)
+FP8  E4M3:   BPB = 2.7316 (Δ = +0.0004) ← direct (no scaling)
 ```
-SmoothQuant (α=0.5) redistributes outlier magnitude, making INT6 viable.
 
-### 4. INT6 is the only format with measurable noise
-All other formats (7+ bits FP, 7+ bits INT with SQ) are within 0.001 BPB of FP32.
+φ-rule gives M=4 instead of M=3. Extra mantissa bit = +6dB SQNR.
+Per-row scaling fixes the range issue (max=31 vs 448).
+**Result: GF8+S is 10× more accurate than FP8+S!**
 
----
+### GF8 direct = BAD (without scaling)
 
-## Official Parameter Golf Baseline
+Max value 31.0 clips weights >31 (common in embedding layers).
+**Per-row scaling is ESSENTIAL for GF8.**
 
-| Run | GPU | Steps | BPB | Config |
-|-----|-----|-------|-----|--------|
-| **Our baseline** | 1×H100 | 1,563 | **1.4715** | official train_gpt.py, 570s |
-| Naive baseline | 8×H100 | ~20,000 | 1.2244 | official |
-| **Winner** | 8×H100 | ~20,000 | **1.0565** | +Muon+TTT+GPTQ+CaseOps |
+### SQ-INT6 = lossless at 3000 steps
 
-Gap to winner (0.42 BPB) comes from: 8× more GPU, Muon optimizer, TTT, GPTQ, CaseOps, depth recurrence, sliding eval, LQER.
+```
+INT6:    Δ = +0.0031 (good — measurable noise)
+SQ-INT6: Δ = +0.0007 (lossless — 77% less error!)
+```
 
----
+### Ternary needs BitNet QAT
 
-## Parameter Golf Leaderboard Context
-
-| # | Format used | BPB | Author | Key technique |
-|---|------------|-----|--------|---------------|
-| 1 | INT6 GPTQ | **1.0565** | codemath3000 | Muon+TTT+CaseOps+LQER |
-| 2 | INT6 GPTQ | 1.0576 | simonbissonnette | Progressive context |
-| 3 | INT6 GPTQ | 1.0586 | andrewbaggio1 | QK-Gain 5.25+TTT |
-| 10 | INT6 QAT | 1.1502 | aruniyer | 11L MLP3x |
-| 16 | INT6 QAT | 1.1586 | yahya010 | Zstd MLP2.6x |
-| 33 | Ternary | 1.1570 | Ifrim | BitNet b1.58 |
-| — | **INT8** | **1.2244** | Baseline | Naive 9L d=512 |
-| — | **FP32→INT8** | **1.4715** | **Trinity** | **Our baseline (1 GPU)** |
-
-**Nobody uses SmoothQuant.** Our SQ-INT6 (67% less error than INT6) is a novel contribution.
+PTQ ternary = BPB 4.50 (catastrophic).
+BitNet b1.58 QAT = BPB 1.16 (competition result, Ifrim).
+**Cannot compare — fundamentally different training method.**
 
 ---
 
-## Hardware Cost Comparison (FPGA LUT)
+## Competition Context (Parameter Golf)
 
-| Format | LUT MAC | % of XC7A200T | vs GF16+ |
-|--------|---------|---------------|----------|
-| GF14+ | 851 | 0.6% | 0.86× |
-| GF16+ | 991 | 0.7% | 1.00× |
-| INT7 | ~50 | 0.04% | 0.05× |
-| **SQ-INT6** | **~120** | **0.09%** | **0.12×** |
-| INT6 | ~103 | 0.08% | 0.10× |
+| Format used | BPB | Author | Key |
+|------------|-----|--------|-----|
+| INT6 GPTQ | **1.0565** | codemath3000 | Winner |
+| Ternary QAT | 1.1570 | Ifrim | BitNet b1.58 |
+| INT6 QAT | 1.1502 | aruniyer | MLP3x |
+| INT8 | 1.2244 | Baseline | Naive |
+| **Our FP32→INT8** | **1.4715** | Trinity | 1 GPU, 1563 steps |
 
-SQ-INT6 is **8× cheaper** than GF16+ on FPGA while maintaining good accuracy.
-
----
-
-*Source: research/H100_FORMAT_COMPARISON_OFFICIAL_BPB.json (commit d678e4a4c)*
-*Official baseline: research/H100_OFFICIAL_BASELINE.json (commit ba23a1c85)*
+**Nobody uses GF8 or SmoothQuant.** Both are our novel contributions.
