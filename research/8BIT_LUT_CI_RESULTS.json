@@ -1,0 +1,21 @@
+{
+  "method": "CI: yosys 0.62 + nextpnr-xilinx (heap placer), xc7a200tfbg484-2",
+  "wrapper": "corona_compute_*_ax7203 (identical UART+FSM for all cells)",
+  "date": "2026-07-18",
+  "ci_run": "29644566024",
+  "results": {
+    "int8_add":  {"lc_nocarry":102, "lc_carry":56,  "luts":137, "ffs":148, "fmax_mhz":261.64, "status":"PASS"},
+    "int8_mul":  {"lc_nocarry":126, "lc_carry":95,  "luts":176, "ffs":148, "fmax_mhz":213.27, "status":"PASS"},
+    "gf8_add":   {"lc_nocarry":222, "lc_carry":193, "luts":294, "ffs":157, "fmax_mhz":75.12,  "status":"PASS"},
+    "gf8_mul":   {"status":"P&R FAIL", "error":"Failed to find a route for arc 100 of net $PACKER_GND_NET (all 12 seeds, heap placer)"},
+    "fp8_e4m3_add": {"lc_nocarry":211, "lc_carry":201, "luts":323, "ffs":157, "fmax_mhz":74.67, "status":"PASS"},
+    "fp8_e4m3_mul": {"lc_nocarry":201, "lc_carry":138, "luts":266, "ffs":157, "fmax_mhz":131.23, "status":"PASS"}
+  },
+  "comparison": {
+    "gf8_add_vs_fp8_add": "294 vs 323 = GF8 9% cheaper",
+    "gf8_add_vs_int8_add": "294 vs 137 = GF8 2.1x more expensive",
+    "fp8_mul_vs_int8_mul": "266 vs 176 = FP8 1.5x more expensive",
+    "gf8_mul": "nextpnr routing failure (GND net), yosys-only estimate ~160 LUT core"
+  },
+  "note": "All cells use identical corona wrapper (~100 LUT UART overhead included). gf8_mul fails deterministically in nextpnr — likely a tool bug in GND net routing for this specific design."
+}
