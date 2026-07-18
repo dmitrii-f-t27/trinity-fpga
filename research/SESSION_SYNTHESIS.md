@@ -31,9 +31,12 @@ Margin on heterogeneous data: substantial (testA/C show larger gaps).
 
 ## 4. φ-Rule Niche: Corrected
 
-φ-split = best single pocket in 6-bit class on real weights.
-φ-split = optimum for unscaled mode (7/7 robustness tests).
-NOT optimum for scaled PTQ (INT dominates when per-row scale applied).
+φ-split = best single pocket in 6-bit class on real weights AND dominant
+pocket inside GF+A (89% of rows). φ-split = optimum for unscaled mode
+(7/7 robustness tests, agent harness). NOT optimum for scaled PTQ at
+≥8 bit — but the winner there is the narrow-exponent FLOAT e2 (e2m5,
+e2m13), NOT INT. «INT dominates» was a v1-bug artifact (retracted,
+see GFPLUS_REAL_WEIGHTS_RESULT.json retraction_note).
 
 This is more precise and defensible than "φ better everywhere."
 
@@ -42,7 +45,8 @@ This is more precise and defensible than "φ better everywhere."
 1. **QAT ablation**: does format ordering persist under STE training? [open]
 2. **Downstream BPB**: classes ≥6 bit within noise ±0.0003 [open]
 3. **LUT cost of mux**: ~10-20 LUT overhead, not measured [CI running]
-4. **NF4 at 4-bit**: GF+A can't beat NF4 on Gaussian (header overhead)
+4. **NF4 at 4-bit**: GF+A rides on NF4 (95% of rows), margin +0.01 dB —
+   the 2-bit/row header is not paid back vs pure NF4 on this model
 
 ## Complete Evidence Chain
 
@@ -50,7 +54,7 @@ This is more precise and defensible than "φ better everywhere."
 |------|----------|--------|--------|
 | PTQ-proxy BPB (15 formats) | GF8+S=2.7313, INT6=2.7343 | GPU, FineWeb | ✅ measured |
 | LUT cost (8-bit) | GF8=340, FP8=329, INT8=316 | yosys, XC7A200T | ✅ measured |
-| GF+A on real weights | INT 99.8%, float never selected | GPU, 29M params | ✅ cross-replicated |
+| GF+A on real weights | ≥ best single in all 4 classes (+0.01…+0.08 dB); pockets: nf4 95% (4b), φ-e2m3 89% (6b), e2m5 87% (8b), int8 only 5.9% | GPU, 29M params, 2 impls | ✅ cross-replicated (v2) |
 | 16-bit scaled insight | e2m13 >> fp16 by 17.6 dB | GPU | ✅ measured |
 | φ-rule unscaled robustness | 7/7 workload tests | CPU | ✅ measured |
 | Official PG baseline | BPB=1.4715 | H100, train_gpt.py | ✅ measured |
@@ -59,9 +63,21 @@ This is more precise and defensible than "φ better everywhere."
 
 ## Key Honest Conclusions
 
-1. **Scaling > format**: per-row absmax scale drives accuracy, not E/M split
-2. **GF8 = FP8 in LUT**: φ-rule costs nothing extra in silicon (340 vs 329)
-3. **φ-rule valuable for unscaled robustness**: 7/7 tests, but not for scaled PTQ
-4. **INT dominates scaled mode**: when range is normalized, uniform grid is optimal
-5. **GF+A = insurance**: guarantee "no worse than best", costs 2 bits/row header
-6. **NF4 unbeatable at 4-bit on Gaussian**: only pocket that beats GF+A
+1. **Scale is necessary, but split still matters**: per-row scale is the
+   prerequisite (unscaled GF8 = BAD), yet WITHIN the scaled 8-bit class the
+   split spans 43.1 (e2m5) → 31.6 (e4m3) → 25.6 dB (e5m2) — an 11.5 dB
+   range. «Scaling, not format, drives quality» is TOO STRONG; honest form:
+   scale first, then narrow-exponent split second.
+2. **GF8 ≈ FP8 in LUT (yosys estimate)**: 340 vs 329 core-only sums from the
+   local-agent table; apples-to-apples CI (identical wrapper, ADD/MUL
+   separately) pending — gf8_mul cell not routed yet.
+3. **φ-rule valuable for unscaled robustness** (7/7 agent tests) and best
+   single 6-bit pocket in scaled mode; loses to e2 at ≥8 bit scaled.
+4. **Narrow-exponent floats win scaled mode ≥6 bit** (e2m3/e2m5/e2m13);
+   INT is a minority pocket (5.9% at 8-bit). Note grid identities:
+   e1m2/b0≡int4, e1m4/b0≡int6, e1m6/b0≡int8 — equal numbers in tables
+   for these triples are format identities, not bugs.
+5. **GF+A = insurance**: guarantee "no worse than best pocket", costs
+   2 bits/row header; margin on uniform weights does not repay the header.
+6. **NF4 strongest 4-bit pocket on Gaussian-like weights**: GF+A ≥ it by
+   construction (+0.01 dB) and selects it for 95% of rows.
