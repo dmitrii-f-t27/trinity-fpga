@@ -75,7 +75,7 @@ jobs:
               --xdc /work/fpga/openxc7-synth/corona_decode_ax7203.xdc \
               --json /work/build/fmtcost/${TOP}.json \
               --write /work/build/fmtcost/${TOP}_routed.json \
-              --freq 50.0 --seed $s --placer sa --router router1 --timing-allow-fail > /tmp/np_$s.log 2>&1 || true
+              --freq 50.0 --seed $s --placer heap --router router1 --timing-allow-fail > /tmp/np_$s.log 2>&1 || true
             if grep -q "Failed to find a route" /tmp/np_$s.log || [ ! -f build/fmtcost/${TOP}_routed.json ]; then continue; fi
             cp /tmp/np_$s.log /tmp/np.log; CLEAN=$s; break
           done
