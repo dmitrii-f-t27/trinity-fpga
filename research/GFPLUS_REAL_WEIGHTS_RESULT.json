@@ -1,32 +1,49 @@
 {
   "date": "2026-07-18",
+  "version": "v2 (supersedes retracted v1, see retraction_note)",
   "hardware": "RTX PRO 4500 Blackwell",
   "model": "9L d=512 | 29,421,056 params | 3000 steps | FineWeb sp1024",
-  "method": "GF+ adaptive per-row format selection on REAL trained weights",
+  "method": "GF+ adaptive per-row format selection on REAL trained weights (webterm_gfplus v2 6fb1863, linear layers, 43520 rows)",
   "results": {
     "4bit": {
-      "phi_e1m2": {"sqnr": 5.88},
-      "e0m3": {"sqnr": 17.56},
-      "e2m1": {"sqnr": 5.88},
-      "int4": {"sqnr": 16.51},
-      "nf4": {"sqnr": 19.27},
-      "GF+A": {"sqnr": 16.58, "pockets": {"int4": 42542, "nf4": 978}, "vs_best": "-2.69 dB vs NF4"}
+      "phi_e1m2": {"sqnr": 16.53},
+      "e0m3": {"sqnr": 16.53},
+      "e1m2": {"sqnr": 16.53},
+      "e2m1": {"sqnr": 18.58},
+      "int4": {"sqnr": 16.53},
+      "nf4": {"sqnr": 19.35},
+      "GF+A": {"sqnr": 19.37, "pockets": {"nf4": 41320, "e2m1": 2179, "phi_e1m2": 17, "int4": 4}, "vs_best": "+0.01 dB vs nf4"}
     },
     "6bit": {
-      "phi_e2m3": {"sqnr": 17.66},
-      "e0m5": {"sqnr": 29.62},
-      "e3m2": {"sqnr": 22.78},
-      "int6": {"sqnr": 29.43},
-      "GF+A": {"sqnr": 29.43, "pockets": {"int6": 43520}, "vs_best": "-0.19 dB vs e0m5"}
+      "phi_e2m3": {"sqnr": 30.99},
+      "e0m5": {"sqnr": 29.45},
+      "e1m4": {"sqnr": 29.45},
+      "e3m2": {"sqnr": 25.61},
+      "e4m1": {"sqnr": 19.75},
+      "int6": {"sqnr": 29.45},
+      "GF+A": {"sqnr": 31.05, "pockets": {"phi_e2m3": 38925, "e0m5": 2887, "int6": 1690, "e3m2": 18}, "vs_best": "+0.07 dB vs phi_e2m3"}
     },
     "8bit": {
-      "phi_e3m4": {"sqnr": 34.81},
-      "e2m5": {"sqnr": 29.71},
-      "e4m3": {"sqnr": 31.67},
-      "int8": {"sqnr": 41.68},
-      "GF+A": {"sqnr": 41.68, "pockets": {"int8": 43520}, "vs_best": "0.00 dB = tied"}
+      "phi_e3m4": {"sqnr": 37.65},
+      "e1m6": {"sqnr": 41.70},
+      "e2m5": {"sqnr": 43.13},
+      "e4m3": {"sqnr": 31.62},
+      "e5m2": {"sqnr": 25.61},
+      "int8": {"sqnr": 41.70},
+      "GF+A": {"sqnr": 43.21, "pockets": {"e2m5": 37865, "e1m6": 3082, "int8": 2564, "phi_e3m4": 9}, "vs_best": "+0.08 dB vs e2m5"}
+    },
+    "16bit_pod_benchmark_all_39_matrices": {
+      "e2m13": {"sqnr": 91.36},
+      "int16": {"sqnr": 90.08},
+      "e3m12": {"sqnr": 85.85},
+      "fp16_e5m10": {"sqnr": 73.80},
+      "phi_e6m9": {"sqnr": 67.78},
+      "bf16_e8m7": {"sqnr": 55.74},
+      "GF+A": {"sqnr": 91.44, "vs_best": "+0.08 dB vs e2m13"}
     }
   },
-  "key_finding": "GF+A picks INT in 99.8% of rows at all widths. Float pockets never win on real weights with per-row scaling. NF4 wins 2.2% of rows at 4-bit but GF+A header overhead negates the gain.",
-  "honest_limitation": "This confirms MSE-level finding but does NOT measure downstream BPB. QAT may behave differently. Also: φ-rule float pockets never selected = φ-rule is not useful when per-row scaling is already applied."
+  "cross_replication": "gfplus_pod_benchmark.py (independent implementation, all 39 2D matrices incl. embeddings, same checkpoint): 4bit 19.46, 6bit 31.09, 8bit 43.24, 16bit 91.44 — ordering identical, divergence <= 0.09 dB. See research/GFPLUS_CROSS_REPLICATION.md",
+  "key_finding": "Invariant holds in all classes: GF+A >= best single pocket (+0.01..+0.08 dB). Pocket selection with CORRECT full-scale: 4-bit nf4 95%, 6-bit phi-e2m3 89% (phi split = best single pocket of the class), 8-bit e2m5 87%; INT is a minority pocket (int8 5.9% of rows). Narrow-exponent floats (e2) win all classes >= 8 bit in per-row-scale mode; wide exponents (e4m3/fp16/bf16) idle.",
+  "honest_limitation": "MSE/SQNR-level only, NOT downstream BPB; QAT unverified; margins on homogeneous weights are small (+0.01..+0.08 dB) and do NOT pay for the 2-bit/row header vs the best fixed pocket on THIS model — adaptive value = insurance on heterogeneous/heavy-tailed data (testA/C). phi-split is best single at 6-bit but loses to e2m5 at 8-bit and e2m13 at 16-bit in scaled mode.",
+  "retraction_note": "v1 of this file (commit 22bf31e) recorded numbers from a buggy run (webterm_gfplus v1): L-inf pocket selection vs MSE report, floats normalized to 1.0 instead of format MAXN (crushed into denormals), mixed aggregations. Its conclusions 'GF+A picks INT in 99.8% of rows', 'float pockets never selected', 'phi-rule not useful with per-row scaling' are ARTIFACTS of those bugs and are RETRACTED; the corrected v2 shows nearly the opposite (float pockets dominate selection at 6/8/16 bit). Do not cite v1 numbers."
 }
