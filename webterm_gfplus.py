@@ -48,6 +48,12 @@ def minifloat_qd(x, e, m, bias):
     q = torch.round(a / step) * step; q = torch.clamp(q, max=MAXN)
     return sgn * q
 
+def fmt_maxn(e, m, bias):
+    """Max representable magnitude of the minifloat format."""
+    if e == 0:
+        return (2**m - 1) * 2.0 ** (-m)
+    return 2.0 ** ((1 << e) - 1 - bias) * (2 - 2.0 ** -m)
+
 def int_qd(x, bits):
     L = 2 ** (bits - 1) - 1
     return torch.round(torch.clamp(x, -1.0, 1.0) * L) / L
@@ -60,49 +66,64 @@ def nf4_qd(x):
     idx = torch.argmin((x.unsqueeze(-1) - lv).abs(), dim=-1)
     return lv[idx]
 
-def scaled_qd(w, qd_fn):
-    """Per-row absmax scale → quant → dequant."""
-    if w.dim() < 2: return qd_fn(w)
-    mx = w.abs().amax(dim=-1, keepdim=True).clamp(min=1e-12)
-    return qd_fn(w / mx) * mx
+def scaled_qd(w, kind, **kw):
+    """Per-row absmax -> FULL-SCALE of the format -> quant -> dequant.
+    v2 fix: floats are scaled so row absmax lands on the format's MAXN
+    (not on 1.0) — otherwise the exponent range idles and every float
+    pocket is unfairly crushed into the denormal region."""
+    x = w.double()
+    flat = x.dim() < 2
+    if flat: x = x.view(1, -1)
+    amax = x.abs().amax(dim=-1, keepdim=True).clamp(min=1e-12)
+    if kind == "mf":
+        e, m, b = kw["e"], kw["m"], kw["bias"]
+        scale = amax / fmt_maxn(e, m, b)
+        q = minifloat_qd(x / scale, e, m, b) * scale
+    elif kind == "int":
+        q = int_qd(x / amax, kw["bits"]) * amax
+    elif kind == "nf4":
+        q = nf4_qd(x / amax) * amax
+    else:
+        raise ValueError(kind)
+    if flat: q = q.view(-1)
+    return q.view(w.shape)
 
 def get_pockets(N):
-    """Return list of (name, qd_fn) for width N."""
+    """Return list of (name, kind, kwargs) for width N."""
     e_phi, m_phi, b_phi = phi_split(N)
-    pockets = []
-    pockets.append((f"phi_e{e_phi}m{m_phi}", lambda x, e=e_phi, m=m_phi, b=b_phi: minifloat_qd(x, e, m, b)))
+    pockets = [(f"phi_e{e_phi}m{m_phi}", "mf", dict(e=e_phi, m=m_phi, bias=b_phi))]
     for e_test in range(max(0, e_phi-2), e_phi+3):
         m_test = N - 1 - e_test
         if m_test < 1 or e_test < 0: continue
         b_test = 2**(e_test-1)-1 if e_test > 0 else 0
         name = f"e{e_test}m{m_test}"
         if name not in [p[0] for p in pockets]:
-            pockets.append((name, lambda x, e=e_test, m=m_test, b=b_test: minifloat_qd(x, e, m, b)))
-    pockets.append((f"int{N}", lambda x, b=N: int_qd(x, b)))
+            pockets.append((name, "mf", dict(e=e_test, m=m_test, bias=b_test)))
+    pockets.append((f"int{N}", "int", dict(bits=N)))
     if N == 4:
-        pockets.append(("nf4", nf4_qd))
+        pockets.append(("nf4", "nf4", {}))
     return pockets
 
 def adaptive_qd(w, pockets):
-    """Per-row: pick pocket with lowest MSE."""
-    if w.dim() < 2:
-        best = min(pockets, key=lambda p: ((p[1](w) - w)**2).sum().item())
-        return best[1](w), best[0]
-    mx = w.abs().amax(dim=-1, keepdim=True).clamp(min=1e-12)
-    wn = w / mx
-    best_mse = None; best_q = None; best_names = []
-    for name, fn in pockets:
-        q = fn(wn) * mx
-        mse = ((q - w)**2).amax(dim=-1)  # per-row max MSE
+    """Per-row: pick pocket with lowest per-row MEAN squared error.
+    v2 fix: selection metric == report metric (MSE). Selecting on amax
+    (L-inf) while reporting MSE broke the 'adaptive >= best pocket'
+    invariant. Each pocket applies its own full-scale factor."""
+    x = w if w.dim() >= 2 else w.view(1, -1)
+    best_mse = None; best_q = None; best_idx = None
+    for k, (name, kind, kw) in enumerate(pockets):
+        q = scaled_qd(x, kind, **kw)
+        mse = ((q - x.double()) ** 2).mean(dim=-1)
         if best_mse is None:
-            best_mse = mse; best_q = q; best_names = [name]*w.size(0)
+            best_mse = mse; best_q = q
+            best_idx = torch.zeros(x.size(0), dtype=torch.long)
         else:
-            improve = mse < best_mse
-            best_mse = torch.where(improve, mse, best_mse)
-            best_q = torch.where(improve.unsqueeze(-1), q, best_q)
-            for i in range(w.size(0)):
-                if improve[i]: best_names[i] = name
-    return best_q, best_names
+            imp = mse < best_mse
+            best_mse = torch.where(imp, mse, best_mse)
+            best_q = torch.where(imp.unsqueeze(-1), q, best_q)
+            best_idx = torch.where(imp, torch.full_like(best_idx, k), best_idx)
+    names = [pockets[i][0] for i in best_idx.tolist()]
+    return best_q.view(w.shape), names
 
 # ═══ Train model ═══
 device = 'cuda'
@@ -142,6 +163,12 @@ for s in range(STEPS+1):
     torch.nn.utils.clip_grad_norm_(model.parameters(),1.0);op.step()
     if s%1000==0: print(f"  {s}/{STEPS}: loss={loss.item():.4f}",flush=True)
 
+try:
+    torch.save(model.state_dict(), '/workspace/model_checkpoint.pt')
+    print("checkpoint saved -> /workspace/model_checkpoint.pt")
+except Exception as ex:
+    print(f"checkpoint save skipped: {ex}")
+
 # ═══ GF+ benchmark on REAL model weights ═══
 print(f"\n{'='*65}")
 print(f"GF+ ADAPTIVE FORMAT BENCHMARK ON REAL WEIGHTS")
@@ -156,27 +183,26 @@ for width in [4, 6, 8]:
     print(f"{'Format':<16}{'SQNR(dB)':>10}{'MSE':>12}")
     print("-"*40)
     
+    # v2 fix: ONE aggregation for everybody — global sums (as GF+A below),
+    # not avg-of-per-tensor SQNRs for pockets vs global for adaptive.
     all_sqnr = {}
-    for name, fn in pockets:
-        sqnrs = []
+    for name, kind, kw in pockets:
+        tm = 0.0; ts = 0.0
         for wname, w in weights.items():
-            q = scaled_qd(w, fn)
-            mse = ((q - w)**2).mean().item()
-            sig = (w**2).mean().item()
-            sqnr = 10 * math.log10(sig / max(mse, 1e-30))
-            sqnrs.append(sqnr)
-        avg_sqnr = sum(sqnrs) / len(sqnrs)
-        avg_mse = sum([((scaled_qd(w, fn) - w)**2).mean().item() for w in weights.values()]) / len(weights)
-        all_sqnr[name] = avg_sqnr
-        print(f"{name:<16}{avg_sqnr:>10.2f}{avg_mse:>12.6f}")
+            q = scaled_qd(w, kind, **kw)
+            tm += ((q - w.double())**2).sum().item()
+            ts += (w.double()**2).sum().item()
+        sqnr = 10 * math.log10(ts / max(tm, 1e-30))
+        all_sqnr[name] = sqnr
+        print(f"{name:<16}{sqnr:>10.2f}{tm/max(ts,1e-30):>12.2e}")
     
     # GF+A adaptive
     total_mse_a = 0; total_sig = 0
     pocket_counts = {p[0]: 0 for p in pockets}
     for wname, w in weights.items():
         q, names = adaptive_qd(w, pockets)
-        total_mse_a += ((q - w)**2).sum().item()
-        total_sig += (w**2).sum().item()
+        total_mse_a += ((q - w.double())**2).sum().item()
+        total_sig += (w.double()**2).sum().item()
         for n in names: pocket_counts[n] = pocket_counts.get(n, 0) + 1
     
     sqnr_a = 10 * math.log10(total_sig / max(total_mse_a, 1e-30))
