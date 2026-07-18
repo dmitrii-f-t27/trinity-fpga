@@ -30,8 +30,9 @@ export SLIDING_EVAL=1
 export SLIDING_EVAL_STRIDE=16
 export TEMP_SCALING=1
 
-echo "=== Плечо: $ARM (FP_STORAGE=$FP_STORAGE), seed=$SEED ==="
-torchrun --standalone --nproc_per_node=8 train_gpt_cuda_gf8.py 2>&1 | tee "log_${RUN_ID}.txt"
+NPROC=$(nvidia-smi -L 2>/dev/null | grep -c '^GPU ' || echo 1)
+echo "=== Плечо: $ARM (FP_STORAGE=$FP_STORAGE), seed=$SEED, GPU=$NPROC ==="
+torchrun --standalone --nproc_per_node="$NPROC" train_gpt_cuda_gf8.py 2>&1 | tee "log_${RUN_ID}.txt"
 
 # Итог: grep финального val_bpb
 grep -E "val.*bpb|bpb.*val" "log_${RUN_ID}.txt" | tail -5

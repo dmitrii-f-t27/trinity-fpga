@@ -18,10 +18,55 @@ def replace_once(old, new, tag):
     text = text.replace(old, new)
     print(f"OK   [{tag}]")
 
-# 1) импорт модуля
+# 1) импорт: каскад FA3 -> FA2 -> SDPA (Blackwell sm_120 не поддержан FA3-Hopper) + gf8
+ATTN_FALLBACK = '''
+def _pick_attn():
+    """FA3 -> FA2 -> torch SDPA; runtime-смоктест ловит несовместимость архитектуры GPU."""
+    import os as _os
+    import torch as _t
+    if _t.cuda.is_available():
+        _t.cuda.set_device(int(_os.environ.get("LOCAL_RANK", "0")))
+    def _smoke(fn):
+        if not _t.cuda.is_available():
+            return True
+        q = _t.zeros(1, 4, 8, 16, dtype=_t.bfloat16, device="cuda")
+        fn(q, q, q, causal=True)
+        return True
+    try:
+        from flash_attn_interface import flash_attn_func as _fa3
+        def _f3(q, k, v, causal=True):
+            o = _fa3(q, k, v, causal=causal)
+            return o[0] if isinstance(o, tuple) else o
+        _smoke(_f3)
+        return _f3, "fa3"
+    except Exception:
+        pass
+    try:
+        from flash_attn import flash_attn_func as _fa2
+        _smoke(_fa2)
+        return _fa2, "fa2"
+    except Exception:
+        pass
+    import torch.nn.functional as _F
+    def _sdpa(q, k, v, causal=True):
+        qT, kT, vT = q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2)
+        try:
+            o = _F.scaled_dot_product_attention(qT, kT, vT, is_causal=causal, enable_gqa=True)
+        except TypeError:  # старый torch без enable_gqa
+            r = qT.size(1) // kT.size(1)
+            o = _F.scaled_dot_product_attention(qT, kT.repeat_interleave(r, 1),
+                                                vT.repeat_interleave(r, 1), is_causal=causal)
+        return o.transpose(1, 2)
+    _smoke(_sdpa)
+    return _sdpa, "sdpa"
+
+flash_attn_func, _ATTN_BACKEND = _pick_attn()
+print(f"[attn] backend = {_ATTN_BACKEND}", flush=True)
+'''
+
 replace_once(
     "from flash_attn_interface import flash_attn_func",
-    "from flash_attn_interface import flash_attn_func\n"
+    ATTN_FALLBACK.strip() + "\n"
     "from gf8_quant import gf8_encode, gf8_decode, gf8_qat_ste, gf8_quant_dequant, MAX_NORMAL as GF8_MAX",
     "import")
 
