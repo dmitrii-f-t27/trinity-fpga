@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Micro-QAT: sequential arms, save after each, resumable"""
+"""Micro-QAT v3: train-шард для тренировки, val-шард для eval (дизъюнктность по построению),
+3 сида, медиана, автокарантин аномальных сидов. Resumable (save после каждой ячейки).
+
+Paste in Web Terminal:
+  curl -s https://raw.githubusercontent.com/gHashTag/trinity-fpga/main/webterm_qat.py | python3
+"""
 import os, sys, json, math
 import numpy as np
 
@@ -21,14 +26,32 @@ os.chdir("/workspace")
 if not os.path.exists("parameter-golf"):
     os.system("git clone --depth 1 https://github.com/openai/parameter-golf.git")
 os.chdir("/workspace/parameter-golf")
-if not os.path.exists("data/datasets/fineweb10B_sp1024/fineweb_val_000000.bin"):
-    os.system("python3 data/cached_challenge_fineweb.py --variant sp1024 --train-shards 1 2>&1 | tail -2")
 
 device='cuda'; VOCAB=1024; D=512; NL=9; SEQ=1024; BATCH=48; STEPS=2000
 
-val=np.memmap('data/datasets/fineweb10B_sp1024/fineweb_val_000000.bin',dtype=np.uint16,mode='r')
-train_t=torch.tensor(val[:8000000].astype(np.int64))
-val_t=torch.tensor(val[8000000:].astype(np.int64))
+# ═══ ДАННЫЕ: train-шард для тренировки, val-шард для eval ═══
+# v2-БАГ: train и val резались из ОДНОГО val-шарда → seed=123 дал BPB 0.0184
+# (в ~50x "лучше" SOTA челленджа ~1.06) = красный флаг дефекта сплита/данных.
+DD='data/datasets/fineweb10B_sp1024'
+TR=f'{DD}/fineweb_train_000000.bin'; VA=f'{DD}/fineweb_val_000000.bin'
+if not (os.path.exists(TR) and os.path.exists(VA)):
+    os.system("python3 data/cached_challenge_fineweb.py --variant sp1024 --train-shards 1 2>&1 | tail -2")
+assert os.path.exists(TR), f"нет train-шарда {TR}"
+assert os.path.exists(VA), f"нет val-шарда {VA}"
+tr=np.memmap(TR,dtype=np.uint16,mode='r'); va=np.memmap(VA,dtype=np.uint16,mode='r')
+train_t=torch.tensor(np.array(tr[:8_000_000]).astype(np.int64))
+val_t  =torch.tensor(np.array(va[:2_000_000]).astype(np.int64))
+
+# ─── Диагностика данных (защита от утечки/деградации) ───
+for nm,a in (("train(shard0)",train_t),("val(shard0)",val_t)):
+    z=float((a==0).float().mean())
+    print(f"DATA {nm}: len={len(a):,} zero_frac={z:.4f} uniq_frac={len(torch.unique(a))/VOCAB:.3f}")
+    assert z<0.05, f"{nm}: {z:.1%} нулевых токенов — подозрение на padding/битый шард"
+h_tr={hash(train_t[i:i+256].numpy().tobytes()) for i in range(0,len(train_t)-256,4096)}
+h_va={hash(val_t[i:i+256].numpy().tobytes()) for i in range(0,len(val_t)-256,4096)}
+ov=len(h_tr & h_va)
+print(f"DATA overlap smoke-check (256-ток окна, шаг 4096): {ov} совпадений (ожидание 0)")
+assert ov==0, "train/val пересекаются — СТОП"
 
 sp=spm.SentencePieceProcessor(model_file='data/tokenizers/fineweb_1024_bpe.model')
 bb=torch.zeros(VOCAB,dtype=torch.int16);hs=torch.zeros(VOCAB,dtype=torch.bool);ib=torch.zeros(VOCAB,dtype=torch.bool)
@@ -58,7 +81,7 @@ def ste_fp8s():
     return f
 
 def ste_gf8s():
-    E,BIAS,Mm=3,3,4;MX=31.0;B=3;EM=7;MV=2.0**(1-3-4);ms=16.0
+    MX=31.0;B=3;EM=7;MV=2.0**(1-3-4);ms=16.0
     def f(w):
         if w.dim()<2:return w
         sc=(w.detach().abs().amax(dim=-1,keepdim=True)/MX).clamp(min=1e-12)
@@ -95,11 +118,12 @@ def eval_bpb(m):
             pv=x.reshape(-1);tb=bl[yt].sum().item();tb+=(hp[yt]&~ip[pv]).int().sum().item();by+=max(tb,1)
     m.train();return ls/tk/math.log(2)*tk/by
 
-def run_arm(arm_name, qat_fn, seed):
-    """Run ONE arm+seed, return BPB."""
+def run_cell(arm_name, qat_fn, seed):
+    """Одна ячейка (плечо, сид) → (bpb, final_train_loss)."""
     torch.manual_seed(seed)
     model=Model().to(device)
     opt=torch.optim.AdamW(model.parameters(),lr=0.003,weight_decay=0.1,betas=(0.95,0.95))
+    fl=float('nan')
     for step in range(STEPS+1):
         idx=torch.randint(0,len(train_t)-SEQ-1,(BATCH,))
         x=torch.stack([train_t[i:i+SEQ]for i in idx]).to(device)
@@ -115,36 +139,49 @@ def run_arm(arm_name, qat_fn, seed):
             for n,p in model.named_parameters():
                 if n in saved:p.data=saved[n]
         opt.step()
+        fl=loss.item()
         if step%500==0:
-            print(f"    step={step}/{STEPS} loss={loss.item():.3f}",flush=True)
-    bpb=eval_bpb(model)
-    return bpb
+            print(f"    step={step}/{STEPS} loss={fl:.3f}",flush=True)
+    return eval_bpb(model), fl
 
-# ═══ SEQUENTIAL: one arm at a time, save after each ═══
+def sane(bpb, fl):
+    """Санити-гейт: для 29M/2000 шагов валидный BPB ~2.6-3.2; SOTA челленджа ~1.06.
+    BPB<1.5 или train loss<2.0 = физически неправдоподобно → [ANOMALY], карантин."""
+    return (1.5 < bpb < 6.0) and (fl > 2.0)
+
+# ═══ 4 плеча x 3 сида, resumable ═══
 ARMS=[("FP32",None),("FP8S",ste_fp8s()),("GF8S",ste_gf8s()),("E2M5S",ste_e2m5s())]
-SEED=42  # start with 1 seed, add more if results ambiguous
+SEEDS=[42,123,777]
+RES='/workspace/qat_v3_results.json'
+results=json.load(open(RES)) if os.path.exists(RES) else {}
 
-results={}
 for arm_name,qat_fn in ARMS:
-    print(f"\n{'='*50}")
-    print(f"ARM: {arm_name} (seed={SEED})")
-    print(f"{'='*50}")
-    bpb=run_arm(arm_name,qat_fn,SEED)
-    results[arm_name]=bpb
-    print(f"  → BPB={bpb:.4f}")
-    # Save after each arm (resumable)
-    json.dump(results,open('/workspace/qat_partial.json','w'),indent=2)
-    print(f"  Saved to qat_partial.json")
-    # Free GPU memory
-    torch.cuda.empty_cache()
+    for seed in SEEDS:
+        key=f"{arm_name}/s{seed}"
+        if key in results:
+            print(f"[skip] {key} = {results[key]['bpb']:.4f} (уже посчитано)");continue
+        print(f"\n=== {key} ===",flush=True)
+        bpb,fl=run_cell(arm_name,qat_fn,seed)
+        ok=sane(bpb,fl)
+        results[key]={"bpb":bpb,"final_train_loss":fl,"valid":ok}
+        tag="" if ok else "  <<< [ANOMALY — карантин, в медиану не идёт]"
+        print(f"  → BPB={bpb:.4f} train_loss={fl:.3f}{tag}")
+        json.dump(results,open(RES,'w'),indent=2)
+        torch.cuda.empty_cache()
 
-# Summary
-print(f"\n{'='*50}")
-print(f"QAT ABLATION RESULTS (seed={SEED}, {STEPS} steps)")
-print(f"{'='*50}")
-fp32=results.get("FP32",0)
-print(f"\n{'Arm':<10}{'BPB':>8}{'Δ':>8}")
-print("-"*30)
-for arm,bpb in results.items():
-    print(f"{arm:<10}{bpb:>8.4f}{bpb-fp32:>+8.4f}")
+# ═══ Итог: медиана валидных сидов, аномалии перечислены явно ═══
+import statistics
+print(f"\n{'='*60}\nQAT v3 RESULTS ({STEPS} steps, seeds={SEEDS}, train-shard/val-shard)\n{'='*60}")
+med={}
+for arm_name,_ in ARMS:
+    vals=[results[f'{arm_name}/s{s}']['bpb'] for s in SEEDS if f'{arm_name}/s{s}' in results and results[f'{arm_name}/s{s}']['valid']]
+    bad=[s for s in SEEDS if f'{arm_name}/s{s}' in results and not results[f'{arm_name}/s{s}']['valid']]
+    med[arm_name]=statistics.median(vals) if vals else float('nan')
+    print(f"{arm_name:<8} median={med[arm_name]:.4f} n_valid={len(vals)}/{len(SEEDS)}"
+          +(f" ANOMALY seeds={bad}" if bad else ""))
+fp32=med.get("FP32",float('nan'))
+print(f"\n{'Arm':<8}{'medBPB':>9}{'Δ vs FP32':>11}   (порог значимости 0.005)")
+print("-"*40)
+for arm_name,_ in ARMS:
+    print(f"{arm_name:<8}{med[arm_name]:>9.4f}{med[arm_name]-fp32:>+11.4f}")
 print("\nDONE")

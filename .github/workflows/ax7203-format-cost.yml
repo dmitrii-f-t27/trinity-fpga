@@ -68,16 +68,23 @@ jobs:
       - name: nextpnr (seed search)
         run: |
           TOP=corona_compute_${{ matrix.cell }}_ax7203
-          CLEAN=0; for s in 1 2 3 4 5 6 7 8 9 10 11 12; do
-            rm -f build/fmtcost/${TOP}_routed.json
-            docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
-              --chipdb /work/build/fmtcost/chipdb/xc7a200tfbg484-2.bin \
-              --xdc /work/fpga/openxc7-synth/corona_decode_ax7203.xdc \
-              --json /work/build/fmtcost/${TOP}.json \
-              --write /work/build/fmtcost/${TOP}_routed.json \
-              --freq 50.0 --seed $s --placer heap --router router1 --timing-allow-fail > /tmp/np_$s.log 2>&1 || true
-            if grep -q "Failed to find a route" /tmp/np_$s.log || [ ! -f build/fmtcost/${TOP}_routed.json ]; then continue; fi
-            cp /tmp/np_$s.log /tmp/np.log; CLEAN=$s; break
+          # Каскад P&R-конфигураций: gf8_mul падает на $PACKER_GND_NET с heap+router1
+          # (баг псевдо-сетей констант nextpnr-xilinx, НЕ перегрузка: ядро ~237 LUT ≈ 0.2% 200T),
+          # а sa+router1 падает post-placement validity (слитая D+CE LUT-FF пара).
+          CLEAN=0
+          for CFG in "heap router1" "heap router2" "sa router2"; do
+            set -- $CFG; P=$1; R=$2
+            for s in 1 2 3 4 5 6; do
+              rm -f build/fmtcost/${TOP}_routed.json
+              docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
+                --chipdb /work/build/fmtcost/chipdb/xc7a200tfbg484-2.bin \
+                --xdc /work/fpga/openxc7-synth/corona_decode_ax7203.xdc \
+                --json /work/build/fmtcost/${TOP}.json \
+                --write /work/build/fmtcost/${TOP}_routed.json \
+                --freq 50.0 --seed $s --placer $P --router $R --timing-allow-fail > /tmp/np_${P}_${R}_$s.log 2>&1 || true
+              if grep -q "Failed to find a route" /tmp/np_${P}_${R}_$s.log || [ ! -f build/fmtcost/${TOP}_routed.json ]; then continue; fi
+              cp /tmp/np_${P}_${R}_$s.log /tmp/np.log; CLEAN="$P/$R/seed$s"; break 2
+            done
           done
           if [ "$CLEAN" = "0" ]; then
             echo "::error::no clean seed"
