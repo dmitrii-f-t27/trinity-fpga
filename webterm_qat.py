@@ -38,14 +38,23 @@ if not (os.path.exists(TR) and os.path.exists(VA)):
     os.system("python3 data/cached_challenge_fineweb.py --variant sp1024 --train-shards 1 2>&1 | tail -2")
 assert os.path.exists(TR), f"нет train-шарда {TR}"
 assert os.path.exists(VA), f"нет val-шарда {VA}"
-tr=np.memmap(TR,dtype=np.uint16,mode='r'); va=np.memmap(VA,dtype=np.uint16,mode='r')
-train_t=torch.tensor(np.array(tr[:8_000_000]).astype(np.int64))
-val_t  =torch.tensor(np.array(va[:2_000_000]).astype(np.int64))
+def load_tokens(path,n):
+    """Чтение шарда с автопропуском nanogpt-заголовка (256 int32, magic 20240520).
+    v3-БАГ: чтение файла с нуля без проверки заголовка → токены ≥VOCAB →
+    device-assert 'gather index out of bounds' на eval (v2 случайно перепрыгивал срезом [8M:])."""
+    a=np.memmap(path,dtype=np.uint16,mode='r')
+    if len(a)>512 and int(np.frombuffer(np.array(a[:2]).tobytes(),dtype=np.int32)[0])==20240520:
+        print(f"DATA {os.path.basename(path)}: nanogpt-заголовок обнаружен — пропускаю 512 uint16")
+        a=a[512:]
+    return torch.tensor(np.array(a[:n]).astype(np.int64))
+train_t=load_tokens(TR,8_000_000)
+val_t  =load_tokens(VA,2_000_000)
 
-# ─── Диагностика данных (защита от утечки/деградации) ───
+# ─── Диагностика данных (защита от утечки/деградации/OOB) ───
 for nm,a in (("train(shard0)",train_t),("val(shard0)",val_t)):
-    z=float((a==0).float().mean())
-    print(f"DATA {nm}: len={len(a):,} zero_frac={z:.4f} uniq_frac={len(torch.unique(a))/VOCAB:.3f}")
+    z=float((a==0).float().mean()); mx=int(a.max()); mn=int(a.min())
+    print(f"DATA {nm}: len={len(a):,} zero_frac={z:.4f} uniq_frac={len(torch.unique(a))/VOCAB:.3f} min={mn} max={mx}")
+    assert 0<=mn and mx<VOCAB, f"{nm}: токен {mx} ≥ VOCAB={VOCAB} — битый шард/неучтённый заголовок — СТОП"
     assert z<0.05, f"{nm}: {z:.1%} нулевых токенов — подозрение на padding/битый шард"
 h_tr={hash(train_t[i:i+256].numpy().tobytes()) for i in range(0,len(train_t)-256,4096)}
 h_va={hash(val_t[i:i+256].numpy().tobytes()) for i in range(0,len(val_t)-256,4096)}
@@ -108,14 +117,15 @@ def ste_e2m5s():
 
 def eval_bpb(m):
     m.eval();ls=0.;tk=0;by=0
-    bl=bb.to(device);hp=hs.to(device);ip=ib.to(device)
     with torch.no_grad():
         for i in range(0,len(val_t)-SEQ-1,SEQ*4):
-            x=val_t[i:i+SEQ].unsqueeze(0).to(device);y=val_t[i+1:i+SEQ+1].unsqueeze(0).to(device)
-            if x.size(1)<SEQ:continue
+            xc=val_t[i:i+SEQ];yc=val_t[i+1:i+SEQ+1]
+            if xc.size(0)<SEQ:continue
+            x=xc.unsqueeze(0).to(device);y=yc.unsqueeze(0).to(device)
             lg=m(x).reshape(-1,VOCAB);yt=y.reshape(-1)
             ls+=F.cross_entropy(lg,yt,reduction='sum').item();tk+=SEQ
-            pv=x.reshape(-1);tb=bl[yt].sum().item();tb+=(hp[yt]&~ip[pv]).int().sum().item();by+=max(tb,1)
+            # байт-статистика на CPU (дешево; убирает GPU-gather из зоны риска)
+            tb=int(bb[yc].sum())+int((hs[yc]&~ib[xc]).sum());by+=max(tb,1)
     m.train();return ls/tk/math.log(2)*tk/by
 
 def run_cell(arm_name, qat_fn, seed):
