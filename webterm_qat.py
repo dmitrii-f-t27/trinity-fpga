@@ -159,14 +159,25 @@ def sane(bpb, fl):
     BPB<1.5 или train loss<2.0 = физически неправдоподобно → [ANOMALY], карантин."""
     return (1.5 < bpb < 6.0) and (fl > 2.0)
 
-# ═══ 4 плеча x 3 сида, resumable ═══
-ARMS=[("FP32",None),("FP8S",ste_fp8s()),("GF8S",ste_gf8s()),("E2M5S",ste_e2m5s())]
+# ═══ 4 плеча x 3 сида, resumable + чанки через env ═══
+# АНТИ-ЗАВИСАНИЕ: гонять по частям, напр.
+#   QAT_ARMS=FP32 curl ... | python3        → только FP32 (3 ячейки)
+#   QAT_ARMS=FP8S,GF8S curl ... | python3    → два плеча
+#   QAT_SEEDS=42 curl ... | python3          → только сид 42 по всем плечам
+# Результаты копятся в qat_v3_results.json; итоговая таблица — по всему накопленному.
+ALL_ARMS=[("FP32",None),("FP8S",ste_fp8s()),("GF8S",ste_gf8s()),("E2M5S",ste_e2m5s())]
 SEEDS=[42,123,777]
+_af=os.environ.get("QAT_ARMS");_sf=os.environ.get("QAT_SEEDS")
+ARMS=[a for a in ALL_ARMS if (not _af or a[0] in _af.split(","))]
+run_seeds=[s for s in SEEDS if (not _sf or str(s) in _sf.split(","))]
 RES='/workspace/qat_v3_results.json'
 results=json.load(open(RES)) if os.path.exists(RES) else {}
+todo=[(a[0],s) for a in ARMS for s in run_seeds if f"{a[0]}/s{s}" not in results]
+print(f"\nПЛАН: в этом запуске плечи={[a[0] for a in ARMS]} сиды={run_seeds}")
+print(f"      уже готово {len(results)}/12 ячеек; осталось считать {len(todo)}: {todo}\n",flush=True)
 
 for arm_name,qat_fn in ARMS:
-    for seed in SEEDS:
+    for seed in run_seeds:
         key=f"{arm_name}/s{seed}"
         if key in results:
             print(f"[skip] {key} = {results[key]['bpb']:.4f} (уже посчитано)");continue
@@ -181,9 +192,10 @@ for arm_name,qat_fn in ARMS:
 
 # ═══ Итог: медиана валидных сидов, аномалии перечислены явно ═══
 import statistics
-print(f"\n{'='*60}\nQAT v3 RESULTS ({STEPS} steps, seeds={SEEDS}, train-shard/val-shard)\n{'='*60}")
+# Итог ВСЕГДА по всем 4 плечам из накопленного JSON (не только по этому чанку)
+print(f"\n{'='*60}\nQAT v3 RESULTS ({STEPS} steps, seeds={SEEDS}, train-shard/val-shard)\nнакоплено {len(results)}/12 ячеек\n{'='*60}")
 med={}
-for arm_name,_ in ARMS:
+for arm_name,_ in ALL_ARMS:
     vals=[results[f'{arm_name}/s{s}']['bpb'] for s in SEEDS if f'{arm_name}/s{s}' in results and results[f'{arm_name}/s{s}']['valid']]
     bad=[s for s in SEEDS if f'{arm_name}/s{s}' in results and not results[f'{arm_name}/s{s}']['valid']]
     med[arm_name]=statistics.median(vals) if vals else float('nan')
@@ -192,6 +204,9 @@ for arm_name,_ in ARMS:
 fp32=med.get("FP32",float('nan'))
 print(f"\n{'Arm':<8}{'medBPB':>9}{'Δ vs FP32':>11}   (порог значимости 0.005)")
 print("-"*40)
-for arm_name,_ in ARMS:
-    print(f"{arm_name:<8}{med[arm_name]:>9.4f}{med[arm_name]-fp32:>+11.4f}")
-print("\nDONE")
+for arm_name,_ in ALL_ARMS:
+    d=med[arm_name]-fp32
+    print(f"{arm_name:<8}{med[arm_name]:>9.4f}{d:>+11.4f}"+("  <порог" if abs(d)<0.005 else ""))
+remaining=[(a[0],s) for a in ALL_ARMS for s in SEEDS if f"{a[0]}/s{s}" not in results]
+print(f"\nОСТАЛОСЬ ячеек: {len(remaining)} {remaining if remaining else '— ВСЁ ГОТОВО'}")
+print("DONE")
