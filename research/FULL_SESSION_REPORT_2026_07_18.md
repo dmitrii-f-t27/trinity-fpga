@@ -42,14 +42,14 @@
 
 ### 2.2. CI LUT/Fmax (apples-to-apples, yosys+nextpnr)
 
-**Метод:** CI GitHub Actions, yosys 0.62 + nextpnr-xilinx (heap placer), одинаковая corona wrapper для всех ячеек. XC7A200T-FBG484-2.
+**Метод:** CI GitHub Actions run 29644566024, yosys 0.62 + nextpnr-xilinx (heap placer), одинаковая corona wrapper для всех ячеек. XC7A200T-FBG484-2.
 
 | Format | LC(nocarry) | LUT | Fmax | Status |
 |--------|-------------|-----|------|--------|
 | INT8 ADD | 102 | 137 | 262 MHz | ✓ PASS |
 | INT8 MUL | 126 | 176 | 213 MHz | ✓ PASS |
 | GF8 ADD (E3M4) | 222 | 294 | 75 MHz | ✓ PASS — **9% дешевле FP8 ADD** |
-| GF8 MUL (E3M4) | — | — | — | ✗ nextpnr GND routing bug |
+| GF8 MUL (E3M4) | — | — | — | ✗ не измерим (openXC7 toolchain limit) |
 | FP8 ADD (E4M3) | 211 | 323 | 75 MHz | ✓ PASS |
 | FP8 MUL (E4M3) | 201 | 266 | 131 MHz | ✓ PASS |
 
@@ -86,7 +86,7 @@
 | SQ-INT6 | ✗ | ✓ | ✗ | ✓ | ✓ | ✗ | ✓ | 4/7 |
 | INT7 | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ | 3/7 |
 
-**Вывод:** GF16 — единственный формат с 7/7 robustness без scaling. SQ-INT6 даёт 4/7. INT — 2-3/7.
+**Вывод:** GF16 — единственный из 15 протестированных форматов с 7/7 robustness без scaling. SQ-INT6 даёт 4/7. INT — 2-3/7.
 
 ---
 
@@ -160,3 +160,22 @@ SQ-INT6: Δ=+0.0007 vs INT6: Δ=+0.0035 (PTQ-proxy BPB). SmoothQuant (α=0.5) п
 ---
 
 *46 commits, 42 research files, 7 measured evidence chains, 3 retractions (v1→v2).*
+
+
+---
+
+## PROVENANCE
+
+All measurements pushed to GitHub (commit 84761babb):
+- PTQ-proxy BPB: research/FULL_FORMAT_LEADERBOARD_H100.json
+- CI LUT/Fmax: research/8BIT_LUT_CI_RESULTS.json (run 29644566024)
+- GF+ real weights: research/GFPLUS_REAL_WEIGHTS_RESULT.json (v2, retracted v1)
+- PG baseline: research/H100_OFFICIAL_BASELINE.json
+- Robustness: CPU measurements in SESSION_REPORT_2026_07_17.md
+
+gf8_mul: exhausted all openXC7 configurations (heap+router1, heap+router2, sa+router2).
+Root cause: nextpnr-xilinx global constant node handling — toolchain limitation,
+not a property of the format. Three paths forward:
+(a) CI: resynth without -abc9 or with -nowidelut (changes constant net structure)
+(b) Vivado locally (gives numbers but not apples-to-apples with openXC7 table)
+(c) Document the gap honestly (current status)
