@@ -168,12 +168,17 @@ for s in range(STEPS+1):
 model.eval()
 
 # ── целевые Linear-слои и снятие Hessian-диагонали (calib pass) ──
+# ВАЖНО: self_attn.out_proj внутри nn.MultiheadAttention ВЫЗЫВАЕТСЯ через functional-путь
+# (F._native_multi_head_attention) — forward-hook на нём НЕ срабатывает (проверено). Поэтому
+# Hessian снимается только для FFN (linear1/linear2), где hook надёжен — а именно там вектор 2
+# локализовал весь downstream-выигрыш. out_proj остаётся на чистом MSE (hess=None) — не падать.
 lin = {n: mod for n, mod in model.named_modules()
        if isinstance(mod, nn.Linear) and mod.weight.numel() > 100000 and mod.weight is not model.e.weight}
 print(f"\nLinear-слоёв под квант: {len(lin)}")
 acc = {n: {"sx2": None, "n": 0} for n in lin}
 def mk_calib(name):
     def h(mod, inp, out):
+        if not inp or inp[0] is None: return
         X = inp[0].detach().reshape(-1, inp[0].shape[-1]).double()
         s2 = (X*X).sum(0)
         acc[name]["sx2"] = s2 if acc[name]["sx2"] is None else acc[name]["sx2"]+s2
@@ -184,16 +189,29 @@ with torch.no_grad():
     for _ in range(4):
         idx=torch.randint(0,len(train_t)-SEQ-1,(8,)); xb=torch.stack([train_t[i:i+SEQ] for i in idx]).to(device); model(xb)
 for h in hooks: h.remove()
-hess = {n: (acc[n]["sx2"]/max(acc[n]["n"],1)).double() for n in lin}
+# hess[n] = None для нехукнутых (out_proj) → там выбор пойдёт по MSE в обеих конфигурациях
+hess = {n: ((acc[n]["sx2"]/acc[n]["n"]).double() if acc[n]["sx2"] is not None and acc[n]["n"] > 0 else None)
+        for n in lin}
+hooked = [n for n in lin if hess[n] is not None]
+no_hess = [n for n in lin if hess[n] is None]
+print(f"  Hessian снят: {len(hooked)}/{len(lin)} слоёв (FFN). Без Hessian (out_proj, остаются MSE): {len(no_hess)}")
+if no_hess: print(f"    нет активаций: {no_hess[:3]}{'...' if len(no_hess)>3 else ''}")
 
 # ── эталонные FP32-веса, чтобы возвращать/переквантовывать ──
 fp32 = {n: m.weight.data.clone() for n, m in lin.items()}
 
-# ── честный BPB: реальный forward на независимом val, знаменатель = байты декодир. токенов ──
+# ── честная метрика: реальный forward на независимом val ──
+# ПЕРВИЧНАЯ метрика = bits-per-token (однозначна, НЕ требует токенайзера).
+# BPB через токенайзер НЕ считаем: единственная найденная .model — 8192-BPE, а поток sp1024
+# (VOCAB=1024): ид-шкалы НЕ совпадают → decode дал бы мусорные байты. BPB пересчитываем лишь
+# для справки через документированный коэф. байт/токен (sp1024 ≈ 3.9), помечен [прокси-коэф].
+BYTES_PER_TOK = float(os.environ.get("BYTES_PER_TOK", 3.9))  # sp1024 эмпирика; только для справочного BPB
+BPB_THRESH = 0.005                                          # порог Parameter Golf (BPB)
+BPT_THRESH = BPB_THRESH * BYTES_PER_TOK                     # эквивалент в bits-per-token ≈ 0.0195
 NBATCH = int(os.environ.get("BPB_BATCH", 24))   # val-батчей по SEQ токенов
 def eval_bpb(tag):
     torch.manual_seed(123)  # фикс val-выборки: одинаковый набор для всех конфигураций
-    tot_nats = 0.0; tot_tok = 0; tot_bytes = 0
+    tot_nats = 0.0; tot_tok = 0
     with torch.no_grad():
         for _ in range(NBATCH):
             i = torch.randint(0, len(val_t)-SEQ-1, (1,)).item()
@@ -202,20 +220,20 @@ def eval_bpb(tag):
             logits = model(x).reshape(-1, VOCAB)
             ce = F.cross_entropy(logits, y, reduction='sum')  # nats
             tot_nats += float(ce); tot_tok += y.numel()
-            if sp is not None:
-                tot_bytes += len(sp.decode(y.tolist()).encode('utf-8'))
-    bpt = tot_nats/math.log(2)/tot_tok            # bits per token
-    bpb = (tot_nats/math.log(2))/tot_bytes if tot_bytes else float('nan')  # bits per byte (честный)
-    print(f"  [{tag}] bits/token={bpt:.4f}  bits/byte={bpb:.4f}  (tok={tot_tok} bytes={tot_bytes})", flush=True)
-    return dict(tag=tag, bits_per_token=bpt, bits_per_byte=bpb, tokens=tot_tok, bytes=tot_bytes)
+    bpt = tot_nats/math.log(2)/tot_tok               # bits per token (ПЕРВИЧНАЯ)
+    bpb = bpt / BYTES_PER_TOK                          # справочный [прокси-коэф байт/ток]
+    print(f"  [{tag}] bits/token={bpt:.5f}  bits/byte≈{bpb:.5f} [прокси]  (tok={tot_tok})", flush=True)
+    return dict(tag=tag, bits_per_token=bpt, bits_per_byte_proxy=bpb, tokens=tot_tok)
 
 def apply_quant(N, metric, layer_filter=None):
-    """Проквантовать веса выбранных слоёв на месте. layer_filter(name)->bool или None=все."""
+    """Проквантовать веса выбранных слоёв на месте. layer_filter(name)->bool или None=все.
+    Если metric=='hess', но hess[n] отсутствует (out_proj) — авто-fallback на MSE для этого слоя."""
     for n, m in lin.items():
         if layer_filter is not None and not layer_filter(n):
             m.weight.data.copy_(fp32[n]); continue   # оставить FP32
         W = fp32[n].double()
-        q = select(W, N, hess=hess[n] if metric=="hess" else None, metric=metric)
+        use_hess = (metric == "hess" and hess[n] is not None)
+        q = select(W, N, hess=hess[n] if use_hess else None, metric="hess" if use_hess else "mse")
         m.weight.data.copy_(q.to(m.weight.dtype))
 def restore_fp32():
     for n, m in lin.items(): m.weight.data.copy_(fp32[n])
@@ -227,33 +245,38 @@ def deep_ffn(n):
     mt = re.search(r"(?:^|\.)l\.(\d+)\.", n)
     return mt is not None and int(mt.group(1)) >= NL//2
 
-print(f"\n{'='*72}\nВЕКТОР 2-BPB: реальный model-BPB, MSE-выбор vs Hessian-выбор кармана GF+A")
-print(f"порог значимости Parameter Golf = 0.005 BPB | val батчей={NBATCH}\n{'='*72}")
-report = {"meta": dict(NL=NL, D=D, steps=STEPS, nbatch=NBATCH,
-                       sp_model=(sp is not None), n_lin=len(lin), seed=42)}
+print(f"\n{'='*72}\nВЕКТОР 2-BPB: реальный model bits-per-token, MSE-выбор vs Hessian-выбор кармана GF+A")
+print(f"порог Parameter Golf = {BPB_THRESH} BPB = {BPT_THRESH:.4f} BPT (коэф {BYTES_PER_TOK} байт/ток) | val батчей={NBATCH}\n{'='*72}")
+report = {"meta": dict(NL=NL, D=D, steps=STEPS, nbatch=NBATCH, primary_metric="bits_per_token",
+                       bytes_per_tok=BYTES_PER_TOK, bpt_thresh=BPT_THRESH, bpb_thresh=BPB_THRESH,
+                       hooked_ffn=len(hooked), no_hess_out_proj=len(no_hess), n_lin=len(lin), seed=42)}
 
 restore_fp32(); report["fp32"] = eval_bpb("FP32 baseline")
 
 for N in (4, 6, 8):
     print(f"\n--- {N}-bit ---")
     apply_quant(N, "mse");  r_mse  = eval_bpb(f"{N}b MSE-выбор (все слои)")
-    apply_quant(N, "hess"); r_hess = eval_bpb(f"{N}b Hessian-выбор (все слои)")
+    apply_quant(N, "hess"); r_hess = eval_bpb(f"{N}b Hessian-выбор (все FFN)")
     # абляция: Hessian лишь в глубоких linear1, остальное MSE
     apply_quant(N, "mse"); apply_quant(N, "hess", layer_filter=deep_ffn)
     r_abl = eval_bpb(f"{N}b гибрид: Hessian@глубокие-linear1, MSE иначе")
-    d_all = r_hess["bits_per_byte"] - r_mse["bits_per_byte"]
-    d_abl = r_abl["bits_per_byte"]  - r_mse["bits_per_byte"]
-    sig = lambda d: "ЗНАЧИМО" if abs(d) >= 0.005 else "<порог 0.005 (незначимо)"
-    print(f"  ΔBPB(Hessian−MSE, все слои) = {d_all:+.5f}  → {sig(d_all)}"
-          f"{'  [Hessian ОКУПАЕТ]' if d_all<=-0.005 else ''}")
-    print(f"  ΔBPB(гибрид−MSE)            = {d_abl:+.5f}  → {sig(d_abl)}")
+    d_all = r_hess["bits_per_token"] - r_mse["bits_per_token"]   # решаем по BPT (первичная)
+    d_abl = r_abl["bits_per_token"]  - r_mse["bits_per_token"]
+    sig = lambda d: "ЗНАЧИМО" if abs(d) >= BPT_THRESH else f"<порог {BPT_THRESH:.4f} BPT (незначимо)"
+    print(f"  ΔBPT(Hessian−MSE, все слои) = {d_all:+.5f} бит/ток  → {sig(d_all)}"
+          f"{'  [Hessian ОКУПАЕТ]' if d_all<=-BPT_THRESH else ''}")
+    print(f"  ΔBPT(гибрид−MSE)            = {d_abl:+.5f} бит/ток  → {sig(d_abl)}")
     report[str(N)] = dict(mse=r_mse, hess=r_hess, hybrid_deep_ffn=r_abl,
-                          dbpb_all=d_all, dbpb_hybrid=d_abl,
-                          significant_all=bool(abs(d_all)>=0.005),
-                          hessian_pays_off=bool(d_all<=-0.005))
+                          dbpt_all=d_all, dbpt_hybrid=d_abl,
+                          dbpb_proxy_all=d_all/BYTES_PER_TOK, dbpb_proxy_hybrid=d_abl/BYTES_PER_TOK,
+                          significant_all=bool(abs(d_all)>=BPT_THRESH),
+                          hessian_pays_off=bool(d_all<=-BPT_THRESH))
 restore_fp32()
 json.dump(report, open("/workspace/v2bpb_results.json", "w"), indent=2)
 print("\nsaved /workspace/v2bpb_results.json")
-print("\nИТОГ: если ΔBPB(все слои) ≤ −0.005 хотя бы на одной битности — Hessian-выбор ОКУПАЕТ")
-print("себя downstream (SQNR-выигрыш переносится в BPB). Если |ΔBPB|<0.005 везде — SQNR был")
-print("суррогатом, порог Parameter Golf НЕ пройден: выбор кармана нейтрален по model-BPB.")
+print(f"\nИТОГ (решение по bits-per-token, порог {BPT_THRESH:.4f} BPT = {BPB_THRESH} BPB):")
+print(f"  • если ΔBPT(все слои) ≤ −{BPT_THRESH:.4f} хотя бы на одной битности — Hessian-выбор ОКУПАЕТ")
+print("    себя downstream (SQNR-выигрыш переносится в потери модели);")
+print("  • если |ΔBPT| < порога везде — SQNR был суррогатом, выбор кармана нейтрален по потерям.")
+print("\nГраница: bits-per-token — честная первичная метрика; BPB = BPT/коэф [прокси], т.к. поток")
+print("sp1024 не декодируется найденным 8192-BPE-токенайзером (vocab mismatch). Hessian только на FFN.")
