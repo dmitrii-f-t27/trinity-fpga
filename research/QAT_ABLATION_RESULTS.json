@@ -1,0 +1,22 @@
+{
+  "date": "2026-07-18",
+  "version": "v3.2",
+  "hardware": "RTX PRO 4500 Blackwell (sm_120, cu128)",
+  "model": "9L d=512 seq=1024 | 29,421,056 params | 2000 steps | FineWeb sp1024",
+  "method": "QAT with STE, disjoint train/val shards, 3 seeds (42,123,777), median",
+  "threshold": "0.005 BPB",
+  "results": {
+    "FP32":  {"median_bpb": 2.8279, "std": 0.0012, "delta_vs_fp32": 0.0,    "verdict": "baseline"},
+    "FP8S":  {"median_bpb": 2.8280, "std": 0.0041, "delta_vs_fp32": 0.0001, "verdict": "below threshold — indistinguishable from FP32"},
+    "GF8S":  {"median_bpb": 3.0474, "std": 0.0189, "delta_vs_fp32": 0.2196, "verdict": "degradation ~44x threshold"},
+    "E2M5S": {"median_bpb": 3.0944, "std": 0.0049, "delta_vs_fp32": 0.2666, "verdict": "degradation ~53x threshold"}
+  },
+  "key_finding": "PTQ↔QAT inversion confirmed on 3 seeds. In PTQ (weight round-trip), e2m5/e3m4 was the best 8-bit pocket; in QAT (training with STE), e2m5 is the WORST arm (+0.27 BPB). FP8 E4M3 with per-row scaling (FP8S) is indistinguishable from FP32 in QAT (Δ=+0.0001, below 0.005 threshold).",
+  "mechanism_hypothesis": "Narrow exponent (e2m5 range ~7.9) restricts weight dynamics during training — range matters more than grid density in QAT. FP8 E4M3 (range ±448) has enough dynamic range for weight evolution under STE.",
+  "honest_limits": [
+    "29M params / 2000 steps / 1 model — not H100 scale",
+    "Quant-proxy BPB ≈2.83 (NOT comparable to official trained-from-scratch ≈1.05-1.47)",
+    "Mechanism is hypothesis, not proven",
+    "seed=123 collapse in v1 was data leakage artifact (train+val from same shard) — resolved by disjoint shards"
+  ]
+}

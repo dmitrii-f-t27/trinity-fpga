@@ -42,7 +42,11 @@ This is more precise and defensible than "φ better everywhere."
 
 ## What This Does NOT Show (Open Gates)
 
-1. **QAT ablation**: does format ordering persist under STE training? [open]
+1. **QAT ablation**: CLOSED [measured — GPU, 3 seeds]. PTQ↔QAT inversion confirmed.
+   PTQ best (e2m5, 43.1 dB SQNR) = QAT worst (+0.27 BPB).
+   FP8S (e4m3 scaled) = indistinguishable from FP32 in QAT (Δ=+0.0001).
+   Mechanism: narrow exponent restricts weight dynamics under STE.
+   See research/QAT_ABLATION_RESULTS.json.
 2. **Downstream BPB**: classes ≥6 bit within noise ±0.0003 [open]
 3. **LUT cost of mux**: ~10-20 LUT overhead, not measured [CI running]
 4. **NF4 at 4-bit**: GF+A rides on NF4 (95% of rows), margin +0.01 dB —
@@ -58,7 +62,7 @@ This is more precise and defensible than "φ better everywhere."
 | 16-bit scaled insight | e2m13 >> fp16 by 17.6 dB | GPU | ✅ measured |
 | φ-rule unscaled robustness | 7/7 workload tests | CPU | ✅ measured |
 | Official PG baseline | BPB=1.4715 | H100, train_gpt.py | ✅ measured |
-| QAT ablation | — | 8×H100 | ⏳ pending |
+| QAT ablation | FP8S=2.8280 (Δ=+0.0001), GF8S=3.0474 (Δ=+0.22) | GPU, 3 seeds | ✅ CLOSED |
 | FP8 Tier-E silicon | — | AX7203 | ⏳ pending |
 
 ## Key Honest Conclusions
