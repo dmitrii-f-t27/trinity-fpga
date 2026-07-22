@@ -1,0 +1,93 @@
+{
+ "fp32_baseline": 3.8547,
+ "4": [
+  {
+   "variant": "v1 (fp16 scale, K=1)",
+   "dbpb": 0.0035,
+   "sqnr_w1": 20.19,
+   "ovh_bpe": 0.0938,
+   "eff_bits": 4.094
+  },
+  {
+   "variant": "v2 e8m0 scale, K=1",
+   "dbpb": 0.0035,
+   "sqnr_w1": 20.19,
+   "ovh_bpe": 0.0521,
+   "eff_bits": 4.052
+  },
+  {
+   "variant": "v2 e8m0 scale, K=8",
+   "dbpb": 0.0032,
+   "sqnr_w1": 20.18,
+   "ovh_bpe": 0.043,
+   "eff_bits": 4.043
+  },
+  {
+   "variant": "v2 e8m0 scale, K=32",
+   "dbpb": 0.0032,
+   "sqnr_w1": 20.18,
+   "ovh_bpe": 0.042,
+   "eff_bits": 4.042
+  }
+ ],
+ "6": [
+  {
+   "variant": "v1 (fp16 scale, K=1)",
+   "dbpb": -0.0002,
+   "sqnr_w1": 31.72,
+   "ovh_bpe": 0.0938,
+   "eff_bits": 6.094
+  },
+  {
+   "variant": "v2 e8m0 scale, K=1",
+   "dbpb": -0.0002,
+   "sqnr_w1": 31.72,
+   "ovh_bpe": 0.0521,
+   "eff_bits": 6.052
+  },
+  {
+   "variant": "v2 e8m0 scale, K=8",
+   "dbpb": -0.0003,
+   "sqnr_w1": 31.42,
+   "ovh_bpe": 0.043,
+   "eff_bits": 6.043
+  },
+  {
+   "variant": "v2 e8m0 scale, K=32",
+   "dbpb": -0.0,
+   "sqnr_w1": 31.36,
+   "ovh_bpe": 0.042,
+   "eff_bits": 6.042
+  }
+ ],
+ "8": [
+  {
+   "variant": "v1 (fp16 scale, K=1)",
+   "dbpb": -0.0,
+   "sqnr_w1": 43.89,
+   "ovh_bpe": 0.0938,
+   "eff_bits": 8.094
+  },
+  {
+   "variant": "v2 e8m0 scale, K=1",
+   "dbpb": -0.0,
+   "sqnr_w1": 43.89,
+   "ovh_bpe": 0.0521,
+   "eff_bits": 8.052
+  },
+  {
+   "variant": "v2 e8m0 scale, K=8",
+   "dbpb": 0.0,
+   "sqnr_w1": 43.51,
+   "ovh_bpe": 0.043,
+   "eff_bits": 8.043
+  },
+  {
+   "variant": "v2 e8m0 scale, K=32",
+   "dbpb": -0.0,
+   "sqnr_w1": 43.44,
+   "ovh_bpe": 0.042,
+   "eff_bits": 8.042
+  }
+ ]
+}
