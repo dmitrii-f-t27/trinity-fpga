@@ -9,12 +9,52 @@ SQNR выхода слоя Y=xW^T на НЕЗАВИСИМОМ val-батче (ho
   curl -s https://raw.githubusercontent.com/gHashTag/trinity-fpga/main/webterm_gfplus_v2select.py -o /tmp/v2.py
   STEPS=3000 python3 /tmp/v2.py
 """
-import os, sys, json, math
+import os, sys, json, math, subprocess
 import numpy as np
-os.system("pip3 install torch --pre --index-url https://download.pytorch.org/whl/nightly/cu128 -q 2>&1 | tail -2")
-os.system("pip3 install sentencepiece -q 2>&1 | tail -1")
+
+# ── Blackwell sm_120: системный torch (cu124) БЕЗ ядер sm_120. Надолом в одном процессе
+# НЕЛЬЗЯ (скомпилированное CUDA-расширение не перезагружается) → ставим cu128 и RE-EXEC скрипт.
+def _ensure_torch_cu128():
+    if os.environ.get("_V2_TORCH_OK") == "1":
+        return  # уже после re-exec со свежим torch
+    def _sm_needed():
+        rc = subprocess.run(["nvidia-smi", "--query-gpu=compute_cap", "--format=csv,noheader"],
+                            capture_output=True, text=True)
+        caps = [c.strip() for c in rc.stdout.splitlines() if c.strip()]
+        return "sm_" + caps[0].replace(".", "") if caps else None
+    sm = _sm_needed()
+    try:
+        import torch as _t
+        arch = _t.cuda.get_arch_list() if _t.cuda.is_available() else []
+        if sm is None or sm in arch:
+            print(f"torch {_t.__version__} arch={arch} → {sm} OK", flush=True)
+            os.environ["_V2_TORCH_OK"] = "1"; return
+        print(f"torch {_t.__version__} БЕЗ {sm} (arch={arch}) → reinstall cu128 (3-6 мин)", flush=True)
+    except Exception as e:
+        print(f"torch import failed ({e}) → install cu128", flush=True)
+    ok = False
+    for idx in ("https://download.pytorch.org/whl/cu128",
+                "https://download.pytorch.org/whl/nightly/cu128"):
+        print(f"pip install -U torch --index-url {idx} ...", flush=True)
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-U", "--no-cache-dir",
+                        "torch", "--index-url", idx])
+        chk = subprocess.run([sys.executable, "-c",
+            "import torch;print(torch.__version__);print(torch.cuda.get_arch_list())"],
+            capture_output=True, text=True)
+        print(chk.stdout.strip()[-200:] + chk.stderr.strip()[-200:], flush=True)
+        if sm is None or sm in chk.stdout:
+            ok = True; break
+    if not ok:
+        print(f"WARN: torch всё ещё без {sm} — прогон может упасть", flush=True)
+    # RE-EXEC: свежий интерпретатор подхватит новый torch чисто
+    os.environ["_V2_TORCH_OK"] = "1"
+    print("=== re-exec со свежим torch ===", flush=True)
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+_ensure_torch_cu128()
+os.system("pip3 install sentencepiece numpy -q 2>&1 | tail -1")
 import torch, torch.nn as nn, torch.nn.functional as F
 import sentencepiece as spm
+print(f"[final] torch {torch.__version__} | arch_list={torch.cuda.get_arch_list()}", flush=True)
 
 PHI2 = ((1 + 5**0.5) / 2) ** 2
 def phi_split(N):
