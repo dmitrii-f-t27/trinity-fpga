@@ -126,14 +126,21 @@ def select(W, N, hess=None, metric="mse"):
     return torch.stack(cands)[ch, torch.arange(W.shape[0], device=W.device)]
 
 # ── модель (параметризовано env: SEED/STEPS — трек A, NL/DMODEL — трек B) ──
-device = 'cuda'; VOCAB=1024; SEQ=1024; BATCH=48
+# АНТИ-OOM: BATCH/SEQ параметризованы + авто-снижение для крупной модели (урок: NL=12/d=768 выбил 31ГБ).
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+device = 'cuda'; VOCAB=1024
 SEED  = int(os.environ.get("SEED", 42))
 D     = int(os.environ.get("DMODEL", 512))
 NL    = int(os.environ.get("NL", 9))
 STEPS = int(os.environ.get("STEPS", 3000))
 assert D % 8 == 0, "DMODEL должен быть кратен nhead=8"
+# авто-бюджет памяти: целевой ~ NL*D*BATCH*SEQ активаций; держим под 512*9*48*1024
+_budget = 9 * 512 * 48 * 1024
+_auto_bs = max(8, min(48, _budget // (NL * D * 1024)))
+BATCH = int(os.environ.get("BATCH", _auto_bs))
+SEQ   = int(os.environ.get("SEQ", 1024))
 RUN_TAG = f"seed{SEED}_nl{NL}_d{D}_st{STEPS}"
-print(f"[config] {RUN_TAG}  (трек A=сид/чекпоинт, трек B=NL/DMODEL)", flush=True)
+print(f"[config] {RUN_TAG} BATCH={BATCH} SEQ={SEQ}  (трек A=сид/чекпоинт, трек B=NL/DMODEL)", flush=True)
 os.chdir("/workspace")
 if not os.path.exists("parameter-golf"):
     os.system("git clone --depth 1 https://github.com/openai/parameter-golf.git")
@@ -167,14 +174,15 @@ class Model(nn.Module):
         return s.h(s.f(h))
 
 print(f"GPU: {torch.cuda.get_device_name(0)} | torch {torch.__version__}")
-print(f"Training {NL}L d={D} {STEPS} steps...")
+print(f"Training {NL}L d={D} {STEPS} steps (BATCH={BATCH})...")
 torch.manual_seed(SEED); model=Model().to(device)
+_last_loss = None
 op=torch.optim.AdamW(model.parameters(),lr=0.003,weight_decay=0.1,betas=(0.95,0.95))
 for s in range(STEPS+1):
     idx=torch.randint(0,len(train_t)-SEQ-1,(BATCH,))
     x=torch.stack([train_t[i:i+SEQ] for i in idx]).to(device)
     y=torch.stack([train_t[i+1:i+SEQ+1] for i in idx]).to(device)
-    loss=F.cross_entropy(model(x).reshape(-1,VOCAB),y.reshape(-1))
+    loss=F.cross_entropy(model(x).reshape(-1,VOCAB),y.reshape(-1)); _last_loss=float(loss)
     op.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(),1.0); op.step()
     if s%1000==0: print(f"  {s}/{STEPS}: loss={loss.item():.4f}", flush=True)
 model.eval()
@@ -265,6 +273,16 @@ report = {"meta": dict(NL=NL, D=D, steps=STEPS, nbatch=NBATCH, primary_metric="b
                        seed=SEED, run_tag=RUN_TAG)}
 
 restore_fp32(); report["fp32"] = eval_bpb("FP32 baseline")
+report["meta"]["train_last_loss"] = _last_loss
+report["meta"]["baseline_bpt"] = report["fp32"]["bits_per_token"]
+# GUARD (урок seed=123): коллапс в память (loss→0, baseline BPT→0) делает замер НЕВАЛИДНЫМ:
+# квантование нечего портить на вырожденной модели → все ΔBPT≈0 артефактно, не вывод.
+_valid = report["fp32"]["bits_per_token"] >= 1.0
+report["meta"]["baseline_valid"] = bool(_valid)
+if not _valid:
+    print(f"\n⚠ BASELINE НЕВАЛИДЕН: FP32 BPT={report['fp32']['bits_per_token']:.5f} < 1.0 "
+          f"(train loss={_last_loss:.4f}). Модель сколлапсировала в память на этом сиде/STEPS."
+          f"\n  Замер ΔBPT НЕВАЛИДЕН (квантовать нечего). Сменить SEED или уменьшить STEPS.", flush=True)
 
 for N in (4, 6, 8):
     print(f"\n--- {N}-bit ---")
