@@ -113,11 +113,11 @@ TRL 8 (WP4):  Published results, reproducible
 
 ```
 1. https://eic.ec.europa.eu → "Apply"
-2. Вызов: HORIZON-EIC-2026-PATHFINDEROPEN-01
-3. Дедлайн: 28 октября 2026, 17:00 Brussels time
-4. Язык: English
-5. Формат: PDF, max 17 pages
-6. Приложения: CVs, Letters of Support, Ethics
+2. Call: HORIZON-EIC-2026-PATHFINDEROPEN-01
+3. Deadline: 28 October 2026, 17:00 Brussels time
+4. Language: English
+5. Format: PDF, max 17 pages
+6. Attachments: CVs, Letters of Support, Ethics
 ```
 
 ---

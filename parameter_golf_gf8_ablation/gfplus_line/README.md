@@ -1,48 +1,48 @@
-# Линейка GF+ — φ-каталог карманов + адаптивный контейнер GF+A
+# GF+ line — φ-catalog of pockets + adaptive GF+A container
 
-Статус: `[измерено — SW proxy, CPU]`, seed=20260718. PTQ весов, per-row scale. НЕ QAT, НЕ downstream больших моделей.
+Status: `[measured — SW proxy, CPU]`, seed=20260718. PTQ of weights, per-row scale. NOT QAT, NOT downstream of large models.
 
-## Главный результат
+## Main result
 
-Фиксированный сплит, «обходящий всех во всём», невозможен — эмпирически подтверждено
-полным перебором сплитов (testA): на гауссе/хвостах выигрывает e2, на строках с
-выбросами e3, на равномерном INT. Честная форма «+» — **GF+A: адаптивный контейнер**:
+A fixed split that "beats everyone at everything" is impossible — empirically confirmed
+by an exhaustive sweep of splits (testA): on gaussian/heavy tails e2 wins, on rows with
+outliers e3 wins, on uniform INT. The honest form of "+" is **GF+A: an adaptive container**:
 
-- per-row absmax scale (fp16) — как GF8+S;
-- per-row выбор кармана из φ-каталога: `{φ-сплит, e2, e3, INT-сетка}` (класс 4: `{e1m2, e2m1, INT4, NF4}`);
-- заголовок 2 бита/строку; оверхед (2+16)/C бит на элемент — при C=2048 это 0.009 bpe.
+- per-row absmax scale (fp16) — like GF8+S;
+- per-row pocket selection from the φ-catalog: `{φ-split, e2, e3, INT-grid}` (class 4: `{e1m2, e2m1, INT4, NF4}`);
+- header 2 bits/row; overhead (2+16)/C bits per element — at C=2048 this is 0.009 bpe.
 
-**По построению** per-row MSE GF+A ≤ MSE любого одиночного кармана набора.
-Замер (testC): GF+A лучший или равный лучшему во всех 20 ячейках
-(5 классов × 4 распределения) и на реальных весах микро-LM.
+**By construction** the per-row MSE of GF+A ≤ MSE of any single pocket in the set.
+Measurement (testC): GF+A is the best or equal to the best in all 20 cells
+(5 classes × 4 distributions) and on real weights of a micro-LM.
 
-## Ключевой инсайт про φ-правило
+## Key insight about the φ-rule
 
-С per-row масштабом внутристрочный динамический диапазон НЕ растёт с разрядностью →
-оптимальная экспонента насыщается на e2–e3 для всех классов. φ-пропорция
-`e=round((N−1)/φ²)` оптимальна для НЕмасштабированного режима (формат сам покрывает
-глобальный диапазон); в scaled-режиме φ-каталог остаётся ПРОСТРАНСТВОМ кандидатов,
-а выбор делает данные (= «лучший формат — это процедура выбора»).
+With per-row scaling, the intra-row dynamic range does NOT grow with bit-width → the
+optimal exponent saturates at e2–e3 for all classes. The φ-proportion
+`e=round((N−1)/φ²)` is optimal for the UNSCALED regime (the format itself covers the
+global range); in scaled mode the φ-catalog remains a SPACE of candidates,
+and the data makes the choice (= "the best format is the selection procedure").
 
-Совпадения: класс 6 — φ даёт e2m3 = победитель гаусса/хвостов; класс 8 — φ даёт
-e3m4 = победитель outlier-строк (это и объясняет победу GF8+S на 29M-чекпоинте пода).
+Coincidences: class 6 — φ yields e2m3 = winner for gaussian/heavy tails; class 8 — φ yields
+e3m4 = winner for outlier rows (this also explains the victory of GF8+S on the 29M pod checkpoint).
 
-## Файлы
+## Files
 
-- `gfplus_quant.py` — генерический minifloat (любые e/m/bias, RNE, денормалы, fn), INT, NF4, scaled-обёртка.
-- `gfplus_adaptive.py` — GF+A (карманы, argmin per-row, заголовок).
-- `testA_sweep.py` — полный перебор сплитов по классам 4/6/8/12/16 на 4 распределениях.
-- `testB_realweights.py` — PTQ ΔBPB на реальных весах микро-LM (char-LM, tinyshakespeare).
-- `testC_adaptive.py` — GF+A против всех фиксированных плеч (синтетика + реальные веса).
-- `gfplus_pod_benchmark.py` — САМОДОСТАТОЧНЫЙ скрипт для пода:
-  `python3 gfplus_pod_benchmark.py /workspace/model.pt` (любой state_dict) или `--synthetic`.
+- `gfplus_quant.py` — generic minifloat (any e/m/bias, RNE, denormals, fn), INT, NF4, scaled-wrapper.
+- `gfplus_adaptive.py` — GF+A (pockets, argmin per-row, header).
+- `testA_sweep.py` — exhaustive sweep of splits across classes 4/6/8/12/16 on 4 distributions.
+- `testB_realweights.py` — PTQ ΔBPB on real weights of a micro-LM (char-LM, tinyshakespeare).
+- `testC_adaptive.py` — GF+A vs all fixed arms (synthetic + real weights).
+- `gfplus_pod_benchmark.py` — SELF-CONTAINED script for the pod:
+  `python3 gfplus_pod_benchmark.py /workspace/model.pt` (any state_dict) or `--synthetic`.
 
-## Честные границы (BINDING)
+## Honest boundaries (BINDING)
 
-1. Гарантия GF+A — на метрике ВЫБОРА (per-row MSE). Downstream BPB коррелирует, но не
-   тождественен: на 4-бит реальных весах чистый NF4 дал ΔBPB +0.0032 против GF+A +0.0035.
-2. Все ΔBPB классов ≥6 бит на микро-LM в пределах ±0.0003 — ранжировать по ним нельзя,
-   ранжирует SQNR. Порог значимости Parameter Golf = 0.005.
-3. Декодер GF+A = 4 кармана + мультиплексор → дороже одиночного формата в железе;
-   LUT-цена не замерена `[открытая гипотеза]`.
-4. QAT-поведение GF+A не проверено; PTQ ≠ QAT.
+1. The GF+A guarantee is on the SELECTION metric (per-row MSE). Downstream BPB correlates
+   but is not identical: on 4-bit real weights pure NF4 gave ΔBPB +0.0032 vs GF+A +0.0035.
+2. All ΔBPB of classes ≥6 bits on the micro-LM are within ±0.0003 — they cannot be ranked by it,
+   SQNR ranks them. Parameter Golf significance threshold = 0.005.
+3. The GF+A decoder = 4 pockets + a multiplexer → more expensive than a single format in hardware;
+   the LUT cost has not been measured `[open hypothesis]`.
+4. QAT behavior of GF+A has not been verified; PTQ ≠ QAT.

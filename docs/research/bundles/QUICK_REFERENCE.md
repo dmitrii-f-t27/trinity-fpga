@@ -9,9 +9,9 @@
 
 > ⚠️ **R5-PASS-5 HONESTY DISCLAIMER (2026-05-12)**
 >
-> Перечисленные ниже Zenodo-депозиты B001–B007 и PARENT — это **software / description stubs**, а не peer-reviewed публикации. DOI'ы 19227865–19227879 валидны и закреплены за этими депозитами, но они не подтверждают рецензирование, не означают arXiv-публикацию и не дают права цитировать их как «papers». Любые более ранние формулировки в этом репозитории, утверждающие иное (например `ARXIV_SUBMISSION_CONFIRMATION.md`), отозваны как fabricated — см. `docs/papers/ARXIV_SUBMISSION_CONFIRMATION.md` (RETRACTION).
+> The Zenodo deposits B001–B007 and PARENT listed below are **software / description stubs**, not peer-reviewed publications. DOIs 19227865–19227879 are valid and registered to these deposits, but they do not confirm peer review, do not constitute an arXiv publication, and do not give the right to cite them as "papers". Any earlier wording in this repository claiming otherwise (e.g. `ARXIV_SUBMISSION_CONFIRMATION.md`) is retracted as fabricated — see `docs/papers/ARXIV_SUBMISSION_CONFIRMATION.md` (RETRACTION).
 >
-> Canonical author: Dmitrii Vasilev, ORCID [`0009-0008-4294-6159`](https://orcid.org/0009-0008-4294-6159). Анкер `φ² + φ⁻² = 3` — алгебраическое тождество, а не paper claim.
+> Canonical author: Dmitrii Vasilev, ORCID [`0009-0008-4294-6159`](https://orcid.org/0009-0008-4294-6159). The anchor `φ² + φ⁻² = 3` is an algebraic identity, not a paper claim.
 
 
 ## Bundle Summary Table

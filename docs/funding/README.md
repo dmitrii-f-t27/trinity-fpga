@@ -1,49 +1,49 @@
 # Trinity dePIN-Compute — Funding Strategy
 
-## Приоритет и сроки
+## Priority and deadlines
 
-| # | Программа | Сумма | Дедлайн | Сложность | Действие |
+| # | Programme | Amount | Deadline | Difficulty | Action |
 |---|---|---|---|---|---|
-| 🥇 | **IHP Free MPW** | $0 (бесплатный tapeout) | следующий шаттл | низкая | **Писать сейчас** |
-| 🥈 | **NLnet NGI Zero** | €50K | rolling (каждый квартал) | низкая | **Писать сейчас** |
-| 🥉 | **Sovereign Tech Fund** | €150K | rolling | средняя | Месяц 1 |
-| 4 | **efabless MPW** | $0 (tapeout) | по шаттлам | низкая | Месяц 1 |
-| 5 | **Chips JU Horizon** | €2–4M | 2026 | высокая | Нужен EU партнёр |
-| 6 | **EIC Pathfinder** | €3.5M | 28 Oct 2026 | высокая | Нужен EU партнёр |
+| 🥇 | **IHP Free MPW** | $0 (free tapeout) | next shuttle | low | **Write now** |
+| 🥈 | **NLnet NGI Zero** | €50K | rolling (every quarter) | low | **Write now** |
+| 🥉 | **Sovereign Tech Fund** | €150K | rolling | medium | Month 1 |
+| 4 | **efabless MPW** | $0 (tapeout) | per shuttle | low | Month 1 |
+| 5 | **Chips JU Horizon** | €2–4M | 2026 | high | EU partner needed |
+| 6 | **EIC Pathfinder** | €3.5M | 28 Oct 2026 | high | EU partner needed |
 
-## Шаги прямо сейчас
+## Steps right now
 
-### 1. IHP MPW (бесплатный silicon)
+### 1. IHP MPW (free silicon)
 ```
 Email: open-pdk@ihp-microelectronics.com
-Тема:  Trinity GF16 Ternary Neural Core — MPW Submission Request
-Файл:  docs/funding/IHP-MPW-application.md (готов!)
-Время: 10 минут
+Subject:  Trinity GF16 Ternary Neural Core — MPW Submission Request
+File:  docs/funding/IHP-MPW-application.md (ready!)
+Time:  10 minutes
 ```
 
-### 2. NLnet (€50K, простая форма)
+### 2. NLnet (€50K, simple form)
 ```
 URL:   https://nlnet.nl/propose
-Файл: docs/funding/NLnet-application.md (готов!)
-Время: 1 час
+File: docs/funding/NLnet-application.md (ready!)
+Time: 1 hour
 ```
 
-### 3. Estonia e-Residency (нужно для EIC/Chips JU)
+### 3. Estonia e-Residency (needed for EIC/Chips JU)
 ```
 URL:  https://e-resident.gov.ee
-Цена: ~€100
-Срок: 1 неделя
-Зачем: юрлицо в EU обязательно для Horizon Europe
+Price: ~€100
+Timeline: 1 week
+Why: an EU legal entity is mandatory for Horizon Europe
 ```
 
-## Важно понимать
+## Important to understand
 
-- **€40M** — это общий бюджет Chips JU на СОТНИ проектов
-- **Тебе могут дать** €50K–€4M в зависимости от программы
-- **IHP и NLnet** — самый быстрый путь к деньгам/silicon
-- **EIC Pathfinder** — самый большой грант, но нужен EU партнёр
+- **€40M** is the total budget of Chips JU across HUNDREDS of projects
+- **You may be awarded** €50K–€4M depending on the programme
+- **IHP and NLnet** are the fastest path to money/silicon
+- **EIC Pathfinder** is the largest grant, but requires an EU partner
 
-## Текущий статус TRL (Technology Readiness Level)
+## Current TRL status (Technology Readiness Level)
 
 ```
 TRL 6 — Technology demonstrated in relevant environment
@@ -51,7 +51,7 @@ TRL 6 — Technology demonstrated in relevant environment
   ✅ Open RTL: Apache 2.0
   ✅ Rust toolchain: cargo test 21/21
   ✅ arXiv draft: in progress
-  → Достаточно для IHP MPW + NLnet + STF прямо сейчас
+  → Sufficient for IHP MPW + NLnet + STF right now
 ```
 
 `φ² + φ⁻² = 3 · TRINITY · FUNDED`

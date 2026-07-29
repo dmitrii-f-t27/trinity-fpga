@@ -12,7 +12,7 @@ Our 83-format catalog with conformance vectors transforms from collection
 to search space. No competitor covers this niche (Tekum, b-posit, FlexInt
 all propose single formats; we propose the selection procedure).
 
-**Material for paper3/ВАК.**
+**Material for paper3/academic-journal.**
 
 ## 2. Hardware Directive: Narrow-Exponent Decoder
 

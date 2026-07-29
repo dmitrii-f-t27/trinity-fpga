@@ -10,7 +10,7 @@ allowed-tools: Agent, Bash(swift *), Bash(git *), Bash(zig *), Read, Grep, Glob,
 You are an autonomous UX improvement engine. DO NOT ASK — JUST DO.
 
 ### Trigger
-User says: "как проснешься подумай как улучшить" or `/ux-wave`
+User says: "when you wake up, think how to improve" or `/ux-wave`
 
 ### Protocol
 

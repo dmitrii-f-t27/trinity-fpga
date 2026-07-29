@@ -1,28 +1,28 @@
-# Вектор 2 — GPU-прогон на 29M (seed=42, RTX PRO 4500 Blackwell, torch 2.11.0+cu128)
-[измерено — GPU]. Скрипт webterm_gfplus_v2select.py @ trinity-fpga main 23a5d2d0.
-Модель: 9L d=512 nhead=8 ffn=2048, 3000 шагов FineWeb sp1024, final loss=3.696.
-27 Linear-слоёв >100k параметров. Downstream = SQNR выхода Y=X·Wᵀ на VAL holdout,
-выбор кармана на calib-активациях (диагональ Гессиана H_jj=E[x_j²]).
+# Vector 2 — GPU run on 29M (seed=42, RTX PRO 4500 Blackwell, torch 2.11.0+cu128)
+[measured — GPU]. Script webterm_gfplus_v2select.py @ trinity-fpga main 23a5d2d0.
+Model: 9L d=512 nhead=8 ffn=2048, 3000 steps FineWeb sp1024, final loss=3.696.
+27 Linear layers >100k parameters. Downstream = SQNR of output Y=X·Wᵀ on VAL holdout,
+pocket selection on calib-activations (Hessian diagonal H_jj=E[x_j²]).
 
-## Сводка ΔSQNR (Hessian − MSE)
-| bits | среднее | медиана | лучше/хуже/равно |
+## ΔSQNR summary (Hessian − MSE)
+| bits | mean | median | better/worse/equal |
 |---|---|---|---|
 | 4  | +0.878 | +0.080 | 16/1/1 |
 | 6  | +0.697 | +0.234 | 18/0/0 |
 | 8  | +0.680 | +0.170 | 18/0/0 |
 
-## Ключевая закономерность: выигрыш локализован в глубоких linear1 (FFN up-proj)
+## Key pattern: the gain is localized in deep linear1 (FFN up-proj)
 l.0.linear1: +0.008 (4b) → l.8.linear1: +3.102 (4b) / +2.155 (6b) / +1.825 (8b).
-linear2 (down-proj, после активации) выигрывает мало (+0.01…+0.36) — активации однороднее.
-Выигрыш РАСТЁТ с глубиной слоя → механизм = неоднородная важность столбцов на глубоких FFN.
+linear2 (down-proj, after activation) gains little (+0.01…+0.36) — activations are more uniform.
+The gain GROWS with layer depth → mechanism = non-uniform importance of columns in deep FFNs.
 
-## Вывод (инвертирует микро-LM)
-Микро-LM (2 однородных слоя): среднее +0.055 дБ, 7/3/2 = НЕЙТРАЛЬНО.
-29M (27 слоёв, гетерогенные): среднее +0.68…+0.88 дБ, 52/2/1 из 54 ячеек = ЗНАЧИМО.
-→ downstream-aware (Hessian) выбор ОКУПАЕТСЯ на гетерогенных весах; величина зависит
-от неоднородности важности входов слоя, а не от метода. Гипотеза №18 подтверждена.
+## Conclusion (inverts the micro-LM)
+Micro-LM (2 uniform layers): mean +0.055 dB, 7/3/2 = NEUTRAL.
+29M (27 layers, heterogeneous): mean +0.68…+0.88 dB, 52/2/1 out of 54 cells = SIGNIFICANT.
+→ downstream-aware (Hessian) selection PAYS OFF on heterogeneous weights; the magnitude depends
+on the non-uniformity of the layer's input importance, not on the method. Hypothesis #18 confirmed.
 
-## Границы
-1 модель/1 seed; downstream = SQNR выхода линейного слоя (суррогат), НЕ полная model-BPB;
-H_jj = диагональное приближение (OBQ/GPTQ). BPB-эффект (окупает ли заголовок 2 бита/строку)
-НЕ замерен — SQNR ранжирует, но порог значимости Parameter Golf = 0.005 BPB отдельно.
+## Boundaries
+1 model/1 seed; downstream = SQNR of the linear layer output (a surrogate), NOT full model-BPB;
+H_jj = diagonal approximation (OBQ/GPTQ). The BPB effect (whether the 2 bits/row header pays off)
+has NOT been measured — SQNR ranks, but the Parameter Golf significance threshold = 0.005 BPB separately.

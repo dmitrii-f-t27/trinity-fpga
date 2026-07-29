@@ -597,9 +597,9 @@ grep -r "OK\|success" e2e/*.log
 
 **Success Criteria:**
 - Verdict generated
-- "Что работает" (What works) documented
-- "Что требует работы" (What needs work) documented
-- "Честная оценка" (Honest assessment) provided
+- "What works" section documented
+- "What needs work" section documented
+- "Honest assessment" provided
 - SHIP/NO-SHIP decision clear
 
 **Evidence:** `phase6_verdict.txt`

@@ -14,12 +14,12 @@ First, check if monitoring loop is running:
 
 ```bash
 # Check if 15-min monitoring loop is active
-crontab -l 2>/dev/null | grep -q "tri train" && echo "✅ Мониторинг активен" || echo "⚠️ Мониторинг НЕ настроен"
+crontab -l 2>/dev/null | grep -q "tri train" && echo "✅ Monitoring active" || echo "⚠️ Monitoring NOT configured"
 ```
 
 If NOT active, offer to set up:
 ```
-⚠️ Автомониторинг не запущен. Для мониторинга каждые 15 минут:
+⚠️ Auto-monitoring is not running. For monitoring every 15 minutes:
 /loop 15m /train
 ```
 
@@ -109,18 +109,18 @@ Config: S3 MultiObj (NTP 50%, JEPA 25%, NCA 25%), ctx=81, crash_tol=5%
 
 ## Step 3: Your Analysis (after dashboard)
 
-After showing the full dashboard + wave 9 table, add a SHORT (5-10 lines) analytical block in Russian:
+After showing the full dashboard + wave 9 table, add a SHORT (5-10 lines) analytical block:
 
 ```
-### 📊 Аналитика [UTC: $(date -u +%H:%M)]
+### 📊 Analytics [UTC: $(date -u +%H:%M)]
 
-{emoji} **Лидер**: {name} PPL={val} @ {step} — {insight}
-{emoji} **S3 MultiObj**: {count}/{total} активны — {status} (NTP 50%, JEPA 25%, NCA 25%)
-{emoji} **Stalled**: {count} воркеров — {action if any}
-{emoji} **Эволюция**: Step {step} — {kills} kills за сессию
-{emoji} **Волна 7**: {best} w7-50 PPL={val} — {insight}
+{emoji} **Leader**: {name} PPL={val} @ {step} — {insight}
+{emoji} **S3 MultiObj**: {count}/{total} active — {status} (NTP 50%, JEPA 25%, NCA 25%)
+{emoji} **Stalled**: {count} workers — {action if any}
+{emoji} **Evolution**: Step {step} — {kills} kills this session
+{emoji} **Wave 7**: {best} w7-50 PPL={val} — {insight}
 
-**Вердикт**: {one sentence — act or wait}
+**Verdict**: {one sentence — act or wait}
 ```
 
 Rules:
@@ -137,9 +137,9 @@ Rules:
 If ANY S3 MultiObj worker is STALLED, add:
 
 ```
-🚨 **СТОП! S3 воркер {name} stalled на {step} шагов!**
-   Действие: railway restart --service {name}
-   Профиль: S3 MultiObj (NTP 50%, JEPA 25%, NCA 25%)
+🚨 **STOP! S3 worker {name} stalled at {step} steps!**
+   Action: railway restart --service {name}
+   Profile: S3 MultiObj (NTP 50%, JEPA 25%, NCA 25%)
 ```
 
 ## Step 4: Additional Data (if $ARGUMENTS specified)
@@ -152,7 +152,7 @@ Reference: R33 PPL=4.6 (verified), R18 PPL=6.1 (MIRAGE), R19 PPL=2.04 (UNVERIFIE
 
 ## Step 5: Telegram Broadcast (REQUIRED)
 
-Compose a SHORT narration in Russian (3-5 sentences, Slack tone).
+Compose a SHORT narration (3-5 sentences, Slack tone).
 
 Set `TG_TEXT` to the narration.
 Set `TG_MODE=dedup`, `TG_DEDUP_FILE=.trinity/tg_dedup_train.hash`.

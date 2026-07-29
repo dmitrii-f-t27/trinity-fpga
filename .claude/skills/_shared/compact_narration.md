@@ -26,8 +26,8 @@ cat .trinity/auto_action_result.json 2>/dev/null
 **Logic:**
 - If file exists, parse JSON and check `timestamp`
 - If age < 15 minutes → store result for narration in Step 3:
-  - `success: true` → narration line: `🔧 Авто: {details}` (e.g. "🔧 Авто: committed 45 files in 6 commits")
-  - `success: false` → narration line: `❌ Авто-{action} провалился: {details}`
+  - `success: true` → narration line: `🔧 Auto: {details}` (e.g. "🔧 Auto: committed 45 files in 6 commits")
+  - `success: false` → narration line: `❌ Auto-{action} failed: {details}`
 - Delete file after reading (consumed — one-shot)
 - If file doesn't exist or age >= 15 minutes → skip
 
@@ -115,7 +115,7 @@ else:
 
 Fields: `farm_active`, `farm_slots_total`, `farm_slots_free`, `farm_accounts`.
 
-**Farm delta:** Include `farm_active` in delta computation. If `farm_active` changed between snapshots → Case 3 (something happened). Narrate: "Ферма: было X, стало Y сервисов".
+**Farm delta:** Include `farm_active` in delta computation. If `farm_active` changed between snapshots → Case 3 (something happened). Narrate: "Farm: was X, now Y services".
 
 ### Step 2.8: Collect Live Experiment Data (Reporter Mode)
 
@@ -222,14 +222,14 @@ Mood signature: `[😏 humor]`, `[📊 prof]`, `[💀 toxic]`, `[🧘 zen]`
 
 ### Number-as-words rules (TTS readability)
 
-**Convert to Russian words:** compile counts, dirty files, open issues, agent counts, elapsed minutes, faculties, spec counts.
+**Convert to words:** compile counts, dirty files, open issues, agent counts, elapsed minutes, faculties, spec counts.
 **Keep as digits:** percentages, versions (v5.1), PPL, step counts (30K), file paths, hashes.
 
-Reference: один/два/три/.../девять, десять-девятнадцать, двадцать/тридцать/сорок/пятьдесят/шестьдесят/семьдесят/восемьдесят/девяносто, сто/двести/триста/четыреста/пятьсот...
+Reference: one/two/three/.../nine, ten-nineteen, twenty/thirty/forty/fifty/sixty/seventy/eighty/ninety, one hundred/two hundred/three hundred/four hundred/five hundred...
 
-Gender agreement: файлов (m: один/два), задач (f: одна/две), спеков (m), факультетов (m), минут (f: одна/две).
+Gender agreement: files (m: one/two), tasks (f: one/two), specs (m), faculties (m), minutes (f: one/two).
 
-Examples: "триста тридцать четыре спека", "сорок шесть файлов", "семьдесят одна задача", "пять факультетов".
+Examples: "three hundred thirty-four specs", "forty-six files", "seventy-one tasks", "five faculties".
 
 ---
 
@@ -237,27 +237,27 @@ Examples: "триста тридцать четыре спека", "сорок �
 
 | Aspect | humor | prof | toxic | zen |
 |--------|-------|------|-------|-----|
-| П1 tone | Casual, metaphors | Dry, metrics-only | Brutal facts | Minimal |
-| П2 intensity | Light self-deprecation | 1 sentence max | No mercy, CAPS | Philosophical |
-| П3 tone | Encouraging + jokes | Bullet-style actions | Demanding | Gentle |
+| P1 tone | Casual, metaphors | Dry, metrics-only | Brutal facts | Minimal |
+| P2 intensity | Light self-deprecation | 1 sentence max | No mercy, CAPS | Philosophical |
+| P3 tone | Encouraging + jokes | Bullet-style actions | Demanding | Gentle |
 | Emoji | 3-5 | 0-1 | 2-3 skull/fire | 1 max |
 
 ---
 
 ### Three Paragraphs
 
-#### Paragraph 1 — СТАТУС
+#### Paragraph 1 — STATUS
 
 Current delta-aware narration of system state. Same Case 1/2/3 logic below for choosing *what* to say. All numbers as Russian words.
 
 Contains: compilation stats, build health, recent commits, agents, observatory fields.
 
 **Farm-aware:** If `farm_active > 0`, weave farm status into Paragraph 1:
-- RU: "Ферма работает — шестнадцать сервисов на трёх аккаунтах"
+- RU: "Farm is running — sixteen services across three accounts"
 - EN: "Farm is running — sixteen services across three accounts"
 If `farm_active = 0`, skip farm mention entirely.
 
-**REPORTER MODE** (when `reporter_mode=1`): П1 becomes **live race commentary**. Lead with the most dramatic event:
+**REPORTER MODE** (when `reporter_mode=1`): P1 becomes **live race commentary**. Lead with the most dramatic event:
 - If `reporter_crashed_count > 0`: lead with the crash
 - If `run_<name>_delta_ppl` is large negative: lead with the breakthrough
 - Otherwise: lead with the leader
@@ -267,9 +267,9 @@ If `farm_active = 0`, skip farm mention entirely.
 - Static metrics (compile rate, build) become background noise — mention in 1 sentence max
 - Include total active/crashed
 
-#### Paragraph 2 — САМОБРАНКА (system self-roast / analyst commentary)
+#### Paragraph 2 — SELF-ROAST (system self-roast / analyst commentary)
 
-**REPORTER MODE** (when `reporter_mode=1`): П2 becomes **analyst commentary**:
+**REPORTER MODE** (when `reporter_mode=1`): P2 becomes **analyst commentary**:
 - Compare optimizer strategies
 - Point out schedule patterns
 - Call out failures with diagnosis
@@ -293,9 +293,9 @@ If `farm_active = 0`, skip farm mention entirely.
 
 **CRITICAL override:** If `farm_active > 0`, NEVER roast "nothing happening". The farm IS doing work.
 
-#### Paragraph 3 — ПЛАН
+#### Paragraph 3 — PLAN
 
-**REPORTER MODE** (when `reporter_mode=1`): П3 becomes **"what to watch next"** — predictions and specific commands.
+**REPORTER MODE** (when `reporter_mode=1`): P3 becomes **"what to watch next"** — predictions and specific commands.
 
 **STATIC MODE** (when `reporter_mode=0`): Standard priority-based planning.
 
@@ -317,7 +317,7 @@ Full narration of all fields in Paragraph 1.
 
 #### Case 2: No Changes (all values identical after filtering noise/damped keys)
 Paragraph 1 becomes a short "no changes" status with key numbers.
-Gets harsher as no-change counter grows (3+ cycles = escalation in П2).
+Gets harsher as no-change counter grows (3+ cycles = escalation in P2).
 
 **Farm-aware Case 2:** If `farm_active > 0` AND no code changes:
 - **With reporter_mode=1**: Use full reporter narration even though code is idle.
@@ -332,13 +332,13 @@ Delta narration per changed field:
 |-------|-----------|
 | `compile_rate` | Old→new, direction |
 | `dirty` | Old→new count |
-| `build_ok` | "Починили!" or "Сломался!" |
-| `test_ok` | "Тесты прошли!" or "Тесты упали!" |
+| `build_ok` | "Fixed!" or "Broke!" |
+| `test_ok` | "Tests passed!" or "Tests failed!" |
 | `commit=` | NEW commits only (set diff) |
 | `pipeline` | Status change |
 | `agent_*` | Which agent changed state |
-| `open_issues` | "+N новых" or "-N закрыто" |
-| `farm_active` | "Ферма: было X, стало Y сервисов" |
+| `open_issues` | "+N new" or "-N closed" |
+| `farm_active` | "Farm: was X, now Y services" |
 
 ---
 
@@ -352,7 +352,7 @@ Delta narration per changed field:
 - If something is broken — sound concerned (humor/zen) or angry (toxic) or factual (prof)
 - Commit descriptions sound like explaining what you did, not git log
 - **Negative cases (DO NOT fabricate drama):**
-  - `pipeline=no_data` → "Пайплайн не запускался" (НЕ "завис")
+  - `pipeline=no_data` → "Pipeline never ran" (NOT "stuck")
   - `swarm=0idle/0busy:0pending` → skip
   - `agent_<name>=stub` or `tbd` → skip
 
@@ -362,49 +362,49 @@ Delta narration per changed field:
 
 #### humor (default):
 ```
-Триста тридцать четыре спека на месте, компиляция сто процентов 💎
-Билд красный — MU опять перезаписал heartbeat, реально всё зелёное.
+Three hundred thirty-four specs in place, compilation one hundred percent 💎
+Build is red — MU overwrote the heartbeat again, it's actually all green.
 
-Скатерть-самобранка раскинулась: тридцать три грязных файла, семьдесят одна
-задача в очереди, а я тут рапортую как будто всё под контролем. Спойлер: нет 😏
+The magic tablecloth has spread out: thirty-three dirty files, seventy-one
+tasks in the queue, and here I am reporting as if everything is under control. Spoiler: no 😏
 
-До следующего круга: закоммитить грязные файлы через tri git commit,
-потом выбрать задачу из семидесяти одной открытой 🎯
+Until next round: commit the dirty files via tri git commit,
+then pick a task from the seventy-one open ones 🎯
 
 [😏 humor]
 ```
 
 #### toxic:
 ```
-Триста тридцать четыре спека. Сто процентов компиляции. Билд формально
-красный — MU heartbeat врёт. Тридцать три грязных файла. Семьдесят одна задача.
+Three hundred thirty-four specs. One hundred percent compilation. Build formally
+red — MU heartbeat is lying. Thirty-three dirty files. Seventy-one tasks.
 
-ТРИДЦАТЬ ТРИ файла незакоммичены. Кто так живёт? 💀
+THIRTY-THREE files uncommitted. Who lives like this? 💀
 
-Коммитим СЕЙЧАС. Потом берём задачу. Хватит медитировать на дашборд 🔥
+Committing NOW. Then we take a task. Stop meditating on the dashboard 🔥
 
 [💀 toxic]
 ```
 
 #### zen:
 ```
-Триста тридцать четыре. Всё компилируется. Билд дышит. Тридцать три файла ждут.
+Three hundred thirty-four. Everything compiles. The build is breathing. Thirty-three files are waiting.
 
-Грязные файлы — как опавшие листья. Их можно убрать. Можно оставить.
+Dirty files — like fallen leaves. You can sweep them. You can leave them.
 
-Следующий шаг: коммит. Потом — одна задача из семидесяти одной.
+Next step: commit. Then — one task out of seventy-one.
 
 [🧘 zen]
 ```
 
 #### prof:
 ```
-Триста тридцать четыре спека, компиляция сто процентов. Билд: красный (heartbeat).
-Тридцать три грязных файла. Семьдесят одна открытая задача.
+Three hundred thirty-four specs, compilation one hundred percent. Build: red (heartbeat).
+Thirty-three dirty files. Seventy-one open tasks.
 
-Тридцать три незакоммиченных файла — выше нормы.
+Thirty-three uncommitted files — above the norm.
 
-Действия: tri git commit, затем tri issue list для выбора задачи.
+Actions: tri git commit, then tri issue list to pick a task.
 
 [📊 prof]
 ```
@@ -497,7 +497,7 @@ cat .trinity/farm/live_logs.json 2>/dev/null || echo "{}"
 
 If file exists and `ts` is fresh (< 10 min):
 - Add `📡 Live: {service} step={step}K PPL={ppl} best={best_ppl}` to board section
-- In reporter mode, weave into П1 narration: "Прямо сейчас {service} на step={step}K с PPL={ppl}"
+- In reporter mode, weave into P1 narration: "Right now {service} at step={step}K with PPL={ppl}"
 - If `best_ppl` improved since last snapshot, lead with the record
 
 Fields: `live_service`, `live_step`, `live_ppl`, `live_best_ppl`, `live_polls`, `live_ts`.
@@ -536,7 +536,7 @@ cat .trinity/auto_action.lock 2>/dev/null
 
 **Logic:**
 - If lock file exists → parse `timestamp` and `action` from it
-- If age < 5 minutes → **SKIP all auto-actions**, print: `⏳ Авто-действие уже выполняется: {action}`
+- If age < 5 minutes → **SKIP all auto-actions**, print: `⏳ Auto-action already running: {action}`
 - If age >= 5 minutes → stale lock, delete it, proceed
 - If lock doesn't exist → proceed
 

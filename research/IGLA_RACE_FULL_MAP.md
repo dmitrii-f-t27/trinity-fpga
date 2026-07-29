@@ -1,15 +1,15 @@
-# IGLA RACE — полная карта репозиториев и задач
+# IGLA RACE — full map of repositories and tasks
 
-## Репозитории (4 основных)
+## Repositories (4 main)
 
-| Репо | Описание | Роль |
+| Repo | Description | Role |
 |------|---------|------|
-| **trios-trainer-igla** | Training pipeline (Rust) | SSOT: модель, оптимизатор, BPB telemetry |
+| **trios-trainer-igla** | Training pipeline (Rust) | SSOT: model, optimizer, BPB telemetry |
 | **trios-railway** | Railway deployment + gardener | Auto-deploy, heartbeat, champion tracking |
 | **trios-mcp** | MCP server (Rust) | AI agent interface to tri CLI |
-| **trinity-fpga** (этот репо) | FPGA hardware | GF16+ silicon, format catalog |
+| **trinity-fpga** (this repo) | FPGA hardware | GF16+ silicon, format catalog |
 
-## Текущий статус IGLA RACE
+## Current IGLA RACE status
 
 ```
 Champion:  gf256 × adamw = BPB 2.5719 (frozen since May 14)
@@ -17,18 +17,18 @@ Target:    BPB < 1.50 on 3 seeds
 Gap:       -1.07 BPB
 ```
 
-## Ключевые Issues (30 задач)
+## Key Issues (30 tasks)
 
 ### trios-trainer-igla (29 issues)
 
-**OPEN — критические:**
-- #217: nf4 kernel не тренируется (delta_bpb=0.0)
+**OPEN — critical:**
+- #217: nf4 kernel does not train (delta_bpb=0.0)
 - #123: Postgres pool exhausted (68 services)
 - #181: φ as falsifiable architecture prior
 - #97: Phase-2/3 QAT (stochastic rounding + non-IEEE)
 - #93: canonical canon_name format spec
 
-**CLOSED — выполненные:**
+**CLOSED — completed:**
 - #95: fake_quant exponent/range bugs fixed
 - #110: SOAP optimizer added (9-axis grid complete)
 - #118: BIGINT step columns
@@ -49,7 +49,7 @@ Gap:       -1.07 BPB
 
 ### t27 — IGLA CODER+RACE (22 wave loops)
 
-| Wave Loop | Достижение |
+| Wave Loop | Achievement |
 |-----------|-----------|
 | 358 | 176 ∀ theorems, 546/546 PASS |
 | 359-360 | Ternary MAC synthesis attempt |
@@ -59,7 +59,7 @@ Gap:       -1.07 BPB
 
 ### t27 — IGLA-Coder Phases (5 tasks)
 
-| Phase | Задача | Статус |
+| Phase | Task | Status |
 |-------|--------|--------|
 | P4 (#1037) | Pilot pretraining 50-200M | Open |
 | P5 (#1038) | Multi-language eval | Open |
@@ -67,35 +67,35 @@ Gap:       -1.07 BPB
 | P7 (#1040) | Low-bit/ternary track | Open |
 | P8 (#1041) | Integration + publication | Open |
 
-## Форматная матрица IGLA RACE
+## IGLA RACE format matrix
 
-| Format | BPB (adamw) | BPB (muon) | delta | Статус |
+| Format | BPB (adamw) | BPB (muon) | delta | Status |
 |--------|-------------|------------|-------|--------|
 | **gf256** | **2.5719** | — | — | **CHAMPION** |
-| gf16 | 6.975 | 6.975 | 0.026 | Работает |
-| fp8_e4m3 | 6.668 | — | 0.333 | Работает |
-| int4 | — | 6.695 | 0.304 | Работает (STE) |
-| int8 | — | 6.903 | 0.096 | Работает |
-| nf4 | 7.000 | 7.000 | **0.000** | **НЕ тренируется** (#217) |
+| gf16 | 6.975 | 6.975 | 0.026 | Works |
+| fp8_e4m3 | 6.668 | — | 0.333 | Works |
+| int4 | — | 6.695 | 0.304 | Works (STE) |
+| int8 | — | 6.903 | 0.096 | Works |
+| nf4 | 7.000 | 7.000 | **0.000** | **Does not train** (#217) |
 
-## Связь с нашим GF16+
+## Connection with our GF16+
 
 ```
-IGLA RACE использует:     gf256 (champion), gf16, fp8, int4, int8
-Наш вклад (GF16+):        100% gradient survival (vs gf16's 64%)
+IGLA RACE uses:          gf256 (champion), gf16, fp8, int4, int8
+Our contribution (GF16+):  100% gradient survival (vs gf16's 64%)
                           Silicon proven: dot product 8.0 ✓
                           Golden Ruler: #1 recommendation for training
 
-Что МЫ можем дать IGLA RACE:
-  1. GF16+ → заменяет gf16 (exact Quire accumulation, 0 gradient loss)
-  2. Golden Ruler → автоподбор формата под workload
-  3. Format catalog (72/83) → расширить матрицу тестирования
-  4. Coq invariants INV-3/INV-5 → формальная верификация GF16 safe domain
+What WE can give IGLA RACE:
+  1. GF16+ → replaces gf16 (exact Quire accumulation, 0 gradient loss)
+  2. Golden Ruler → auto-selection of format for the workload
+  3. Format catalog (72/83) → expand the test matrix
+  4. Coq invariants INV-3/INV-5 → formal verification of GF16 safe domain
 ```
 
-## Что нужно сделать (план)
+## What needs to be done (plan)
 
-1. **Клонировать trios-trainer-igla** → добавить GF16+ как формат
-2. **Починить nf4 (#217)** → добавить scale + STE (похоже на наш fake_quant fix)
-3. **Запустить GF16+ на IGLA RACE** → сравнить BPB с gf16
-4. **Email Hunhold** → совместная статья с takum benchmark
+1. **Clone trios-trainer-igla** → add GF16+ as a format
+2. **Fix nf4 (#217)** → add scale + STE (similar to our fake_quant fix)
+3. **Run GF16+ on IGLA RACE** → compare BPB with gf16
+4. **Email Hunhold** → joint paper with a takum benchmark

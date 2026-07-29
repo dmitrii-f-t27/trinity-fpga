@@ -1,8 +1,8 @@
-# IGLA RACE → Format Robustness: ПОЛНАЯ СВЯЗЬ
+# IGLA RACE → Format Robustness: THE FULL CONNECTION
 
-## Что такое IGLA RACE
+## What is IGLA RACE
 
-**ИГЛА** = Needle In A Haystack — задача: обучить языковую модель на Rust с весами в формате GF16, достичь BPB < 1.50.
+**IGLA** = Needle In A Haystack — the task: train a language model in Rust with weights in GF16 format, reach BPB < 1.50.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -10,7 +10,7 @@
 │                                                              │
 │  trios-trainer-igla (Rust)                                   │
 │  ├── Trinity 3k model (JEPA-T + NCA)                        │
-│  ├── GF16 quantized weights ← ФОРМАТ                        │
+│  ├── GF16 quantized weights ← FORMAT                        │
 │  ├── ASHA scheduler (hyperparameter pruning)                │
 │  ├── Coq invariants (INV-1..10, φ²+1/φ²=3)                 │
 │  └── Neon DB (experiment tracking)                          │
@@ -24,113 +24,113 @@
 └──────────────────────────────────────────────────────────────┘
 ```
 
-## Почему GF16 работает в IGLA RACE — наш ответ
+## Why GF16 works in IGLA RACE — our answer
 
-### Найденная связь: ROBUSTNESS = TRAINING STABILITY
+### The found connection: ROBUSTNESS = TRAINING STABILITY
 
-Наш эксперимент (Wave 21) доказал: **GF16 — единственный IEEE-style 16-битный формат с 4/4 robustness**. Это означает:
+Our experiment (Wave 21) proved: **GF16 — the only IEEE-style 16-bit format with 4/4 robustness**. This means:
 
-| Тренировочный этап | Что нужно от формата | GF16 | FP16 | BF16 |
+| Training stage | What is needed from the format | GF16 | FP16 | BF16 |
 |--------------------|---------------------|------|------|------|
-| **Forward pass** (matmul) | Точность умножения | ✓ (8.8e-4 err) | ✓ (1.1e-3) | **✗** (8.7e-3 — 10× хуже!) |
-| **Gradient accumulation** | Точность сложения малых чисел | ✓ (1.0e-3) | ✓ (8.2e-3) | ✓ (1.7e-2) |
+| **Forward pass** (matmul) | Multiplication accuracy | ✓ (8.8e-4 err) | ✓ (1.1e-3) | **✗** (8.7e-3 — 10× worse!) |
+| **Gradient accumulation** | Accuracy of adding small numbers | ✓ (1.0e-3) | ✓ (8.2e-3) | ✓ (1.7e-2) |
 | **Weight update range** | Wide dynamic range | ✓ (1/11 lost) | **✗** (5/11 lost!) | ✓ (0/11) |
-| **Attention scores** | Представимость логитов | ✓ (KL 5.1e-5) | ✓ (KL 8.6e-6) | ✓ (KL 6.7e-5) |
-| **ИТОГ** | | **4/4** | **3/4** | **3/4** |
+| **Attention scores** | Representability of logits | ✓ (KL 5.1e-5) | ✓ (KL 8.6e-6) | ✓ (KL 6.7e-5) |
+| **TOTAL** | | **4/4** | **3/4** | **3/4** |
 
-### Почему FP16 не подходит для IGLA RACE
+### Why FP16 is not suitable for IGLA RACE
 
-FP16 (E=5, M=10) теряет **5 из 11** значений в диапазоне 1e-10..1e10:
+FP16 (E=5, M=10) loses **5 of 11** values in the range 1e-10..1e10:
 ```
-Потерянные: 1e-10, 1e-8, 1e-6, 1e-4, 1e-2  (все < 1!)
+Lost: 1e-10, 1e-8, 1e-6, 1e-4, 1e-2  (all < 1!)
 ```
 
-При обучении: gradient values ~0.001 → **flush to zero** → веса не обновляются → **training stall**.
+During training: gradient values ~0.001 → **flush to zero** → weights do not update → **training stall**.
 
-Coq инвариант INV-3 (`gf16_safe_domain`) доказывает, что GF16 (E=6) имеет достаточно экспоненты, чтобы избежать этой проблемы. **Наши эксперименты подтверждают это эмпирически.**
+The Coq invariant INV-3 (`gf16_safe_domain`) proves that GF16 (E=6) has enough exponent to avoid this problem. **Our experiments confirm this empirically.**
 
-### Почему BF16 не подходит
+### Why BF16 is not suitable
 
-BF16 (E=8, M=7) имеет 10× большую ошибку умножения → **шумный forward pass** → BPB не сходится стабильно.
+BF16 (E=8, M=7) has a 10× larger multiplication error → **noisy forward pass** → BPB does not converge stably.
 
-### Coq инварианты ↔ Robustness
+### Coq invariants ↔ Robustness
 
-| Coq INV | Что доказывает | Наш robustness тест |
+| Coq INV | What it proves | Our robustness test |
 |---------|---------------|---------------------|
-| INV-3 `gf16_safe_domain` | GF16 достаточно для d_model≥256 | ✓ Dynamic range: 4/4 |
-| INV-5 `lucas_closure_gf16` | φ^(2n)+φ^(-2n) ∈ ℤ | φ-баланс: E=6, M=9 |
-| INV-8 `lr_phi_band` | lr=0.004=α_φ/φ³ оптимален | ✓ Gradient accum: 4/4 |
-| INV-7 `igla_found_criterion` | BPB<1.50 при 3 seed'ах | Результат: BPB=2.5329 |
+| INV-3 `gf16_safe_domain` | GF16 is sufficient for d_model≥256 | ✓ Dynamic range: 4/4 |
+| INV-5 `lucas_closure_gf16` | φ^(2n)+φ^(-2n) ∈ ℤ | φ-balance: E=6, M=9 |
+| INV-8 `lr_phi_band` | lr=0.004=α_φ/φ³ is optimal | ✓ Gradient accum: 4/4 |
+| INV-7 `igla_found_criterion` | BPB<1.50 at 3 seeds | Result: BPB=2.5329 |
 
-**Связь**: Coq доказывает, что GF16 mathematical domain безопасен → наш эксперимент доказывает, что GF16 empirically robust → IGLA RACE использует GF16 → champion BPB=2.5329.
+**The connection:** Coq proves that the GF16 mathematical domain is safe → our experiment proves that GF16 is empirically robust → IGLA RACE uses GF16 → champion BPB=2.5329.
 
-## Что МЫ добавили к IGLA RACE
+## What WE added to IGLA RACE
 
-### 1. Полный форматный каталог (72/83 с oracle)
+### 1. Full format catalog (72/83 with oracle)
 
-IGLA RACE тестировала 4 формата: STD(f32), BF16, GF16, TF3(ternary).
-Теперь каталог имеет **84 формата** с oracle + векторы.
+IGLA RACE tested 4 formats: STD(f32), BF16, GF16, TF3(ternary).
+Now the catalog has **84 formats** with oracle + vectors.
 
-### 2. Доказательство: GF16 = минимум для robustness
+### 2. Proof: GF16 = the minimum for robustness
 
 ```
-gf14 (14b): 4/4 ROBUST ← минимум для IEEE-style!
+gf14 (14b): 4/4 ROBUST ← minimum for IEEE-style!
 gf16 (16b): 4/4 ROBUST
-gf20 (20b): 4/4 ROBUST (избыточно)
+gf20 (20b): 4/4 ROBUST (redundant)
 
 FP16 (16b): 3/4 ← FAILS range
 BF16 (16b): 3/4 ← FAILS matmul
 ```
 
-**Вывод для IGLA RACE**: GF16 — не произвольный выбор. Это **минимальный формат, на котором training стабилен**. Любой более узкий формат (GF12, FP16) приводит к flush-to-zero или неточному matmul.
+**Conclusion for IGLA RACE**: GF16 — not an arbitrary choice. It is **the minimal format on which training is stable**. Any narrower format (GF12, FP16) leads to flush-to-zero or inaccurate matmul.
 
-### 3. LUT-стоимость = 2.3 × W²
+### 3. LUT cost = 2.3 × W²
 
 ```
 GF16 MUL: 505 LUT (zero-DSP)
 takum16 MUL: 505 LUT (zero-DSP)
 
-На FPGA (openXC7): одинаковая стоимость.
-В IGLA RACE (CPU/GPU): GF16 проще реализовать (IEEE-style vs LNS).
+On FPGA (openXC7): identical cost.
+In IGLA RACE (CPU/GPU): GF16 is simpler to implement (IEEE-style vs LNS).
 ```
 
-### 4. Три уровня Trinity
+### 4. Three tiers of Trinity
 
 ```
-Tier 1: Ternary {-1,0,+1} → 52 LUT → BitNet b1.58 веса
+Tier 1: Ternary {-1,0,+1} → 52 LUT → BitNet b1.58 weights
 Tier 2: GF16 [S:6E:9M]   → 505 LUT → gradient accumulation  
 Tier 3: takum16 [LNS]     → 505 LUT → scientific wide-range
 
-VIBEE VM выбирает уровень автоматически.
-IGLA RACE работает на Tier 2 (GF16).
+VIBEE VM selects the tier automatically.
+IGLA RACE runs on Tier 2 (GF16).
 ```
 
-## План: подключить каталог к IGLA RACE
+## Plan: connect the catalog to IGLA RACE
 
-### Что можно сделать СЕЙЧАС (в этом репозитории):
+### What can be done RIGHT NOW (in this repository):
 
-1. **ИГЛА NIAH simulation**: для каждого из 72 форматов — обучить микро-модель (128 params) и измерить, сохраняется ли retrieval accuracy
-2. **Format survival curve**: сколько шагов обучения выживает каждый формат до divergence
-3. **Quantization noise floor**: для каждого формата — сколько шума добавляется к gradient signal
+1. **IGLA NIAH simulation**: for each of the 72 formats — train a micro-model (128 params) and measure whether retrieval accuracy is preserved
+2. **Format survival curve**: how many training steps each format survives before divergence
+3. **Quantization noise floor**: for each format — how much noise is added to the gradient signal
 
-### Что требует trios-trainer-igla:
+### What requires trios-trainer-igla:
 
-4. **Реальная гонка форматов**: запустить IGLA RACE с разными форматами (GF16 vs BF16 vs FP16 vs posit16 vs takum16) и сравнить BPB
-5. **Доказать INV-7**: если GF16 даёт BPB < 1.50, а FP16/BF16 нет → это эмпирическое доказательство φ-преимущества
+4. **A real format race**: run IGLA RACE with different formats (GF16 vs BF16 vs FP16 vs posit16 vs takum16) and compare BPB
+5. **Prove INV-7**: if GF16 gives BPB < 1.50, but FP16/BF16 do not → this is empirical proof of the φ-advantage
 
-## Три варианта следующего Wave
+## Three options for the next Wave
 
-### Option A: "ИГЛА Simulation" — микро-модель × 72 формата
-Обучить микро-LM (256 params, 1000 шагов) для каждого формата.
-Измерить: какой формат даёт лучший BPB после квантования весов?
-Результат: эмпирический ranking 72 форматов для LLM training.
+### Option A: "IGLA Simulation" — micro-model × 72 formats
+Train a micro-LM (256 params, 1000 steps) for each format.
+Measure: which format gives the best BPB after weight quantization?
+Result: an empirical ranking of 72 formats for LLM training.
 
-### Option B: "Format Survival" — 10K шагов обучения
-Для каждого формата: обучить модель, квантовать веса на каждом шаге.
-Измерить: через сколько шагов BPB diverges?
-GF16 должен выжить дольше всех (4/4 robustness).
+### Option B: "Format Survival" — 10K training steps
+For each format: train the model, quantize the weights at each step.
+Measure: after how many steps does BPB diverge?
+GF16 should survive the longest (4/4 robustness).
 
-### Option C: "Подключить trios-trainer-igla"
-Клонировать trios-trainer-igla, добавить поддержку всех 72 форматов.
-Запустить IGLA RACE на Railway с разными форматами.
-Результат: реальный BPB ranking.
+### Option C: "Connect trios-trainer-igla"
+Clone trios-trainer-igla, add support for all 72 formats.
+Run IGLA RACE on Railway with different formats.
+Result: a real BPB ranking.

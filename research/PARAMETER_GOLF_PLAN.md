@@ -1,20 +1,20 @@
 # OpenAI Parameter Golf — Rules + Trinity Entry Plan
 
-## Правила хакатона
+## Hackathon rules
 
-| Параметр | Значение |
+| Parameter | Value |
 |----------|---------|
-| **Артефакт** | ≤ 16MB (десятичных, не MiB) |
-| **Обучение** | ≤ 10 минут на 8×H100 |
-| **Оценка** | ≤ 10 минут на 8×H100 |
-| **Метрика** | BPB (bits per byte) на FineWeb validation |
-| **Содержимое** | code bytes + compressed model bytes |
-| **Без external downloads** во время eval |
-| **TTT разрешён**: только на уже оценённых токенах |
+| **Artifact** | ≤ 16MB (decimal, not MiB) |
+| **Training** | ≤ 10 minutes on 8×H100 |
+| **Evaluation** | ≤ 10 minutes on 8×H100 |
+| **Metric** | BPB (bits per byte) on FineWeb validation |
+| **Contents** | code bytes + compressed model bytes |
+| **No external downloads** during eval |
+| **TTT allowed**: only on already-evaluated tokens |
 
-## Текущий лидерборд (top 5)
+## Current leaderboard (top 5)
 
-| Rank | Score (BPB) | Author | Ключевая техника |
+| Rank | Score (BPB) | Author | Key technique |
 |------|------------|--------|-----------------|
 | 1 | **1.0611** | codemath3000 | SmearGate + LQER + SparseAttnGate + lrzip |
 | 2 | 1.0614 | aquariouseworkman | SmearGate + LQER + Phased TTT |
@@ -24,51 +24,51 @@
 | — | 1.1570 | Ciprian-Florin Ifrim | **Ternary quantization** (73.7M → {-1,0,+1}) |
 | — | 1.2244 | Baseline | Naive 9L 512dim |
 
-## Где Trinity может выиграть
+## Where Trinity can win
 
-### Уникальные преимущества GF16+:
+### Unique advantages of GF16+:
 
-1. **Точный Quire accumulation** → меньше quantization noise → лучше BPB
+1. **Exact Quire accumulation** → less quantization noise → better BPB
 2. **φ-anchored learning rate** (INV-8: lr=0.004=α_φ/φ³) → Coq-proven optimal band
-3. **GF16 = 16-bit at 505 LUT** → больше моделей в 16MB
-4. **Ternary MAC = 52 LUT** → BitNet b1.58 weights на FPGA
+3. **GF16 = 16-bit at 505 LUT** → more models in 16MB
+4. **Ternary MAC = 52 LUT** → BitNet b1.58 weights on FPGA
 
-### Конкретный план для submission:
+### Concrete plan for the submission:
 
-**Архитектура:**
-- 11 layers, d_model=512, MLP 3× (как у топ-5)
-- **Веса: GF16 quantization** (16-bit, φ-rule E=6 M=9)
-- **Embeddings: int7 GPTQ** (как у dexhunter)
-- **Attention: SmearGate** (как у топ-1)
-- **Optimizer: Muon 0.97** (как у #12)
-- **TTT: score-first LoRA** (legal, как у топ-5)
-- **Сжатие: lrzip** (как у #1)
-- **Quire: GF16+ accumulation в optimizer state**
+**Architecture:**
+- 11 layers, d_model=512, MLP 3× (like the top-5)
+- **Weights: GF16 quantization** (16-bit, φ-rule E=6 M=9)
+- **Embeddings: int7 GPTQ** (like dexhunter)
+- **Attention: SmearGate** (like top-1)
+- **Optimizer: Muon 0.97** (like #12)
+- **TTT: score-first LoRA** (legal, like the top-5)
+- **Compression: lrzip** (like #1)
+- **Quire: GF16+ accumulation in optimizer state**
 
-**Оценка BPB при GF16 (из IGLA RACE):**
-- gf16 × rmsprop local bigram: BPB 5.9925 (rank #2 из 20 форматов)
+**BPB estimate at GF16 (from IGLA RACE):**
+- gf16 × rmsprop local bigram: BPB 5.9925 (rank #2 of 20 formats)
 - gf16 × adamw matrix h=96: BPB 6.975 (rank #4)
-- gf256 × adamw champion: BPB 2.5719 (но gf256 = 256-бит!)
+- gf256 × adamw champion: BPB 2.5719 (but gf256 = 256-bit!)
 
-**16MB budget при GF16:**
+**16MB budget at GF16:**
 - GF16 = 2 bytes/param → 16MB / 2 = 8M parameters
-- С int7 GPTQ: ~4.5 bytes/param → ~3.5M parameters
-- С ternary: 2 bits/param → 64M parameters (!)
+- With int7 GPTQ: ~4.5 bytes/param → ~3.5M parameters
+- With ternary: 2 bits/param → 64M parameters (!)
 
-### Что нужно сделать:
+### What needs to be done:
 
-1. Клонировать `gHashTag/parameter-golf-trinity`
-2. Реализовать GF16+ QAT в `train_gpt.py`
-3. Запустить на H100 (через compute grant или Colab)
-4. Измерить BPB на FineWeb validation
-5. Submit PR в `openai/parameter-golf`
+1. Clone `gHashTag/parameter-golf-trinity`
+2. Implement GF16+ QAT in `train_gpt.py`
+3. Run on H100 (via compute grant or Colab)
+4. Measure BPB on FineWeb validation
+5. Submit PR to `openai/parameter-golf`
 
-### Связь с нашим исследованием
+### Connection with our research
 
-| Наш результат | Применение в Parameter Golf |
+| Our result | Application in Parameter Golf |
 |--------------|---------------------------|
-| GF16+ = 100% gradient survival | Меньше quantization noise → ниже BPB |
-| BF16 теряет 93% updates | НЕ использовать BF16 |
-| φ-rule lr=0.004 | Оптимальный LR (Coq INV-8) |
-| GF16+ Quire на кремнии | Доказано на AX7203 |
-| Golden Ruler | Подбор формата под задачу |
+| GF16+ = 100% gradient survival | Less quantization noise → lower BPB |
+| BF16 loses 93% of updates | Do NOT use BF16 |
+| φ-rule lr=0.004 | Optimal LR (Coq INV-8) |
+| GF16+ Quire on silicon | Proven on AX7203 |
+| Golden Ruler | Format selection for the task |

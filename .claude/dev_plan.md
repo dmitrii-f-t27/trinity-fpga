@@ -1,14 +1,14 @@
-## Текущее состояние
+## Current state
 
-- Parser: ✓ Существует
-- emit_t27: ✓ Создан
-- Build: ✓ В build.zig
-- Tests: ✅ Создан
-- CLI Integration: ✅ Завершена (#493)
+- Parser: ✓ Exists
+- emit_t27: ✓ Created
+- Build: ✓ In build.zig
+- Tests: ✅ Created
+- CLI Integration: ✅ Completed (#493)
 
-## Следующие действия
-1. ~~Добавить `.tri → .t27` генерацию в `tri gen`~~
-2. Создать базовые тесты для emit_t27
-3. Расширить парсер для всех типов .tri спецификаций
-4. Улучшить генерацию кода (сложные выражения, все типы)
-5. Обновить документацию
+## Next actions
+1. ~~Add `.tri → .t27` generation in `tri gen`~~
+2. Create basic tests for emit_t27
+3. Extend parser for all .tri spec types
+4. Improve code generation (complex expressions, all types)
+5. Update documentation

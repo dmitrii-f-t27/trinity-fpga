@@ -87,7 +87,7 @@ assign led = ~led_state;  // Invert for active-low!
 
 ### Visual Confirmation
 
-**User:** "да мигает!!" (YES it blinks!!)
+**User:** "YES it blinks!!"
 **Date:** 2026-03-08 21:08
 
 ---

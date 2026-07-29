@@ -163,9 +163,9 @@ pub fn init(allocator: std.mem.Allocator) BatchProcessor {
 
 ---
 
-## 7. Toxic Verdict (Russian Self-Assessment)
+## 7. Toxic Verdict (Self-Assessment)
 
-### Что работает (What Works)
+### What works
 
 1. **Phase 3 Architecture** — Clean separation of concerns, no circular deps
 2. **Interface Contracts** — Compile-time verification, zero-cost abstractions
@@ -173,7 +173,7 @@ pub fn init(allocator: std.mem.Allocator) BatchProcessor {
 4. **FPGA Pipeline** — openXC7 Docker toolchain works flawlessly
 5. **Test Infrastructure** — 99.86% pass rate
 
-### Что требует работы (What Needs Work)
+### What needs work
 
 1. **FORGE Zig Toolchain** — 4+ critical bugs for complex designs
    - Fix: Use openXC7 Docker (short term)
@@ -185,7 +185,7 @@ pub fn init(allocator: std.mem.Allocator) BatchProcessor {
 3. **BatchProcessor Jobs Field** — Not in spec, required by contract
    - Fix: Document in contract, user provides init()
 
-### Честная оценка (Honest Assessment)
+### Honest assessment
 
 **Production Readiness:** 85% for contract-based code generation
 **FPGA Synthesis:** 100% with openXC7 Docker

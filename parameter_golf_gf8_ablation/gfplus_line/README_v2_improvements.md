@@ -1,77 +1,82 @@
-# GF+A v2 — улучшения по векторам 1+3+4 (луп 22.07.2026)
+# GF+A v2 — improvements along vectors 1+3+4 (loop 22.07.2026)
 
-`[измерено — SW proxy, CPU]` для векторов 1+3; `[измерено CI-synth, yosys generic]` для вектора 4.
-seed=20260722, харнесс `testD_v2.py`, RTL `../../fpga/openxc7-synth/gfplus8_a_decode.v`.
+`[measured — SW proxy, CPU]` for vectors 1+3; `[measured CI-synth, yosys generic]` for vector 4.
+seed=20260722, harness `testD_v2.py`, RTL `../../fpga/openxc7-synth/gfplus8_a_decode.v`.
 
-## Что было (v1, точка отсчёта)
+## What was (v1, the reference point)
 
-GF+A v1 (инв. №15): per-row absmax **fp16 scale** (16 бит/строку) + **2-бит заголовок на КАЖДУЮ строку**,
-карманы `{φ-сплит, e2, e3, INT}`. Три дыры:
-1. оверхед контейнера ~0.094 бит/элемент (при C=192) — съедает маржу на однородных весах;
-2. гарантия только на MSE, не downstream;
-3. LUT-цена декодера не замерена.
+GF+A v1 (inv. #15): per-row absmax **fp16 scale** (16 bits/row) + a **2-bit header on EACH row**,
+pockets `{φ-split, e2, e3, INT}`. Three holes:
+1. container overhead ~0.094 bits/element (at C=192) — eats the margin on uniform weights;
+2. guarantee only on MSE, not downstream;
+3. the decoder LUT cost has not been measured.
 
-## Вектор 1 — удешевить оверхед (e8m0-scale + групповой заголовок)
+## Vector 1 — cheaper overhead (e8m0-scale + group header)
 
-- **e8m0-scale**: per-row scale в 8-бит экспоненте (степень двойки, округление вверх) вместо fp16.
-  Для per-row absmax мантисса scale почти не нужна.
-- **групповой заголовок**: 1 выбор кармана на блок из K строк (карман редко меняется между соседями).
+- **e8m0-scale**: per-row scale as an 8-bit exponent (power of two, rounded up) instead of fp16.
+  For per-row absmax the scale mantissa is almost unnecessary.
+- **group header**: 1 pocket choice per block of K rows (the pocket rarely changes between
+  neighbors).
 
-Результат (реальные веса микро-LM, класс 8 бит, C=192):
+Result (real micro-LM weights, class 8 bit, C=192):
 
-| вариант | ΔBPB | SQNR_W1 | оверхед бит/эл | эфф. бит |
+| variant | ΔBPB | SQNR_W1 | overhead bits/el | eff. bits |
 |---|---|---|---|---|
 | v1 (fp16 scale, K=1) | −0.0000 | 43.89 | 0.0938 | 8.094 |
 | v2 e8m0 scale, K=1 | −0.0000 | 43.89 | 0.0521 | 8.052 |
 | v2 e8m0 scale, K=8 | +0.0000 | 43.51 | 0.0430 | 8.043 |
 | v2 e8m0 scale, K=32 | −0.0000 | 43.44 | 0.0420 | **8.042** |
 
-**Вывод:** оверхед снижен с 0.094 до 0.042 бит/элемент (**−55%**) без потери ΔBPB.
-SQNR при K=32 падает на ~0.45 дБ (групповой заголовок жертвует гранулярностью выбора) —
-**K=8 = разумный компромисс** (SQNR −0.38 дБ, оверхед −54%).
+**Conclusion:** overhead reduced from 0.094 to 0.042 bits/element (**−55%**) with no ΔBPB loss.
+SQNR at K=32 drops by ~0.45 dB (the group header sacrifices selection granularity) —
+**K=8 = a reasonable compromise** (SQNR −0.38 dB, overhead −54%).
 
-## Вектор 3 — ж��вые карманы (lns вместо мёртвого φ-e3m4)
+## Vector 3 — living pockets (lns instead of the dead φ-e3m4)
 
-По замеру v1 карман φ-e3m4 на 8-битах брал ~0 строк (мёртвый слот). Заменён на **lns8**
-(логарифмический — силён на тяжёлых хвостах). Проверка живости (синтетика, выбор строк):
+By the v1 measurement the φ-e3m4 pocket took ~0 rows on 8-bit (a dead slot). Replaced with **lns8**
+(logarithmic — strong on heavy tails). Liveness check (synthetic, row selection):
 
-| распределение | 8-бит выбор карманов v2 |
+| distribution | 8-bit pocket selection v2 |
 |---|---|
 | gauss | e2m5:511, int8:1 |
 | heavy | phi_e3m4:111, **e2m5:390, lns8:11** |
 | uniform | int8:512 |
 | mixed_outlier | phi_e3m4:49, e2m5:459, int8:2, **lns8:2** |
 
-**Вывод:** lns-карман активен на `heavy`/`mixed_outlier` (тяжёлые хвосты) — 4-й слот перестал
-быть мёртвым. На однородных весах микро-LM lns почти не выбирается — ценность = страховка на
-гетерогенных данных, НЕ выигрыш на однородных (согласуется с честной формулировкой инв. №15).
+**Conclusion:** the lns-pocket is active on `heavy`/`mixed_outlier` (heavy tails) — the 4th slot
+has stopped being dead. On uniform micro-LM weights lns is almost never selected — its value is
+insurance on heterogeneous data, NOT a gain on uniform data (consistent with the honest framing of
+inv. #15).
 
-## Вектор 4 — LUT-цена декодера (была `[открытая гипотеза]`)
+## Vector 4 — decoder LUT cost (was `[open hypothesis]`)
 
-RTL 4-карманного декодера `gfplus8_a_decode.v` (карманы 00=phi_e3m4, 01=e2m5, 10=int8, 11=lns8;
-2-бит заголовок → mux). Independent-witness: iverilog-дамп 1024 вектора сверен с Python-эталоном —
-**255/256 бит-в-бит на карман**, единственное расхождение = −0.0 vs +0.0 (word=128), математически
-эквивалентно (RTL корректно сохраняет знак нуля). yosys `synth_xilinx -flatten` (generic, НЕ P&R):
+RTL of the 4-pocket decoder `gfplus8_a_decode.v` (pockets 00=phi_e3m4, 01=e2m5, 10=int8, 11=lns8;
+2-bit header → mux). Independent witness: iverilog dump of 1024 vectors checked against the Python
+reference — **255/256 bit-for-bit per pocket**, the only discrepancy = −0.0 vs +0.0 (word=128),
+mathematically equivalent (the RTL correctly preserves the sign of zero). yosys
+`synth_xilinx -flatten` (generic, NOT P&R):
 
-| декодер | LUT | MUXF | CARRY4 |
+| decoder | LUT | MUXF | CARRY4 |
 |---|---|---|---|
-| GF+A 4-карман 8-бит | 53 | 21 | 6 |
-| e2m5 одиночный 8-бит | 32 | 19 | 2 |
+| GF+A 4-pocket 8-bit | 53 | 21 | 6 |
+| e2m5 single 8-bit | 32 | 19 | 2 |
 
-**Вывод `[измерено CI-synth, yosys generic]`:** адаптивность стоит **+21 LUT (1.66×)** vs одиночный
-e2m5 того же класса. Цена гибкости — ~две трети площади сверху. Финальные LUT/Fmax = openXC7 P&R
-на AX7203 `[ТРЕБУЕТ ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ]` (yosys generic ≠ P&R на плате).
+**Conclusion `[measured CI-synth, yosys generic]`:** adaptivity costs **+21 LUT (1.66×)** vs a
+single e2m5 of the same class. The price of flexibility is ~two thirds extra area. Final LUT/Fmax =
+openXC7 P&R on AX7203 `[REQUIRES USER ACTION]` (yosys generic ≠ P&R on the board).
 
-## Честная сводка для статьи
+## Honest summary for the paper
 
-- GF+A v2 снижает оверхед контейнера на 55% (e8m0-scale + групповой заголовок K=8);
-- 4-й карман (lns8) активен на тяжёлых хвостах — адаптив = страховка, не выигрыш на однородных весах;
-- цена адаптивности замерена впервые: +21 LUT (1.66×) vs одиночный e2m5 `[yosys generic]`.
-- границы: 1 чекпоинт микро-LM, C=192; ΔBPB классов ≥6 бит ±0.0003 (ранжирует SQNR, не BPB);
-  финальная площадь требует P&R на плате.
+- GF+A v2 reduces container overhead by 55% (e8m0-scale + group header K=8);
+- the 4th pocket (lns8) is active on heavy tails — adaptivity = insurance, not a gain on uniform
+  weights;
+- the price of adaptivity is measured for the first time: +21 LUT (1.66×) vs a single e2m5
+  `[yosys generic]`.
+- boundaries: 1 micro-LM checkpoint, C=192; ΔBPB of classes ≥6 bit ±0.0003 (SQNR ranks, not BPB);
+  final area requires P&R on the board.
 
-## Артефакты
+## Artifacts
 
-- `gfplus_adaptive_v2.py` — e8m0-scale, групповой заголовок, каталог карманов v2 (lns-слот);
-- `testD_v2.py` + `testD_v2_results.json` — замеры векторов 1+3;
-- `../../fpga/openxc7-synth/gfplus8_a_decode.v` + `_tb.v` — RTL декодер + тестбенч (вектор 4).
+- `gfplus_adaptive_v2.py` — e8m0-scale, group header, v2 pocket catalog (lns-slot);
+- `testD_v2.py` + `testD_v2_results.json` — measurements of vectors 1+3;
+- `../../fpga/openxc7-synth/gfplus8_a_decode.v` + `_tb.v` — RTL decoder + testbench (vector 4).

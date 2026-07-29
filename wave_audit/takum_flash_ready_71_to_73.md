@@ -64,7 +64,7 @@ decode-HW 42->43. Tier-E 73 — ACHIEVABLE HW CEILING (see body §🎯).
 - UART conformance: \`HW RESULT: N/N bit-exact (fails=0)\` @160000 baud, /dev/cu.usbserial-120 (--extended incl. subnormal band)"
 ```
 
-## 3. lns16 re-flash (`28668900768`, GREEN NOW) → correctness-fix (счёт НЕ меняется, 41 остаётся)
+## 3. lns16 re-flash (`28668900768`, GREEN NOW) → correctness-fix (count does NOT change, 41 stays)
 ```bash
 gh run download 28668900768 -n corona-decode-lns16-bitstream -D /tmp/lns16
 BIT=/tmp/lns16/build/corona_decode_lns16/corona_decode_ax7203.bit

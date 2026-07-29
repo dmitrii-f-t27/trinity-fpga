@@ -11,7 +11,7 @@
 ```
 <English description>
 
-Русский перевод описания изменений.
+Translation of the change description.
 ```
 
 ## Rules

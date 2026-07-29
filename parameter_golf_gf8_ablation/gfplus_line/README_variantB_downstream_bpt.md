@@ -1,72 +1,74 @@
-# Вариант B — downstream-BPT замер оси-композиции GF+A / intra-pocket (луп 29.07.2026b)
+# Variant B — downstream-BPT measurement of the GF+A / intra-pocket composition axis (loop 29.07.2026b)
 
-Статус тегов: CPU-прокси = `[измерено — SW proxy, CPU]`; полный под = `[ТРЕБУЕТ ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ]`.
-seed = 20260729 (CPU-прокси) / 42 (модель). Дата: 29.07.2026.
+Status tags: CPU-proxy = `[measured — SW proxy, CPU]`; full pod = `[REQUIRES USER ACTION]`.
+seed = 20260729 (CPU-proxy) / 42 (model). Date: 29.07.2026.
 
-## Зачем (граница, которую закрываем)
+## Why (the boundary we are closing)
 
-Инвариант №26 (реализация Варианта B прошлого лупа) доказал SW-абляцией
-`selector_vs_intrapocket.py`, что **композиция** двух ортогональных осей выбора
-(ось1 = GF+A catalog-select МЕЖДУ форматами; ось2 = intra-pocket (e,m)-refinement
-ВНУТРИ семейства minifloat, dMX-стиль) по построению **≥ каждой оси по MSE-метрике
-выбора** — нарушений инварианта 0 из 20 ячеек.
+Invariant #26 (Variant B implementation of the previous loop) proved by SW ablation
+`selector_vs_intrapocket.py` that the **composition** of two orthogonal selection axes
+(axis1 = GF+A catalog-select BETWEEN formats; axis2 = intra-pocket (e,m)-refinement
+INSIDE the minifloat family, dMX-style) is by construction **≥ each axis alone by the
+selection MSE-metric** — invariant violations: 0 out of 20 cells.
 
-Но инвариант №18 (BINDING) предупреждает: **SQNR/MSE слоя = суррогат**, который может
-НЕ окупаться по downstream model bits-per-token. Поэтому «композиция end-to-end
-downstream» оставалась `[открытая гипотеза]`. Этот замер переводит её (частично, на
-микро-масштабе) в `[измерено — SW proxy, CPU]`.
+But invariant #18 (BINDING) warns: **SQNR/MSE of a layer = a surrogate**, which may
+NOT pay off in downstream model bits-per-token. Therefore the "end-to-end downstream
+composition" remained an `[open hypothesis]`. This measurement moves it (partially, at
+micro-scale) into `[measured — SW proxy, CPU]`.
 
-## Что сделано
+## What was done
 
-Две реализации одной методологии:
+Two implementations of one methodology:
 
-1. **`webterm_composition_bpb.py`** (в корне `trinity-fpga`) — пода-ready харнесс на
-   29M-transformer + FineWeb sp1024, зеркалит методологию инв.№18
-   (`webterm_gfplus_v2bpb.py`): квантует Linear-веса тремя способами
-   (FP32 / ось1 GF+A / композиция GF+A∘intra-pocket), делает реальный forward на
-   независимом val-потоке, меряет bits-per-token. Запуск:
+1. **`webterm_composition_bpb.py`** (in the `trinity-fpga` root) — a pod-ready harness on
+   a 29M-transformer + FineWeb sp1024, mirroring the methodology of inv. #18
+   (`webterm_gfplus_v2bpb.py`): quantizes Linear weights in three ways
+   (FP32 / axis1 GF+A / composition GF+A∘intra-pocket), runs a real forward pass on
+   an independent val-stream, measures bits-per-token. Launch:
    ```
    curl -s https://raw.githubusercontent.com/gHashTag/trinity-fpga/main/webterm_composition_bpb.py -o /tmp/cb.py
    STEPS=3000 python3 /tmp/cb.py
    ```
-   Требует GPU-под → `[ТРЕБУЕТ ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ]`.
+   Requires a GPU pod → `[REQUIRES USER ACTION]`.
 
-2. **`composition_bpt_cpu_proxy.py`** (эта папка) — CPU-прокси на микро-LM
-   (4 слоя, d=128, vocab=256, марковский поток порядка-2 с общей переходной матрицей
-   train/val). Та же тройка конфигураций, реальный forward, bits-per-token. Прогнан в
-   песочнице БЕЗ GPU.
+2. **`composition_bpt_cpu_proxy.py`** (this folder) — a CPU-proxy on a micro-LM
+   (4 layers, d=128, vocab=256, order-2 Markov stream with a shared transition matrix
+   for train/val). The same trio of configurations, real forward pass, bits-per-token.
+   Run in a sandbox WITHOUT a GPU.
 
-## Результат CPU-прокси `[измерено — SW proxy, CPU]`
+## CPU-proxy result `[measured — SW proxy, CPU]`
 
-| Битность | FP32 | ось1 GF+A | композиция | ΔBPT (композиция − ось1) | Значимость (порог 0.0195 BPT) |
+| Bitwidth | FP32 | axis1 GF+A | composition | ΔBPT (composition − axis1) | Significance (threshold 0.0195 BPT) |
 |---|---|---|---|---|---|
-| 4-бит | 0.12735 | 0.12744 | 0.12744 | **+0.00000** | <порога (незначимо) |
-| 6-бит | 0.12735 | 0.12735 | 0.12735 | **+0.00000** | <порога (незначимо) |
-| 8-бит | 0.12735 | 0.12735 | 0.12735 | **+0.00000** | <порога (незначимо) |
+| 4-bit | 0.12735 | 0.12744 | 0.12744 | **+0.00000** | <threshold (insignificant) |
+| 6-bit | 0.12735 | 0.12735 | 0.12735 | **+0.00000** | <threshold (insignificant) |
+| 8-bit | 0.12735 | 0.12735 | 0.12735 | **+0.00000** | <threshold (insignificant) |
 
-(порог значимости Parameter Golf = 0.005 BPB = 0.0195 BPT при коэф 3.9 байт/ток)
+(Parameter Golf significance threshold = 0.005 BPB = 0.0195 BPT at a coefficient of 3.9 bytes/token)
 
-## Честный вывод (BINDING)
+## Honest conclusion (BINDING)
 
-- **ΔBPT = 0.00000 на всех трёх битностях** — на микро-масштабе SW-прокси-выигрыш
-  композиции (0/20 нарушений по MSE) **НЕ переносится в потери модели**. Это прямое
-  подтверждение инварианта №18: SQNR/MSE слоя — суррогат, downstream его не окупает.
-- Больше того: даже переход FP32 → 4-бит стоит downstream ≈ +0.0001 BPT на этой
-  микро-задаче — бюджет потерь квантования крошечный, и разница между осью1 и
-  композицией теряется в нём полностью.
-- **Оси остаются ОРТОГОНАЛЬНЫМИ** (композиция ≥ каждой по MSE, инв.№26), но на
-  downstream-метрике при данном бит-бюджете композиция **не даёт выигрыша** —
-  превосходство НЕ заявляется ни для одной оси, ни для композиции.
+- **ΔBPT = 0.00000 at all three bit-widths** — at micro-scale the SW-proxy gain of the
+  composition (0/20 MSE violations) does NOT translate into model loss. This is a direct
+  confirmation of invariant #18: a layer's SQNR/MSE is a surrogate that downstream does
+  not pay off.
+- Moreover: even the FP32 → 4-bit transition costs downstream ≈ +0.0001 BPT on this
+  micro-task — the quantization loss budget is tiny, and the difference between axis1 and
+  the composition is completely lost within it.
+- **The axes remain ORTHOGONAL** (composition ≥ each one by MSE, inv. #26), but on the
+  downstream-metric at this bit-budget the composition **yields no gain** — superiority is
+  NOT claimed for either axis, nor for the composition.
 
-## Границы (BINDING)
+## Boundaries (BINDING)
 
-- Микро-масштаб (4 слоя, vocab=256), НЕ 29M — цифры дают НАПРАВЛЕНИЕ эффекта (ΔBPT≈0),
-  НЕ величину на больших моделях. Обобщение НЕ установлено.
-- Оверхед заголовка композиции (+0.18 бит/эл, инв.№26) НЕ вычтен из BPT — сравнение НЕ
-  бит-выровнено в пользу композиции; при нулевом ΔBPT это лишь усиливает вывод «не окупается».
-- bits-per-token — первичная метрика; BPB = BPT/3.9 `[прокси-коэф]` (поток sp1024 не
-  декодируется 8192-BPE токенайзером, инв.№18).
-- Полный GPU-замер на 29M-модели (`webterm_composition_bpb.py`) остаётся открытым —
-  именно там инвариант №18 ранее показал, что глубокие FFN-слои дают наибольшую
-  чувствительность; возможно, на 29M ΔBPT композиции станет ненулевым (но, по инв.№18,
-  скорее всего останется <порога). Это ГЛАВНАЯ рекомендация для следующего лупа.
+- Micro-scale (4 layers, vocab=256), NOT 29M — the numbers give the DIRECTION of the effect
+  (ΔBPT≈0), NOT the magnitude on large models. Generalization is NOT established.
+- The composition header overhead (+0.18 bits/element, inv. #26) is NOT subtracted from BPT —
+  the comparison is NOT bit-aligned in favor of the composition; at zero ΔBPT this only
+  strengthens the "does not pay off" conclusion.
+- bits-per-token is the primary metric; BPB = BPT/3.9 `[proxy coefficient]` (the sp1024 stream
+  cannot be decoded by the 8192-BPE tokenizer, inv. #18).
+- The full GPU measurement on the 29M-model (`webterm_composition_bpb.py`) remains open —
+  that is exactly where invariant #18 previously showed that deep FFN layers give the greatest
+  sensitivity; it is possible that on 29M the composition's ΔBPT becomes non-zero (but, per
+  inv. #18, most likely remains <threshold). This is the MAIN recommendation for the next loop.

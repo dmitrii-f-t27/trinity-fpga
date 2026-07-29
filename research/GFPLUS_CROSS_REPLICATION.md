@@ -1,7 +1,7 @@
 # GF+ Cross-Replication — Final Summary
 
 **Date:** 2026-07-18  
-**Status:** Cross-replicated [измерено — GPU, 1 модель, 2 реализации]
+**Status:** Cross-replicated [measured — GPU, 1 model, 2 implementations]
 
 ---
 

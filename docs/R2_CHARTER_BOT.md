@@ -6,7 +6,7 @@
 ## Purpose
 
 `queen-bot.yml` operationalises **R2** (no `*` in synthesizable RTL) and the
-blanket "мержи сам все" merge authority granted to the autonomous loop.
+blanket "merge everything yourself" merge authority granted to the autonomous loop.
 
 This doctrine document is the off-chip BIO→SI mapping: the prefrontal-control
 brain module M07 (executive function) is mirrored in CI as the queen-bot.

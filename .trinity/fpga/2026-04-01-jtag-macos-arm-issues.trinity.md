@@ -1,4 +1,4 @@
-# JTAG на macOS ARM — Фиксированные проблемы (2026-04-01)
+# JTAG on macOS ARM — Fixed Issues (2026-04-01)
 
 ## Hardware
 - **Mac**: Apple Silicon (M1/M2/M3), macOS 14.x
@@ -6,9 +6,9 @@
 - **FPGA**: QMTech XC7A100T-FGG676
 - **Tools**: openFPGALoader, jtag_program (tri)
 
-## Проблемы
+## Problems
 
-### 1. DLC10 не определяется на macOS ARM
+### 1. DLC10 not detected on macOS ARM
 ```
 ❌ openFPGALoader --cable xpc
 Error: FTDI: -3 (device not found)
@@ -17,15 +17,15 @@ Error: FTDI: -3 (device not found)
 Error: No JTAG cable found
 ```
 
-**Причина**: FTDI драйвера на macOS ARM имеют ограничения с некоторыми клонами.
+**Cause**: FTDI drivers on macOS ARM have limitations with some clones.
 
-### 2. fxload требует полный Xcode
+### 2. fxload requires full Xcode
 ```bash
 brew install kolontsov/fxload/fxload
 # Error: xcode-select: error: tool 'xcodebuild' requires Xcode
 ```
-fxload компилируется из source и требует `xcodebuild` (полный Xcode.app),
-а не только CommandLineTools.
+fxload compiles from source and requires `xcodebuild` (full Xcode.app),
+not just CommandLineTools.
 
 ### 3. USB Registry shows mismatched PIDs
 ```
@@ -33,37 +33,37 @@ system_profiler SPUSBDataType:
   FTDI   Vendor: 0x0403, Product: 0x6001 (bootloader)
   Xilinx  Vendor: 0x03fd, Product: 0x0013 (bootloader)
 ```
-openFPGALoader ищет PID `0x0008` (JTAG mode), но устройство
-застряло в PID `0x0013` (bootloader mode).
+openFPGALoader looks for PID `0x0008` (JTAG mode), but the device
+is stuck at PID `0x0013` (bootloader mode).
 
-## Вывод
+## Conclusion
 
-**На текущем Mac (Apple Silicon) НЕВОЗМОЖНО прошивать FPGA через JTAG**:
-- ❌ DLC10 clone — не работает
-- ❌ openFPGALoader — не видит кабель
-- ❌ jtag_program (tri) — не видит кабель
+**On the current Mac (Apple Silicon) it is IMPOSSIBLE to flash the FPGA via JTAG**:
+- ❌ DLC10 clone — does not work
+- ❌ openFPGALoader — does not see the cable
+- ❌ jtag_program (tri) — does not see the cable
 
-## Допустимые пути вперёд
+## Acceptable paths forward
 
-| Вариант | Требуется | Статус |
+| Option | Required | Status |
 |---------|-----------|--------|
-| **Linux PC/VM** | Отдельный хост с Linux | ✅ Надёжно |
-| **RP2040 мост** | RP2040 + firmware JTAG-bridge | 🔄 Нужна прошивка |
-| **SPI программатор** | CH341A +ibre т.п. | 🔄 Нужен адаптер |
-| **FTDI genuine** | Оригинальный Xilinx cable | ❌ Не гарантируется |
+| **Linux PC/VM** | Separate Linux host | ✅ Reliable |
+| **RP2040 bridge** | RP2040 + JTAG-bridge firmware | 🔄 Firmware needed |
+| **SPI programmer** | CH341A and the like | 🔄 Adapter needed |
+| **FTDI genuine** | Original Xilinx cable | ❌ Not guaranteed |
 
-## Рекомендация
+## Recommendation
 
-Для JTAG операций:
-1. Использовать отдельный Linux ПК/ноутбук
-2. Или настроить Linux VM с USB passthrough
-3. UART отладка работает — DSLogic U2basic ✅
+For JTAG operations:
+1. Use a separate Linux PC/laptop
+2. Or set up a Linux VM with USB passthrough
+3. UART debugging works — DSLogic U2basic ✅
 
-## Опыты
+## Experiments
 
-| Дата | Попытка | Результат |
+| Date | Attempt | Result |
 |------|---------|-----------|
-| 2026-03-30 | jtag_program на Mac | FTDI -3 |
+| 2026-03-30 | jtag_program on Mac | FTDI -3 |
 | 2026-03-31 | openFPGALoader --cable xpc | FTDI -3 |
 | 2026-04-01 | fxload install | Requires Xcode (not just CLT) |
 | 2026-04-01 | USB check | DLC10 stuck in PID 0x0013 (bootloader) |
@@ -179,7 +179,7 @@ Any list expansion — only after manual review.
 
 ---
 
-## Фикс
+## Fix
 
 ```
 status: WORKING (2026-04-01)
@@ -190,29 +190,29 @@ verified: FPGA XC7A100T detected, bitstream flashed successfully
 agent-procedure: 2026-04-01 — documented above for sudo-capable Mac agents
 ```
 
-### Рабочая последовательность (2026-04-01):
+### Working sequence (2026-04-01):
 
 ```bash
-# 1. Загрузить firmware (до переподключения)
+# 1. Load firmware (before replug)
 sudo ./fpga/tools/fxload -v -t fx2 -d 03fd:0013 -i fpga/tools/xusb_xp2.hex
 
-# 2. Физически переподключить DLC10 (вытащить, ждать 3 сек, вставить)
+# 2. Physically replug DLC10 (unplug, wait 3 sec, plug in)
 
-# 3. Снова загрузить firmware (КРИТИЧЕСКИ: после переподключения!)
+# 3. Load firmware again (CRITICAL: after replug!)
 sudo ./fpga/tools/fxload -v -t fx2 -d 03fd:0013 -i fpga/tools/xusb_xp2.hex
 
-# 4. Проверить PID изменился на 0x0008
+# 4. Verify PID changed to 0x0008
 system_profiler SPUSBDataType | grep "Product ID"
 
-# 5. Прошить bitstream
+# 5. Flash bitstream
 ./fpga/tools/xc3sprog -c xpc <bitstream.bit>
 ```
 
-### Опыты
+### Experiments
 
-| Дата | Попытка | Результат |
+| Date | Attempt | Result |
 |------|---------|-----------|
-| 2026-03-30 | jtag_program на Mac | FTDI -3 |
+| 2026-03-30 | jtag_program on Mac | FTDI -3 |
 | 2026-03-31 | openFPGALoader --cable xpc | FTDI -3 |
 | 2026-04-01 | fxload install | Requires Xcode |
 | 2026-04-01 | USB check | DLC10 stuck in PID 0x0013 |

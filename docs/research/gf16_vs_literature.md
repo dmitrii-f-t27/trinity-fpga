@@ -150,41 +150,41 @@ See Section 4.2.3 above.
 - `src/bench_mnist.zig`: BENCH-004a runner with `--weights=file.bin` flag support
 - Binary format: magic (0x4D4E4953), v1, dims (784,128,10), W1/b1/W2/b2 as little-endian f32
 
-#### 7.2.2 Trained MNIST MLP (BENCH‑004b) — ПОЛНОСТЬЮ ВЫПОЛНЕНО ✅
+#### 7.2.2 Trained MNIST MLP (BENCH‑004b) — FULLY COMPLETED ✅
 
-**Модель:** MLP 784→128→10, обучена в PyTorch до 97.67% тестовой точности (CrossEntropyLoss, Adam, 8 эпох, тестовый набор MNIST 10k изображений).
+**Model:** MLP 784→128→10, trained in PyTorch to 97.67% test accuracy (CrossEntropyLoss, Adam, 8 epochs, MNIST test set 10k images).
 
-| Формат  | Точность % | Loss   | Δ vs f32 | Статус                                           |
+| Format  | Accuracy % | Loss   | Δ vs f32 | Status                                           |
 |---------|------------|--------|-----------|----------------------------------------------------|
-| f32     | 97.67      | 0.0773 | baseline  | ✅ Измерено (обученная модель)                    |
-| fp16    | 97.70      | 0.1533 | +0.03     | ✅ Измерено (IEEE 754 binary16)                   |
-| bf16    | 9.80       | 2.3026 | −87.87    | ❌ Расходится (насыщение/ошибка обучения)          |
+| f32     | 97.67      | 0.0773 | baseline  | ✅ Measured (trained model)                    |
+| fp16    | 97.70      | 0.1533 | +0.03     | ✅ Measured (IEEE 754 binary16)                   |
+| bf16    | 9.80       | 2.3026 | −87.87    | ❌ Diverges (saturation/training error)          |
 | GF16    | 97.67      | 0.0774 | +0.00     | ✅ **0.00%** (6:9, bias=31, round‑to‑nearest)      |
-| ternary | 9.80       | 2.3027 | −87.87    | ❌ Расходится (3‑битная симметричная квантизация) |
+| ternary | 9.80       | 2.3027 | −87.87    | ❌ Diverges (3‑bit symmetric quantization) |
 
-**Ключевые выводы (обученный MLP MNIST 784→128→10):**
+**Key findings (trained MNIST MLP 784→128→10):**
 
-- **GF16 совпадает с fp32 идеально** — 97.67% против 97.67%, loss 0.0773 против 0.0774; разница в пределах численного шума, без деградации качества. Это эмпирически подтверждает, что 6‑битовый экспонент и 9‑битовая мантисса достаточны для MNIST‑MLP.
-- **fp16 незначительно увеличивает loss, но сохраняет точность** — 97.70% accuracy при удвоенном loss (0.1533), что отражает меньшую точность мантиссы, но не ломает классификацию.
-- **bf16 и ternary полностью проваливаются** — обе конфигурации застревают на 9.8% accuracy и loss ≈ 2.30 (случайный классификатор), демонстрируя, что агрессивное снижение точности (1‑битовый sign + 7‑бит mantissa в bf16 и 3‑уровневое ternary) без архитектурной адаптации недопустимо даже на простом MNIST‑MLP.
+- **GF16 matches fp32 perfectly** — 97.67% vs 97.67%, loss 0.0773 vs 0.0774; the difference is within numerical noise, with no quality degradation. This empirically confirms that the 6‑bit exponent and 9‑bit mantissa are sufficient for MNIST‑MLP.
+- **fp16 slightly increases loss but preserves accuracy** — 97.70% accuracy with doubled loss (0.1533), which reflects lower mantissa precision but does not break classification.
+- **bf16 and ternary fail completely** — both configurations get stuck at 9.8% accuracy and loss ≈ 2.30 (random classifier), demonstrating that aggressive precision reduction (1‑bit sign + 7‑bit mantissa in bf16 and 3‑level ternary) without architectural adaptation is unacceptable even on a simple MNIST‑MLP.
 
-**Сравнение с литературой:**
-- Литература ожидает <1% разницу для fp16/bf16 на обученных моделях (Micikevicius 2018, Wang 2018)
-- **GF16 (0.00% разница)** соответствует ожиданиям — 9‑битная точность достаточна для MNIST
-- **bf16 (−87.87%)** находится в ожидаемом диапазоне для 7‑битной мантиссы на обученных моделях
+**Comparison with literature:**
+- The literature expects <1% difference for fp16/bf16 on trained models (Micikevicius 2018, Wang 2018)
+- **GF16 (0.00% difference)** meets expectations — 9‑bit precision is sufficient for MNIST
+- **bf16 (−87.87%)** is within the expected range for a 7‑bit mantissa on trained models
 
-**Гипотеза ПОДТВЕРЖДЕНА:** 6:9 битовая структура GF16 (1/6/9) обеспечивает точность, эквивалентную f32 для классификации MNIST. Идентичная точность f32/GF16 (97.67%) подтверждает, что 9‑битная мантисса с bias=31 достаточна для этой рабочей нагрузки.
+**Hypothesis CONFIRMED:** GF16's 6:9 bit layout (1/6/9) provides accuracy equivalent to f32 for MNIST classification. The identical f32/GF16 accuracy (97.67%) confirms that a 9‑bit mantissa with bias=31 is sufficient for this workload.
 
-**Детали обучения:**
-- PyTorch MLP 784→128→10 обучен до **97.67%** точности
-- Ранний останов при достижении 97.67% (литературный диапазон 92–98%)
-- 8 эпох, batch_size=128, lr=1e−3, оптимизатор Adam
+**Training details:**
+- PyTorch MLP 784→128→10 trained to **97.67%** accuracy
+- Early stopping at 97.67% (literature range 92–98%)
+- 8 epochs, batch_size=128, lr=1e−3, Adam optimizer
 
-**Бинарный формат (little-endian):**
-- Заголовок (20 байт): magic (0x4D4E4953), версия (1), размерности (784,128,10)
-- Данные: W1 (row-major, 100352×4 байт), b1 (128×4 байт), W2 (1280×4 байт), b2 (10×4 байт)
+**Binary format (little-endian):**
+- Header (20 bytes): magic (0x4D4E4953), version (1), dimensions (784,128,10)
+- Data: W1 (row-major, 100352×4 bytes), b1 (128×4 bytes), W2 (1280×4 bytes), b2 (10×4 bytes)
 
-**Как запустить:**
+**How to run:**
 ```bash
 python3 train_mnist_mlp.py
 ./zig-out/bin/bench-mnist --weights=results/mnist_mlp_784x128x10.bin
@@ -192,7 +192,7 @@ python3 train_mnist_mlp.py
 
 ---
 
-**Статус:** Phase 1 (BENCH‑004a + BENCH‑004b) — программная часть завершена, FPGA‑синтез ожидается
+**Status:** Phase 1 (BENCH‑004a + BENCH‑004b) — software part complete, FPGA synthesis pending
 
 ## 8. FPGA Synthesis Results (BENCH-005 + BENCH-006)
 

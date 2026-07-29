@@ -87,7 +87,7 @@ Where {trend_line} is one of:
 
 After the dashboard, add a brief 1-2 line summary in Russian.
 
-If any ALERT found, add: `💡 Рекомендация: /security-audit full`
+If any ALERT found, add: `💡 Recommendation: /security-audit full`
 
 ### Known Baseline (SEC-01..SEC-14)
 

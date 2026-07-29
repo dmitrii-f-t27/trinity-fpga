@@ -36,7 +36,7 @@
 
 ---
 
-## Идиома 1: Comptime Generics
+## Idiom 1: Comptime Generics
 
 ### BEFORE (Zig < 0.14)
 
@@ -89,7 +89,7 @@ fn List(comptime T: type) type {
 
 ---
 
-## Идиома 2: Unmanaged Containers
+## Idiom 2: Unmanaged Containers
 
 ### BEFORE (Zig < 0.15)
 
@@ -124,7 +124,7 @@ try list.append(allocator, 'h');  // Allocator passed to append
 
 ---
 
-## Идиома 3: Inferred Error Sets
+## Idiom 3: Inferred Error Sets
 
 ### BEFORE (Explicit Error Set)
 
@@ -163,7 +163,7 @@ fn parse(input: []const u8) ![]const u8 {
 
 ---
 
-## Идиома 4: Build.zig Module System
+## Idiom 4: Build.zig Module System
 
 ### BEFORE (Zig < 0.14)
 
@@ -198,7 +198,7 @@ const exe = b.addExecutable(.{
 
 ---
 
-## Идиома 5: Raygui Glassmorphism
+## Idiom 5: Raygui Glassmorphism
 
 ### BEFORE (Basic Rectangle)
 
@@ -243,7 +243,7 @@ rl.DrawRectangleRoundedLines(
 
 ---
 
-## Идиома 6: Comptime Sacred Math
+## Idiom 6: Comptime Sacred Math
 
 ### BEFORE (Runtime Calculation)
 
@@ -280,7 +280,7 @@ comptime {
 
 ---
 
-## Идиома 7: Inline Unrolling
+## Idiom 7: Inline Unrolling
 
 ### BEFORE (Runtime Loop)
 

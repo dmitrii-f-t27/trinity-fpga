@@ -52,7 +52,7 @@ Post a comment on the tracking issue with:
 Without this step → **Tier C** only (self-report, no public evidence).
 
 ## §6 — Update matrix in epic body / experience log
-Increment the measured count for the column. Tag: `[измерено на железе, Tier E]`.
+Increment the measured count for the column. Tag: `[measured on hardware, Tier E]`.
 
 ## §7 — Commit experience log update
 ```bash

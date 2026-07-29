@@ -156,7 +156,7 @@ trinity                 ← Orchestrator (links all via build.zig.zon)
   ```
   feat(cli): add XC7A200T board support
 
-  Добавлена поддержка платы XC7A200T.
+  Added support for the XC7A200T board.
   ```
 - Push after commit. Never force-push to `main` without explicit user approval.
 - Large files (>1MB) must be in `.gitignore`.

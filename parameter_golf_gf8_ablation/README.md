@@ -1,57 +1,59 @@
-# GF8-абляция fp-карманов тернарной модели (Parameter Golf)
+# GF8 ablation of fp-pockets of the ternary model (Parameter Golf)
 
-Подготовлено 18.07.2026. Гипотеза: в записи Ifrim
+Prepared 18.07.2026. Hypothesis: in the Ifrim record
 (`2026-03-24_74M_Ternary_UNet_FP8_10L_8192BPE_YaRN_NeoMuon`, val_bpb 1.1570)
-~2.5M не-тернарных параметров хранятся и тренируются через FP8-QAT (e4m3, прямой cast).
-Замена этих карманов на **GF8 e3m4** (φ-правило полей: e=3, m=4, bias=3) с per-row
-масштабированием может улучшить точность представления карманов. `[открытая гипотеза]`
+~2.5M non-ternary parameters are stored and trained via FP8-QAT (e4m3, direct cast).
+Replacing these pockets with **GF8 e3m4** (φ field-rule: e=3, m=4, bias=3) with per-row
+scaling can improve the representational accuracy of the pockets. `[open hypothesis]`
 
-## Файлы
+## Files
 
-| Файл | Что это |
+| File | What it is |
 |---|---|
-| `gf8_quant.py` | GF8 e3m4: quant/dequant, encode/decode (uint8 + fp16 scale), STE. Юнит-тесты внутри (`python3 gf8_quant.py`) — все прошли на CPU 18.07.2026 |
-| `patch_gf8.py` | Патчер: официальный `train_gpt_cuda_ternary.py` → `train_gpt_cuda_gf8.py` (5 анкоров, падает при неоднозначности) |
-| `train_gpt_cuda_gf8.py` | Готовый патченный скрипт (синтаксис проверен; функционально на GPU НЕ гонялся — в песочнице нет CUDA) |
-| `run_gf8_ablation.sh` | Запуск трёх плеч на 8×H100. **Перед запуском перенеси полный блок env из оригинального `run_cuda_ternary.sh`** — здесь только ключевые |
-| `train_gpt_cuda_ternary.py`, `run_cuda_ternary.sh`, `setup.sh`, `requirements.txt` | Оригиналы из официальной записи (raw.githubusercontent.com, main) |
+| `gf8_quant.py` | GF8 e3m4: quant/dequant, encode/decode (uint8 + fp16 scale), STE. Unit-tests inside (`python3 gf8_quant.py`) — all passed on CPU 18.07.2026 |
+| `patch_gf8.py` | Patcher: official `train_gpt_cuda_ternary.py` → `train_gpt_cuda_gf8.py` (5 anchors, aborts on ambiguity) |
+| `train_gpt_cuda_gf8.py` | Ready patched script (syntax checked; functionally NOT run on GPU — no CUDA in the sandbox) |
+| `run_gf8_ablation.sh` | Launch of three arms on 8×H100. **Before launch, copy the full env block from the original `run_cuda_ternary.sh`** — here only the key ones |
+| `train_gpt_cuda_ternary.py`, `run_cuda_ternary.sh`, `setup.sh`, `requirements.txt` | Originals from the official record (raw.githubusercontent.com, main) |
 
-## Дизайн абляции (3 плеча, одинаковые сиды)
+## Ablation design (3 arms, identical seeds)
 
-1. **fp8** — репро официальной записи: e4m3 прямой cast, без масштаба. Ожидаемо ≈1.157 bpb.
-2. **fp8s** — контроль: e4m3 + per-row absmax scale. Отделяет эффект масштабирования от эффекта формата.
-3. **gf8** — e3m4 + per-row absmax scale (то же масштабирование, другой сплит полей).
+1. **fp8** — repro of the official record: e4m3 direct cast, no scale. Expected ≈1.157 bpb.
+2. **fp8s** — control: e4m3 + per-row absmax scale. Separates the scaling effect from the format effect.
+3. **gf8** — e3m4 + per-row absmax scale (same scaling, different field split).
 
-Протокол Parameter Golf: 3 сида на плечо, значимость ≥0.005 nats. Разница fp8s↔gf8 = чистый эффект формата.
+Parameter Golf protocol: 3 seeds per arm, significance ≥0.005 nats. The fp8s↔gf8 difference = the
+pure format effect.
 
-## Априорные ожидания `[измерено — SW proxy, CPU]`
+## A-priori expectations `[measured — SW proxy, CPU]`
 
-Ошибка ПРЕДСТАВЛЕНИЯ (не downstream bpb!) на N(0,1) и тяжёлых хвостах:
+REPRESENTATIONAL error (not downstream bpb!) on N(0,1) and heavy tails:
 
-| Режим | SQNR гаусс | SQNR heavy-tail |
+| Mode | SQNR gaussian | SQNR heavy-tail |
 |---|---|---|
-| gf8_scaled | **37.6 дБ** | **37.9 дБ** |
-| e4m3_scaled | 31.6 дБ | 31.9 дБ |
-| e4m3_direct | 31.5 дБ | 31.6 дБ |
+| gf8_scaled | **37.6 dB** | **37.9 dB** |
+| e4m3_scaled | 31.6 dB | 31.9 dB |
+| e4m3_direct | 31.5 dB | 31.6 dB |
 
-Нюанс честности: прежний замер (луп 06.07.2026e, БЕЗ per-row масштаба) давал обратный знак
-(e4m3 ≈ 31 > GF8 ≈ 29 дБ). **Per-row масштабирование переворачивает победителя**: когда
-диапазон строки узкий, широкая экспонента e4m3 простаивает и решает лишний бит мантиссы
-e3m4 (+6 дБ). Перенос +6 дБ представления в Δbpb НЕ гарантирован — карманы малы (2.5M/73.7M),
-QAT частично компенсирует ошибку формата. Реалистичный исход: Δbpb от ~0 до малого плюса.
-Отрицательный результат тоже ценен — это честная точка в матрицу co-design.
+Honesty nuance: the previous measurement (loop 06.07.2026e, WITHOUT per-row scale) gave the opposite
+sign (e4m3 ≈ 31 > GF8 ≈ 29 dB). **Per-row scaling flips the winner**: when the row range is narrow,
+the wide exponent e4m3 sits idle and the extra mantissa bit of e3m4 decides (+6 dB). Transfer of the
++6 dB representation into Δbpb is NOT guaranteed — the pockets are small (2.5M/73.7M), QAT partially
+compensates for the format error. A realistic outcome: Δbpb from ~0 to a small plus.
+A negative result is also valuable — it is an honest point in the co-design matrix.
 
-## Оверхед артефакта
+## Artifact overhead
 
-GF8: +2 байта fp16-scale на строку матрицы. Для карманов ~2.5M параметров это ≤ единиц КБ —
-запас до лимита 16,000,000 байт у записи Ifrim был 6,147 байт; проверь `stats["fp_bytes"]`
-после первого прогона (если не влезает — перейти на общий scale на тензор, правка тривиальна).
+GF8: +2 bytes of fp16-scale per matrix row. For pockets of ~2.5M parameters this is ≤ a few KB —
+the headroom up to the 16,000,000-byte limit of the Ifrim record was 6,147 bytes; check
+`stats["fp_bytes"]` after the first run (if it does not fit — switch to a per-tensor shared scale,
+the fix is trivial).
 
-## Что НЕ проверено (границы)
+## What has NOT been verified (boundaries)
 
-- Функциональный прогон на GPU: в песочнице нет CUDA/flash_attn — träin-скрипт проверен
-  только на синтаксис + юнит-тесты квант-модуля на CPU.
-- Совместимость с torch.compile: gf8-ветка STE использует exp2/log2/round — компилируемо,
-  но проверить на поде.
-- Влияние на скорость: STE GF8 дороже прямого cast e4m3 (несколько тензорных оп).
-  При 10-мин лимите проверь, не съедает ли это шаги тренировки.
+- Functional run on GPU: no CUDA/flash_attn in the sandbox — the träin-script was checked
+  only for syntax + unit-tests of the quant-module on CPU.
+- torch.compile compatibility: the gf8 STE branch uses exp2/log2/round — compilable,
+  but verify on the pod.
+- Impact on speed: GF8 STE is more expensive than a direct e4m3 cast (a few tensor ops).
+  Under a 10-min limit check whether it eats training steps.

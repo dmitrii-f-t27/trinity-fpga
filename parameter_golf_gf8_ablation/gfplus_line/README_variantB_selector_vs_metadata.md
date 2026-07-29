@@ -1,59 +1,57 @@
-# Вариант B — catalog-selection (GF+A) vs metadata-augmentation (M²XFP-стиль)
+# Variant B — catalog-selection (GF+A) vs metadata-augmentation (M²XFP-style)
 
-`[измерено — SW proxy, CPU]`, seed=20260730.
-Скрипт: `format_selector_vs_metadata.py` · данные: `format_selector_vs_metadata_results.json`.
+`[measured — SW proxy, CPU]`, seed=20260730.
+Script: `format_selector_vs_metadata.py` · data: `format_selector_vs_metadata_results.json`.
 
-## Постановка (честная)
+## Framing (honest)
 
-Две РАЗНЫЕ оси адаптивности на ОДНИХ данных, сопоставимый бит-бюджет:
+Two DIFFERENT axes of adaptivity on the SAME data, comparable bit-budget:
 
-- **Ось 1 — catalog-selection (GF+A):** построчный argmin-выбор **кармана** из
-  φ-каталога **РАЗНЫХ** форматов `{φ-сплит, e2, INT, lns/nf4}` + per-row e8m0-scale.
-  Гранулярность выбора = **строка**. (SSOT — `gfplus_a_v2`, не дублируется.)
-- **Ось 2 — metadata-augmentation (M²XFP-стиль, arXiv:2601.19213):** фиксируем
-  **ОДИН** формат-карман (микроскейл-база `e2`), затем на каждую **подгруппу**
-  (16 элементов) подбираем малую флекс-метадату — сдвиг порядка `b∈{-1,0,+1}`,
-  `b*=argmin_b Σ‖q_b−w‖²` (как `b*` в абстракте M²XFP). Формат НЕ меняется.
-  Гранулярность выбора = **подгруппа**.
+- **Axis 1 — catalog-selection (GF+A):** per-row argmin-selection of a **pocket** from a
+  φ-catalog of **DIFFERENT** formats `{φ-split, e2, INT, lns/nf4}` + per-row e8m0-scale.
+  Selection granularity = **row**. (SSOT — `gfplus_a_v2`, not duplicated.)
+- **Axis 2 — metadata-augmentation (M²XFP-style, arXiv:2601.19213):** we fix
+  **ONE** format-pocket (microscale-base `e2`), then for each **subgroup**
+  (16 elements) we fit a small flex-metadata — an order shift `b∈{-1,0,+1}`,
+  `b*=argmin_b Σ‖q_b−w‖²` (like `b*` in the M²XFP abstract). The format does NOT change.
+  Selection granularity = **subgroup**.
 
-## Результат (20 ячеек: 5 разрядностей × 4 распределения)
+## Result (20 cells: 5 bit-widths × 4 distributions)
 
-Победитель по SQNR (round-trip quantize→dequantize):
+Winner by SQNR (round-trip quantize→dequantize):
 
-| Распределение | Победитель | Типичная ΔSQNR (catalog − metadata) |
+| Distribution | Winner | Typical ΔSQNR (catalog − metadata) |
 |---|---|---|
-| `uniform`       | **catalog-select (GF+A)** | +2.9 … +3.2 дБ (все 5 разрядностей) |
-| `gaussian`      | metadata-refine (M²XFP)   | −1.4 … −1.5 дБ |
-| `heavy` (t, ν=2.5) | metadata-refine (M²XFP) | −4.7 … −6.8 дБ |
-| `mixed_outlier` | metadata-refine (M²XFP)   | −0.4 … −1.5 дБ |
+| `uniform`       | **catalog-select (GF+A)** | +2.9 … +3.2 dB (all 5 bit-widths) |
+| `gaussian`      | metadata-refine (M²XFP)   | −1.4 … −1.5 dB |
+| `heavy` (t, ν=2.5) | metadata-refine (M²XFP) | −4.7 … −6.8 dB |
+| `mixed_outlier` | metadata-refine (M²XFP)   | −0.4 … −1.5 dB |
 
-Итог: catalog 5 побед / metadata 15 побед из 20 — **но это НЕ рейтинг**, а карта
-режимов: победитель **детерминированно** зависит от статистики данных.
+Total: catalog 5 wins / metadata 15 wins out of 20 — **but this is NOT a ranking**, it is a
+regime map: the winner **deterministically** depends on the statistics of the data.
 
-## Вывод (BINDING — что можно и что НЕЛЬЗЯ заявлять)
+## Conclusion (BINDING — what can and CANNOT be claimed)
 
-- **Оси ОРТОГОНАЛЬНЫ и ВЗАИМОДОПОЛНЯЮЩИЕ, а не конкуренты за ячейку.**
-  На равномерных данных выигрывает выбор *формата* (INT-карман точно подходит,
-  подгрупповая метадата лишь добавляет оверхед). На гауссе/тяжёлых хвостах/выбросах
-  выигрывает уточнение *метаданных внутри формата* (подгрупповой сдвиг ловит
-  внутристрочную неоднородность, которую один строчный карман пропускает). Это
-  прямое численное подтверждение «no free lunch» и позиции статьи: M²XFP и GF+A
-  работают на РАЗНЫХ уровнях (селекция *между* форматами vs уточнение *внутри*
-  формата) → их можно **композировать**, а не выбирать одно.
-- **Превосходства НИ ОДНОЙ оси НЕ заявляется.** Гарантия каждой оси — только на её
-  собственной MSE-метрике выбора; **downstream НЕ замерялся** (инв. №15/№18: SQNR ≠
-  потери модели).
+- **The axes are ORTHOGONAL and COMPLEMENTARY, not competitors for a cell.**
+  On uniform data the *format* choice wins (the INT-pocket fits exactly, subgroup metadata only
+  adds overhead). On gaussian/heavy tails/outliers the *refinement of metadata inside the format*
+  wins (the subgroup shift catches intra-row non-uniformity that a single row-pocket misses). This
+  is direct numerical confirmation of "no free lunch" and of the paper's position: M²XFP and GF+A
+  work at DIFFERENT levels (selection *between* formats vs refinement *inside* a format) → they can
+  be **composed**, rather than choosing one.
+- **Superiority of EITHER axis is NOT claimed.** Each axis's guarantee holds only on its own
+  selection MSE-metric; **downstream was NOT measured** (inv. #15/#18: SQNR ≠ model loss).
 
-## Границы честности (BINDING)
+## Honesty boundaries (BINDING)
 
-1. Это **НЕ реимплементация M²XFP** — у нас нет их HW-co-design/обучения. Мы моделируем
-   ТОЛЬКО ось «metadata-refinement внутри одного формата» как контраст. Обе оценки =
-   собственная SW-модель, `[SW proxy]`.
-2. Сопоставление **НЕ строго iso-bit:** metadata-ось несёт +0.117 бит/элемент оверхеда
-   (2 бита флекс-метадаты на подгруппу из 16 + общий e8m0-scale). Часть выигрыша
-   metadata на хвостах = плата этими битами. При выравнивании оверхеда (K↑ или b∈{0,1})
-   маржа сократится — не проверено.
-3. Разная **гранулярность выбора** (строка vs подгруппа) — фундаментальная причина
-   расхождения, а не «качество» оси. Композиция (GF+A-карман + подгрупповая метадата
-   внутри него) — `[открытая гипотеза]`, в этом скрипте не измерена end-to-end.
-4. Синтетика + (если доступен) реальные веса микро-LM; 1 сид. Downstream/BPB — вне скоупа.
+1. This is **NOT a reimplementation of M²XFP** — we do not have their HW-co-design/training. We
+   model ONLY the "metadata-refinement inside a single format" axis as a contrast. Both estimates
+   are our own SW-model, `[SW proxy]`.
+2. The comparison is **NOT strictly iso-bit:** the metadata-axis carries +0.117 bits/element of
+   overhead (2 bits of flex-metadata per subgroup of 16 + a shared e8m0-scale). Part of the
+   metadata gain on tails is payment by these bits. When the overhead is aligned (K↑ or b∈{0,1})
+   the margin will shrink — not verified.
+3. The different **selection granularity** (row vs subgroup) is the fundamental cause of the
+   divergence, not the "quality" of an axis. Composition (GF+A-pocket + subgroup metadata inside
+   it) is an `[open hypothesis]`, not measured end-to-end in this script.
+4. Synthetic + (if available) real weights of a micro-LM; 1 seed. Downstream/BPB — out of scope.

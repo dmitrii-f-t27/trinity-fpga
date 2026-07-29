@@ -53,7 +53,7 @@ seed-search; `-nodsp` for wide multiplies; `-flatten` REMOVED for BRAM+wide-logi
 
 **Rule: any LUT ≥ 256 entries MUST use the `reg[]+initial` BRAM-inference form.**
 
-## 3. Achievable HW ceiling = 73/83 (canonical, зафиксировано в #199 body)
+## 3. Achievable HW ceiling = 73/83 (canonical, fixed in #199 body)
 
 83/83 HW-decode is **mathematically impossible**. ~10 formats are structural
 (containers/modes/fields/parametric-families), not numbers — they have no

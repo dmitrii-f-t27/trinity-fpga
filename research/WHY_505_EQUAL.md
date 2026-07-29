@@ -1,31 +1,31 @@
-# ПОЧЕМУ 505 = 505? Глубокий анализ
+# WHY 505 = 505? A deep analysis
 
-## Краткий ответ
+## Short answer
 
-**505 LUT — это не совпадение и не φ. Это информационный потолок для 16-битных нелинейных операций.** Любое нелинейное отображение 16→16 бит на Artix-7 требует ~2×W² ≈ 500 LUT6, независимо от кодирования.
+**505 LUT — is neither a coincidence nor φ. It is the information ceiling for 16-bit nonlinear operations.** Any nonlinear 16→16 bit mapping on Artix-7 requires ~2×W² ≈ 500 LUT6, regardless of encoding.
 
 ---
 
-## Подробный разбор
+## Detailed breakdown
 
-### 1. Hunhold пришёл эвристически. Мы — через φ. Результат одинаковый. Почему?
+### 1. Hunhold arrived at it heuristically. We — through φ. The result is the same. Why?
 
-Hunhold (takum) проектировал формат для **логарифмических свойств**:
-- Таперед-пrecision (больше точности около единицы)
-- Асимптотически постоянный dynamic range
-- LNS-домен (mul = add логарифмов)
+Hunhold (takum) designed the format for its **logarithmic properties**:
+- Tapered precision (more precision around unity)
+- Asymptotically constant dynamic range
+- LNS domain (mul = addition of logarithms)
 
-Vasilev (GF) проектировал через **φ-правило**:
-- E = round((N-1)/φ²) — геометрический принцип
-- Статический сплит (фиксированные E и M)
+Vasilev (GF) designed it through the **φ-rule**:
+- E = round((N-1)/φ²) — a geometric principle
+- Static split (fixed E and M)
 
-Оба НЕ оптимизировали LUT-стоимость. Но оба получили ~500 LUT для умножения, потому что:
+Neither optimized for LUT cost. But both got ~500 LUT for multiplication, because:
 
-> **LUT-стоимость определяется ШИРИНОЙ ФОРМАТА (16 бит), а не кодированием.**
+> **LUT cost is determined by the WIDTH of the format (16 bit), not by the encoding.**
 
-### 2. Доказательство: экспериментальный sweep
+### 2. Proof: an experimental sweep
 
-#### Разные E/M сплиты при W=16 (φ-rule даёт E=6, M=9):
+#### Different E/M splits at W=16 (the φ-rule gives E=6, M=9):
 
 | E | M | LUT | Mantissa mul cost (M+1)² | Exponent logic cost |
 |---|---|-----|--------------------------|---------------------|
@@ -34,11 +34,11 @@ Vasilev (GF) проектировал через **φ-правило**:
 | **6** | **9** | **587** | **100** | **487** |
 | 8 | 7 | 461 | 64 | 397 |
 
-**Вывод**: больше мантиссы → дороже умножение, но дешевле логика экспоненты. Сумма варьируется от 461 до 698 — это НЕ константа! φ-сплит (E=6,M=9) даёт 587 — **ближе к середине**, но не к минимуму.
+**Conclusion**: more mantissa → more expensive multiplication, but cheaper exponent logic. The sum varies from 461 to 698 — this is NOT a constant! The φ-split (E=6,M=9) gives 587 — **closer to the middle**, but not to the minimum.
 
-**φ НЕ минимизирует LUT.** Минимум LUT при E=8,M=7 (BF16-подобный сплит).
+**φ does NOT minimize LUT.** The LUT minimum is at E=8,M=7 (a BF16-like split).
 
-#### Скейлинг по ширине:
+#### Scaling by width:
 
 | W | E | M | LUT | LUT/W² |
 |---|---|---|-----|--------|
@@ -49,70 +49,70 @@ Vasilev (GF) проектировал через **φ-правило**:
 | 24 | 9 | 14 | 1097 | 1.9 |
 | 32 | 12 | 19 | 1827 | 1.8 |
 
-**Закон: LUT ≈ 2.3 × W²** (коэффициент убывает с W из-за лучшей оптимизации yosys на больших дизайнах).
+**Law: LUT ≈ 2.3 × W²** (the coefficient decreases with W due to better yosys optimization on larger designs).
 
-Для W=16: 2.3 × 256 ≈ 590 ± 90 LUT. Диапазон 461-698 — всё внутри.
+For W=16: 2.3 × 256 ≈ 590 ± 90 LUT. The range 461-698 — all inside.
 
-### 3. Почему takum16 попадает в тот же диапазон?
+### 3. Why does takum16 fall into the same range?
 
-takum16 — логарифмический формат. Его умножение:
-1. Знак: XOR → 1 LUT
-2. Извлечение "ell" (log-величины) из каждого операнда → ~50 LUT (MUX-дерево по 3 regime битам)
-3. Сложение ell_a + ell_b → ~40 LUT (12-бит сложение)
-4. **Ре-энкодинг** (обратно в tapered формат) → ~300 LUT
-   - Определение нового regime → компараторное дерево ~60 LUT
-   - Выбор и сдвиг мантиссы → variable-width shift ~80 LUT
-   - RNE округление → ~30 LUT
-   - Паковка → ~20 LUT
+takum16 — a logarithmic format. Its multiplication:
+1. Sign: XOR → 1 LUT
+2. Extraction of "ell" (log-magnitude) from each operand → ~50 LUT (MUX-tree over 3 regime bits)
+3. Addition of ell_a + ell_b → ~40 LUT (12-bit addition)
+4. **Re-encoding** (back into the tapered format) → ~300 LUT
+   - Determining the new regime → comparator tree ~60 LUT
+   - Selection and shift of the mantissa → variable-width shift ~80 LUT
+   - RNE rounding → ~30 LUT
+   - Packing → ~20 LUT
 
-Итого: ~400-500 LUT. Попадает в диапазон.
+Total: ~400-500 LUT. Falls into the range.
 
-**Ключевая интуиция**: ре-энкодинг из лог-домена обратно в tapered формат — это **нелинейное отображение 16→16 бит**, требующее такого же количества логики, как и умножение мантисс в линейном домене.
+**Key intuition**: re-encoding from the log domain back into the tapered format — is a **nonlinear 16→16 bit mapping**, requiring the same amount of logic as multiplying mantissas in the linear domain.
 
-### 4. Что φ-правило ДЕЙСТВИТЕЛЬНО оптимизирует?
+### 4. What does the φ-rule ACTUALLY optimize?
 
-φ оптимизирует **числовую точность**, а не LUT-стоимость:
+φ optimizes **numerical accuracy**, not LUT cost:
 
 - Dynamic range = 2^(2^E - 1)
 - Precision = 2^(-M)
-- φ-правило: E/(E+M) → 1/φ² ≈ 0.382
+- φ-rule: E/(E+M) → 1/φ² ≈ 0.382
 
-Это балансирует **охват по порядкам величины** vs **точность около единицы**. Формат с φ-сплитом имеет оптимальное покрытие числовой оси для заданной ширины — это численное свойство, подтверждённое benchmark'ом:
+This balances **coverage in orders of magnitude** vs **precision around unity**. A format with a φ-split has optimal coverage of the number axis for a given width — this is a numerical property, confirmed by the benchmark:
 
-| Формат | Mean Rel Err | Dynamic Range |
+| Format | Mean Rel Err | Dynamic Range |
 |--------|-------------|---------------|
-| GF16 (φ-сплит) | 1.58e-03 | 18 decades |
+| GF16 (φ-split) | 1.58e-03 | 18 decades |
 | takum16 (LNS) | 1.93e-03 | 83 decades |
 | FP16 (5:10) | 1.30e-03 | 5 decades |
 | BF16 (8:7) | 5.14e-03 | 78 decades |
 
-GF16 (φ) vs FP16 (5:10): GF16 менее точен около единицы, но имеет 3.6x больший dynamic range. Это и есть φ-баланс.
+GF16 (φ) vs FP16 (5:10): GF16 is less precise around unity, but has a 3.6× larger dynamic range. This is precisely the φ-balance.
 
-### 5. Аналогия
+### 5. Analogy
 
-Это похоже на нижнюю границу сортировки: **O(n log n)** для любого алгоритма сортировки сравнениями. Merge sort, quicksort, heap sort — все приходят к одному классу сложности, потому что **проблема** имеет фиксированную сложность, независимо от подхода.
+This is similar to the lower bound of sorting: **O(n log n)** for any comparison-based sorting algorithm. Merge sort, quicksort, heap sort — all come to the same complexity class, because the **problem** has a fixed complexity, regardless of the approach.
 
-Так же здесь: **16-битное нелинейное умножение** имеет фиксированную LUT-сложность ~2×W², независимо от того, умножаете ли вы мантиссы (GF) или складываете логарифмы и ре-энкодируете (takum).
+So here: **16-bit nonlinear multiplication** has a fixed LUT complexity ~2×W², regardless of whether you multiply mantissas (GF) or add logarithms and re-encode (takum).
 
-### 6. Честный вывод
+### 6. Honest conclusion
 
-| Вопрос | Ответ |
+| Question | Answer |
 |--------|-------|
-| Почему 505? | ~2.3 × 16² = ~590 ± 90 — информационный потолок |
-| Связано ли с φ? | **НЕТ.** φ оптимизирует точность, не LUT |
-| Совпадение ли? | **НЕТ.** Оба формата — 16-битные нелинейные операции |
-| Кто "правильнее"? | **Никто.** Разные trade-offs (точность vs dynamic range) |
-| Что φ даёт? | Баланс dynamic-range × precision = оптимальное числовое покрытие |
+| Why 505? | ~2.3 × 16² = ~590 ± 90 — the information ceiling |
+| Is it related to φ? | **NO.** φ optimizes accuracy, not LUT |
+| Is it a coincidence? | **NO.** Both formats are 16-bit nonlinear operations |
+| Who is "more correct"? | **Nobody.** Different trade-offs (accuracy vs dynamic range) |
+| What does φ give? | Balance of dynamic-range × precision = optimal numerical coverage |
 
 ---
 
-## Для статьи
+## For the paper
 
-Это открытие — **самостоятельный научный результат**:
+This finding — is **an independent scientific result**:
 
-> "Мы показали, что LUT-стоимость умножения для 16-битных числовых форматов
-> на openXC7 составляет ~2×W² независимо от кодирования (linear float vs LNS).
-> φ-правило оптимизирует числовую точность, а не аппаратную стоимость.
-> Это аналог нижней границы O(n log n) для сортировки."
+> "We showed that the LUT cost of multiplication for 16-bit numeric formats
+> on openXC7 is ~2×W² regardless of encoding (linear float vs LNS).
+> The φ-rule optimizes numerical accuracy, not hardware cost.
+> This is an analog of the O(n log n) lower bound for sorting."
 
-Это можно добавить в Paper 1 (GoldenFloat) как §"Hardware Cost Analysis" — отдельно от φ-правила (которое о точности).
+This can be added to Paper 1 (GoldenFloat) as §"Hardware Cost Analysis" — separate from the φ-rule (which is about accuracy).

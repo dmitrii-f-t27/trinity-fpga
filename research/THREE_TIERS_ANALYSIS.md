@@ -1,16 +1,16 @@
-# ПОЛНАЯ КАРТИНА: Ternary → GF → takum — три уровня абстракции
+# THE FULL PICTURE: Ternary → GF → takum — three levels of abstraction
 
-## Trinity имеет ТРИ вычислительных уровня
+## Trinity has THREE compute levels
 
-| Уровень | Значения | MAC-16 LUT | Что это | Где |
+| Level | Values | MAC-16 LUT | What it is | Where |
 |---------|---------|------------|---------|-----|
-| **Ternary** | {-1, 0, +1} | **52** | BitNet b1.58 веса | `ternary_mac_16.v` |
-| **GoldenFloat (GF16)** | 512 значений | **505** per MUL | Точный FP | `gf_mul_param.v` |
-| **takum16** | 65536 значений | **505** per MUL | Логарифмический FP | `takum16_native_mul.v` |
+| **Ternary** | {-1, 0, +1} | **52** | BitNet b1.58 weights | `ternary_mac_16.v` |
+| **GoldenFloat (GF16)** | 512 values | **505** per MUL | Exact FP | `gf_mul_param.v` |
+| **takum16** | 65536 values | **505** per MUL | Logarithmic FP | `takum16_native_mul.v` |
 
 ---
 
-## Главная формула
+## Main formula
 
 ```
    Trit        GF16         takum16
@@ -21,22 +21,22 @@
     0 bytes     2 bytes      2 bytes
 ```
 
-**Ternary в 10× дешевле GF/takum — но представляет только 3 значения.**
+**Ternary is 10× cheaper than GF/takum — but represents only 3 values.**
 
 ---
 
-## Почему 505 = 505 (финальный ответ)
+## Why 505 = 505 (the final answer)
 
-### Информационный потолок
+### Information ceiling
 
-LUT ≈ 2.3 × W² где W = битовая ширина:
-- W=2 (trit): 2.3 × 4 ≈ 10 LUT — но ternary MAC = 52 потому что это 16-элементный dot product
+LUT ≈ 2.3 × W² where W = bit width:
+- W=2 (trit): 2.3 × 4 ≈ 10 LUT — but ternary MAC = 52 because it is a 16-element dot product
 - W=16 (GF/takum): 2.3 × 256 ≈ 590 LUT
 - W=8 (GF8): 2.3 × 64 ≈ 159 LUT
 
-**Формат НЕ определяет LUT-стоимость. Ширина определяет.**
+**The format does NOT determine LUT cost. The width does.**
 
-### Доказательство (эксперимент из этой сессии):
+### Proof (experiment from this session):
 
 | W | φ-split | LUT (MUL) | LUT/W² |
 |---|---------|-----------|--------|
@@ -48,33 +48,33 @@ LUT ≈ 2.3 × W² где W = битовая ширина:
 
 ---
 
-## Чем GF лучше других? Честный ответ
+## How is GF better than others? Honest answer
 
-### GF НЕ лучше в LUT-стоимости
+### GF is NOT better in LUT cost
 
-| Операция | GF16 | takum16 | Пояснение |
+| Operation | GF16 | takum16 | Explanation |
 |----------|------|---------|-----------|
-| MUL (-nodsp) | 505 | 505 | Одинаково |
-| MUL (+DSP) | 399+1DSP | 505 | GF выигрывает (DSP) |
-| ADD | 491 | дорогая (log-sum-exp) | GF выигрывает |
-| DECODE | ~50 LUT (алгебра) | 1×BRAM36 (LUT-таблица) | Разный подход |
+| MUL (-nodsp) | 505 | 505 | Equal |
+| MUL (+DSP) | 399+1DSP | 505 | GF wins (DSP) |
+| ADD | 491 | expensive (log-sum-exp) | GF wins |
+| DECODE | ~50 LUT (algebra) | 1×BRAM36 (LUT table) | Different approach |
 
-### ЧЕМ GF лучше — это φ-баланс точности
+### WHAT GF is better at — the φ-balance of accuracy
 
-| Формат | Mean Rel Err | Dynamic Range | Плотность |
+| Format | Mean Rel Err | Dynamic Range | Density |
 |--------|-------------|---------------|-----------|
-| **GF16** | **1.58e-03** | **18 decades** | **сбалансирован** |
-| FP16 | 1.30e-03 | 5 decades | слишком узкий |
-| BF16 | 5.14e-03 | 78 decades | слишком грубый |
-| takum16 | 1.93e-03 | 83 decades | широкий, но менее точный |
+| **GF16** | **1.58e-03** | **18 decades** | **balanced** |
+| FP16 | 1.30e-03 | 5 decades | too narrow |
+| BF16 | 5.14e-03 | 78 decades | too coarse |
+| takum16 | 1.93e-03 | 83 decades | wide, but less accurate |
 
-**φ-правило даёт оптимальный баланс precision × dynamic_range.**
+**The φ-rule gives the optimal balance of precision × dynamic_range.**
 
-### ROBUSTNESS ANALYSIS — ключевое преимущество Tier 2 (GF)
+### ROBUSTNESS ANALYSIS — the key advantage of Tier 2 (GF)
 
-GF16 (E=6, M=9) — **минимальный IEEE-style формат, проходящий ВСЕ 4 ML workload теста** без катастрофических сбоев:
+GF16 (E=6, M=9) — **the minimal IEEE-style format that passes ALL 4 ML workload tests** without catastrophic failures:
 
-| Формат | E | M | Matmul | Gradient | Dyn. Range | Attention | Score |
+| Format | E | M | Matmul | Gradient | Dyn. Range | Attention | Score |
 |--------|---|---|--------|----------|------------|-----------|-------|
 | GF12   | 4 | 7 | ✗ | ✗ | ✗ | ✗ | 0/4 |
 | GF14   | 5 | 8 | ✗ | ✗ | ✗ | ✗ | 0/4 |
@@ -84,67 +84,67 @@ GF16 (E=6, M=9) — **минимальный IEEE-style формат, прохо
 | GF20   | 7 | 12 | ✓ | ✓ | ✓ | ✓ | 4/4 |
 | GF32   | 12 | 19 | ✓ | ✓ | ✓ | ✓ | 4/4 |
 
-**Вывод**: Ни FP16 (industry standard), ни BF16 (industry standard) не проходят все 4 теста. GF16 — единственный 16-битный формат с 4/4 robustness.
+**Conclusion**: Neither FP16 (industry standard), nor BF16 (industry standard) passes all 4 tests. GF16 is the only 16-bit format with 4/4 robustness.
 
-φ-правило (E/M → 1/φ ≈ 0.618) находит **точку баланса**: E=5 слишком мало (dynamic range failure), E=8 слишком много (mantissa starvation), E=6 = φ-sweet spot.
+The φ-rule (E/M → 1/φ ≈ 0.618) finds the **balance point**: E=5 is too small (dynamic range failure), E=8 is too much (mantissa starvation), E=6 = φ-sweet spot.
 
-### Сравнение radix economy
+### Radix economy comparison
 
-Из `src/ternary/efficiency_benchmark.zig`:
+From `src/ternary/efficiency_benchmark.zig`:
 
-| Radix | Bits/digit | Radix economy r/ln(r) | Применение |
+| Radix | Bits/digit | Radix economy r/ln(r) | Application |
 |-------|-----------|----------------------|-----------|
-| Binary (r=2) | 1.000 | 2.885 | Традиционный |
-| **Ternary (r=3)** | **1.585** | **2.731** ← минимум | BitNet веса |
-| φ-based (GF) | log₂(φ)=0.694 | φ/ln(φ)=3.328 | FP вычисления |
+| Binary (r=2) | 1.000 | 2.885 | Traditional |
+| **Ternary (r=3)** | **1.585** | **2.731** ← minimum | BitNet weights |
+| φ-based (GF) | log₂(φ)=0.694 | φ/ln(φ)=3.328 | FP computation |
 
-Ternary — **минимум radix economy** (самый эффективный radix). Это математический факт (минимум r/ln(r) при r=e≈2.718, ближайшее целое = 3).
+Ternary — **the minimum of radix economy** (the most efficient radix). This is a mathematical fact (the minimum of r/ln(r) is at r=e≈2.718, the nearest integer = 3).
 
 ---
 
-## Как VIBEE связывает это вместе
+## How VIBEE ties this together
 
-VIBEE = язык программирования Trinity. Он работает на сбалансированной троичной ВМ:
+VIBEE = the programming language of Trinity. It runs on a balanced ternary VM:
 
 ```
-VIBEE code → ternary VM → ternary MAC (52 LUT на FPGA)
+VIBEE code → ternary VM → ternary MAC (52 LUT on FPGA)
                  ↓
-         GF16/takum16 (505 LUT) для точных FP вычислений
+         GF16/takum16 (505 LUT) for exact FP computation
                  ↓
          FPGA (openXC7, Artix-7)
 ```
 
-Уровни:
-1. **Ternary** (`trit.zig`): {-1,0,+1} — веса LLM, MAC, VSA bind/unbind
-2. **GoldenFloat** (`gf_ref.py`): точные вычисления, накопление gradient
-3. **takum** (`takum_ref.py`): широкий dynamic range для scientific
+Levels:
+1. **Ternary** (`trit.zig`): {-1,0,+1} — LLM weights, MAC, VSA bind/unbind
+2. **GoldenFloat** (`gf_ref.py`): exact computation, gradient accumulation
+3. **takum** (`takum_ref.py`): wide dynamic range for scientific use
 
-VIBEE выбирает уровень автоматически:
-- Для matmul весов → ternary (52 LUT)
-- Для gradient accumulation → GF16 Quire (точный)
-- Для wide-range physics → takum (83 decades)
+VIBEE selects the level automatically:
+- For weight matmul → ternary (52 LUT)
+- For gradient accumulation → GF16 Quire (exact)
+- For wide-range physics → takum (83 decades)
 
 ---
 
-## Что уникально (стратегическое преимущество)
+## What is unique (strategic advantage)
 
-| Что | У кого есть | У конкурентов |
+| What | Who has it | Competitors |
 |-----|-------------|---------------|
-| **3 уровня (trit/GF/takum) на одном FPGA** | Trinity | Nobody |
-| **φ-правило как design principle** | Trinity | Nobody |
-| **72/83 формата с oracle** | Trinity | Nobody (ml_dtypes = ~8) |
+| **3 levels (trit/GF/takum) on one FPGA** | Trinity | Nobody |
+| **The φ-rule as a design principle** | Trinity | Nobody |
+| **72/83 formats with oracle** | Trinity | Nobody (ml_dtypes = ~8) |
 | **openXC7 silicon proof (zero-DSP)** | Trinity | Hunhold (VHDL, Vivado) |
 | **Ternary MAC 52 LUT** | Trinity | BitNet b1.58 (software) |
 | **VIBEE ternary VM** | Trinity | Nobody |
 
-**Trinity уникален тем, что имеет ВСЕ ТРИ уровня на одном кристалле.**
-Ни один конкурент не имеет троичного MAC + точный FP + широкий LNS одновременно.
+**Trinity is unique in having ALL THREE levels on one chip.**
+No competitor has a ternary MAC + exact FP + wide LNS simultaneously.
 
 ---
 
-## Что писать в статью
+## What to write in the paper
 
-### Paper 1 (GoldenFloat v4): добавить §"Hardware Cost Hierarchy"
+### Paper 1 (GoldenFloat v4): add §"Hardware Cost Hierarchy"
 
 ```
 Ternary MAC-16:  52 LUT  (BitNet b1.58 weights, 3 values)
@@ -155,7 +155,7 @@ LUT cost = 2.3 × W² (information-theoretic floor, encoding-independent)
 φ-rule optimizes accuracy, not LUT cost.
 ```
 
-### Paper 2 (Catalog v3): добавить §"Three Compute Tiers"
+### Paper 2 (Catalog v3): add §"Three Compute Tiers"
 
 ```
 Tier 1: Ternary {-1,0,+1} — BitNet MAC, 52 LUT

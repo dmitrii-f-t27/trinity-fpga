@@ -1,54 +1,53 @@
 # gf24/gf32 decode — pipelined variant + iverilog witness (horizon-B routing prep)
 
-**Дата:** 2026-07-24. **Автор:** Vasilev (gHashTag), ORCID 0009-0008-4294-6159.
-**Статус:** `[verified SW на iverilog]` (функция). Synth/PnR/flash на AX7203 = `[ТРЕБУЕТ ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ]`.
+**Date:** 2026-07-24. **Author:** Vasilev (gHashTag), ORCID 0009-0008-4294-6159.
+**Status:** `[verified SW on iverilog]` (function). Synth/PnR/flash on AX7203 = `[REQUIRES USER ACTION]`.
 
-## Зачем
+## Why
 
-gf24 (E9/M14/BIAS255) и gf32 (E12/M19/BIAS2047) decode **не проходят routing**
-на AX7203 (XC7A200T) при синтезе из чисто-комбинационного `gf_decode_param.v`
-(no-flatten CI = FAILURE, runs 28773511637 / 28773514467). Причина —
-**НЕ гигантская LUT-таблица** (в отличие от takum, который чинил split-BRAM),
-а **глубина одного комбинационного облака**: переменный barrel-shift (до ~40 бит)
-+ динамическая sticky-маска + CLZ + округление в одном `always@(*)`. Правильная
-horizon-B техника здесь — **конвейеризация датапата**, а не split таблицы.
+gf24 (E9/M14/BIAS255) and gf32 (E12/M19/BIAS2047) decode **fail routing**
+on AX7203 (XC7A200T) when synthesized from the purely combinational `gf_decode_param.v`
+(no-flatten CI = FAILURE, runs 28773511637 / 28773514467). The reason is
+**NOT a giant LUT-table** (unlike takum, which was fixed by split-BRAM),
+but the **depth of a single combinational cloud**: a variable barrel-shift (up to ~40 bits)
++ a dynamic sticky-mask + CLZ + rounding in a single `always@(*)`. The correct
+horizon-B technique here is **datapath pipelining**, not table splitting.
 
-## Что сделано
+## What was done
 
-- `fpga/openxc7-synth/gf_decode_param_pipe.v` — 2-стадийный конвейер того же
-  decode-закона (латентность 2 такта). Регистр вставлен ПОСЛЕ классификации +
-  true_exp + вычисления shift, ПЕРЕД barrel-shift + округлением + FP32-pack.
-  **Арифметика бит-в-бит идентична** `gf_decode_param.v` (те же iverilog-фиксы:
-  widen-before-shift #1, `[23:0] sub_shifted` OOB-read #2). Изменена ТОЛЬКО
-  временна́я структура, не функция.
+- `fpga/openxc7-synth/gf_decode_param_pipe.v` — a 2-stage pipeline of the same
+  decode-law (latency 2 cycles). The register is inserted AFTER classification +
+  true_exp + shift computation, BEFORE the barrel-shift + rounding + FP32-pack.
+  **The arithmetic is bit-for-bit identical** to `gf_decode_param.v` (the same iverilog-fixes:
+  widen-before-shift #1, `[23:0] sub_shifted` OOB-read #2). ONLY the temporal structure
+  changed, not the function.
 
-## Пруф (независимый 2-й witness)
+## Proof (independent 2nd witness)
 
-- `gf_decode_pipe_oracle.py` — golden Fraction-оракул gf{N}→FP32 (точный
-  рациональный decode + RNE к binary32). **Структурно независим** от Verilog.
-  Само-проверен: `oracle_selfcheck.py` = 200k fp32 round-trips бит-в-бит vs numpy.
-- `tb_gf_decode_param_pipe.v` — self-checking iverilog-стенд (по одному вектору
-  с полным сбросом конвейера, без streaming-неоднозначности).
+- `gf_decode_pipe_oracle.py` — golden Fraction-oracle gf{N}→FP32 (exact rational decode
+  + RNE to binary32). **Structurally independent** of the Verilog.
+  Self-checked: `oracle_selfcheck.py` = 200k fp32 round-trips bit-for-bit vs numpy.
+- `tb_gf_decode_param_pipe.v` — a self-checking iverilog-bench (one vector at a time with
+  a full pipeline reset, no streaming ambiguity).
 
-### Результаты (iverilog 12.0)
+### Results (iverilog 12.0)
 
-| Формат | Поля | Векторов | Результат |
+| Format | Fields | Vectors | Result |
 |---|---|---|---|
 | gf24 | E9/M14/BIAS255 | 30000 (repr.+5-class corners) | **30000/30000 bit-exact** |
 | gf32 | E12/M19/BIAS2047 | 30000 (repr.+5-class corners) | **30000/30000 bit-exact** |
 
-Контроль: чисто-комбинационный `gf_decode_param.v` на тех же векторах = 30000/30000
-(оракул согласован и с оригиналом, и с numpy — тройная сверка).
+Control: the purely combinational `gf_decode_param.v` on the same vectors = 30000/30000
+(the oracle agrees with both the original and with numpy — a triple check).
 
-yosys generic synth (`synth -flatten`, gf32): 1927 ячеек, 73 FF (2 стадии
-подтверждены). **Это `[смоделировано]`, НЕ P&R** — вердикт по routing даёт
-только openXC7 на плате.
+yosys generic synth (`synth -flatten`, gf32): 1927 cells, 73 FF (2 stages confirmed).
+**This is `[simulated]`, NOT P&R** — a routing verdict is only given by openXC7 on the board.
 
-## Воспроизвести
+## Reproduce
 
 ```bash
 cd conformance/witness/gf_pipe
-python3 oracle_selfcheck.py                                   # оракул vs numpy
+python3 oracle_selfcheck.py                                   # oracle vs numpy
 python3 gf_decode_pipe_oracle.py --N 24 --E 9  --M 14 --BIAS 255  --count 30000 --out vec_gf24.txt
 python3 gf_decode_pipe_oracle.py --N 32 --E 12 --M 19 --BIAS 2047 --count 30000 --out vec_gf32.txt
 iverilog -g2012 -DN=24 -DE=9  -DM=14 -DBIAS=255  -DVEC='"vec_gf24.txt"' -DNVEC=30000 \
@@ -57,14 +56,14 @@ iverilog -g2012 -DN=32 -DE=12 -DM=19 -DBIAS=2047 -DVEC='"vec_gf32.txt"' -DNVEC=3
   -o s32.vvp ../../../fpga/openxc7-synth/gf_decode_param_pipe.v tb_gf_decode_param_pipe.v && vvp s32.vvp
 ```
 
-## Честные границы
+## Honest boundaries
 
-- Это **гипотеза** фикса routing: конвейер сокращает критический путь, но
-  проходит ли gf24/gf32 P&R на Artix-7 — **проверяется ТОЛЬКО на плате**
-  (openXC7 nextpnr-xilinx недоступен в песочнице). `[routing-pending]`.
-- iverilog доказывает **функцию** (encoding decode), НЕ Tier-E. Tier-E = полная
-  цепь 4/4 (CI GREEN + SHA256 + UART N/N fails=0 @160000 + IDCODE 0x13636093).
-- Латентность выросла с 0 (комб.) / 1 (OUT_REG) до 2 тактов — host-скрипт
-  UART-conformance должен учесть 2-тактовую задержку при чтении результата.
-- Представительная выборка (30k + 5-class corners), НЕ exhaustive (gf32 = 2³²
-  недостижимо в песочнице; полный gf24 = 2²⁴ = 16.7M возможен на плате).
+- This is a **hypothesis** for a routing fix: the pipeline shortens the critical path, but
+  whether gf24/gf32 pass P&R on Artix-7 is **verifiable ONLY on the board**
+  (openXC7 nextpnr-xilinx is unavailable in the sandbox). `[routing-pending]`.
+- iverilog proves the **function** (encoding decode), NOT Tier-E. Tier-E = the full
+  4/4 chain (CI GREEN + SHA256 + UART N/N fails=0 @160000 + IDCODE 0x13636093).
+- Latency grew from 0 (comb.) / 1 (OUT_REG) to 2 cycles — the host UART-conformance script
+  must account for the 2-cycle delay when reading the result.
+- Representative sample (30k + 5-class corners), NOT exhaustive (gf32 = 2³²
+  is unreachable in the sandbox; full gf24 = 2²⁴ = 16.7M is possible on the board).

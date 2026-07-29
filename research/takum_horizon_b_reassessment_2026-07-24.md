@@ -1,91 +1,92 @@
-# takum-класс: пересмотр горизонта B (луп 24.07.2026)
+# takum class: reconsidering horizon B (loop 24.07.2026)
 
-> Статус-теги: `[доказано]` / `[измерено]` / `[verified SW на iverilog]` /
-> `[открытая гипотеза]` / `[ТРЕБУЕТ ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ]`.
-> Всё сверено живыми источниками (публичный GitHub API + локальный клон), НЕ по памяти.
+> Status tags: `[proven]` / `[measured]` / `[verified SW on iverilog]` /
+> `[open hypothesis]` / `[REQUIRES USER ACTION]`.
+> Everything is cross-checked against live sources (public GitHub API + local clone), NOT from memory.
 
-## Главная поправка честности (BINDING)
+## Main honesty correction (BINDING)
 
-Прежний диагноз (recipe-takum-research, completion-strategy, progress-tracker):
-**«takum32/64 = routing FAILURE на Artix-7 = горизонт B, потолок Tier-E = 71/83»**
-— **ЧАСТИЧНО ОПРОВЕРГНУТ** свежими пруфами на #199 (08–13.07.2026).
+The previous diagnosis (recipe-takum-research, completion-strategy, progress-tracker):
+**"takum32/64 = routing FAILURE on Artix-7 = horizon B, Tier-E ceiling = 71/83"**
+— is **PARTIALLY REFUTED** by fresh evidence on #199 (08–13.07.2026).
 
-Корень «routing FAILURE» оказался **функциональным 1-битным багом `S1_R`**, а НЕ
-физическим пределом маршрутинга. Баг усекал 3-битное поле regime до 1 бита →
-портил всю конвейерную цепочку декодера. Он маскировался под routing-limit
-(и под «BRAM INIT red herrings»). После фикса + split-table подхода:
+The root of the "routing FAILURE" turned out to be a **functional 1-bit bug `S1_R`**, NOT
+a physical limit of routing. The bug truncated the 3-bit regime field to 1 bit →
+it corrupted the entire pipeline chain of the decoder. It masqueraded as a routing-limit
+(and as "BRAM INIT red herrings"). After the fix + split-table approach:
 
 - **takum32:** CI run [28935841570](https://github.com/gHashTag/trinity-fpga/actions/runs/28935841570)
-  = `AX7203 Corona Decode TAKUM32`, `conclusion=success` `[доказано — публичный API]`;
+  = `AX7203 Corona Decode TAKUM32`, `conclusion=success` `[proven — public API]`;
   SHA256 `eb402381…f170b0e48`; UART **65/65 bit-exact (fails=0)** (15 SSOT + 50 random).
-- **takum64:** тот же `S1_R` баг найден и пофикшен в `takum64_decode_pipelined.v`,
-  тот же split-table; iverilog 200/200; CI success (run 28959783877, UART 45/45).
+- **takum64:** the same `S1_R` bug was found and fixed in `takum64_decode_pipelined.v`,
+  the same split-table; iverilog 200/200; CI success (run 28959783877, UART 45/45).
 
-### Split-table подход (что реально сработало)
-Одна таблица 65536×48 (не помещалась/не роутилась) → **две таблицы 256×48 + умножитель 48×48**:
+### Split-table approach (what actually worked)
+
+One 65536×48 table (did not fit / did not route) → **two 256×48 tables + a 48×48 multiplier**:
 - `coarse[k] = round(2^(k/256) · 2^47)`, k=0..255
 - `fine[j]   = round(2^(j/65536) · 2^47)`, j=0..255
-- каждая таблица = один RAMB36E1 (убирает multi-cell interleaving).
+- each table = one RAMB36E1 (eliminates multi-cell interleaving).
 
-Артефакты в репо УЖЕ есть: `fpga/openxc7-synth/takum32_{coarse,fine,2frac}.mem`,
+Artifacts already exist in the repo: `fpga/openxc7-synth/takum32_{coarse,fine,2frac}.mem`,
 `corona_decode_takum32_ax7203.v`, `corona_decode_takum64_ax7203.v`,
-host `conformance/takum{32,64}_decode_conformance_ax7203.py`, все вектора.
+host `conformance/takum{32,64}_decode_conformance_ax7203.py`, all vectors.
 
-## Что РЕАЛЬНО не хватает для Tier-E 4/4 (цепь 3.5/4)
+## What is ACTUALLY missing for Tier-E 4/4 (chain 3.5/4)
 
-Цепь Tier-E = (1) CI GREEN URL + (2) bitstream SHA256 + (3) UART `N/N fails=0` @160000 +
-(4) IDCODE `0x13636093`. У takum32/64 пруфов **есть 1+2+3, НЕТ строки (4) IDCODE** в теле.
+The Tier-E chain = (1) CI GREEN URL + (2) bitstream SHA256 + (3) UART `N/N fails=0` @160000 +
+(4) IDCODE `0x13636093`. The takum32/64 evidence **has 1+2+3, but is MISSING the line (4) IDCODE** in the body.
 
-**Диагноз gap (проверено):** host-скрипты `takum{32,64}_decode_conformance_ax7203.py`
-печатают только `HW RESULT: N/N bit-exact (fails=…)` — строку IDCODE НЕ печатают.
-Но и эталонный gf16-скрипт IDCODE автоматически не читает — IDCODE `0x13636093` =
-**документированная константа платы**, которую пользователь выписывает из шага
-flash (openXC7/JTAG) в тело пруфа. Значит gap takum = **чисто документационный
-(paste IDCODE), НЕ кодовый и НЕ routing.** RTL роутится, CI зелёный, UART fails=0.
+**Diagnosed gap (verified):** the host scripts `takum{32,64}_decode_conformance_ax7203.py`
+print only `HW RESULT: N/N bit-exact (fails=…)` — they do NOT print the IDCODE line.
+But even the reference gf16 script does not automatically read the IDCODE — IDCODE `0x13636093` =
+a **documented board constant** that the user copies from the flash step
+(openXC7/JTAG) into the body of the proof. Hence the takum gap = **purely a documentation
+gap (paste IDCODE), NOT a code gap and NOT a routing gap.** The RTL routes, CI is green, UART fails=0.
 
-## Что это меняет для потолка
+## What this changes for the ceiling
 
-- Потолок Tier-E **71/83 больше НЕ следует называть терминальным по причине
-  «takum не роутится»** — эта причина опровергнута для takum32/64.
-- Как только IDCODE-строка добавлена в консолидированный пруф takum32 и takum64 →
-  цепь 4/4 закрыта → **decode-HW +2 → union и потолок сдвигаются** (точный счёт
-  пересверить по #199 после публикации: takum8/16 уже были в decode-HW, добавляются
-  takum32 и takum64).
-- Это `[ТРЕБУЕТ ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ]`: у пользователя есть плата и IDCODE из
-  каждого прошлого flash; нужен один консолидированный комментарий на #199.
+- The Tier-E ceiling **71/83 can no longer be called terminal on the grounds
+  "takum does not route"** — this reason is refuted for takum32/64.
+- As soon as the IDCODE line is added to the consolidated takum32 and takum64 proof →
+  the chain 4/4 is closed → **decode-HW +2 → the union and the ceiling shift** (the exact
+  tally to be re-checked against #199 after publication: takum8/16 were already in decode-HW, takum32
+  and takum64 are added).
+- This is `[REQUIRES USER ACTION]`: the user has the board and the IDCODE from
+  each previous flash; one consolidated comment on #199 is needed.
 
-## Оговорки честности (НЕ переоценивать)
+## Honesty caveats (do NOT overestimate)
 
-- takum64 silicon имел отдельный регресс на 2-stage pipeline (comment 4970163919:
-  iverilog 9/9, но silicon 50.6%) — это про **compute/pipeline такум64**, НЕ про
-  decode. Decode-цепь (split-table) — та, что дала 65/65 и 45/45.
-- Прочие форматы «вне 71» (не-takum, `[routing-pending]` gf24/gf32 decode) —
-  их статус НЕ меняется этим анализом; они остаются horizon-B кандидатами по
-  СВОИМ причинам (gf24/32 no-flatten CI = FAILURE, глубже routing-limit).
-- Число «потолок 71» держать до публикации IDCODE-строки; НЕ двигать задним числом.
+- takum64 silicon had a separate regression on the 2-stage pipeline (comment 4970163919:
+  iverilog 9/9, but silicon 50.6%) — this is about **takum64 compute/pipeline**, NOT about
+  decode. The decode chain (split-table) is the one that yielded 65/65 and 45/45.
+- Other formats "outside 71" (non-takum, `[routing-pending]` gf24/gf32 decode) —
+  their status is NOT changed by this analysis; they remain horizon-B candidates for
+  THEIR OWN reasons (gf24/32 no-flatten CI = FAILURE, deeper routing-limit).
+- Keep the number "ceiling 71" until the IDCODE line is published; do NOT move it retroactively.
 
-## Задача пользователю (закрывает takum decode 4/4)
+## Task for the user (closes takum decode 4/4)
 
-Для takum32 и takum64 по-отдельности, на AX7203:
-1. `openFPGALoader`/openXC7 flash битстрима из CI-артефакта run 28935841570 (takum32)
-   / 28959783877 (takum64) → шаг flash печатает IDCODE `0x13636093`.
+For takum32 and takum64 separately, on AX7203:
+1. `openFPGALoader`/openXC7 flash the bitstream from the CI artifact of run 28935841570 (takum32)
+   / 28959783877 (takum64) → the flash step prints IDCODE `0x13636093`.
 2. `python3 conformance/takum32_decode_conformance_ax7203.py --port /dev/ttyUSB1 --baud 160000`
    → `HW RESULT: 65/65 bit-exact (fails=0)` (takum64 → 45/45).
-3. Один комментарий на #199 с ПОЛНОЙ цепью 4/4: CI URL + SHA256 + строка UART +
-   строка `IDCODE 0x13636093` (из шага 1). Тогда decode-HW takum32/64 = Tier-E.
+3. One comment on #199 with the FULL 4/4 chain: CI URL + SHA256 + UART line +
+   `IDCODE 0x13636093` line (from step 1). Then decode-HW takum32/64 = Tier-E.
 
-## Связка с gf24/gf32 (Трек 2 того же лупа)
+## Link with gf24/gf32 (Track 2 of the same loop)
 
-Противоположный случай к takum. У takum «routing FAILURE» оказался **функциональным
-багом** (split-table лечит таблицу). У **gf24/gf32 decode** причина горизонта B —
-**genuinely глубина комбинационного датапата** (barrel-shift + sticky-маска + CLZ +
-округление в одном облаке), НЕ таблица → split-table НЕ применим. Правильная
-техника — **конвейеризация**. Подготовлен 2-стадийный
-`fpga/openxc7-synth/gf_decode_param_pipe.v` (латентность 2 такта, арифметика
-бит-в-бит = оригинал), доказан iverilog-стендом против независимого Fraction-оракула:
-**gf24 30000/30000, gf32 30000/30000 bit-exact** `[verified SW на iverilog]`.
-Подробности — `conformance/witness/gf_pipe/README.md`. Проходит ли конвейер P&R на
-Artix-7 — `[routing-pending]`, вердикт ТОЛЬКО openXC7 на плате
-`[ТРЕБУЕТ ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ]`. Это гипотеза фикса, НЕ Tier-E.
+The opposite case to takum. For takum the "routing FAILURE" turned out to be a **functional
+bug** (split-table cures the table). For **gf24/gf32 decode** the reason for horizon B is
+**genuinely the depth of the combinational datapath** (barrel-shift + sticky-mask + CLZ +
+rounding in one cloud), NOT a table → split-table is NOT applicable. The correct
+technique is **pipelining**. A 2-stage
+`fpga/openxc7-synth/gf_decode_param_pipe.v` is prepared (2-cycle latency, arithmetic is
+bit-for-bit = original), proven by an iverilog testbench against an independent Fraction oracle:
+**gf24 30000/30000, gf32 30000/30000 bit-exact** `[verified SW on iverilog]`.
+Details — `conformance/witness/gf_pipe/README.md`. Whether the pipeline passes P&R on
+Artix-7 — `[routing-pending]`, the verdict is ONLY openXC7 on the board
+`[REQUIRES USER ACTION]`. This is a fix hypothesis, NOT Tier-E.
 
-seed н/д (HW-трек).
+seed n/a (HW track).

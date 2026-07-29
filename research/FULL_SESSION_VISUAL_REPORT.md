@@ -1,99 +1,100 @@
-# ПОЛНЫЙ НАУЧНЫЙ ОТЧЁТ ПО СЕССИИ
-# 38 коммитов, 1849 файлов, +42091/-53740 строк
-# 14-15 июля 2026
+# FULL SCIENTIFIC SESSION REPORT
+# 38 commits, 1849 files, +42091/-53740 lines
+# 14-15 July 2026
 
 ---
 
-## ГЛАВНОЕ ОТКРЫТИЕ
+## THE MAIN FINDING
 
-### GF16 — минимальный 16-битный формат без катастрофических провалов
+### GF16 — the minimal 16-bit format without catastrophic failures
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                    ROBUSTNESS MATRIX                                 │
 │                                                                      │
-│  Формат     Матмул   Градиент   Диапазон   Внимание   Итог           │
-│  ────────   ──────   ────────   ────────   ────────   ────           │
-│  GF4 (4b)     ✗         ✗         ✗         ✗       0/4  FRAGILE    │
-│  GF8 (8b)     ✗         ✗         ✗         ✗       0/4  FRAGILE    │
-│  GF12(12b)    ✗         ✓         ✗         ✓       2/4  PARTIAL    │
+│  Format     Matmul   Gradient  Range     Attention   Total           │
+│  ────────   ──────   ────────  ────────  ────────   ────            │
+│  GF4 (4b)     ✗         ✗        ✗         ✗       0/4  FRAGILE     │
+│  GF8 (8b)     ✗         ✗        ✗         ✗       0/4  FRAGILE     │
+│  GF12(12b)    ✗         ✓        ✗         ✓       2/4  PARTIAL     │
 │  ┌─────────────────────────────────────────────────────────┐        │
-│  │ GF16(16b)   ✓         ✓         ✓         ✓       4/4  ROBUST │        │
+│  │ GF16(16b)   ✓         ✓        ✓         ✓       4/4  ROBUST │        │
 │  └─────────────────────────────────────────────────────────┘        │
-│  FP16(16b)    ✓         ✓         ✗ ПАДАЕТ  ✓       3/4  PARTIAL    │
-│  BF16(16b)    ✗ ПАДАЕТ  ✓         ✓         ✓       3/4  PARTIAL    │
-│  posit16      ✓         ✓         ✓         ✓       4/4  ROBUST     │
-│  takum16      ✓         ✓         ✓         ✓       4/4  ROBUST     │
+│  FP16(16b)    ✓         ✓        ✗ DROPS   ✓       3/4  PARTIAL     │
+│  BF16(16b)    ✗ DROPS   ✓        ✓         ✓       3/4  PARTIAL     │
+│  posit16      ✓         ✓        ✓         ✓       4/4  ROBUST      │
+│  takum16      ✓         ✓        ✓         ✓       4/4  ROBUST      │
 │                                                                      │
-│  FP16 теряет 5 из 11 значений (1e-10..1e10) — flush to zero         │
-│  BF16 даёт 10x ошибку в матричном умножении                         │
-│  GF16 — единственный IEEE-style 16-битный без провалов              │
+│  FP16 loses 5 of 11 values (1e-10..1e10) — flush to zero            │
+│  BF16 gives a 10x error in matrix multiplication                     │
+│  GF16 — the only IEEE-style 16-bit one without failures              │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-**Почему φ-правило работает**: E = round((N-1)/φ²) для N=16 даёт E=6, M=9.
-- E=5 (FP16) — слишком мало экспоненты → провал диапазона
-- E=8 (BF16) — слишком мало мантиссы → провал умножения  
-- **E=6 (GF16)** — порог: достаточно и того, и другого
+**Why the φ-rule works**: E = round((N-1)/φ²) for N=16 gives E=6, M=9.
+- E=5 (FP16) — too little exponent → range failure
+- E=8 (BF16) — too little mantissa → multiplication failure  
+- **E=6 (GF16)** — the threshold: enough of both
 
 ---
 
-## ВСЕ НАУЧНЫЕ РЕЗУЛЬТАТЫ СЕССИИ
+## ALL SCIENTIFIC RESULTS OF THE SESSION
 
-### Результат 1: LUT = 2.3 × W² (информационный потолок)
+### Result 1: LUT = 2.3 × W² (information ceiling)
 
 ```
-LUT (умножение)
+LUT (multiplication)
   │
-600 ┤                          ●  GF16 (W=16)
-  │                        ●  takum16 (W=16)
-400 ┤                ●  GF12 (W=12)
-  │
-200 ┤        ●  GF8 (W=8)
-  │
-  0 ┼──┬──┬──┬──┬──┬──┬──┬──
-     4  8  12 16 20 24 28 32    Ширина (биты)
+ 600 ┤                          ●  GF16 (W=16)
+   │                        ●  takum16 (W=16)
+ 400 ┤                ●  GF12 (W=12)
+   │
+ 200 ┤        ●  GF8 (W=8)
+   │
+   0 ┼──┬──┬──┬──┬──┬──┬──┬──
+      4  8  12 16 20 24 28 32    Width (bits)
 
-Закон: LUT ≈ 2.3 × W²
-Доказательство: измерено для 6 ширин (W=8..32), 7 E/M сплитов
-Вывод: кодирование НЕ влияет на стоимость. Ширина определяет.
+Law: LUT ≈ 2.3 × W²
+Proof: measured for 6 widths (W=8..32), 7 E/M splits
+Conclusion: encoding does NOT affect cost. Width determines it.
 ```
 
-**Эксперимент**: 7 разных E/M сплитов при W=16:
-| E | M | LUT | Кто |
+**Experiment**: 7 different E/M splits at W=16:
+| E | M | LUT | Who |
 |---|---|-----|-----|
 | 2 | 13 | 698 | maximum mantissa |
 | 6 | 9 | 587 | **φ-rule (GF16)** |
 | 8 | 7 | 461 | BF16-like |
 
-φ НЕ минимизирует LUT. φ минимизирует **риск катастрофического отказа**.
+φ does NOT minimize LUT. φ minimizes **the risk of catastrophic failure**.
 
 ---
 
-### Результат 2: 505 = 505 (GF16 MUL ≡ takum16 MUL)
+### Result 2: 505 = 505 (GF16 MUL ≡ takum16 MUL)
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  GF16 MUL (без DSP)    takum16 MUL (нативный)   │
-│  ┌─────────────────┐   ┌─────────────────┐      │
-│  │ 9×9 умножение   │   │ log(a)+log(b)   │      │
-│  │ мантисс → shift │   │ → tapered       │      │
-│  │ → RNE → pack   │   │ re-encode       │      │
-│  └────────┬────────┘   └────────┬────────┘      │
-│           │                     │                │
-│           ▼                     ▼                │
-│        505 LUT              505 LUT              │
-│        0 DSP                0 DSP                │
-│        0 BRAM               0 BRAM               │
+│  GF16 MUL (no DSP)      takum16 MUL (native)    │
+│  ┌─────────────────┐    ┌─────────────────┐     │
+│  │ 9×9 multiply    │    │ log(a)+log(b)   │     │
+│  │ of mantissas    │    │ → tapered       │     │
+│  │ → shift         │    │ re-encode       │     │
+│  │ → RNE → pack    │    │                 │     │
+│  └────────┬────────┘    └────────┬────────┘     │
+│           │                      │               │
+│           ▼                      ▼               │
+│        505 LUT               505 LUT             │
+│        0 DSP                 0 DSP               │
+│        0 BRAM                0 BRAM              │
 └─────────────────────────────────────────────────┘
 ```
 
-**Интуиция "LNS умножение = сложение → дешевле" ОШИБОЧНА.**
-LNS экономит умножение, но tapered re-encode стоит столько же.
+**The intuition "LNS multiplication = addition → cheaper" is WRONG.**
+LNS saves on multiplication, but tapered re-encode costs just as much.
 
 ---
 
-### Результат 3: Три уровня вычислений Trinity
+### Result 3: The three compute tiers of Trinity
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -104,119 +105,119 @@ LNS экономит умножение, но tapered re-encode стоит ст�
 │  │ {-1, 0, +1}  │         │ [S:E:M=16b]  │   │ [LNS=16b]    ││
 │  │              │         │              │   │              ││
 │  │ MAC-16:      │         │ ADD: 491 LUT │   │ MUL: 505 LUT ││
-│  │  52 LUT      │         │ MUL: 505 LUT │   │ ADD: дорогой ││
+│  │  52 LUT      │         │ MUL: 505 LUT │   │ ADD: costly  ││
 │  │              │         │              │   │              ││
 │  │ BitNet b1.58 │         │ Gradient     │   │ Scientific   ││
-│  │ веса LLM     │         │ accumulation │   │ wide range   ││
+│  │ LLM weights  │         │ accumulation │   │ wide range   ││
 │  └──────────────┘         └──────────────┘   └──────────────┘│
 │                                                             │
-│  52 LUT ──── 10× дешевле ──── 505 LUT ──=─── 505 LUT       │
-│  3 значения                  512 значений    65536 значений  │
+│  52 LUT ──── 10× cheaper ──── 505 LUT ──=─── 505 LUT       │
+│  3 values                  512 values      65536 values      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Trinity уникален**: все три уровня на одном кристалле.
-Конкуренты: BitNet (только ternary), Hunhold (только takum).
+**Trinity is unique**: all three tiers on one chip.
+Competitors: BitNet (only ternary), Hunhold (only takum).
 
 ---
 
-## КАЖДАЯ ВОЛНА — ЧТО СДЕЛАНО
+## EACH WAVE — WHAT WAS DONE
 
-### Волны 1-4: Фундамент
+### Waves 1-4: Foundation
 
-| Волна | Что | Образ |
+| Wave | What | Image |
 |-------|-----|-------|
-| 1 | Безопасность: wallet password, KDF 10k→100k | Замок на двери |
-| 2 | Tekum oracle, benchmark 7 форматов, DePIN | Первый микроскоп |
-| 3 | 3286 CI удалено (3388→102), TX NBA race | Расчистка завала |
-| 4 | Barrel clamp, arXiv package | Первый чертёж |
+| 1 | Security: wallet password, KDF 10k→100k | A lock on the door |
+| 2 | Tekum oracle, benchmark of 7 formats, DePIN | The first microscope |
+| 3 | 3286 CI removed (3388→102), TX NBA race | Clearing a pile |
+| 4 | Barrel clamp, arXiv package | The first blueprint |
 
-### Волны 5-7: Честность
+### Waves 5-7: Honesty
 
-| Волна | Что | Образ |
+| Wave | What | Image |
 |-------|-----|-------|
-| 5 | **"4-11x" FALSE → 0.85x measured** | Ложь поймана |
-| 6 | .gitignore, paths, README rewrite | Ремонт фундамента |
-| 7 | **div/sqrt = binary32 proxy** обнаружен | Скрытый дефект найден |
+| 5 | **"4-11x" FALSE → 0.85x measured** | A lie caught |
+| 6 | .gitignore, paths, README rewrite | Foundation repair |
+| 7 | **div/sqrt = binary32 proxy** detected | A hidden defect found |
 
-### Волны 8-11: Бумага
+### Waves 8-11: The paper
 
-| Волна | Что | Образ |
+| Wave | What | Image |
 |-------|-----|-------|
-| 8 | **Clamp REVERTED** (регресс 70→49%) | Лекарство хуже болезни |
-| 9 | **"11392" FABRICATED** (сумма=11976) | Выдуманное число |
-| 10 | Purge 11392 из 6 файлов | Дезинфекция |
-| 11 | 7→10 GF форматов, 486→491 LUT | Точная настройка |
+| 8 | **Clamp REVERTED** (regression 70→49%) | The cure is worse than the disease |
+| 9 | **"11392" FABRICATED** (sum=11976) | An invented number |
+| 10 | Purge 11392 from 6 files | Disinfection |
+| 11 | 7→10 GF formats, 486→491 LUT | Fine tuning |
 
-### Волны 12-15: Массовая реализация
+### Waves 12-15: Mass implementation
 
-| Волна | Что | Образ |
+| Wave | What | Image |
 |-------|-----|-------|
-| 12 | **6 агентов**: 72 оракула, pipeline, LaTeX | Конвейер |
-| 13 | **PDF compiled** (314KB) | Готовый продукт |
-| 14 | 23 ветки удалены, cross-val 7/7 | Чистый стол |
-| 15 | **takum64 routing = FALSE** (CI failed) | Последняя ложь |
+| 12 | **6 agents**: 72 oracles, pipeline, LaTeX | A conveyor |
+| 13 | **PDF compiled** (314KB) | A finished product |
+| 14 | 23 branches deleted, cross-val 7/7 | A clean table |
+| 15 | **takum64 routing = FALSE** (CI failed) | The last lie |
 
-### Волны 16-20: Каталог
+### Waves 16-20: The catalog
 
-| Волна | Что | Образ |
+| Wave | What | Image |
 |-------|-----|-------|
-| 16 | **791K conformance vectors** | Библиотека данных |
-| 17 | MUL vectors (1.56M total) | Удвоение |
-| 18 | +9 оракулов (nf4, bcd, gf48/96, double_double) | Заполнение пробелов |
-| 19 | **72/83 THEORETICAL MAX** (afp, gf512, gf1024) | Потолок достигнут |
-| 20 | SUB vectors (2.4M), 61 CI, branches merged | Финальная уборка |
+| 16 | **791K conformance vectors** | A data library |
+| 17 | MUL vectors (1.56M total) | A doubling |
+| 18 | +9 oracles (nf4, bcd, gf48/96, double_double) | Filling the gaps |
+| 19 | **72/83 THEORETICAL MAX** (afp, gf512, gf1024) | The ceiling reached |
+| 20 | SUB vectors (2.4M), 61 CI, branches merged | Final cleanup |
 
-### Волны 21+: Научные открытия
+### Waves 21+: Scientific discoveries
 
-| Волна | Что | Образ |
+| Wave | What | Image |
 |-------|-----|-------|
-| 21 | **GF16 = 4/4 ROBUST** (главное открытие) | φ-баланс доказан |
-| bench | **505 = 505** (GF≡takum в zero-DSP) | Равенство классов |
-| bench | **LUT = 2.3×W²** (информационный закон) | Фундаментальный закон |
+| 21 | **GF16 = 4/4 ROBUST** (the main finding) | φ-balance proven |
+| bench | **505 = 505** (GF≡takum in zero-DSP) | Equality of classes |
+| bench | **LUT = 2.3×W²** (an information law) | A fundamental law |
 
 ---
 
-## СТАТЬИ НА arXiv — КАК УЛУЧШИТЬ
+## PAPERS ON arXiv — HOW TO IMPROVE
 
 ### Paper 1 (2606.05017 GoldenFloat) → v4
 
-**Добавить:**
+**Add:**
 
-1. **§"Robustness Analysis"** — таблица 13×4, GF16=4/4, FP16=3/4, BF16=3/4
-   - Это ИЗМЕРИМОЕ преимущество φ-правила
-   - Образ: "GF16 — единственный IEEE-style 16-битный формат, который не падает"
+1. **§"Robustness Analysis"** — a 13×4 table, GF16=4/4, FP16=3/4, BF16=3/4
+   - This is a MEASURABLE advantage of the φ-rule
+   - Image: "GF16 — the only IEEE-style 16-bit format that does not drop"
 
-2. **§"Hardware Cost Hierarchy"** — три уровня (ternary 52 → GF 505 → takum 505)
-   - LUT = 2.3×W² закон
-   - Образ: "Стоимость определяется шириной, не кодированием"
+2. **§"Hardware Cost Hierarchy"** — three tiers (ternary 52 → GF 505 → takum 505)
+   - The LUT = 2.3×W² law
+   - Image: "Cost is determined by width, not by encoding"
 
-3. **Обновить GF64** — честно: 70.1% ceiling, iverilog 9/9, CFGMCLK timing
+3. **Update GF64** — honestly: 70.1% ceiling, iverilog 9/9, CFGMCLK timing
 
-4. **Добавить цитаты**: ELiTeFormer (2607.03652), MxGLUT (2607.01607)
+4. **Add citations**: ELiTeFormer (2607.03652), MxGLUT (2607.01607)
 
-5. **Lucas identity → appendix** (не главный результат)
+5. **Lucas identity → appendix** (not a main result)
 
 ### Paper 2 (2606.09686 Catalog) → v3
 
-**Добавить:**
+**Add:**
 
-1. **§"Oracle Suite"** — 15 модулей, 72/83 strict catalog coverage
+1. **§"Oracle Suite"** — 15 modules, 72/83 strict catalog coverage
 2. **§"Reproducibility"** — `make oracle/repro/bench/lut/vectors`
 3. **§"Cross-Validation"** — 7/7 PASS
 
-**Исправить:**
-1. Заменить φ²+1/φ²=3 anchor на нейтральный
-2. Пометить GF16 как авторский формат
-3. Чётко указать: "60→72/83 strict coverage" (honest progression)
+**Fix:**
+1. Replace the φ²+1/φ²=3 anchor with a neutral one
+2. Label GF16 as the author's format
+3. Clearly state: "60→72/83 strict coverage" (honest progression)
 
 ---
 
-## ТРИ ВАРИАНТА СОТРУДНИЧЕСТВА
+## THREE COLLABORATION OPTIONS
 
-### Option A: "Совместная статья с Hunhold"
+### Option A: "Joint paper with Hunhold"
 
-**Образ**: Два спортсмена на одном стадионе
+**Image**: Two athletes in one stadium
 
 ```
 Vasilev (GF16)          Hunhold (takum16)
@@ -227,77 +228,77 @@ Vasilev (GF16)          Hunhold (takum16)
          └────┬─────┘
               │
          ┌────▼─────┐
-         │ Совместный│
+         │  Joint    │
          │ benchmark │
-         │  статья   │
+         │  paper    │
          └──────────┘
 ```
 
-Что: совместная статья "GF16 vs takum16 на openXC7"
-- Его RTL (VHDL) + наш RTL (Verilog) на одном FPGA
-- Результат: 505=505 (zero-DSP), комплементарность add/mul
-- Цель: CoNGA 2027 / ARITH 2027
-- Контакт: Hunhold, email доступен через arXiv
+What: a joint paper "GF16 vs takum16 on openXC7"
+- His RTL (VHDL) + our RTL (Verilog) on one FPGA
+- Result: 505=505 (zero-DSP), complementarity of add/mul
+- Goal: CoNGA 2027 / ARITH 2027
+- Contact: Hunhold, email available via arXiv
 
-### Option B: "Каталог → IEEE P3109"
+### Option B: "Catalog → IEEE P3109"
 
-**Образ**: Словарь становится стандартом
+**Image**: A dictionary becomes a standard
 
 ```
-Каталог (72/83)     IEEE P3109 Standard
+Catalog (72/83)       IEEE P3109 Standard
      │                      │
      └──────┐  ┌────────────┘
             ▼  ▼
       ┌──────────────┐
-      │ Официальный   │
+      │  Official    │
       │ conformance  │
-      │ suite для    │
-      │ стандарта    │
+      │ suite for    │
+      │ the standard │
       └──────────────┘
 ```
 
-Что: предложить каталог как conformance suite для P3109
-- Контакт: Fitzgibbon/Wintersteiger (P3109 editors)
-- Результат: цитирование из стандарта → citations
-- Риск: P3109 может не принять внешний suite
+What: propose the catalog as a conformance suite for P3109
+- Contact: Fitzgibbon/Wintersteiger (P3109 editors)
+- Result: citation from the standard → citations
+- Risk: P3109 may not accept an external suite
 
-### Option C: "GF в ml_dtypes"
+### Option C: "GF in ml_dtypes"
 
-**Образ**: Новый dtype в NumPy
+**Image**: A new dtype in NumPy
 
 ```
-Python код:
+Python code:
   import ml_dtypes
   x = np.array([1.0, 2.0], dtype=ml_dtypes.gf16)
   
-  → доступен в JAX, TensorFlow, PyTorch
+  → available in JAX, TensorFlow, PyTorch
   → community adoption
   → citations
 ```
 
-Что: добавить GF16 как dtype в Google ml_dtypes
-- Контакт: Google JAX team (ml_dtypes maintainers)
-- Результат: формат доступен в экосистеме → adoption
-- Усилие: реализовать `__array_interface__` для GF16
+What: add GF16 as a dtype to Google ml_dtypes
+- Contact: Google JAX team (ml_dtypes maintainers)
+- Result: the format is available in the ecosystem → adoption
+- Effort: implement `__array_interface__` for GF16
 
 ---
 
-## ФИНАЛЬНАЯ КАРТИНА
+## THE FINAL PICTURE
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    TRINITY-FPGA (июль 2026)                     │
+│                    TRINITY-FPGA (July 2026)                      │
 │                                                                 │
-│  Форматы:  84 имени, 72/83 каталожного покрытия                 │
-│  Оракулы:  15 модулей, все self-test PASS                       │
-│  Векторы:  2.4M (ADD+MUL+SUB)                                   │
-│  Кремний:  10 GF × {ADD,MUL} bit-exact на AX7203               │
-│  Статья:   PDF 10 страниц, 0 ложных утверждений                 │
-│  Ветки:    1 (main)                                            │
-│  CI:       61 workflow (было 3388)                              │
+│  Formats:  84 names, 72/83 catalog coverage                     │
+│  Oracles:  15 modules, all self-test PASS                       │
+│  Vectors:  2.4M (ADD+MUL+SUB)                                   │
+│  Silicon:  10 GF × {ADD,MUL} bit-exact on AX7203                │
+│  Paper:    PDF 10 pages, 0 false claims                         │
+│  Branches: 1 (main)                                             │
+│  CI:       61 workflows (was 3388)                              │
 │                                                                 │
-│  ГЛАВНОЕ:  GF16 = 4/4 ROBUST (φ-баланс доказан)               │
-│            505 = 505 (LUT не зависит от кодирования)           │
-│            52 → 505 → 505 (три уровня на одном кристалле)      │
+│  MAIN:     GF16 = 4/4 ROBUST (φ-balance proven)                 │
+│            505 = 505 (LUT does not depend on encoding)          │
+│            52 → 505 → 505 (three tiers on one chip)             │
 └─────────────────────────────────────────────────────────────────┘
 ```

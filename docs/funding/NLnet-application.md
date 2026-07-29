@@ -8,12 +8,12 @@
 
 ## WHY NLNET
 
-NLnet финансирует open-source infrastructure. Прошлые получатели: Tor, OpenBSD, WireGuard, Rust (Mozilla), LibreSSL.
+NLnet funds open-source infrastructure. Past recipients: Tor, OpenBSD, WireGuard, Rust (Mozilla), LibreSSL.
 
-Trinity Stack = open-source hardware + open-source AI = точное попадание.
+Trinity Stack = open-source hardware + open-source AI = a perfect fit.
 
-Дедлайн: **rolling** (принимают заявки постоянно, 4 раза в год).
-Ответ: 2-3 месяца.
+Deadline: **rolling** (they accept applications continuously, 4 times a year).
+Response: 2-3 months.
 
 ---
 
@@ -52,7 +52,7 @@ All outputs: Apache 2.0 on GitHub. No proprietary dependencies.
 
 ## SUBMIT
 
-https://nlnet.nl/propose — форма на 1 странице, очень простая.
-Ответ приходит через 6-8 недель.
+https://nlnet.nl/propose — a 1-page form, very simple.
+A response arrives within 6-8 weeks.
 
 *trinity-fpga/docs/funding/NLnet-application.md*

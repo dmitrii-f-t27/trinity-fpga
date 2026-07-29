@@ -1,29 +1,29 @@
-# Автономный цикл разработки Trinity (15 минут)
+# Trinity Autonomous Development Loop (15 minutes)
 
-## Задача
-Улучшать текущую задачу без прерывания. При пробуждении:
-1. Прочитать эту инструкцию
-2. Продолжить работу с того места где остановился
-3. Не спрашивать подтверждения на кодовые изменения
-4. Коммитить каждое завершение
-5. Отчитываться о прогрессе на вехах
+## Task
+Improve the current task without interruption. On wake-up:
+1. Read this instruction
+2. Continue work from where it stopped
+3. Do not ask for confirmation on code changes
+4. Commit each completion
+5. Report progress at milestones
 
-## Приоритеты
-- Все билдовые ошибки должны быть устранены
-- Все тесты должны проходить
-- Код должен быть отформатирован (`zig fmt`)
-- Коммиты должны быть осмысленными
+## Priorities
+- All build errors must be resolved
+- All tests must pass
+- Code must be formatted (`zig fmt`)
+- Commits must be meaningful
 
-## Текущий статус
-- Билд: ✅ исправлен (Zig 0.15 совместимость)
-- Последний коммит: `fix(build): Zig 0.15 compatibility`
-- Следующее: продолжить улучшение проекта
+## Current status
+- Build: ✅ fixed (Zig 0.15 compatibility)
+- Last commit: `fix(build): Zig 0.15 compatibility`
+- Next: continue improving the project
 
-## Память
-- Координация с QUEEN TRINITY в .trinity
+## Memory
+- Coordination with QUEEN TRINITY in .trinity
 
-## Правила
-- Никаких вопросов пользователю — делать и коммитить
-- При ошибках — логировать и исправлять
-- При успехах — коммитить и двигаться дальше
-- В конце цикла — отчёт о проделанной работе
+## Rules
+- No questions to the user — do and commit
+- On errors — log and fix
+- On successes — commit and move on
+- At the end of the cycle — report on the work done

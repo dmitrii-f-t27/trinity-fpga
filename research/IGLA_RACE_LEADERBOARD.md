@@ -1,16 +1,16 @@
-# IGLA RACE — ПОЛНЫЙ ЛИДЕРБОРД С ДЕТАЛЬНЫМИ ДАННЫМИ
+# IGLA RACE — FULL LEADERBOARD WITH DETAILED DATA
 
-## Источник данных
+## Data sources
 
-| Источник | Тип | Условия |
+| Source | Type | Conditions |
 |----------|-----|---------|
 | Railway Postgres | Production | gf256 × adamw, h=240, 240k+ steps |
 | Local bigram matrix | CPU | 20 formats × 9 algos = 180 cells, h=128, 500 steps |
 | Matrix run 28643449889 | Railway | hidden=96, step=3000, multiple formats |
 | Local JEPA | CPU | tinyshakespeare, h=256, 2000 steps |
-| Наше исследование | Python | noise floor, robustness, LUT, silicon |
+| Our research | Python | noise floor, robustness, LUT, silicon |
 
-## Лидерборд (4 тира)
+## Leaderboard (4 tiers)
 
 ### TIER 1: Railway Champions (long training)
 
@@ -69,12 +69,12 @@
 | nf4 | 7.0000 | n/a | n/a | no | n/a | BROKEN #217 |
 | ternary | 5.9978 | n/a | 0/7 | MAC-16 | 52 | BITNET WEIGHTS |
 
-## Ключевые выводы
+## Key conclusions
 
-1. **gf256 чемпион** — потому что 256-битная мантисса = нулевая потеря при квантовании
-2. **GF16+ может превзойти gf256** — 100% gradient survival (Quire) при 580 LUT (275× дешевле)
-3. **GF8 мёртв** — подтверждено ОБЕИМИ системами (IGLA: dead-at-init, наша: 0% survival)
-4. **nf4 сломан** — нужен scale+STE (тот же fix pattern что fake_quant #95)
-5. **RMSProp** — самый format-robust оптимизатор (выигрывает 19/20 форматов)
-6. **JEPA** — превосходит bigram floor (5.9675 vs 5.9923)
-7. **Цель BPB < 1.50** — разрыв 1.07 от чемпиона 2.5719
+1. **gf256 champion** — because a 256-bit mantissa = zero loss on quantization
+2. **GF16+ can beat gf256** — 100% gradient survival (Quire) at 580 LUT (275× cheaper)
+3. **GF8 is dead** — confirmed by BOTH systems (IGLA: dead-at-init, ours: 0% survival)
+4. **nf4 is broken** — needs scale+STE (the same fix pattern as fake_quant #95)
+5. **RMSProp** — the most format-robust optimizer (wins 19/20 formats)
+6. **JEPA** — beats the bigram floor (5.9675 vs 5.9923)
+7. **Goal BPB < 1.50** — gap of 1.07 from the champion 2.5719

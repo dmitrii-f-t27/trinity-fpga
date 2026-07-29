@@ -3,7 +3,7 @@
 **Toolchain**: yosys 0.63, `synth_xilinx -flatten -abc9 -nocarry [-nodsp] -arch xc7`
 **Target**: Artix-7 XC7A200T-FBG484-2 (134,600 LUTs)
 **Date**: 2026-07-15
-**Status**: [измерено yosys-synth] for W≤128, [est. scaling law] for W>128
+**Status**: [measured yosys-synth] for W≤128, [est. scaling law] for W>128
 
 ## Complete GF Family LUT Table
 

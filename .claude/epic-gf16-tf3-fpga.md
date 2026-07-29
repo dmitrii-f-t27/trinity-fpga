@@ -1,4 +1,4 @@
-# [EPIC] GF16/TF3 Arithmetic Unit на XC7A100T (Artix-7, 28nm)
+# [EPIC] GF16/TF3 Arithmetic Unit on XC7A100T (Artix-7, 28nm)
 
 **Labels:** `epic`, `fpga`, `hardware`, `priority:high`
 **Milestone:** Sacred Formats Hardware
@@ -6,44 +6,44 @@
 
 ---
 
-## Цель
+## Goal
 
-Реализовать и протестировать нативный аппаратный блок для **GF16 (Golden Float 16)** и **TF3-9 (Ternary Float 9)** на FPGA XC7A100T (Artix-7), с чётким интерфейсом для Trinity.
+Implement and test a native hardware block for **GF16 (Golden Float 16)** and **TF3-9 (Ternary Float 9)** on the XC7A100T (Artix-7) FPGA, with a clean interface for Trinity.
 
-> "Опустить Sacred форматы с Level 0 (язык) до Level 6 (RTL)" — это ключевой дифференциатор Trinity против GPU-bound frameworks (PyTorch, JAX, TensorRT).
+> "Bring Sacred formats down from Level 0 (language) to Level 6 (RTL)" — this is Trinity's key differentiator against GPU-bound frameworks (PyTorch, JAX, TensorRT).
 
 ---
 
-## Мотивация
+## Motivation
 
-| Аспект | CPU (софт) | FPGA (этот EPIC) |
-|--------|-------------|------------------|
+| Aspect | CPU (software) | FPGA (this EPIC) |
+|--------|----------------|-------------------|
 | GF16 add | ~50 cycles | ~1 cycle (50×) |
 | GF16 mul | ~100 cycles | ~1 cycle (100×) |
 | TF3 mac | ~100 cycles | ~1 cycle (100×) |
-| Энергия | Высокая | Низкая (DSP-free) |
+| Energy | High | Low (DSP-free) |
 
-**Связь с документацией:**
-- [positioning-zighalf-trinity.md](../docs/docs/concepts/positioning-zighalf-trinity.md) — Level 6 позиционирование
-- [phi-distance-formats.md](../docs/docs/concepts/phi-distance-formats.md) — φ-distance анализ
-- [native-f16-comparison.md](../docs/docs/concepts/native-f16-comparison.md) — Сравнение языковых стеков
+**Documentation links:**
+- [positioning-zighalf-trinity.md](../docs/docs/concepts/positioning-zighalf-trinity.md) — Level 6 positioning
+- [phi-distance-formats.md](../docs/docs/concepts/phi-distance-formats.md) — φ-distance analysis
+- [native-f16-comparison.md](../docs/docs/concepts/native-f16-comparison.md) — Language stack comparison
 
 ---
 
-## Целевой чип
+## Target chip
 
-| Параметр | Значение |
-|----------|----------|
+| Parameter | Value |
+|-----------|---------|
 | FPGA | XC7A100T-1FGG484 (Artix-7, 28nm) |
 | LUT | ~426k (6-input) |
 | FF | ~852k |
 | DSP48E1 | 240 |
 | BRAM | ~16 Mbit |
-| Целевая частота | 100–150 MHz (v1) |
+| Target frequency | 100–150 MHz (v1) |
 
 ---
 
-## Спецификация форматов
+## Format specification
 
 ### GF16 (Golden Float 16)
 
@@ -57,7 +57,7 @@ exp:mant = 6:9 = 0.667
 φ-distance = 0.049 (95.1% golden)
 ```
 
-**Исходный код:** `src/hslm/intraparietal_sulcus.zig`
+**Source code:** `src/hslm/intraparietal_sulcus.zig`
 
 ### TF3-9 (Ternary Float 9)
 
@@ -69,21 +69,21 @@ exp:mant = 6:9 = 0.667
 │      │ trits     │           // Each trit = 2 bits: 00=0, 01=-1, 10=+1 │
 └─────────────────────────────────────────────────────────────────────┘
 exp:mant = 3:5 = 0.600
-φ-distance = 0.018 (98.2% golden) — ЛУЧШИЙ ФОРМАТ!
+φ-distance = 0.018 (98.2% golden) — BEST FORMAT!
 ```
 
-**Исходный код:** `src/hslm/intraparietal_sulcus.zig`
+**Source code:** `src/hslm/intraparietal_sulcus.zig`
 
 ---
 
-## Архитектура
+## Architecture
 
 ```
                     ┌─────────────────────────────────────┐
                     │          SACRED_ALU_TOP             │
                     ├─────────────────────────────────────┤
                     │  ┌───────────┐    ┌───────────┐    │
-AXI-Stream ────────►│  │  GF16_ALU │    │  TF3_ALU  │    │├───► AXI-Stream
+ AXI-Stream ────────►│  │  GF16_ALU │    │  TF3_ALU  │    │├───► AXI-Stream
                     │  │           │    │           │    │
                     │  │ add/mul/fma│   │ add/dot   │    │
                     │  └───────────┘    └───────────┘    │
@@ -102,19 +102,19 @@ AXI-Stream ────────►│  │  GF16_ALU │    │  TF3_ALU  �
 
 ---
 
-## Задачи (Phases)
+## Tasks (Phases)
 
 ### Phase 1: GF16 Adder
 
-**Файл:** `fpga/openxc7-synth/gf16_adder.v`
+**File:** `fpga/openxc7-synth/gf16_adder.v`
 
-- [ ] Реализовать 4-стадийный пайплайн:
+- [ ] Implement a 4-stage pipeline:
   - [ ] Stage 1: Decode (sign/exp/mant), align exponents
   - [ ] Stage 2: Core add (mantissa addition)
   - [ ] Stage 3: Normalize (shift result, adjust exponent)
   - [ ] Stage 4: Round-to-nearest-even, pack to 16-bit
 
-- [ ] Интерфейс (AXI-Stream compatible):
+- [ ] Interface (AXI-Stream compatible):
   ```verilog
   module gf16_adder (
       input  wire        clk,
@@ -131,29 +131,29 @@ AXI-Stream ────────►│  │  GF16_ALU │    │  TF3_ALU  �
   ```
 
 - [ ] Testbench: `fpga/openxc7-synth/tb/gf16_adder_tb.v`
-  - [ ] Генерировать тестовые векторы из `src/hslm/intraparietal_sulcus.zig`
-  - [ ] Сравнить с софт-референсом (Zig `gf16FromF32/gf16ToF32`)
-  - [ ] Уточнение: ошибка ≤ 1 LSB
+  - [ ] Generate test vectors from `src/hslm/intraparietal_sulcus.zig`
+  - [ ] Compare against software reference (Zig `gf16FromF32/gf16ToF32`)
+  - [ ] Precision: error ≤ 1 LSB
 
-- [ ] Синтез:
+- [ ] Synthesis:
   - [ ] Yosys synthesis report (LUT/FF count)
   - [ ] Timing: ≥ 100 MHz on -1 speed grade
 
-**Метки:** `fpga`, `gf16`, `phase-1`
+**Labels:** `fpga`, `gf16`, `phase-1`
 
 ---
 
 ### Phase 2: GF16 Multiplier
 
-**Файл:** `fpga/openxc7-synth/gf16_multiplier.v`
+**File:** `fpga/openxc7-synth/gf16_multiplier.v`
 
-- [ ] Реализовать 3-4 стадийный пайплайн:
+- [ ] Implement a 3-4 stage pipeline:
   - [ ] Stage 1: Decode, multiply mantissas
   - [ ] Stage 2: DSP48E1 usage (18×18 multiply)
   - [ ] Stage 3: Normalize, add exponents
   - [ ] Stage 4: Round, pack
 
-- [ ] Интерфейс (аналогичный adder):
+- [ ] Interface (same as adder):
   ```verilog
   module gf16_multiplier (
       input  wire        clk, rst,
@@ -167,20 +167,20 @@ AXI-Stream ────────►│  │  GF16_ALU │    │  TF3_ALU  �
   ```
 
 - [ ] Testbench: `fpga/openxc7-synth/tb/gf16_multiplier_tb.v`
-  - [ ] Random test vectors vs софт-референс
+  - [ ] Random test vectors vs software reference
   - [ ] Corner cases: denormals, infinity, NaN
 
-- [ ] Синтез:
+- [ ] Synthesis:
   - [ ] Report: LUT/FF + 1× DSP48E1 usage
   - [ ] Timing: ≥ 100 MHz
 
-**Метки:** `fpga`, `gf16`, `phase-2`
+**Labels:** `fpga`, `gf16`, `phase-2`
 
 ---
 
 ### Phase 3: TF3 ALU
 
-**Файл:** `fpga/openxc7-synth/tf3_alu.v`
+**File:** `fpga/openxc7-synth/tf3_alu.v`
 
 - [ ] Ternary decode:
   ```verilog
@@ -195,10 +195,10 @@ AXI-Stream ────────►│  │  GF16_ALU │    │  TF3_ALU  �
   endfunction
   ```
 
-- [ ] `tf3_add`: saturating add двух TF3-9 чисел
-- [ ] `tf3_dot`: N-длинный dot product (configurable N)
+- [ ] `tf3_add`: saturating add of two TF3-9 numbers
+- [ ] `tf3_dot`: N-length dot product (configurable N)
 
-- [ ] Интерфейс:
+- [ ] Interface:
   ```verilog
   module tf3_alu (
       input  wire        clk, rst,
@@ -214,17 +214,17 @@ AXI-Stream ────────►│  │  GF16_ALU │    │  TF3_ALU  �
   ```
 
 - [ ] Testbench: `fpga/openxc7-synth/tb/tf3_alu_tb.v`
-  - [ ] Сравнение с `src/hslm/intraparietal_sulcus.zig` (TernaryFloat9)
+  - [ ] Comparison against `src/hslm/intraparietal_sulcus.zig` (TernaryFloat9)
 
-**Метки:** `fpga`, `tf3`, `phase-3`
+**Labels:** `fpga`, `tf3`, `phase-3`
 
 ---
 
 ### Phase 4: Sacred ALU Wrapper
 
-**Файл:** `fpga/openxc7-synth/sacred_alu.v`
+**File:** `fpga/openxc7-synth/sacred_alu.v`
 
-- [ ] Объединённый интерфейс:
+- [ ] Unified interface:
   ```verilog
   module sacred_alu (
       // Clock/reset
@@ -245,18 +245,18 @@ AXI-Stream ────────►│  │  GF16_ALU │    │  TF3_ALU  �
   );
   ```
 
-- [ ] Мультиплексирование между GF16_ALU и TF3_ALU
-- [ ] CSR регистры для конфигурации и статуса
+- [ ] Multiplexing between GF16_ALU and TF3_ALU
+- [ ] CSR registers for configuration and status
 
-**Метки:** `fpga`, `integration`, `phase-4`
+**Labels:** `fpga`, `integration`, `phase-4`
 
 ---
 
 ### Phase 5: Trinity Integration
 
-**Файлы:** `src/hslm/fpga_backend.zig` (новый)
+**Files:** `src/hslm/fpga_backend.zig` (new)
 
-- [ ] Zig backend для вызова FPGA ALU:
+- [ ] Zig backend for invoking the FPGA ALU:
   ```zig
   const fpga = @import("fpga_backend.zig");
 
@@ -265,44 +265,44 @@ AXI-Stream ────────►│  │  GF16_ALU │    │  TF3_ALU  �
   }
   ```
 
-- [ ] Фоллбэк на софт-реализацию если FPGA недоступен
-- [ ] Единый интерфейс: `fn gf16Add(a, b) -> result` (HW или SW)
+- [ ] Fallback to software implementation if FPGA unavailable
+- [ ] Unified interface: `fn gf16Add(a, b) -> result` (HW or SW)
 
-**Метки:** `integration`, `zig`, `phase-5`
+**Labels:** `integration`, `zig`, `phase-5`
 
 ---
 
 ### Phase 6: Documentation & Benchmarks
 
-- [ ] Обновить `docs/lab/papers/trinity-fpga/draft.md` с результатами
-- [ ] Бенчмарки: HW vs SW (cycles, latency, throughput)
-- [ ] Ресурсы: LUT/FF/DSP usage table
-- [ ] Фотографии тайминга из Vivado/Yosys
+- [ ] Update `docs/lab/papers/trinity-fpga/draft.md` with results
+- [ ] Benchmarks: HW vs SW (cycles, latency, throughput)
+- [ ] Resources: LUT/FF/DSP usage table
+- [ ] Timing screenshots from Vivado/Yosys
 
-**Метки:** `docs`, `benchmark`, `phase-6`
+**Labels:** `docs`, `benchmark`, `phase-6`
 
 ---
 
-## Метрики приёмки
+## Acceptance metrics
 
-| Метрика | Цель | Как измерить |
-|---------|------|--------------|
-| **Корректность GF16 add** | ≤ 1 LSB | vs Zig `gf16FromF32` |
-| **Корректность GF16 mul** | ≤ 1 LSB | vs Zig reference |
-| **Корректность TF3** | Точное совпадение | vs TernaryFloat9 |
-| **GF16 add ресурсы** | < 500 LUT, < 200 FF | Yosys report |
-| **GF16 mul ресурсы** | < 300 LUT + 1 DSP | Yosys report |
-| **TF3 ALU ресурсы** | < 1000 LUT, < 500 FF | Yosys report |
-| **Частота** | ≥ 100 MHz | Timing report (wns > 0) |
+| Metric | Target | How to measure |
+|--------|--------|----------------|
+| **GF16 add correctness** | ≤ 1 LSB | vs Zig `gf16FromF32` |
+| **GF16 mul correctness** | ≤ 1 LSB | vs Zig reference |
+| **TF3 correctness** | Exact match | vs TernaryFloat9 |
+| **GF16 add resources** | < 500 LUT, < 200 FF | Yosys report |
+| **GF16 mul resources** | < 300 LUT + 1 DSP | Yosys report |
+| **TF3 ALU resources** | < 1000 LUT, < 500 FF | Yosys report |
+| **Frequency** | ≥ 100 MHz | Timing report (wns > 0) |
 | **Latency** | 4 cycles (GF16) | Simulation |
 | **Throughput** | 1 op/cycle (pipelined) | Benchmark |
 
 ---
 
-## Зависимости
+## Dependencies
 
-| Задача | Блокирует |
-|--------|-----------|
+| Task | Blocks |
+|------|--------|
 | Phase 1 (GF16 add) | Phase 2, Phase 4 |
 | Phase 2 (GF16 mul) | Phase 4 |
 | Phase 3 (TF3 ALU) | Phase 4 |
@@ -311,33 +311,33 @@ AXI-Stream ────────►│  │  GF16_ALU │    │  TF3_ALU  �
 
 ---
 
-## Связанные Issues
+## Related issues
 
-- #357 — Training Farm Tracker (родительский)
-- [HSLM Training Review](../docs/lab/papers/hslm/training-review-mar10-14.md) — Контекст тренировки
-- [FPGA Synthesis Results](../docs/lab/papers/trinity-fpga/synthesis-real-data.md) — Существующий синтез
-
----
-
-## Риски и митигация
-
-| Риск | Вероятность | Митигация |
-|------|-------------|-----------|
-| Тайминг не сойдётся | Средняя | Упростить пайплайн (3 стадии) |
-| DSP48E1 не хватит | Низкая | GF16 mul на LUT (fallback) |
-| TF3 кодировка изменится | Низкая | Параметризовать trit encoding |
+- #357 — Training Farm Tracker (parent)
+- [HSLM Training Review](../docs/lab/papers/hslm/training-review-mar10-14.md) — Training context
+- [FPGA Synthesis Results](../docs/lab/papers/trinity-fpga/synthesis-real-data.md) — Existing synthesis
 
 ---
 
-## Вопросы для обсуждения
+## Risks and mitigation
 
-1. **Пайплайн глубина:** 3 или 4 стадии для GF16 add? (влияет на latency vs area)
-2. **DSP usage:** Использовать DSP48E1 для GF16 mul или чисто LUT?
-3. **Интерфейс:** AXI-Stream или кастомный handshaking?
+| Risk | Probability | Mitigation |
+|------|-------------|------------|
+| Timing won't close | Medium | Simplify pipeline (3 stages) |
+| Not enough DSP48E1 | Low | GF16 mul on LUT (fallback) |
+| TF3 encoding changes | Low | Parameterize trit encoding |
 
 ---
 
-## Полезные ссылки
+## Questions for discussion
+
+1. **Pipeline depth:** 3 or 4 stages for GF16 add? (affects latency vs area)
+2. **DSP usage:** Use DSP48E1 for GF16 mul or pure LUT?
+3. **Interface:** AXI-Stream or custom handshaking?
+
+---
+
+## Useful links
 
 - [Yosys documentation](https://yosyshq.readthedocs.io/)
 - [Xilinx DSP48E1 user guide](https://www.xilinx.com/support/documentation/user_guides/ug479_7Series_DSP48E1.pdf)

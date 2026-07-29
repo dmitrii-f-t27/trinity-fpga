@@ -33,7 +33,7 @@ The TOPS/W race is a **race-to-the-bottom** unless we also win on non-numeric di
 
 | Lever | Definition | Trinity v9 | Best rival | Trinity edge |
 |---|---|---|---|---|
-| **L1** E·L (нДж per op) | Joule-microsecond product per primitive op | **~0.4 нДж/op** (XOR+popcount over 4-slot R-marker, projected) | ~25 нДж/op (Hailo) | **~60×** |
+| **L1** E·L (nJ per op) | Joule-microsecond product per primitive op | **~0.4 nJ/op** (XOR+popcount over 4-slot R-marker, projected) | ~25 nJ/op (Hailo) | **~60×** |
 | **L2** bpw (bits per weight) | Storage entropy per parameter | **0.5 bpw** (ternary GF16 + R-marker compression) | 1.58 bpw (BitNet b1.58) | **3.2×** |
 | **L3** Verifiable compute | Coq-verified RTL → silicon trace | **YES** — 83 .v files in `t27/trios-coq`, 73 _CoqProject paths, master `TriosCoq.v` | NONE (no rival ships Coq proofs) | **∞** (categorical) |
 | **L4** Safety cert | Pre-registered falsification + Popper Appendix B + R-marker silicon-revision protocol | **YES** — Hypothesis H₉ falsifiable on 5 predicates pre-registered before tape-out | NONE | **∞** (categorical) |
@@ -60,7 +60,7 @@ This entire matrix is **PROJECTION** until the first fabricated holo die returns
 
 | Predicate | Refuted if |
 |---|---|
-| L1 E·L ≤ 0.4 нДж/op | measured silicon at Vdd=1.8V shows >0.5 нДж/op on the smoke probe |
+| L1 E·L ≤ 0.4 nJ/op | measured silicon at Vdd=1.8V shows >0.5 nJ/op on the smoke probe |
 | L2 bpw = 0.5 | encoder requires more than 4 bits per slot in production traces |
 | L3 categorical | any rival ships Coq-verified silicon before Trinity v9 |
 | L4 categorical | any rival publishes pre-registered falsification protocol with similar rigor |

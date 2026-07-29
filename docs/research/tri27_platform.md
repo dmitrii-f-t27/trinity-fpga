@@ -177,7 +177,7 @@ tri tri27 run test.tbin
     → generatePlan() → PolicyDelta[]
     → applyPolicyDelta() → Tri27Config
     → saveConfig() → tri27_config.json
-    → Episode о self_learning_cycle
+    → Episode about self_learning_cycle
 ```
 
 **Tri27Config**:

@@ -1,6 +1,6 @@
 # Loop Report — 2026-07-03 — takum64 Routing Unlock + EPIC #199 Hardening
 
-**Issue:** [#199 🎯 EPIC · Матрица 83 формата × {SW / decode-HW / compute-HW}](https://github.com/gHashTag/trinity-fpga/issues/199)
+**Issue:** [#199 🎯 EPIC · The matrix of 83 formats × {SW / decode-HW / compute-HW}](https://github.com/gHashTag/trinity-fpga/issues/199)
 **Loop:** `/loop 15m` (self-paced, non-exiting). Author: Claude Code agent session.
 
 ---

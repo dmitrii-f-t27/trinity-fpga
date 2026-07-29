@@ -111,7 +111,7 @@ This principle differentiates GoldenFloat from IEEE/industry formats, where exp/
 
 ### 3.2 Complete Family Comparison
 
-| Format | Bits | S:E:M | E/M Ratio | Δ от 1/φ | Precision | Memory vs FP32 | Use Case |
+| Format | Bits | S:E:M | E/M Ratio | Δ from 1/φ | Precision | Memory vs FP32 | Use Case |
 |--------|------|-------|-----------|----------|-----------|-----------------|----------|
 | GF4 | 4 | 1:1:2 | 0.500 | 0.118 | 3 bits | −88% | Extreme compression, binary-ish |
 | GF6 | 6 | 1:2:3 | 0.667 | 0.049 | 4 bits | −81% | Ultra-low precision |
@@ -124,7 +124,7 @@ This principle differentiates GoldenFloat from IEEE/industry formats, where exp/
 
 **Notes:**
 - **S:E:M** = Sign:Exponent:Mantissa bit allocation
-- **Δ от 1/φ** = Distance from golden ratio optimum (lower = better)
+- **Δ from 1/φ** = Distance from golden ratio optimum (lower = better)
 - **Precision** = Effective bits of precision (≈ mantissa_bits + 1)
 - **Memory vs FP32** = Memory savings compared to 32-bit float
 

@@ -1,46 +1,46 @@
-# Erratum v2 — arXiv:2606.09686 (каталог числовых форматов)
+# Erratum v2 — arXiv:2606.09686 (numeric format catalog)
 
-**Статья:** *An 84-Format Numeric Catalog with Bit-Exact Conformance Vectors: A Vendor-Neutral Reference for FP8, BF16, MXFP4, and Microscaling Formats*, D. Vasilev, [arXiv:2606.09686](https://arxiv.org/abs/2606.09686), submitted 2026-06-08.
-**Тип правки:** correctness (счёт форматов) — блокирует HW-replay-усиление до выхода.
-**SSOT:** `specs/numeric/formats_catalog.t27` (репо gHashTag/t27, ветка master).
-**Проверено:** 2026-07-04 — прямой подсчёт `grep -c "// CATALOG: id="` = **83**, дубликатов id нет; кластеров (families) ровно **13**.
+**Article:** *An 84-Format Numeric Catalog with Bit-Exact Conformance Vectors: A Vendor-Neutral Reference for FP8, BF16, MXFP4, and Microscaling Formats*, D. Vasilev, [arXiv:2606.09686](https://arxiv.org/abs/2606.09686), submitted 2026-06-08.
+**Type of correction:** correctness (format count) — blocks HW-replay reinforcement until release.
+**SSOT:** `specs/numeric/formats_catalog.t27` (repo gHashTag/t27, master branch).
+**Verified:** 2026-07-04 — direct count `grep -c "// CATALOG: id="` = **83**, no duplicate ids; exactly **13** families (clusters).
 
 ---
 
-## 1. Суть расхождения
+## 1. The essence of the discrepancy
 
-| Что | Опубликовано (v1) | SSOT (факт) |
+| What | Published (v1) | SSOT (fact) |
 |---|---|---|
-| Число форматов | **84** | **83** |
-| Число families | 13 | 13 ✓ (совпадает) |
+| Number of formats | **84** | **83** |
+| Number of families | 13 | 13 ✓ (matches) |
 
-Заголовок и аннотация v1 заявляют «catalog of **84** numeric formats spanning 13 families». Актуальный SSOT `formats_catalog.t27` содержит **83** записи `// CATALOG:` без дублей. Families (кластеры) совпадают — расхождение только в числе форматов, дельта = 1.
+The v1 title and abstract state "catalog of **84** numeric formats spanning 13 families". The current SSOT `formats_catalog.t27` contains **83** `// CATALOG:` records without duplicates. The families (clusters) match — the discrepancy is only in the number of formats, delta = 1.
 
-## 2. Корень дельты 84 → 83 [установлено]
+## 2. Root of the delta 84 → 83 [established]
 
-Из 6 conformance-pack'ов, перечисленных в аннотации (GF16, MXFP4 element, BF16, FP8 E4M3, FP8 E5M2, **E8M0 block scale**), пять имеют самостоятельные строки в SSOT-каталоге:
+Of the 6 conformance packs listed in the abstract (GF16, MXFP4 element, BF16, FP8 E4M3, FP8 E5M2, **E8M0 block scale**), five have standalone rows in the SSOT catalog:
 
-- `gf16`, `mxfp4`, `bfloat16`, `fp8_e4m3`, `fp8_e5m2` — присутствуют как отдельные записи каталога;
-- **`e8m0` (block scale) — НЕ является отдельной строкой каталога.** E8M0 — это масштаб-компонент (shared exponent) микроскейл-блока, входящий в `mxfp4/mxfp6/mxfp8` (кластер Microscaling), а не самостоятельный числовой формат.
+- `gf16`, `mxfp4`, `bfloat16`, `fp8_e4m3`, `fp8_e5m2` — present as separate catalog records;
+- **`e8m0` (block scale) — is NOT a separate catalog row.** E8M0 is a scale component (shared exponent) of the microscale block, included in `mxfp4/mxfp6/mxfp8` (the Microscaling cluster), not a standalone numeric format.
 
-Наиболее вероятная причина числа 84 в v1 — учёт E8M0 block scale как отдельного формата наравне с элементными форматами. Канонический SSOT трактует E8M0 как компонент микроскейлинга, поэтому каноническое число = **83**.
+The most likely reason for the number 84 in v1 is counting E8M0 block scale as a separate format on equal footing with the element formats. The canonical SSOT treats E8M0 as a component of microscaling, so the canonical number = **83**.
 
-> Примечание: наличие conformance-pack'а для E8M0 корректно и остаётся в силе — pack покрывает block-scale-компонент. Это не отменяет pack, а только уточняет, что E8M0 не считается отдельной строкой каталога.
+> Note: the presence of a conformance pack for E8M0 is correct and remains in force — the pack covers the block-scale component. This does not cancel the pack; it only clarifies that E8M0 is not counted as a separate catalog row.
 
-## 3. Исправления (v1 → v2)
+## 3. Corrections (v1 → v2)
 
-1. **Заголовок:** «An **84**-Format Numeric Catalog …» → «An **83**-Format Numeric Catalog …».
-2. **Аннотация:** «a catalog of **84** numeric formats spanning 13 families» → «a catalog of **83** numeric formats spanning 13 families».
-3. **Все вхождения "84" в теле статьи**, ссылающиеся на размер каталога → **83**. Число families (13) не меняется.
-4. Добавить сноску: «E8M0 block scale is covered by a dedicated conformance pack but is enumerated as the shared-exponent component of the Microscaling family, not as a standalone catalog row; the canonical catalog size defined by `formats_catalog.t27` is 83.»
+1. **Title:** "An **84**-Format Numeric Catalog …" → "An **83**-Format Numeric Catalog …".
+2. **Abstract:** "a catalog of **84** numeric formats spanning 13 families" → "a catalog of **83** numeric formats spanning 13 families".
+3. **All occurrences of "84" in the body of the article** referring to the catalog size → **83**. The number of families (13) does not change.
+4. Add a footnote: "E8M0 block scale is covered by a dedicated conformance pack but is enumerated as the shared-exponent component of the Microscaling family, not as a standalone catalog row; the canonical catalog size defined by `formats_catalog.t27` is 83."
 
-## 4. Что НЕ меняется
+## 4. What does NOT change
 
-- 13 families — верно.
-- Шесть conformance-pack'ов (включая E8M0) — верны, остаются.
-- Идентичность φ² + φ⁻² = 3 как anchor-vector — верна.
-- P3109 v3.2.0 cross-walk — не затрагивается.
-- Заявка «registry filling, no new formats, no superiority claims» — сохраняется.
+- 13 families — correct.
+- Six conformance packs (including E8M0) — correct, remain.
+- The identity φ² + φ⁻² = 3 as anchor vector — correct.
+- P3109 v3.2.0 cross-walk — not affected.
+- The claim "registry filling, no new formats, no superiority claims" — retained.
 
 ---
 
@@ -50,10 +50,10 @@
 
 ---
 
-## Действия
+## Actions
 
-- [ ] Обновить `docs/arxiv-submission/*` и исходник статьи каталога: 84 → 83 (по п.3).
-- [ ] Выпустить v2 на arXiv с этим erratum-комментарием.
-- [ ] Только ПОСЛЕ v2 — прикладывать random-10 HW-replay к второй статье (иначе рецензент поймает 84 vs replay-из-83).
+- [ ] Update `docs/arxiv-submission/*` and the source of the catalog article: 84 → 83 (per item 3).
+- [ ] Release v2 on arXiv with this erratum comment.
+- [ ] Only AFTER v2 — attach the random-10 HW-replay to the second article (otherwise a reviewer will catch 84 vs replay-from-83).
 
-*Все утверждения проверены против живого SSOT 2026-07-04. Дельта установлена (E8M0), число families подтверждено (13).*
+*All claims verified against the live SSOT 2026-07-04. Delta established (E8M0), family count confirmed (13).*

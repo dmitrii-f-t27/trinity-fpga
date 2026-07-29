@@ -3,7 +3,7 @@
 **Date**: 2026-07-14
 **Toolchain**: yosys 0.63, `synth_xilinx -abc9 -nocarry -arch xc7` (identical for all)
 **Method**: `yosys -p "read_verilog ...; synth_xilinx -abc9 -nocarry -arch xc7; stat"`
-**Status**: [измерено CI-synth] — reproducible by anyone with yosys 0.63
+**Status**: [measured CI-synth] — reproducible by anyone with yosys 0.63
 
 ## Measured Results
 

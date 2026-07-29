@@ -29,8 +29,8 @@
   DECYZJA:   SHIP WITH ACCEPTED TECHNICAL DEBT
   ═══════════════════════════════════════════════════════════════════════
 
-  Блокирующие исправлены. Core functionality протестирован.
-  P1 задокументирован как известный риск, не маскируется под готово.
+  Blocking issues are fixed. Core functionality is tested.
+  P1 is documented as a known risk, not disguised as done.
   Consciousness↔FORGE full integration → v2.2.
 
   ═══════════════════════════════════════════════════════════════════════

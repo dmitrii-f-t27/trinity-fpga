@@ -176,7 +176,7 @@ Total Test Suite: 3600/3610 (99.72%)
 
 ## Toxic Verdict (Honest Assessment)
 
-### Что работает (What Works)
+### What works
 
 1. **Phase 3 Architecture** — Separation of concerns, no circular dependencies
 2. **Interface Contracts** — Compile-time verification, zero-cost abstractions
@@ -184,7 +184,7 @@ Total Test Suite: 3600/3610 (99.72%)
 4. **FPGA pipeline (Docker)** — openXC7 toolchain works flawlessly
 5. **Test infrastructure** — 99.86% pass rate, all contract tests pass
 
-### Что требует работы (What Needs Work)
+### What needs work
 
 1. **FORGE Zig Toolchain** — 4+ critical bugs for complex designs
    - Fix: Use openXC7 Docker (short term)
@@ -196,7 +196,7 @@ Total Test Suite: 3600/3610 (99.72%)
 3. **Contract Overhead** - BIND/BUNDLE slowdown 27-48%
    - Fix: Profile and optimize (post-GA)
 
-### Честная оценка (Honest Assessment)
+### Honest assessment
 
 **Production Readiness:** 85% for contract-based code generation
 **FPGA Synthesis:** 100% with openXC7 Docker

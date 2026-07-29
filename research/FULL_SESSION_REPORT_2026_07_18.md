@@ -1,23 +1,23 @@
-# ПОЛНЫЙ ОТЧЁТ О РАБОТЕ — СЕССИЯ 2026-07-17/18
-**Период:** 17-18 июля 2026  
-**Коммитов:** 46 на main  
-**Исследователей:** 2 (локальный агент + коллега)  
-**GPU использовано:** RTX PRO 4500 Blackwell (~$5), 8×H100 SXM (~$8)  
-**FPGA:** AX7203 XC7A200T (синтез, без верификации UART)
+# FULL SESSION REPORT — SESSION 2026-07-17/18
+**Period:** 17-18 July 2026  
+**Commits:** 46 on main  
+**Researchers:** 2 (local agent + colleague)  
+**GPU used:** RTX PRO 4500 Blackwell (~$5), 8×H100 SXM (~$8)  
+**FPGA:** AX7203 XC7A200T (synthesis, without UART verification)
 
 ---
 
-## 1. ПОСТАНОВКА ЗАДАЧИ
+## 1. PROBLEM STATEMENT
 
-Найти и создать лучший числовой формат для LLM. Критерии: точность (BPB), hardware cost (LUT), robustness (7/7 tests), применимость в Parameter Golf.
+Find and create the best numeric format for LLMs. Criteria: accuracy (BPB), hardware cost (LUT), robustness (7/7 tests), applicability in Parameter Golf.
 
 ---
 
-## 2. ЧТО ИЗМЕРЕНО — ПОЛНАЯ ТАБЛИЦА
+## 2. WHAT WAS MEASURED — FULL TABLE
 
-### 2.1. PTQ-Proxy BPB (15 форматов, GPU, FineWeb)
+### 2.1. PTQ-Proxy BPB (15 formats, GPU, FineWeb)
 
-**Метод:** Тренировка 9L d=512 модели (29.4M параметров, 3000 шагов) → PTQ квантизация → official sentencepiece BPB. RTX PRO 4500 Blackwell, PyTorch cu128.
+**Method:** Train a 9L d=512 model (29.4M parameters, 3000 steps) → PTQ quantization → official sentencepiece BPB. RTX PRO 4500 Blackwell, PyTorch cu128.
 
 | Format | bpe | BPB | Δ vs FP32 | Status |
 |--------|-----|-----|-----------|--------|
@@ -38,26 +38,26 @@
 | GF8 E3M4 (no scale) | 8 | 5.4631 | +2.7290 | ✗ BAD |
 | Ternary | 1.58 | 4.5047 | +1.7707 | ✗ BAD (needs QAT) |
 
-**Вывод:** Все форматы ≥7 бит lossless в PTQ-proxy. Различия в 8-битном классе (0.0001-0.0004) — на уровне шума. GF8 без scaling = BAD.
+**Conclusion:** All formats ≥7 bit are lossless in PTQ-proxy. Differences in the 8-bit class (0.0001-0.0004) are at the noise level. GF8 without scaling = BAD.
 
 ### 2.2. CI LUT/Fmax (apples-to-apples, yosys+nextpnr)
 
-**Метод:** CI GitHub Actions run 29644566024, yosys 0.62 + nextpnr-xilinx (heap placer), одинаковая corona wrapper для всех ячеек. XC7A200T-FBG484-2.
+**Method:** CI GitHub Actions run 29644566024, yosys 0.62 + nextpnr-xilinx (heap placer), identical corona wrapper for all cells. XC7A200T-FBG484-2.
 
 | Format | LC(nocarry) | LUT | Fmax | Status |
 |--------|-------------|-----|------|--------|
 | INT8 ADD | 102 | 137 | 262 MHz | ✓ PASS |
 | INT8 MUL | 126 | 176 | 213 MHz | ✓ PASS |
-| GF8 ADD (E3M4) | 222 | 294 | 75 MHz | ✓ PASS — **9% дешевле FP8 ADD** |
-| GF8 MUL (E3M4) | — | — | — | ✗ не измерим (openXC7 toolchain limit) |
+| GF8 ADD (E3M4) | 222 | 294 | 75 MHz | ✓ PASS — **9% cheaper than FP8 ADD** |
+| GF8 MUL (E3M4) | — | — | — | ✗ not measurable (openXC7 toolchain limit) |
 | FP8 ADD (E4M3) | 211 | 323 | 75 MHz | ✓ PASS |
 | FP8 MUL (E4M3) | 201 | 266 | 131 MHz | ✓ PASS |
 
-**Вывод:** GF8 ADD на 9% дешевле FP8 ADD (294 vs 323 LUT). GF8 MUL — nextpnr routing bug (yosys-only: ~160 LUT core). INT8 в 2× дешевле любого float.
+**Conclusion:** GF8 ADD is 9% cheaper than FP8 ADD (294 vs 323 LUT). GF8 MUL — nextpnr routing bug (yosys-only: ~160 LUT core). INT8 is 2× cheaper than any float.
 
-### 2.3. GF+ Adaptive на реальных весах (29M параметров)
+### 2.3. GF+ Adaptive on real weights (29M parameters)
 
-**Метод:** Per-row argmin выбор из {φ-split, wide-e, INT, NF4} карманов. Кросс-реплицировано двумя реализациями (расхождение ≤0.08 dB).
+**Method:** Per-row argmin selection from {φ-split, wide-e, INT, NF4} pockets. Cross-replicated by two implementations (discrepancy ≤0.08 dB).
 
 | Width | GF+A SQNR | Best single | Top pocket | vs Best |
 |-------|-----------|-------------|------------|---------|
@@ -65,7 +65,7 @@
 | 6-bit | 31.05 dB | φ-e2m3 30.98 | φ-e2m3 89% | +0.07 dB |
 | 8-bit | 43.21 dB | e2m5 43.13 | e2m5 87% | +0.08 dB |
 
-**Вывод:** GF+A ≥ каждого фиксированного формата во всех 4 классах. φ-e2m3 доминирует в 6-битном классе (89% строк). Маржа +0.01-0.08 dB — страховка, не прорыв.
+**Conclusion:** GF+A ≥ each fixed format in all 4 classes. φ-e2m3 dominates the 6-bit class (89% of rows). The margin +0.01-0.08 dB is insurance, not a breakthrough.
 
 ### 2.4. Official Parameter Golf Baseline (H100)
 
@@ -75,7 +75,7 @@
 | Naive baseline | 8×H100, ~20K steps | 1.2244 | official |
 | Winner | 8×H100 + all tricks | 1.0565 | codemath3000 |
 
-**Вывод:** Наш BPB=1.4715 — правильный baseline (официальная метрика). Разрыв 0.75 до победителя закрывается: 8×GPU, Muon, TTT, GPTQ, CaseOps, depth recurrence, sliding eval.
+**Conclusion:** Our BPB=1.4715 — the correct baseline (official metric). The 0.75 gap to the winner is closed by: 8×GPU, Muon, TTT, GPTQ, CaseOps, depth recurrence, sliding eval.
 
 ### 2.5. Robustness (7 workload tests, CPU)
 
@@ -86,75 +86,80 @@
 | SQ-INT6 | ✗ | ✓ | ✗ | ✓ | ✓ | ✗ | ✓ | 4/7 |
 | INT7 | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ | 3/7 |
 
-**Вывод:** GF16 — единственный из 15 протестированных форматов с 7/7 robustness без scaling. SQ-INT6 даёт 4/7. INT — 2-3/7.
+**Conclusion:** GF16 — the only one of the 15 tested formats with 7/7 robustness without scaling. SQ-INT6 gives 4/7. INT — 2-3/7.
 
 ---
 
-## 3. КЛЮЧЕВЫЕ НАХОДКИ (с honest qualifiers)
+## 3. KEY FINDINGS (with honest qualifiers)
 
-### 3.1. Scaling необходим, но split всё равно важен
-Per-row absmax scale — обязательное условие (GF8 без scaling = BAD, BPB 5.46). Но **внутри** scaled 8-битного класса сплит растягивает 11.5 dB SQNR: e2m5 (43.1) → e4m3 (31.6) → e5m2 (25.6). Честно: **scale first, narrow-exponent split second**.
+### 3.1. Scaling is necessary, but split still matters
 
-### 3.2. GF8 ADD дешевле FP8 ADD на 9% в кремнии
-Apples-to-apples (одинаковая corona wrapper, yosys+nextpnr): GF8=294 LUT vs FP8=323 LUT. GF8 MUL не маршрутизируется (nextpnr bug). Yosys-only оценка GF8 MUL ≈ FP8 MUL.
+Per-row absmax scale — a mandatory condition (GF8 without scaling = BAD, BPB 5.46). But **within** the scaled 8-bit class the split stretches 11.5 dB SQNR: e2m5 (43.1) → e4m3 (31.6) → e5m2 (25.6). Honestly: **scale first, narrow-exponent split second**.
 
-### 3.3. φ-rule = лучший одиночный 6-битный карман
-φ-e2m3 доминирует выбор адаптива (89% строк) и лучший одиночный формат. При ≥8 бит проигрывает e2-флоату (не INT). В unscaled режиме — 7/7 robustness.
+### 3.2. GF8 ADD is 9% cheaper than FP8 ADD in silicon
 
-### 3.4. GF+A = страховка "не хуже лучшего"
-Гарантия по построению (per-row argmin). Маржа на однородных весах копеечная (+0.01-0.08 dB). На гетерогенных данных — больше. Header: 2 бита/строку.
+Apples-to-apples (identical corona wrapper, yosys+nextpnr): GF8=294 LUT vs FP8=323 LUT. GF8 MUL does not route (nextpnr bug). Yosys-only estimate of GF8 MUL ≈ FP8 MUL.
 
-### 3.5. SmoothQuant снижает INT6 error на 77%
-SQ-INT6: Δ=+0.0007 vs INT6: Δ=+0.0035 (PTQ-proxy BPB). SmoothQuant (α=0.5) перераспределяет outlier magnitude.
+### 3.3. φ-rule = best single 6-bit pocket
+
+φ-e2m3 dominates the adaptive selection (89% of rows) and is the best single format. At ≥8 bit it loses to the e2-float (not INT). In unscaled mode — 7/7 robustness.
+
+### 3.4. GF+A = "no worse than the best" insurance
+
+Guarantee by construction (per-row argmin). The margin on homogeneous weights is tiny (+0.01-0.08 dB). On heterogeneous data — larger. Header: 2 bits/row.
+
+### 3.5. SmoothQuant reduces INT6 error by 77%
+
+SQ-INT6: Δ=+0.0007 vs INT6: Δ=+0.0035 (PTQ-proxy BPB). SmoothQuant (α=0.5) redistributes outlier magnitude.
 
 ---
 
-## 4. ЧЕСТНЫЕ ГРАНИЦЫ
+## 4. HONEST BOUNDARIES
 
-| Утверждение | Статус | Почему осторожно |
+| Claim | Status | Why it is cautious |
 |-------------|--------|------------------|
-| GF8+S = FP8+S в BPB | ✓ PTQ-proxy | Различия 0.0001-0.0004 на уровне шума |
-| GF8 ADD дешевле FP8 ADD | ✓ CI-synth | 1 из 2 ячеек (MUL не маршрутизируется) |
-| GF+A ≥ best fixed format | ✓ MSE | Не доказано на downstream BPB |
-| φ-rule robustness 7/7 | ✓ CPU | Не тестировался на GPU scale |
-| SQ-INT6 77% меньше error | ✓ PTQ | QAT не проверен |
-| INT dominates scaled | ✗ RETRACTED (v1 bug) | Float карманы доминируют (v2) |
-| "Scaling, not format" | ⚠ TOO STRONG | Scale обязателен, но split важен внутри класса |
+| GF8+S = FP8+S in BPB | ✓ PTQ-proxy | Differences 0.0001-0.0004 at noise level |
+| GF8 ADD cheaper than FP8 ADD | ✓ CI-synth | 1 of 2 cells (MUL does not route) |
+| GF+A ≥ best fixed format | ✓ MSE | Not proven on downstream BPB |
+| φ-rule robustness 7/7 | ✓ CPU | Not tested at GPU scale |
+| SQ-INT6 77% less error | ✓ PTQ | QAT not checked |
+| INT dominates scaled | ✗ RETRACTED (v1 bug) | Float pockets dominate (v2) |
+| "Scaling, not format" | ⚠ TOO STRONG | Scale is mandatory, but split matters within a class |
 
 ---
 
-## 5. ОТКРЫТЫЕ ВОПРОСЫ
+## 5. OPEN QUESTIONS
 
-1. **QAT ablation** — держится ли ordering форматов при STE training? [open]
-2. **GF8 MUL routing** — nextpnr GND net bug, нужен fix или альтернативный flow [open]
-3. **Downstream BPB** — классы ≥6 бит в шуме ±0.0003 [open]
-4. **FP8 E4M3 Tier-E** — corona подготовлен, нужна прошивка на AX7203 [pending]
-5. **LUT cost of GF+A mux** — 4-way decoder, ~10-20 LUT overhead, не замерен [open]
+1. **QAT ablation** — does the format ordering hold under STE training? [open]
+2. **GF8 MUL routing** — nextpnr GND net bug, a fix or alternative flow is needed [open]
+3. **Downstream BPB** — classes ≥6 bit are within noise ±0.0003 [open]
+4. **FP8 E4M3 Tier-E** — corona is prepared, a firmware flash on AX7203 is needed [pending]
+5. **LUT cost of GF+A mux** — 4-way decoder, ~10-20 LUT overhead, not measured [open]
 
 ---
 
-## 6. КОММУНИКАЦИОННАЯ ИНФРАСТРУКТУРА
+## 6. COMMUNICATION INFRASTRUCTURE
 
-| Компонент | Статус | Issues |
+| Component | Status | Issues |
 |-----------|--------|--------|
-| RunPod API | Работает | Pod creation INTERNAL_SERVER_ERROR (GPU shortage) |
-| SSH | Работает | Ключ стирается при pod reset (нужен Web Terminal) |
-| Web Terminal скрипты | Работают | `curl | python3` — reliable path |
-| CI (GitHub Actions) | Работает | yosys+nextpnr в Docker, heap placer |
-| macOS 26 UART | ❌ BROKEN | FTDI serial driver несовместим |
+| RunPod API | Working | Pod creation INTERNAL_SERVER_ERROR (GPU shortage) |
+| SSH | Working | Key is wiped on pod reset (Web Terminal needed) |
+| Web Terminal scripts | Working | `curl | python3` — reliable path |
+| CI (GitHub Actions) | Working | yosys+nextpnr in Docker, heap placer |
+| macOS 26 UART | ❌ BROKEN | FTDI serial driver incompatible |
 | Frame format bug | ✅ FIXED | 34 conformance scripts: 7→8 byte frame |
 
 ---
 
-## 7. ЧТО ОСТАЁТСЯ ДЕЛАТЬ
+## 7. WHAT REMAINS TO DO
 
-| Приоритет | Задача | Что нужно |
+| Priority | Task | What is needed |
 |-----------|--------|-----------|
-| **P0** | QAT ablation (микро, 4 плеча × 1 сид) | Живой pod, ~20 мин |
-| **P0** | arXiv upload (paper v12 PDF) | 5 мин user action |
+| **P0** | QAT ablation (micro, 4 arms × 1 seed) | Live pod, ~20 min |
+| **P0** | arXiv upload (paper v12 PDF) | 5 min user action |
 | **P1** | FP8 E4M3 Tier-E silicon verification | Linux machine + UART |
-| **P1** | GF8 MUL routing fix | nextpnr issue или Vivado |
-| **P2** | Paper3 §3a draft (4 линии + retraction) | CPU only |
+| **P1** | GF8 MUL routing fix | nextpnr issue or Vivado |
+| **P2** | Paper3 §3a draft (4 lines + retraction) | CPU only |
 | **P2** | Hünhold collaboration email | Already drafted |
 
 ---

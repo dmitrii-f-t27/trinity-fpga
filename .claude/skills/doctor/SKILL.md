@@ -12,7 +12,7 @@ For output formatting conventions, follow `.claude/skills/_shared/output_format.
 
 You are a HEALER. You diagnose, fix, commit, and report HONESTLY.
 Every loop iteration MUST do real work, not just observe.
-Your output is a prose report in 3 time-state paragraphs: БЫЛО → СДЕЛАНО → ПЛАН (next cycle).
+Your output is a prose report in 3 time-state paragraphs: WAS → DONE → PLAN (next cycle).
 
 **HONESTY RULE**: Never say "all good" if there are dirty files. Never recommend a command without running it yourself. If you found problems — fix them. If you can't fix — explain WHY honestly.
 
@@ -162,26 +162,26 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 ```
 📚 DOCS MONITOR
 
-🔍 ПРОВЕРКИ:
+🔍 CHECKS:
   ✅ docs/ directory: found
   ✅ node_modules: installed
-  ❌ intro.md: STALE — README.md обновлён позже
-  ✅ CLI docs: 38 страниц
-  ❌ benchmarks: STALE — новые эксперименты не задокументированы
-  ❌ FPGA docs: STALE — bitstream обновлён
-  ✅ intro.md data: числа совпадают с README
-  ✅ API docs: 15 страниц
+  ❌ intro.md: STALE — README.md updated later
+  ✅ CLI docs: 38 pages
+  ❌ benchmarks: STALE — new experiments not documented
+  ❌ FPGA docs: STALE — bitstream updated
+  ✅ intro.md data: numbers match README
+  ✅ API docs: 15 pages
   ❌ docs build: BROKEN
 
 📊 Score: 5/9
 
-💊 ЛЕЧЕНИЕ:
+💊 HEALING:
   ✅ Updated intro.md — synced achievements from README
   ✅ Updated benchmarks — added EXP-025, EXP-026
   ✅ Updated FPGA docs — TMU K=32 results
   ❌ docs build — {error description, needs manual fix}
 
-🔮 ПЛАН: {next steps}
+🔮 PLAN: {next steps}
 
 [📚 docs monitor]
 ```
@@ -238,7 +238,7 @@ tri doctor dupes    # Run 8-point duplication check
 ```
 🔍 DUPLICATION MONITOR
 
-📊 ПРОВЕРКИ:
+📊 CHECKS:
   ✓ Nested FPGA dir: clean
   ✗ VSA implementations (5): MULTIPLE — consolidate to src/vsa.zig
   ⚠ JSON parsers (3): MULTIPLE — use std.json
@@ -250,7 +250,7 @@ tri doctor dupes    # Run 8-point duplication check
 
 📊 Result: 2 ok, 3 warn, 3 critical
 
-💊 ДЕЙСТВИЕ: {what was consolidated, or "requires manual review"}
+💊 ACTION: {what was consolidated, or "requires manual review"}
 
 [🔍 dupes monitor]
 ```
@@ -267,15 +267,15 @@ Default: `ru`. Technical terms stay in English.
 ```
 🏥 DOCTOR HEALER
 
-📜 БЫЛО: {state before healing — N dirty files, build status, delta from prev snapshot}
+📜 WAS: {state before healing — N dirty files, build status, delta from prev snapshot}
 
-💊 СДЕЛАНО: {what was actually done — N files committed, build fixed, fmt applied, or "лечить нечего — чисто"}
+💊 DONE: {what was actually done — N files committed, build fixed, fmt applied, or "nothing to heal — clean"}
 
 📚 DOCS: {N/9 checks pass | docs score from tri doctor docs}
 
 🔍 DUPES: {N ok, N warn, N critical | from tri doctor dupes}
 
-🔮 ПЛАН: {concrete goal for next cycle}
+🔮 PLAN: {concrete goal for next cycle}
 
 [🏥 healer]
 ```
@@ -285,25 +285,25 @@ Default: `ru`. Technical terms stay in English.
 ```
 🏥 DOCTOR HEALER — FULL REPORT
 
-📜 БЫЛО:
+📜 WAS:
   {Detailed state before: dirty files list, build errors, violations}
 
-💊 СДЕЛАНО:
+💊 DONE:
   {Each healing action with proof:}
   ✅ Committed: fix(scope): msg — N files
   ✅ zig fmt: N files formatted
   ✅ Build: passing
   ⏭️ Skipped: submodules (fpga/*), data dirs
 
-🗑️ МУСОР: {junk status from tri doctor junk}
+🗑️ JUNK: {junk status from tri doctor junk}
 
 📚 DOCS: {docs status — which checks pass/fail, what was fixed}
 
 🔍 DUPES: {duplication status — N ok, N warn, N critical}
 
-🔮 ПЛАН (следующий цикл):
+🔮 PLAN (next cycle):
   {Concrete next actions}
-  Состояние: {remaining_dirty} dirty, build {ok|broken}, docs {N/9}, dupes {N crit}
+  State: {remaining_dirty} dirty, build {ok|broken}, docs {N/9}, dupes {N crit}
 
 [🏥 healer]
 ```
@@ -334,7 +334,7 @@ Run `tri doctor dupes` first, then apply the dupes healing protocol for each cri
 
 After rendering the report, send a summary to Telegram.
 
-Set `TG_TEXT` to the heal summary (БЫЛО + СДЕЛАНО in 2-3 sentences, no mood signature).
+Set `TG_TEXT` to the heal summary (WAS + DONE in 2-3 sentences, no mood signature).
 Set `TG_MODE=send`.
 Then execute the shared Telegram template from `.claude/skills/_shared/telegram.md`.
 

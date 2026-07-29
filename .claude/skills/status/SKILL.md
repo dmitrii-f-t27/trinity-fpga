@@ -159,7 +159,7 @@ Do NOT just list recommendations — ACT on the highest priority one.
 4. **GOD_FILES < 60** → Pick the largest god file, split it (max 1 file per cycle)
 5. **Weakest dimension < 70** → Run targeted fix for that dimension
 6. **Stagnation ≥ 2** → Run `tri ouroboros --cycles 3` to break plateau
-7. **All healthy (score ≥ 90, no weak dims)** → Print "✅ Система в φ-гармонии. Действий не требуется."
+7. **All healthy (score ≥ 90, no weak dims)** → Print "✅ System is in φ-harmony. No action required."
 
 ### Rules:
 - Only ONE action per /status cycle

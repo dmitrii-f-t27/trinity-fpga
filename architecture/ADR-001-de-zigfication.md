@@ -1,4 +1,4 @@
-# ADR-001: De-Zigфикация — Tri as Source of Truth
+# ADR-001: De-Zigfication — Tri as Source of Truth
 
 **Status:** Phase 1 & 2 Complete (2026-04-04)
 **Date:** 2026-04-04

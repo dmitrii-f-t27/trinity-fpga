@@ -45,7 +45,7 @@ cat .trinity/arena_deploy.json 2>/dev/null || echo "DEPLOY:NONE"
 ⚔ TRINITY ARENA 2.0 — LLM Battle Platform
 ══════════════════════════════════════════════════
 
-📊 НАУЧНАЯ БАЗА
+📊 SCIENTIFIC BASIS
 ┌─────────────────────────────────────────────────┐
 │ ELO System: LMSYS Chatbot Arena compatible      │
 │ Formula: E = 1/(1+10^((Rb-Ra)/400)), K=32      │
@@ -76,7 +76,7 @@ cat .trinity/arena_deploy.json 2>/dev/null || echo "DEPLOY:NONE"
   Cloud:    {DEPLOYED/NOT DEPLOYED} (Railway)
   Data:     data/arena/
 
-🔬 НАУЧНЫЕ МЕТРИКИ
+🔬 SCIENTIFIC METRICS
   Battle convergence: {total battles needed for stable ELO ≈ 30 per pair}
   Coverage: {pairs tested / total possible pairs}
   Judge agreement: {if multiple judges — inter-annotator κ}

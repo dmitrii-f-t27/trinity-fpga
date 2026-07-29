@@ -1,55 +1,57 @@
-# Вариант B (луп 29.07.2026b) — ось выбора каталога (GF+A) vs ось intra-pocket (dMX-стиль)
+# Variant B (loop 29.07.2026b) — catalog-selection axis (GF+A) vs intra-pocket axis (dMX-style)
 
-**Статус:** `[измерено — SW proxy, CPU]`, seed=20260729. Скрипт: `selector_vs_intrapocket.py`,
-результаты: `selector_vs_intrapocket_results.json`.
+**Status:** `[measured — SW proxy, CPU]`, seed=20260729. Script: `selector_vs_intrapocket.py`,
+results: `selector_vs_intrapocket_results.json`.
 
-## Цель (честная постановка)
+## Goal (honest framing)
 
-Перевести утверждение «оси адаптивности комплементарны» из `[открытая гипотеза]` (инв. №15/№18
-скила) в `[измерено — SW proxy]`, численно разграничив ДВЕ ортогональные оси на одних данных:
+To move the claim "the axes of adaptivity are complementary" from `[open hypothesis]` (inv. #15/#18
+of the skill) into `[measured — SW proxy]`, by numerically separating TWO orthogonal axes on the
+same data:
 
-- **Ось 1 — catalog-selection (GF+A):** построчный дискретный argmin-выбор кармана из
-  РАЗНОРОДНОГО φ-каталога {φ-сплит, e2, INT, lns/nf4}. Выбор *между* форматами.
-- **Ось 2 — intra-pocket refinement (dMX-стиль, arXiv:2606.04115):** при ФИКСИРОВАННОМ
-  minifloat-семействе — построчный/поблочный поиск разбиения бит (e,m) при e+m+1=N (SW-модель
-  непрерывного дифференцируемого поиска разрядности dMX *внутри* одного MXFP-семейства). Выбор
-  *внутри* одного формата-класса.
-- **Композиция 1⊕2:** построчный argmin между лучшим GF+A-карманом и intra-pocket-minifloat —
-  единый более широкий каталог.
+- **Axis 1 — catalog-selection (GF+A):** per-row discrete argmin-selection of a pocket from a
+  HETEROGENEOUS φ-catalog {φ-split, e2, INT, lns/nf4}. Selection *between* formats.
+- **Axis 2 — intra-pocket refinement (dMX-style, arXiv:2606.04115):** at a FIXED minifloat
+  family — per-row/per-block search for a bit split (e,m) with e+m+1=N (an SW-model of the
+  continuous differentiable bit-width search of dMX *inside* a single MXFP-family). Selection
+  *inside* one format-class.
+- **Composition 1⊕2:** per-row argmin between the best GF+A-pocket and the intra-pocket-minifloat —
+  a single wider catalog.
 
-## Результат (метрика — SQNR дБ round-trip + MSE + eff.bits; синтетика 5 классов × 4 распределения)
+## Result (metric — SQNR dB round-trip + MSE + eff.bits; synthetic 5 classes × 4 distributions)
 
-| Класс | распределение | ось1 GF+A | ось2 intra dMX-стиль | комп. 1⊕2 |
+| Class | distribution | axis1 GF+A | axis2 intra dMX-style | comp. 1⊕2 |
 |---|---|---|---|---|
-| 8 бит | gaussian | 43.65 | 47.22 | 47.22 |
-| 8 бит | heavy | 41.33 | 47.47 | 47.47 |
-| 8 бит | mixed_outlier | 43.93 | 47.35 | 47.35 |
-| 16 бит | heavy | 87.90 | 95.75 | 95.75 |
+| 8 bit | gaussian | 43.65 | 47.22 | 47.22 |
+| 8 bit | heavy | 41.33 | 47.47 | 47.47 |
+| 8 bit | mixed_outlier | 43.93 | 47.35 | 47.35 |
+| 16 bit | heavy | 87.90 | 95.75 | 95.75 |
 
-(полная таблица — в JSON)
+(full table — in the JSON)
 
-**Инвариант композиции:** строк, где композиция ХУЖЕ лучшей одиночной оси по MSE = **0 из 20**
-(по построению argmin). Это подтверждает **ортогональность и композируемость** осей на
-MSE-метрике выбора.
+**Composition invariant:** rows where the composition is WORSE than the best single axis by MSE
+= **0 out of 20** (by construction of argmin). This confirms the **orthogonality and composability**
+of the axes on the selection MSE-metric.
 
-## Честные границы (BINDING)
+## Honest boundaries (BINDING)
 
-1. **Гарантия — только на MSE-метрике ВЫБОРА (весов), НЕ downstream.** По инв. №18 SQNR слоя =
-   суррогат, не окупается по model-BPB (порог 0.005 BPB). Это НЕ заявление про качество модели.
-2. **Сравнение осей НЕ бит-выровнено:** ось 2 тратит **+0.18 бит/элемент** больше (тонкий
-   per-group заголовок сплита) — часть её SQNR-преимущества куплена битами. Честный вывод —
-   ТОЛЬКО про **ортогональность** (композиция ≥ каждой оси), НЕ «ось 2 обходит ось 1».
-3. **Это НЕ реимплементация dMX** — у dMX дифференцируемый end-to-end поиск + STE-обучение; мы
-   моделируем ТОЛЬКО ось «bit-allocation внутри семейства» как контраст оси «pocket-selection
-   между семействами». Обе оценки — своя SW-модель, `[SW proxy]`.
-4. **Превосходства ни над одной осью/над dMX НЕ заявляется.** Вывод — про взаимодополняемость:
-   φ-выбор поля (GF+A) и bit-allocation (dMX-стиль) — ортогональные степени свободы, дающие
-   единый более широкий каталог при композиции.
-5. e_max для splits ограничен 8 (экспоненты >8 дают overflow bias и никогда не выигрывают на
-   per-row-scaled данных с узким внутристрочным диапазоном).
+1. **The guarantee is only on the SELECTION MSE-metric (of weights), NOT downstream.** Per inv. #18
+   a layer's SQNR = a surrogate, not paid off in model-BPB (threshold 0.005 BPB). This is NOT a
+   claim about model quality.
+2. **The axis comparison is NOT bit-aligned:** axis 2 spends **+0.18 bits/element** more (a thin
+   per-group split header) — part of its SQNR advantage is bought with bits. The honest conclusion
+   is ONLY about **orthogonality** (composition ≥ each axis), NOT "axis 2 beats axis 1".
+3. **This is NOT a reimplementation of dMX** — dMX has a differentiable end-to-end search +
+   STE-training; we model ONLY the "bit-allocation within a family" axis as a contrast to the
+   "pocket-selection between families" axis. Both estimates are our own SW-model, `[SW proxy]`.
+4. **Superiority over any axis / over dMX is NOT claimed.** The conclusion is about
+   complementarity: φ-field-selection (GF+A) and bit-allocation (dMX-style) are orthogonal degrees
+   of freedom that yield a single wider catalog upon composition.
+5. e_max for splits is limited to 8 (exponents >8 give overflow bias and never win on per-row-scaled
+   data with a narrow intra-row range).
 
-## Отношение к обзору 2026
+## Relation to the 2026 review
 
-Прямо усиливает разграничение с **dMX** (arXiv:2606.04115), внесённым в paper1 прошлым лупом
-(PR #15): раньше комплементарность осей была текстовым утверждением `[открытая гипотеза]`,
-теперь — `[измерено — SW proxy]` с воспроизводимым харнессом.
+Directly strengthens the demarcation from **dMX** (arXiv:2606.04115), added to paper1 in the
+previous loop (PR #15): previously the complementarity of the axes was a textual claim
+`[open hypothesis]`, now it is `[measured — SW proxy]` with a reproducible harness.

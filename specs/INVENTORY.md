@@ -229,7 +229,7 @@
 | `specs/cli/reputation-command-v4.tri` | 116 | reputation-command-v4 |
 | `specs/cli/reputation-v3.tri` | 115 | reputation-command-v3 |
 | `specs/tri/tri_defi.tri` | 115 | tri_defi |
-| `specs/koschei/vsa_fpga_week3.tri` | 114 | Multi-operation pipeline: bind + bundle + similarity на FPGA |
+| `specs/koschei/vsa_fpga_week3.tri` | 114 | Multi-operation pipeline: bind + bundle + similarity on FPGA |
 | `specs/cli/depn-commands-enum-v1.tri` | 113 | depn_commands_enum |
 | `specs/koschei/vsa_fpga_week2.tri` | 113 | 256-dim VSA bind + pipelining + Zig FFI |
 | `specs/cli/wallet-command-v4.tri` | 112 | wallet-command-v4 |
