@@ -1,108 +1,110 @@
-# gf96 — строгий SW-bitexact (горизонт A, Trinity Catalog-100)
+# gf96 — strict SW-bitexact (horizon-A, Trinity Catalog-100)
 
-**Дата:** 2026-07-24. **Автор:** Vasilev (gHashTag), ORCID 0009-0008-4294-6159.
+**Date:** 2026-07-24. **Author:** Vasilev (gHashTag), ORCID 0009-0008-4294-6159.
 
-## Что закрыто
+## What was closed
 
-gf96 = GF(N=96, E=36, M=59, BIAS=34359738367) переведён из
-`bitexact_selfconsistent` (существующий FP32-truncating conformance
-`gf96_decode_conformance_ax7203.py` — один decode-закон, теряет 36 бит мантиссы
-M=59→23, НЕТ 2-го witness) в **строгий SW-bitexact**: independent decoder,
-abs_error == 0, ТРИ независимых witness.
+gf96 = GF(N=96, E=36, M=59, BIAS=34359738367) promoted from
+`bitexact_selfconsistent` (the FP32-truncating conformance
+`gf96_decode_conformance_ax7203.py` — single decode law, losing 36 mantissa bits
+M=59→23, NO 2nd witness) to **strict SW-bitexact**: independent decoder,
+abs_error == 0, THREE independent witnesses.
 
-Продолжение приёма gf48 (коммит `c3ab8264`) — та же методология (binary64 +
-3 witness + iverilog), но с двумя качественными отличиями, описанными ниже.
+Continuation of the gf48 technique (commit `c3ab8264`) — same methodology
+(binary64 + 3 witnesses + iverilog), with two qualitative differences below.
 
-## Почему binary64, и чем gf96 сложнее gf48
+## Why binary64, and how gf96 is harder than gf48
 
-1. **M=59 > 52.** gf96 хранит 59 бит мантиссы, FP32 — 23 (теряется 36 бит),
-   поэтому перевод в FP32 принципиально self-consistent. binary64 хранит 52 бита,
-   НО 59−52 = **7 бит всё равно нужно округлять** round-to-nearest-even. У gf48
-   (M=29 ≤ 52) округления не было — чистый сдвиг. Здесь RNE-путь 59→52 —
-   содержательная часть пруфа, и все 3 witness реализуют его независимо.
-2. **BIAS = 34359738367 = 2³⁵−1 > 2³¹.** Точное значение
-   `(1 + m/2⁵⁹)·2^(e−BIAS)` содержит степень 2^(±3.4·10¹⁰). Поэтому witness A
-   использует **mpmath** (где экспонента — отдельный Python-int, O(1)), а НЕ
-   `fractions.Fraction` (которая материализовала бы ~10 ГБ целое — как и было
-   уроком в gf48 через `2^(e−131071)`, только здесь масштаб невыполним вовсе).
-   В RTL BIAS перенесён в 36-битный localparam (32-битный Verilog `integer`
-   переполнен), а рабочий экспонент — в знаковый 41-бит.
-3. **Диапазон экспоненты ±2³⁵ против binary64 ±1023/1074.** Подавляющее
-   большинство gf96-кодов отображается в ±inf (overflow) или ±0 (underflow)
-   binary64; только окно `e ≈ BIAS` (|true_exp| ≤ ~1074) даёт конечное ненулевое
-   значение, и только там округление 59→52 реально срабатывает.
+1. **M=59 > 52.** gf96 stores 59 mantissa bits, FP32 stores 23 (36 lost), so a
+   conversion to FP32 is inherently self-consistent only. binary64 stores 52 bits,
+   BUT 59−52 = **7 bits still must be rounded** round-to-nearest-even. For gf48
+   (M=29 ≤ 52) there was no rounding — a pure shift. Here the 59→52 RNE path is
+   the substantive part of the proof, and all 3 witnesses implement it
+   independently.
+2. **BIAS = 34359738367 = 2^35−1 > 2^31.** The exact value `(1 + m/2^59)·2^(e−BIAS)`
+   contains the power 2^(±3.4·10^10). So witness A uses **mpmath** (where the
+   exponent is a separate Python int, O(1)) and NOT `fractions.Fraction` (which
+   would materialize a ~10 GB integer — the same lesson as gf48's `2^(e−131071)`,
+   but here infeasible at any scale). In RTL, BIAS is a 36-bit localparam (a 32-bit
+   Verilog `integer` overflows) and the working exponent is signed 41-bit.
+3. **Exponent range ±2^35 vs binary64 ±1023/1074.** The vast majority of gf96
+   codes map to ±inf (overflow) or ±0 (underflow) in binary64; only the
+   `e ≈ BIAS` window (|true_exp| ≤ ~1074) yields finite nonzero output, and only
+   there can the 59→52 rounding actually bite.
 
-## Три независимых witness (`[доказано]`)
+## Three independent witnesses (`[proven]`)
 
-| # | Witness | Реализация | Роль |
-|---|---------|-----------|------|
-| A | `witness_A` в `gf96_bitexact_oracle.py` | точный **mpmath** mpf (dps=80 ≫ 59 бит → каждое диадическое входное значение точно) → корректно-округлённый binary64 через `frexp` + scaling на сетку `[2⁵²,2⁵³)` + RNE-сравнение с 1/2 (БЕЗ guard/sticky) | эталон-оракул |
-| B | `witness_B` в том же файле | field-by-field **integer** construction (БЕЗ mpmath, БЕЗ Fraction), guard/sticky битовый разбор для округления 59→52, широкий знаковый экспонент (чистое целочисленное сложение/вычитание → гигантский диапазон не материализуется) | 2-й независимый SW-witness |
-| C | `gf96_decode_fp64.v` + `tb_gf96_decode_fp64.v` через **iverilog 13.0** | fixed-width Verilog integer datapath (BIAS как 36-bit localparam, E2 signed [40:0], 60-бит full_sig, RNE guard/sticky, overflow→±inf / underflow→±0) | RTL-witness (ловит truncation/width/OOB-баги, инв. №6) |
+| # | Witness | Implementation | Role |
+|---|---------|----------------|------|
+| A | `witness_A` in `gf96_bitexact_oracle.py` | exact **mpmath** mpf (dps=80 ≫ 59 bits → every dyadic input exact) → correctly-rounded binary64 via `frexp` + scaling to a `[2^52,2^53)` grid + RNE half-comparison (NO guard/sticky) | reference oracle |
+| B | `witness_B` in the same file | field-by-field **integer** construction (NO mpmath, NO Fraction), guard/sticky bit extraction for 59→52, wide signed exponent (the huge range never materializes a big integer) | 2nd independent SW-witness |
+| C | `gf96_decode_fp64.v` + `tb_gf96_decode_fp64.v` via **iverilog 13.0** | fixed-width Verilog integer datapath (BIAS as 36-bit localparam, E2 signed [40:0], 60-bit full_sig, RNE guard/sticky, overflow→±inf / underflow→±0) | RTL-witness (catches truncation/width/OOB bugs, inv. #6) |
 
-## Результат прогона (2026-07-24, sandbox, iverilog 13.0)
+## Run result (2026-07-24, sandbox, iverilog 13.0)
 
 ```
 WITNESS CROSS-CHECK (A mpmath-exact vs B integer-construct): 59050/59050 agree (mismatch=0)
 HW RESULT: 59050/59050 bit-exact (fails=0)     # RTL (C) vs oracle
 ```
 
-Все три witness сошлись **59050/59050 бит-в-бит, 0 расхождений**.
+All three witnesses agree **59050/59050 bit-for-bit, 0 mismatches**.
 
-Доп. независимая сверка: для случаев, где вход точно представим во float64,
- witness-A совпал с Python `struct.pack('>d', ...)` (напр. `m=0x7F, te=0` →
-`0x3ff0000000000001` с обеих сторон) — третья сторона подтверждает RNE.
+Extra independent cross-check: for cases where the input is exactly representable
+in float64, witness A matched Python `struct.pack('>d', ...)` (e.g.
+`m=0x7F, te=0` → `0x3ff0000000000001` on both sides) — a third party confirms the
+RNE.
 
-## Sweep и покрытие классов
+## Sweep and class coverage
 
-59050 векторов покрывают все 5 классов decode и все классы binary64-выхода:
+59050 vectors cover all 5 decode classes and all binary64 output classes:
 `norm` 49108, `sub` 1262, `+inf` 2077, `−inf` 2167, `+0` 2199, `−0` 2233, `nan` 4.
 
-Границы проверены точно (true_exp = e − BIAS):
+Boundaries verified exactly (true_exp = e − BIAS):
 - `te = 1024 → +inf` (overflow), `te = 1023 → max-normal` (`0x7fe0…`),
   `te = −1022 → min-normal` (`0x0010…`),
   `te = −1074 → min-subnormal` (`0x…0001`), `te = −1075 → ±0` (underflow).
-- Плотное окно `e ∈ [BIAS−1130, BIAS+1074]` упражняет и normal, и subnormal,
-  и сами границы переходов классов; мантиссы специально стрессят младшие 7 бит
-  (guard/sticky: `0x7F`, `0x40`, `0x3F`, точный half, и т.п.) — там, где
-  округление 59→52 реально решает.
-- Дальнее поле (`e` далеко от BIAS) и gf96-subnormals (e=0) упражняют ветки
-  overflow→±inf и underflow→±0; плюс детерминированный random (seed=20260724).
-- Полный exhaustive (2⁹⁶ кодов) невозможен — это тот же тир строгости, что и
-  FPGA-conformance для широких форматов (и что у gf48).
+- A dense window `e ∈ [BIAS−1130, BIAS+1074]` exercises normal, subnormal and the
+  class transitions; mantissas deliberately stress the low 7 bits (guard/sticky:
+  `0x7F`, `0x40`, `0x3F`, exact half, etc.) — where the 59→52 rounding actually
+  decides.
+- The far field (`e` far from BIAS) and gf96-subnormals (e=0) exercise the
+  overflow→±inf and underflow→±0 branches; plus a deterministic random fill
+  (seed=20260724).
+- A full exhaustive sweep (2^96 codes) is impossible — this is the same strictness
+  tier as the FPGA conformance for wide formats (and as gf48).
 
-## Тир и границы (BINDING)
+## Tier and bounds (BINDING)
 
-- Это **строгий SW-bitexact** `[доказано]` — НЕ Tier-E (нет прогона на кремнии
-  AX7203). Синтез/PnR/flash на плату = `[ТРЕБУЕТ ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ]`, отдельный
-  эпик (64-битный выход, не FP32-lineup).
-- Горизонт A: живой снимок SW-bitexact 70→71, остаток promotable selfconsistent
-  5→4 (остаются `gf128/256/512/1024`).
+- This is **strict SW-bitexact** `[proven]` — NOT Tier-E (no run on AX7203
+  silicon). Synth/PnR/flash on the board = `[REQUIRES USER ACTION]`, a separate
+  epic (64-bit output, not the FP32 lineup).
+- Horizon-A: live SW-bitexact snapshot 70→71, remaining promotable
+  selfconsistent 5→4 (`gf128/256/512/1024` left).
 
-## Урок этой сессии
+## Lesson of this session
 
-Широкий знаковый экспонент в RTL нельзя срезать в поле напрямую:
-`exp_field = E2_post[10:0] + 1023` ломается для отрицательных E2 (срез младших
-11 бит из two's-complement даёт мусор → для E2=−1024 получалось field=2047 →
-ложный overflow → +inf вместо subnormal). Правильно: **сначала знаковая сумма
-`E2_post + 1023`, потом срез младших 11 бит**, и не добавлять в `is_overflow`
-избыточный тест `exp_field >= 2047` (он дублирует `E2_post >= 1024` и вреден для
-отрицательных E2). Этот класс багов (width/sign срез) — именно то, что ловит
-iverilog и НЕ ловит python-транскрипция (инв. №6).
+A wide signed exponent in RTL must not be sliced into a field directly:
+`exp_field = E2_post[10:0] + 1023` breaks for negative E2 (the low-11-bit slice of
+a two's-complement value is garbage → for E2=−1024 it yielded field=2047 → a
+spurious overflow → +inf instead of a subnormal). The correct way: **signed sum
+`E2_post + 1023` first, then the low-11-bit slice**, and do NOT add a redundant
+`exp_field >= 2047` term to `is_overflow` (it duplicates `E2_post >= 1024` and is
+harmful for negative E2). This class of bug (width/sign slicing) is exactly what
+iverilog catches and a python transcription cannot (inv. #6).
 
-## Файлы
+## Files
 
-- `conformance/gf96_bitexact_oracle.py` — witness A (mpmath) + B (integer), генерация векторов
-- `conformance/gf96_vectors.hex` — 59050 векторов «<96-бит raw> <64-бит expected>»
+- `conformance/gf96_bitexact_oracle.py` — witnesses A (mpmath) + B (integer), vector generation
+- `conformance/gf96_vectors.hex` — 59050 vectors "<96-bit raw> <64-bit expected>"
 - `fpga/openxc7-synth/gf96_decode_fp64.v` — RTL witness C
 - `fpga/openxc7-synth/tb_gf96_decode_fp64.v` — iverilog testbench
 
-## Воспроизведение
+## Reproduce
 
 ```bash
-cd conformance && python3 gf96_bitexact_oracle.py    # A==B + пишет vectors
+cd conformance && python3 gf96_bitexact_oracle.py    # A==B + writes vectors
 cp gf96_vectors.hex /tmp/ && cd /tmp
 iverilog -g2012 -o gf96_tb ../<repo>/fpga/openxc7-synth/gf96_decode_fp64.v \
-                            ../<repo>/fpga/openxc7-synth/tb_gf96_decode_fp64.v
+                           ../<repo>/fpga/openxc7-synth/tb_gf96_decode_fp64.v
 vvp gf96_tb                                            # C vs oracle
 ```

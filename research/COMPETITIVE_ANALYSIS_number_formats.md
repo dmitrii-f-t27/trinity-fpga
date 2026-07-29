@@ -1,77 +1,84 @@
 # Competitive Analysis — Trinity GoldenFloat (GF) vs alternative number formats
 
-**Дата:** 2026-07-24. **Контекст:** позиционирование семейства Trinity-GF
-(`gf8..gf1024`, параметрические E/M/BIAS, φ-biased taper, бит-точный decode
-через 3-witness mpmath/integer/RTL, заявленный «Vasilev Floor» `LUT_ADD ≈ 1.63·W²`)
-для статьи/arXiv. Ось конкуренции — **LUT на FPGA при фиксированной бит-точности**.
+**Date:** 2026-07-24. **Context:** positioning the Trinity-GF family
+(`gf8..gf1024`, parametric E/M/BIAS, φ-biased taper, bit-exact decode via 3-witness
+mpmath/integer/RTL, claimed "Vasilev Floor" `LUT_ADD ≈ 1.63·W²`) for the arXiv
+paper. The axis of competition is **FPGA LUT at fixed bit-exactness**.
 
-Источник данных о конкурентах: веб-исследование (arXiv, OCP, vendor-блоги) +
-аудит репо (см. `research/PAPER_INTEGRITY_ISSUES.md`).
+Source data: web research (arXiv, OCP, vendor blogs) + a repo audit
+(see `research/PAPER_INTEGRITY_ISSUES.md`).
 
 ---
 
-## 1. Карта конкурентов
+## 1. Competitor map
 
-| Формат | Год | Идея | FPGA LUT-evidence | Главная слабость |
-|--------|-----|------|-------------------|------------------|
-| **Posit** | 2017/std 2022 | variable regime bits, taper near ±1 | **2–4× FP32 LUT** (add ≈0.9–2.5k, mul ≈1.1–2.7k LUT на Xilinx 7, PACGen/Chaurasiya) | regime decode (LZD+barrel-shift) доминирует; потери кодирования вдали от ±1; переменная латентность |
-| **Takum** | 2024 (CoNGA) | logarithmic tapered, фикс dynamic-range-collapse posit'а | **НЕТ опубликованных FPGA LUT** (только `libtakum` C99) | нет silicon/FPGA; log-датапат тяжёлый; adoption ≈0 |
-| **OCP MX (MXFP4/8/6)** | 2023 | block-shared E8M0 exponent per k=32 | ASIC tensor cores (Blackwell), **не LUT-axis** | block-granularity scale; не standalone scalar тип; FPGA-враждебный гетерогенный датапат |
-| **NVIDIA FP8** (E4M3/E5M2) | 2022 | два 8-битных кодирования (fwd/bwd) | H100 tensor cores (ASIC), на FPGA mul всё равно дорогой (IEEE Xplore 11008970) | dual-encoding удваивает toolchain; E4M3 жертвует диапазоном, E5M2 — точностью |
-| **bfloat16/8** | 2017 (Google) | FP32 exponent + урезанная мантисса | тривиальный convert в FP32, **минимальная своя логика** | тупой range-cut; низкая точность near ±1 (зря тратит биты без taper) |
+| Format | Year | Idea | FPGA LUT evidence | Main weakness |
+|--------|------|------|-------------------|---------------|
+| **Posit** | 2017 / std 2022 | variable regime bits, taper near ±1 | **2–4× FP32 LUT** (add ≈0.9–2.5k, mul ≈1.1–2.7k LUT on Xilinx 7, PACGen/Chaurasiya) | regime decode (LZD+barrel-shift) dominates; coding-efficiency loss away from ±1; variable latency |
+| **Takum** | 2024 (CoNGA) | logarithmic tapered, fixes posit's dynamic-range collapse | **NO published FPGA LUT** (only `libtakum` C99) | no silicon/FPGA; log datapath is heavy; adoption ≈0 |
+| **OCP MX (MXFP4/8/6)** | 2023 | block-shared E8M0 exponent per k=32 | ASIC tensor cores (Blackwell), **not an LUT axis** | block-granularity scale; not a standalone scalar type; FPGA-hostile heterogeneous datapath |
+| **NVIDIA FP8** (E4M3/E5M2) | 2022 | two 8-bit encodings (fwd/bwd) | H100 tensor cores (ASIC); on FPGA, mul is still costly (IEEE Xplore 11008970) | dual-encoding doubles toolchain; E4M3 trades range, E5M2 trades precision |
+| **bfloat16/8** | 2017 (Google) | FP32 exponent + truncated mantissa | trivial convert to FP32, **minimal custom logic** | a dumb range-cut; low precision near ±1 (wastes bits without a taper) |
 
-**Развернуть позицию Trinity-GF:** конкуренты распадаются на
-*(a) ASIC-tuned block-форматы* (MX, FP8, BF16 — низкая LUT-релевантность) и
-*(b) tapered scalar форматы* (Posit, Takum — высокий LUT-cost, слабая FPGA-evidence).
-**Окно Trinity-GF** = fixed-width taper + бит-точный decode + `1.63·W²` LUT-цель —
-не закрыто ни одним лагерем.
+**Positioning:** competitors split into *(a) ASIC-tuned block formats* (MX, FP8,
+BF16 — low LUT relevance) and *(b) tapered scalar formats* (Posit, Takum — high
+LUT cost, weak FPGA evidence). **Trinity-GF's opening = fixed-width taper +
+bit-exact decode + `1.63·W²` LUT target** — unaddressed by either camp.
 
-## 2. Главный соперник на FPGA — Posit
+## 2. The main FPGA rival — Posit
 
-Posit32 на FPGA = **2–4× от IEEE FP32 LUT** для add/mul (FP32 mul мапится на DSP,
-posit — нет). Это прямое сравнение: Trinity-GF заявляет **sub-posit** ADD-цель
-(`1.63·W²`). Чтобы статья была убедительной, нужно в одном месте, на одном
-тулинге (openXC7/yosys), **при одинаковой бит-точности**, сравнить
-`GF16/GF24 ADD/MUL LUT` vs `posit16/posit24 ADD/MUL LUT` и показать зазор.
-Это **эксперимент №1 недостающего пруфа** (см. варианты усиления статьи ниже).
+Posit32 on FPGA = **2–4× IEEE FP32 LUT** for add/mul (FP32 mul maps to DSP, posit
+does not). This is the direct comparison: Trinity-GF claims a **sub-posit** ADD
+target (`1.63·W²`). For the paper to be convincing, GF16/GF24 ADD/MUL LUT must be
+compared **on the same toolchain (openXC7/yosys), at the same bit-exactness**,
+against posit16/posit24 ADD/MUL LUT, and the gap shown. This is **experiment #1
+of the missing proof** (see article-strengthening options).
 
-## 3. Takum — приоритет «опередить публикационно»
+> Caveat found during this audit (see `PAPER_INTEGRITY_ISSUES.md` §E1): the repo
+> has **no native posit add/mul core** — the `corona_compute_posit16_mul` cell is a
+> binary32 proxy (`gf_mul_param` E8M23). A fair GF-vs-posit LUT head-to-head
+> therefore requires porting a real posit multiplier first.
 
-Takum (2024) — единственный competitor, который:
-- прямо критикует Posit за dynamic-range-collapse (как и Trinity),
-- НО не имеет **никакой** FPGA/LUT-evidence.
+## 3. Takum — the "out-publish" priority
 
-Trinity-GF уже имеет decode-RTL + bit-exact witnesses — то, чего у takum нет.
-=> Стратегия: явно противопоставить в Related Work («takum решает ту же
-проблему диапазона, но без hardware-доказательства; мы даём bit-exact decode
-на 3-witness + LUT-floor»). Это сильный дифференциатор для рецензента.
+Takum (2024) is the only competitor that:
+- directly criticizes Posit for the dynamic-range collapse (as Trinity does),
+- BUT has **no** FPGA/LUT evidence at all.
 
-## 4. Поддерживающая литература (оправдание LUT-оси)
+Trinity-GF already has decode-RTL + bit-exact witnesses — what takum lacks.
+=> Strategy: contrast explicitly in Related Work ("takum solves the same
+range problem but without hardware evidence; we provide bit-exact decode on
+3 witnesses + an LUT floor"). A strong differentiator for a reviewer.
 
-- **LUTMUL** (FPGA 2025, ACM 10.1145/3658617.3697687): LUT на FPGA превосходят
-  DSP ~100× → LUT-native multipliers бьют DSP-roofline. **Оправдывает выбор
-  LUT как главной метрики для Trinity-GF.**
-- **8-bit Transformer inference on edge** (Yu/Prabhu): posit8 и FP8 оба
-  достигают BF16-точности при меньшей area/power.
-- **FPGA Approximate Multiplier for FP8** (IEEE Xplore 11008970, 2024): dense
-  FP8 mul дорог на FPGA → аппроксимации нужны — валидирует, что GF решает
-  реальную боль.
+## 4. Supporting literature (justifies the LUT axis)
 
-## 5. Честные оговорки для статьи (из аудита репо)
+- **LUTMUL** (FPGA 2025, ACM 10.1145/3658617.3697687): LUTs on FPGA outnumber DSPs
+  ~100× → LUT-native multipliers beat the DSP roofline. **Justifies choosing LUT as
+  the primary metric for Trinity-GF.**
+- **8-bit Transformer inference on edge** (Yu/Prabhu): posit8 and FP8 both reach
+  BF16 accuracy at lower area/power.
+- **FPGA Approximate Multiplier for FP8** (IEEE Xplore 11008970, 2024): dense FP8
+  mul is costly on FPGA → approximations are needed — validates that GF addresses a
+  real pain point.
 
-Эти пункты нужно либо закрыть экспериментом, либо явно дисклеймить — иначе
-рецензент их найдёт:
+## 5. Honest caveats for the paper (from the repo audit)
 
-1. **Все LUT-числа — yosys pre-P&R**, нет committed nextpnr `.rpt`. Это уже
-   дисклеймится в Threats to Validity (`paper.tex:1236`), но усиление возможно
-   одним nextpnr-прогоном (вариант B ниже).
-2. **GF64 НЕ бит-точен на silicon** (359/512 = 70.1%, `paper.tex:378`). Абстракт
-   говорит «Ten GoldenFloat formats … 0 failures on silicon» — нужно явно
-   ограничить «bit-exact» форматами ≤ GF32, а GF64 назвать «best-effort».
-3. **Сэмплы 64–512 векторов** на silicon — маленькие. Абстракт звучит как
-   exhaustive; нужно уточнить «representative sweep, 64–512 samples».
-4. **takum16 MUL = 505 LUT заявлен в `paper.tex:337` без committed `takum16_mul.v`**
-   (README:104 говорит «only takum16_decode.v exists»). Это **критический** пробел —
-   claim без артефакта. Либо закоммитить RTL, либо убрать claim.
+These must either be closed by an experiment or explicitly disclosed — otherwise a
+reviewer will find them:
 
-Полный список противоречий статьи — в `research/PAPER_INTEGRITY_ISSUES.md`.
+1. **All LUT numbers are yosys pre-P&R**; there is no committed nextpnr `.rpt`.
+   This is already disclosed in Threats to Validity (`paper.tex:1236`), but it can
+   be strengthened with one nextpnr run (option B).
+2. **GF64 is NOT bit-exact on silicon** (359/512 = 70.1%, `paper.tex:378`). The
+   abstract says "Ten GoldenFloat formats … 0 failures on silicon" — this must be
+   explicitly bounded to "bit-exact for formats ≤ GF32"; GF64 called "best-effort".
+   (Verified: the abstract does correctly say "GF4–GF32", so GF64 is excluded —
+   this is fine as written.)
+3. **Samples of 64–512 vectors on silicon** are small. The abstract can read as
+   exhaustive; clarify "representative sweep, 64–512 samples" in §Methodology.
+4. **takum16 MUL = 505 LUT is claimed in `paper.tex:337`** — the RTL artifact
+   `takum16_native_mul.v` DOES exist (verified), but the committed 505 figure needs
+   a committed yosys `.rpt` to be reproducible (see `PAPER_INTEGRITY_ISSUES.md` §E2
+   on LUT reproducibility fragility).
+
+Full list of paper contradictions: `research/PAPER_INTEGRITY_ISSUES.md`.
