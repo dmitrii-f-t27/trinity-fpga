@@ -93,3 +93,48 @@ heuristic (`af65d907c`), DIV/SQRT=binary32-proxy (`DIV_SQRT_HONESTY.md`),
 2. **A2 (счётчик)** — правка текста, 5 минут.
 3. **A3/A4 (P&R + MUL-LUT)** — эксперимент (см. варианты усиления в финальном
    отчёте лупа), даёт статьи́ качественно новый evidence-tier.
+
+---
+
+## E. Findings loop-2 (2026-07-24) — после попытки Option A (GF-vs-posit LUT)
+
+### E1. «posit16 mul» cell = binary32-proxy — HIGH для любого формат-сравнения
+`fpga/openxc7-synth/corona_compute_posit16_mul_ax7203.v:132` инстанциирует
+```
+gf_mul_param #(.EXP_BITS(8), .MANT_BITS(23), .HAS_INF(1)) u_comp ( ...)
+```
+т.е. **binary32 (E8M23), а не native posit-multiplier**. Тот же паттерн, что у
+DIV/SQRT (`DIV_SQRT_HONESTY.md`). Standalone posit-RTL в репо — только
+`posit{8,16,32,64,128}_decode.v` (decode), **никакого native posit add/mul core**.
+**Следствие:** честный GF-vs-posit LUT head-to-head для ADD/MUL **невозможен из
+наличных cores** — нужен порт реального posit-multiplier (отдельная задача).
+В статью: явно написать, что posit на HW = decode-only; любые «format-cost»-цитаты
+про posit должны брать LUT из literature (PACGen: posit32 mul ≈1.1–2.7k LUT), а не
+из репо-кора. Измеренная таблица (`LUT_COMPARISON_MEASURED.md`) корректно НЕ
+включает posit — это уже честно.
+
+### E2. LUT-числа хрупки к flow/params — MEDIUM (reproducibility)
+Свежий замер на yosys 0.63 (та же версия, что в doc):
+- `gf_adder_param` с **дефолтными параметрами** (E6M**8** = GF14!) + `-flatten` → **1338 LUT**
+  vs документированные **486 LUT** (GF16, без `-flatten`).
+Расхождение объяснимо, но показывает 3 reproducibility-риска:
+1. **Несогласованные дефолты параметрических cores:** `gf_adder_param` default
+   `MANT_BITS=8` (→GF14), `gf_mul_param` default `MANT_BITS=9` (→GF16). Кто синтезирует
+   `gf_adder_param` с дефолтом — получает GF14, не GF16. **Действие:** выровнять
+   дефолты (оба = GF16) ИЛИ закоммитить param-pinning wrapper/скрипт.
+2. **`-flatten` даёт 2–3× другой LUT**, чем без него (в моём прогоне — больше; abc9
+   глобальный оптимизатор чувствителен к flatten). Paper methodology фиксирует
+   `-flatten` для ADD — значит все headline-числа ДОЛЖНЫ измеряться с `-flatten`
+   единообразно; `LUT_COMPARISON_MEASURED.md` измерял БЕЗ `-flatten` →
+   несоответствие методологии paper vs measurement-doc.
+3. **abc9 недетерминизм** — LUT-распределение по LUT2..6 «плавает» между прогонами
+   (сумма стабильнее распределения).
+**Действие (вариант A усиления):** закоммитить один `scripts/lut_measure.sh`, который
+для каждого формата явно инстанциирует wrapper с正确的 E/M и фиксирует ОДИН flow
+(совпадающий с paper methodology `-flatten -abc9 -nocarry [-nodsp] -arch xc7`), и
+положить его output-таблицу рядом. Тогда «505 LUT»/«486 LUT» станут воспроизводимы
+`bash scripts/lut_measure.sh`, а не только «верьте doc».
+
+### F. Что закрыто этим лупом (не paper-integrity, а горизонт A)
+gf256 → строгий SW-bitexact (3 witness, 50230/50230). Горизонт A: SW-bitexact
+72→73, остаток selfconsistent 3→2 (`gf512/1024`). См. `conformance/README_gf256_bitexact.md`.
