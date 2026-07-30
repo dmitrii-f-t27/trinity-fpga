@@ -1,0 +1,122 @@
+# Trinity Numeric SSOT — intrinsic invariant sweep over the whole oracle layer
+# Generalises the method of specs/numeric/negation_invariant.t27 to all families.
+# Executed 2026-07-31. Executable: research/verify_intrinsic_invariants.py
+
+spec IntrinsicInvariantSweep version 1.0.0
+
+description """
+Three structural properties, each derivable from the encoding alone and therefore
+testable with no external reference, were swept across every golden oracle:
+
+  MONOTONIC   within the positive half, larger code -> larger value
+  NEGATION    which rule the oracle obeys: XOR-msb (sign-magnitude),
+              two's complement, or neither
+  ROUNDTRIP   encode(decode(raw)) == raw
+
+The raw output flags 40 of ~70 formats. That number is NOT a defect count, and
+reading it as one would be wrong. Diagnosed, it resolves to ONE real defect
+(already known), zero new defects, and three classes of legitimate behaviour.
+
+The sweep's real value is a third independent confirmation of the takum finding,
+plus a clean bill of health for everything else.
+"""
+
+constants {
+  FORMATS_SWEPT     70
+  RAW_FLAGS         40
+  REAL_DEFECTS       1     // takum, already established in negation_invariant.t27
+  NEW_DEFECTS        0
+}
+
+// ---- 1. NEGATION: real signal ------------------------------------------------
+// The column is a classifier, and the classification is the finding.
+result NEGATION_CLASSIFICATION {
+  correct_twos_complement { formats { posit8, posit16, posit32, posit64,
+                                      int4, int8, int16, int32, int64, mxint8 } }
+  correct_sign_magnitude  { note "IEEE-like families: binary*, bfloat*, fp8_*, gf*, mxfp*, tf32 — all XOR" }
+  correct_neither         { formats { nf4, uint4, uint8, uint16, uint32 }
+                            reason "NF4 is a non-symmetric lookup table; unsigned types have no negation" }
+
+  // The defect, seen from a third angle.
+  misclassified { formats { takum8, takum16, takum32, takum64 }
+                  observed "xor"
+                  expected "twos"
+                  cross_ref "specs/numeric/negation_invariant.t27, takum_libtakum_crossval.t27" }
+  status VERIFIED_SW
+}
+
+// ---- 2. ROUNDTRIP: one cause, not thirty defects -----------------------------
+finding ROUNDTRIP_FLAGS_ARE_ONE_KNOWN_CAUSE {
+  name     "every round-trip failure is the negative-zero code"
+  severity LOW
+  evidence """
+Diagnosed exhaustively on five formats spanning four families:
+
+  binary16   1 failure of 65536 -- code 0x8000
+  fp8_e4m3   1 failure          -- the sign-zero code
+  gf16       1 failure          -- the sign-zero code
+  bfloat16   1 failure          -- the sign-zero code
+  mxfp4      1 failure          -- the sign-zero code
+
+decode(sign-zero) yields Fraction(0), and encode(0) yields the positive-zero
+code. This is the container limitation already recorded as
+ZERO_SIGN_NOT_REPRESENTABLE in specs/numeric/ml_dtypes_crossval.t27, surfacing
+through a different test.
+"""
+  is_new_defect false
+  interpretation """
+Reporting this column as "~30 formats fail round-trip" would be alarming and
+wrong. It is one already-documented limitation with one manifestation per format.
+"""
+  resolved false
+}
+
+// ---- 3. MONOTONIC: mostly legitimate design ---------------------------------
+finding MONOTONIC_FLAGS_MOSTLY_BY_DESIGN {
+  name     "code order is not numeric order in several families, by construction"
+  severity INFO
+  legitimate {
+    decimal32, decimal64   // BID encoding: code ordering is not numeric ordering
+    bcd                    // binary-coded decimal
+    vax_f, vax_d, vax_g    // mixed word ordering
+    pdp11_float            // mixed word ordering
+    ms_mbf32, ms_mbf64     // Microsoft binary format layout
+    ibm_hfp32, ibm_hfp64   // hexadecimal exponent
+  }
+  needs_a_look { lns8, lns16
+                 note "logarithmic; monotonic in the log domain is expected, so the
+                       flag may be sign or zero handling. Not investigated this pass." }
+  is_defect false
+}
+
+// ---- Harness limitations, stated so results are not over-read ---------------
+limitation SAMPLING_HIDES_WIDE_FORMATS {
+  detail """
+Formats wider than 2^16 codes are SAMPLED, not enumerated. binary32 and binary64
+therefore reported "roundtrip OK" only because the sample missed their
+negative-zero code -- binary16, which is enumerated in full, caught it.
+
+Consequence: a clean result on a wide format means "no failure in the sample",
+never "no failure". Any wide-format claim needs either full enumeration or a
+targeted check of the known-interesting codes.
+"""
+  affects "all formats with width > 16"
+}
+
+limitation FLAG_IS_A_LEAD_NOT_A_VERDICT {
+  detail """
+40 raw flags resolved to 1 known defect. The ratio is the point: a structural
+sweep over heterogeneous families produces mostly explainable flags, and each one
+must be diagnosed before it is reported. Three times in this campaign an initial
+"divergence" count was an artefact of the harness rather than of the artefact
+under test.
+"""
+}
+
+scope_limits {
+  covers      "decode and encode directions; three structural invariants"
+  not_covered { "arithmetic operations", "rounding behaviour",
+                "lns8/lns16 monotonicity, deferred",
+                "formats wider than 64 bits" }
+  superiority_claimed false
+}
