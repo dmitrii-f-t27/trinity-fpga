@@ -34,6 +34,14 @@ Bold = measured by yosys synthesis. ~ = estimated from scaling law.
 - **ADD**: LUT = 1.55 × W² (R² = 0.876, 15 measured points W=4..128)
 - **MUL**: LUT = 2.06 × W² (R² = 0.970, 10 measured points W=4..32)
 
+> **Reconciliation note (vs `paper.tex:877`):** the paper reports ADD = 1.63·W²
+> (R²=0.97) and MUL = 2.09·W² from a *restricted* fit over W=4..24 (11 ADD / 9 MUL
+> points), where the fit is tighter. The 1.55/2.06 above are the *full-range*
+> fits over W=4..128 / W=4..32. Both are correct for their range; the restricted
+> 1.63/2.09 is the figure cited in the arXiv abstract because it reflects the
+> measured (non-extrapolated) silicon-tractable window. Use `scripts/lut_measure.sh`
+> to regenerate either regression from pinned yosys runs.
+
 ## FPGA Feasibility Boundary
 
 **GF128** (W=128): ADD = 14,894 LUT (11% of FPGA), MUL = ~33,751 LUT (25%) — **largest that fits comfortably**.

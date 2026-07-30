@@ -9,7 +9,7 @@ Snapshot 2026-07-14 (Wave 4). Counts are measured, not projected.
 | Axis | Count | Notes |
 |------|-------|-------|
 | SW-bitexact | 75 / 83 | Ceiling reached; remaining 8 are structural (no independent decode law) |
-| decode-HW Tier-E | ~47 / 83 | UART @160000 on AX7203, IDCODE `0x13636093` |
+| decode-HW Tier-E | 41 / 83 | UART @160000 on AX7203, IDCODE `0x13636093` (matches paper.tex; README's earlier "~47" included compute cells) |
 | compute-HW Tier-E | 16 cells | GF4–GF32 × {ADD, MUL}, 0 failures on silicon (vectors vary by run) |
 | GF64+ on silicon | 70.1% | 359 / 512 score; two timing paths identified, fix in progress |
 | Tekum benchmark | Done | GF16 wins LUT, tekum16 wins dynamic range — see findings |

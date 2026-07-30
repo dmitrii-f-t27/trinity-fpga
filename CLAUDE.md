@@ -152,7 +152,7 @@ trinity                 ← Orchestrator (links all via build.zig.zon)
 
 - Format Zig with `zig fmt` before committing.
 - Commit format: `feat(<module>): <description>`, `fix(<module>): ...`, `refactor(<module>): ...`, `docs(<module>): ...`, `chore(<module>): ...`.
-- Commit messages must be bilingual (English then Russian). Example:
+- Commit messages must be in English only. Example:
   ```
   feat(cli): add XC7A200T board support
 

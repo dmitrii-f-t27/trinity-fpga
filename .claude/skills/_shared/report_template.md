@@ -266,23 +266,23 @@ If no problems: "🟢 ALL SYSTEMS NOMINAL"
   └── #{num}  {title}  [{labels}]
 ```
 
-### Translation Table (EN → RU)
+### English Label Reference
 
-| EN | RU |
-|----|-----|
-| TRI UNIVERSITY — FACULTY STATUS | TRI UNIVERSITY — СТАТУС ФАКУЛЬТЕТА |
-| Agent | Агент |
-| Role | Роль |
-| Last Action | Последнее действие |
-| Engineer | Инженер |
-| Researcher | Исследователь |
-| Memory | Память |
-| φ-Analyst | φ-Аналитик |
-| Coordinator | Координатор |
-| QA Gate | QA-Ворота |
-| Faculty Active | Факультет активен |
-| FACULTY COMMENTARY | КОММЕНТАРИИ ФАКУЛЬТЕТА |
-| SLEEPING | СПИТ |
-| CODE READY | КОД ГОТОВ |
-| NOT HIRED | НЕ НАНЯТ |
-| EMBRYONIC | В ЗАРОДЫШЕ |
+Under the English-only documentation policy, the following labels are rendered as-is:
+
+- TRI UNIVERSITY — FACULTY STATUS
+- Agent
+- Role
+- Last Action
+- Engineer
+- Researcher
+- Memory
+- φ-Analyst
+- Coordinator
+- QA Gate
+- Faculty Active
+- FACULTY COMMENTARY
+- SLEEPING
+- CODE READY
+- NOT HIRED
+- EMBRYONIC

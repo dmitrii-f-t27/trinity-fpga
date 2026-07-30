@@ -226,17 +226,17 @@ When a bridge job closes an issue:
 3. If yes: move newly-unblocked issues to Ready column
 4. Log: "[tree] #N closed -> #M now READY"
 
-## Translation Table (EN -> RU)
+## English Label Reference
 
-| EN | RU |
-|----|-----|
-| TECHNOLOGY TREE | ДЕРЕВО ТЕХНОЛОГИЙ |
-| READY TASKS | ГОТОВЫЕ ЗАДАЧИ |
-| CRITICAL PATH | КРИТИЧЕСКИЙ ПУТЬ |
-| BLOCKED TASKS | ЗАБЛОКИРОВАННЫЕ ЗАДАЧИ |
-| Prereqs | Зависимости |
-| Steps remaining | Осталось шагов |
-| Bottleneck | Узкое место |
-| Unblock | Разблокировать |
-| Start now | Начать сейчас |
-| none | нет |
+Under the English-only documentation policy, the following labels are rendered as-is:
+
+- TECHNOLOGY TREE
+- READY TASKS
+- CRITICAL PATH
+- BLOCKED TASKS
+- Prereqs
+- Steps remaining
+- Bottleneck
+- Unblock
+- Start now
+- none

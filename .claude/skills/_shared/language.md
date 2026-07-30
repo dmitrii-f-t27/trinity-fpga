@@ -2,280 +2,250 @@
 
 ### Usage in SKILL.md
 Reference this module instead of inlining translation tables:
-> For language detection and translations, follow `.claude/skills/_shared/language.md`.
+> For language detection and label reference, follow `.claude/skills/_shared/language.md`.
 
 ### Language Detection
 Read `.claude/skills/tri/lang.md` to determine output language.
-The file contains `lang: ru` or `lang: en`. Default: `ru`.
+The file contains `lang: ru` or `lang: en`. Default: `en`.
 
-All section headers, labels, descriptions MUST be rendered in the chosen language.
+All section headers, labels, descriptions MUST be rendered in English.
 Technical terms (binary names, commands, file paths) stay in English.
 
-### Master Translation Table (EN → RU)
+### English Label Reference
+
+This module is the canonical English-only label/word reference for all dashboards and reports. Under the English-only documentation policy, every label below is rendered as-is.
 
 #### Core Terms
-| EN | RU |
-|----|-----|
-| Status | Статус |
-| Build | Сборка |
-| Score | Счёт |
-| Tests | Тесты |
-| Agents | Агенты |
-| Tasks | Задачи |
-| Branch | Ветка |
-| Binary | Бинарный файл |
-| Size | Размер |
-| Value | Значение |
-| Metric | Метрика |
-| Component | Компонент |
-| TOTAL | ИТОГО |
-| open | открытых |
-| dirty | грязных |
-| pending | в ожидании |
+- Status
+- Build
+- Score
+- Tests
+- Agents
+- Tasks
+- Branch
+- Binary
+- Size
+- Value
+- Metric
+- Component
+- TOTAL
+- open
+- dirty
+- pending
 
 #### Build & Pipeline
-| EN | RU |
-|----|-----|
-| BUILD HEALTH | ЗДОРОВЬЕ СБОРКИ |
-| PIPELINE HEALTH | ЗДОРОВЬЕ ПАЙПЛАЙНА |
-| build passing | билд проходит |
-| build broken | билд сломан |
-| Build broken | Сборка сломана |
-| BUILD BROKEN — fix before anything else | СБОРКА СЛОМАНА — чините прежде всего |
-| Pipeline | Пайплайн |
-| Last run | Последний запуск |
-| Specs | Спецификации |
-| Generated | Сгенерировано |
-| Coverage | Покрытие |
-| Compile | Компиляция |
-| KEY METRIC | КЛЮЧЕВАЯ МЕТРИКА |
-| last audit | последний аудит |
-| never | никогда |
-| Pipeline FAILED — last task | Пайплайн УПАЛ — последняя задача |
-| Job success rate | Успешность задач |
-| Job success rate — pipeline unreliable | Успешность задач — пайплайн ненадёжен |
-| No .tri specs found — pipeline has nothing to generate | .tri спецификации не найдены — пайплайну нечего генерировать |
-| Low spec coverage — many specs not generating code | Низкое покрытие спеков — многие спеки не генерируют код |
-| No pipeline jobs found — pipeline never ran | Задачи пайплайна не найдены — пайплайн не запускался |
-| Generator broken — compile rate | Генератор сломан — процент компиляции |
-| Failed Specs | Сбитые спеки |
-| All audited specs compile | Все проверенные спеки компилируются |
-| Pipeline stuck in running for Nh | Пайплайн завис в running уже Nч |
-| Pipeline idle for Nh | Пайплайн простаивает Nч |
-| No new pipeline jobs in Nh | Нет новых задач пайплайна за Nч |
-| pipeline is IDLE | пайплайн ПРОСТАИВАЕТ |
-| Last job | Последняя задача |
-| ago | назад |
+- BUILD HEALTH
+- PIPELINE HEALTH
+- build passing
+- build broken
+- Build broken
+- BUILD BROKEN — fix before anything else
+- Pipeline
+- Last run
+- Specs
+- Generated
+- Coverage
+- Compile
+- KEY METRIC
+- last audit
+- never
+- Pipeline FAILED — last task
+- Job success rate
+- Job success rate — pipeline unreliable
+- No .tri specs found — pipeline has nothing to generate
+- Low spec coverage — many specs not generating code
+- No pipeline jobs found — pipeline never ran
+- Generator broken — compile rate
+- Failed Specs
+- All audited specs compile
+- Pipeline stuck in running for Nh
+- Pipeline idle for Nh
+- No new pipeline jobs in Nh
+- pipeline is IDLE
+- Last job
+- ago
 
 #### Code Metrics
-| EN | RU |
-|----|-----|
-| CODE METRICS | МЕТРИКИ КОДА |
-| Zig source files | Zig исходных файлов |
-| Total LOC | Всего строк кода |
-| Test blocks | Тестовых блоков |
-| tri-api LOC | tri-api строк |
-| Skills | Скиллы |
+- CODE METRICS
+- Zig source files
+- Total LOC
+- Test blocks
+- tri-api LOC
+- Skills
 
 #### Git & Issues
-| EN | RU |
-|----|-----|
-| GIT STATUS | СТАТУС GIT |
-| Last 5 commits | Последние 5 коммитов |
-| Uncommitted | Незакоммичено |
-| changes | изменений |
-| MERGED PRs (recent) | ВЛИТЫЕ PR (последние) |
-| OPEN ISSUES | ОТКРЫТЫЕ ЗАДАЧИ |
-| Issues | Задачи |
+- GIT STATUS
+- Last 5 commits
+- Uncommitted
+- changes
+- MERGED PRs (recent)
+- OPEN ISSUES
+- Issues
 
 #### System & Agents
-| EN | RU |
-|----|-----|
-| SYSTEM STATUS | СТАТУС СИСТЕМЫ |
-| Farm is working | Ферма работает |
-| services | сервисов |
-| accounts | аккаунтов |
-| slots free | слотов свободны |
-| Farm started | Ферма запустилась |
-| Code idle, farm working | Код тихо стоит, ферма работает |
-| Check farm | Проверить ферму |
-| When builds finish — check logs and PPL | Когда билды закончатся — смотреть логи и PPL |
-| Sessions saved | Сохранённых сессий |
-| Skills available | Доступных скиллов |
-| agents running | агентов запущено |
+- SYSTEM STATUS
+- Farm is working
+- services
+- accounts
+- slots free
+- Farm started
+- Code idle, farm working
+- Check farm
+- When builds finish — check logs and PPL
+- Sessions saved
+- Skills available
+- agents running
 
 #### Problems & Alerts
-| EN | RU |
-|----|-----|
-| PROBLEMS DETECTED | ОБНАРУЖЕНЫ ПРОБЛЕМЫ |
-| ALL SYSTEMS NOMINAL | ВСЕ СИСТЕМЫ В НОРМЕ |
-| Dirty files — commit or lose work! | Грязные файлы — закоммитьте или потеряете! |
-| tri-bot DOWN — no phone control | tri-bot УПАЛ — нет управления с телефона |
-| ralph-agent DOWN — no autonomous agent | ralph-agent УПАЛ — нет автономного агента |
-| Permissions MISSING — unprotected tools | Разрешения ОТСУТСТВУЮТ — инструменты не защищены |
-| tri-api never tested end-to-end | tri-api ни разу не протестирован end-to-end |
+- PROBLEMS DETECTED
+- ALL SYSTEMS NOMINAL
+- Dirty files — commit or lose work!
+- tri-bot DOWN — no phone control
+- ralph-agent DOWN — no autonomous agent
+- Permissions MISSING — unprotected tools
+- tri-api never tested end-to-end
 
 #### Bridge
-| EN | RU |
-|----|-----|
-| PERPLEXITY BRIDGE — DIRECT CONTROL CHANNEL | МОСТ PERPLEXITY — КАНАЛ ПРЯМОГО УПРАВЛЕНИЯ |
-| Railway Server | Сервер Railway |
-| Mac Agent | Агент Mac |
-| Command Queue | Очередь команд |
-| claude: support | поддержка claude: |
-| Comms | Связь |
-| Direct control active | Прямое управление активно |
-| Railway UP but Mac agent DOWN | Railway работает, но агент Mac не запущен |
-| Bridge agent DOWN — no remote control | Агент моста УПАЛ — нет удалённого управления |
-| Railway server DOWN — bridge unreachable | Сервер Railway УПАЛ — мост недоступен |
+- PERPLEXITY BRIDGE — DIRECT CONTROL CHANNEL
+- Railway Server
+- Mac Agent
+- Command Queue
+- claude: support
+- Comms
+- Direct control active
+- Railway UP but Mac agent DOWN
+- Bridge agent DOWN — no remote control
+- Railway server DOWN — bridge unreachable
 
 #### Oracle & Sacred
-| EN | RU |
-|----|-----|
-| ORACLE COMMENTARY | КОММЕНТАРИЙ ОРАКУЛА |
-| CRITICAL DIVERGENCE | КРИТИЧЕСКОЕ РАСХОЖДЕНИЕ |
-| GOLDEN RATIO DRIFT | ДРЕЙФ ЗОЛОТОГО СЕЧЕНИЯ |
-| φ-HARMONY ACHIEVED | φ-ГАРМОНИЯ ДОСТИГНУТА |
-| UNOBSERVED STATE | НЕНАБЛЮДАЕМОЕ СОСТОЯНИЕ |
-| The golden spiral has COLLAPSED | Золотая спираль РУХНУЛА |
-| φ cannot sustain this divergence | φ не может удержать это расхождение |
-| sub-critical threshold breached | субкритический порог пробит |
-| Every uncompilable spec is a broken link in the golden chain | Каждый некомпилируемый спек — разорванное звено золотой цепи |
-| The spiral MUST be restored before any new work begins | Спираль ДОЛЖНА быть восстановлена прежде любой новой работы |
-| The spiral turns, but wobbles. φ senses imbalance | Спираль крутится, но шатается. φ чувствует дисбаланс |
-| The ratio CAN be restored | Соотношение МОЖЕТ быть восстановлено |
-| Push toward | Двигайтесь к |
-| Trinity Identity HOLDS | Тождество Троицы ВЫПОЛНЯЕТСЯ |
-| golden convergence achieved | золотая сходимость достигнута |
-| The spiral is stable. Focus on SCALING, not fixing | Спираль стабильна. Фокус на МАСШТАБИРОВАНИИ, не на починке |
-| New specs will compile. The golden chain extends naturally | Новые спеки скомпилируются. Золотая цепь наращивается естественно |
-| φ cannot judge what it cannot measure | φ не может судить то, что не может измерить |
-| No regeneration audit data found | Данные аудита регенерации не найдены |
-| to establish the baseline | для установления базовой линии |
-| Without measurement, there is no spiral — only noise | Без измерений нет спирали — только шум |
-| φ says | φ говорит |
-| Even the spiral must touch zero before it can rise | Даже спираль должна коснуться нуля, прежде чем подняться |
-| The ratio remembers its target. So must we | Соотношение помнит свою цель. И мы должны |
-| When spec and code align, the universe compiles | Когда спек и код совпадают, вселенная компилируется |
-| Measure first. Judge never. Iterate always | Сначала измеряй. Никогда не суди. Итерируй всегда |
-| Sacred constants | Сакральные константы |
-| As above, so below. As in spec, so in code | Что вверху, то и внизу. Что в спеке, то и в коде |
-| Hermetic Principle | Герметический Принцип |
+- ORACLE COMMENTARY
+- CRITICAL DIVERGENCE
+- GOLDEN RATIO DRIFT
+- φ-HARMONY ACHIEVED
+- UNOBSERVED STATE
+- The golden spiral has COLLAPSED
+- φ cannot sustain this divergence
+- sub-critical threshold breached
+- Every uncompilable spec is a broken link in the golden chain
+- The spiral MUST be restored before any new work begins
+- The spiral turns, but wobbles. φ senses imbalance
+- The ratio CAN be restored
+- Push toward
+- Trinity Identity HOLDS
+- golden convergence achieved
+- The spiral is stable. Focus on SCALING, not fixing
+- New specs will compile. The golden chain extends naturally
+- φ cannot judge what it cannot measure
+- No regeneration audit data found
+- to establish the baseline
+- Without measurement, there is no spiral — only noise
+- φ says
+- Even the spiral must touch zero before it can rise
+- The ratio remembers its target. So must we
+- When spec and code align, the universe compiles
+- Measure first. Judge never. Iterate always
+- Sacred constants
+- As above, so below. As in spec, so in code
+- Hermetic Principle
 
 #### Paths & Actions
-| EN | RU |
-|----|-----|
-| THREE PATHS FORWARD | ТРИ ПУТИ ВПЕРЁД |
-| SAFE | БЕЗОПАСНЫЙ |
-| BALANCED | СБАЛАНСИРОВАННЫЙ |
-| BOLD | ДЕРЗКИЙ |
-| The Trinity always provides three paths | Троица всегда даёт три пути |
-| CURRENT PRIORITY | ТЕКУЩИЙ ПРИОРИТЕТ |
-| NOW | СЕЙЧАС |
-| NEXT | ДАЛЕЕ |
-| TECH TREE | ДЕРЕВО ТЕХНОЛОГИЙ |
-| Analysis by | Анализ от |
-| Trinity Oracle Engine | Движок Оракула Троицы |
+- THREE PATHS FORWARD
+- SAFE
+- BALANCED
+- BOLD
+- The Trinity always provides three paths
+- CURRENT PRIORITY
+- NOW
+- NEXT
+- TECH TREE
+- Analysis by
+- Trinity Oracle Engine
 
 #### Audit
-| EN | RU |
-|----|-----|
-| AUDIT MODE | РЕЖИМ АУДИТА |
-| No audit data — run: /tri audit | Нет данных аудита — запустите: /tri audit |
-| Audit data is Nh old | Данные аудита устарели (Nч) |
-| run /tri audit for fresh data | запустите /tri audit для свежих данных |
-| deduplicated by command | дедупликация по команде |
-| Stale jobs | Зависшие задачи |
-| cleanup needed | очистка нужна |
-| Spam | Спам |
-| investigate cause | расследовать причину |
-| likely dead | вероятно мёртв |
-| STALE | УСТАРЕЛО |
-| consider refreshing | рекомендуется обновить |
-| Recent Jobs | Последние задачи |
-| stuck in running | зависли в статусе running |
+- AUDIT MODE
+- No audit data — run: /tri audit
+- Audit data is Nh old
+- run /tri audit for fresh data
+- deduplicated by command
+- Stale jobs
+- cleanup needed
+- Spam
+- investigate cause
+- likely dead
+- STALE
+- consider refreshing
+- Recent Jobs
+- stuck in running
 
 #### MU Patterns
-| EN | RU |
-|----|-----|
-| MU ERROR PATTERNS | ПАТТЕРНЫ ОШИБОК MU |
-| from ralph memory | из памяти Ральфа |
-| known anti-patterns | известных анти-паттернов |
-| Last entry | Последняя запись |
-| Recent patterns | Последние паттерны |
-| specs affected | спеков затронуто |
-| No regression data — ralph memory empty | Нет данных регрессии — память Ральфа пуста |
-| Known Bugs | Известные баги |
-| No audit data — run regeneration audit | Нет данных аудита — запустите аудит регенерации |
-| Last 5 Jobs | Последние 5 задач |
-| Job | Задача |
-| Exit | Код |
+- MU ERROR PATTERNS
+- from ralph memory
+- known anti-patterns
+- Last entry
+- Recent patterns
+- specs affected
+- No regression data — ralph memory empty
+- Known Bugs
+- No audit data — run regeneration audit
+- Last 5 Jobs
+- Job
+- Exit
 
 #### GitHub Board
-| EN | RU |
-|----|-----|
-| GITHUB BOARD INTEGRATION | ИНТЕГРАЦИЯ С GITHUB BOARD |
-| CLI Commands Available | Доступные CLI команды |
-| command handlers | обработчиков команд |
-| label tracking | отслеживание меток |
-| Native API | Нативный API |
+- GITHUB BOARD INTEGRATION
+- CLI Commands Available
+- command handlers
+- label tracking
+- Native API
 
 #### TRI Dashboard
-| EN | RU |
-|----|-----|
-| TRI STATUS | TRI СТАТУС |
-| TRI SWARM DIAGNOSTIC REPORT | ДИАГНОСТИКА РОЕВОЙ СИСТЕМЫ TRI |
+- TRI STATUS
+- TRI SWARM DIAGNOSTIC REPORT
 
 #### Doctor
-| EN | RU |
-|----|-----|
-| PAST | БЫЛО |
-| DONE | СДЕЛАНО |
-| NEXT CYCLE | ПЛАН |
-| HEALTHY | ЗДОРОВ |
-| RECOVERING | ВЫЗДОРАВЛИВАЕТ |
-| INFECTED | ЗАРАЖЁН |
-| CRITICAL | КРИТИЧЕСКИЙ |
-| healed | вылечено |
-| committed | закоммичено |
-| nothing to heal | лечить нечего |
-| dirty files | грязных файлов |
-| docs stale | документация устарела |
-| docs fresh | документация актуальна |
-| duplicates | дубликаты |
-| divergence risk | риск расхождения |
-| consolidate | консолидировать |
-| docs build broken | билд документации сломан |
+- PAST
+- DONE
+- NEXT CYCLE
+- HEALTHY
+- RECOVERING
+- INFECTED
+- CRITICAL
+- healed
+- committed
+- nothing to heal
+- dirty files
+- docs stale
+- docs fresh
+- duplicates
+- divergence risk
+- consolidate
+- docs build broken
 
 #### Ouroboros
-| EN | RU |
-|----|-----|
-| OUROBOROS DASHBOARD | ДАШБОРД УРОБОРОСА |
-| Cycle | Цикл |
-| Strategy | Стратегия |
-| Stagnation | Стагнация |
-| Experience | Опыт |
-| Weakest | Слабейшее |
-| Recommendations | Рекомендации |
-| History | История |
-| Next Actions | Следующие действия |
-| Snake is resting | Змей отдыхает |
-| Almost LEGENDARY | Почти LEGENDARY |
-| Patent | Патент |
-| Hungry Snake | Голодный Змей |
+- OUROBOROS DASHBOARD
+- Cycle
+- Strategy
+- Stagnation
+- Experience
+- Weakest
+- Recommendations
+- History
+- Next Actions
+- Snake is resting
+- Almost LEGENDARY
+- Patent
+- Hungry Snake
 
 #### Scholar
-| EN | RU |
-|----|-----|
-| SCHOLAR RESEARCH REPORT | ИССЛЕДОВАТЕЛЬСКИЙ ОТЧЁТ SCHOLAR |
-| SCAN CONTEXT | КОНТЕКСТ СКАНИРОВАНИЯ |
-| FINDINGS | НАХОДКИ |
-| ACTIONS TAKEN | ПРЕДПРИНЯТЫЕ ДЕЙСТВИЯ |
-| CITATIONS | ИСТОЧНИКИ |
-| Domain | Домен |
-| MU entries | Записи MU |
-| Archived | Архивировано |
-| Scholar says | Scholar говорит |
-| Created | Создано |
-| findings added to Learning DB | находок добавлено в базу обучения |
-| low-relevance findings logged | находок низкой релевантности записано |
+- SCHOLAR RESEARCH REPORT
+- SCAN CONTEXT
+- FINDINGS
+- ACTIONS TAKEN
+- CITATIONS
+- Domain
+- MU entries
+- Archived
+- Scholar says
+- Created
+- findings added to Learning DB
+- low-relevance findings logged

@@ -80,5 +80,10 @@ reviewer will find them:
    `takum16_native_mul.v` DOES exist (verified), but the committed 505 figure needs
    a committed yosys `.rpt` to be reproducible (see `PAPER_INTEGRITY_ISSUES.md` §E2
    on LUT reproducibility fragility).
+5. **The "505 = 505" equivalence is GF16+ (Quire), NOT plain GF16** (`PAPER_INTEGRITY_ISSUES.md` §G1,
+   verified): `paper.tex:863` lists plain GF16 MUL = **587** LUT, while the 505-LUT
+   datapoint is the GF16+ (Quire) variant (`:864`). The equivalence is
+   `takum16 (505) ≡ GF16+ (Quire) (505)`; plain GF16 multiply is 587 LUT. State it
+   this way in any LUT comparison so a reviewer does not catch GF16=587 vs GF16=505.
 
 Full list of paper contradictions: `research/PAPER_INTEGRITY_ISSUES.md`.

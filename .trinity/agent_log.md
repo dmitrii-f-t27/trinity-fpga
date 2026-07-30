@@ -1200,7 +1200,7 @@ Implement the `tri clara demo` command
 
 **What was done:**
 - ✅ i18n: translated Russian comments in commands.zig
-  - Replaced "|Ш(E/Q)|" with "order(E, Q)" in the BSD formula
+  - Replaced a Cyrillic shorthand with "order(E, Q)" in the BSD formula
 - ✅ Build: GREEN
 - ✅ Tests: GREEN
 
@@ -1219,8 +1219,8 @@ Implement the `tri clara demo` command
 
 **What was done:**
 - ✅ i18n: translated Russian comments in queen.zig
-  - Removed "// zig build упал" (zig build fell)
-  - "Цикл: N | Uptime: Nh" → "Cycle: N | Uptime: Nh"
+  - Removed a Russian comment ("zig build fell")
+  - "Cycle: N | Uptime: Nh" (was Russian) → "Cycle: N | Uptime: Nh"
 - ✅ Build: GREEN
 - ✅ Tests: GREEN
 
@@ -1239,7 +1239,7 @@ Implement the `tri clara demo` command
 
 **What was done:**
 - ✅ i18n: translated the header in cortex.zig
-  - "ТРИ ПУТИ" (THREE PATHS) → "THREE PATHS"
+  - "THREE PATHS" (was Russian) → "THREE PATHS"
 - ✅ Build: GREEN
 - ✅ Tests: GREEN
 
@@ -1281,7 +1281,7 @@ Implement the `tri clara demo` command
 
 **What was done:**
 - ✅ i18n: translated a test in queen_dmpfc.zig
-  - "Конфликт обнаружен" (Conflict detected) → "Conflict detected"
+  - "Conflict detected" (was Russian) → "Conflict detected"
 - ✅ Build: GREEN
 - ✅ Tests: GREEN
 
@@ -1320,8 +1320,8 @@ Implement the `tri clara demo` command
 
 **What was done:**
 - ✅ i18n: translated comments in sacred.zig
-  - "единственный источник правды" (single source of truth) → "single source of truth"
-  - "против anti-patterns" (against anti-patterns) → "against anti-patterns"
+  - "single source of truth" (was Russian) → "single source of truth"
+  - "against anti-patterns" (was Russian) → "against anti-patterns"
 - ✅ Build: GREEN
 - ✅ Tests: GREEN
 
@@ -1340,9 +1340,9 @@ Implement the `tri clara demo` command
 
 **What was done:**
 - ✅ i18n: translated comments in lut.zig
-  - "записей" (entries) → "entries", "бит" (bits) → "bits"
-  - "ВНИМАНИЕ" (WARNING) → "WARNING"
-  - "конвертация" (conversion) → "conversion"
+  - "entries" (was Russian) → "entries", "bits" (was Russian) → "bits"
+  - "WARNING" (was Russian) → "WARNING"
+  - "conversion" (was Russian) → "conversion"
 - ✅ Build: GREEN
 - ✅ Tests: GREEN
 
@@ -1382,78 +1382,41 @@ Implement the `tri clara demo` command
 
 **What was done:**
 - ✅ i18n: partially translated comments in farm_analyzer_v2.zig (~20 lines)
-  - "Правильная" (Proper) → "Proper"
-  - "Статус" (Status) → "Status"
-  - "Отсутствие" (Absence) → "Absence" / "No"
-  - "фатально" (fatal) → "fatal"
-  - "возможно восстановимо" (possibly recoverable) → "possibly recoverable"
-  - "неизвестная" (unknown) → "unknown"
-  - "возможное" (possible) → "possible" (fixed)
-  - "возможно восстановимо" (possibly recoverable) → "possibly recoverable"
-  - "неизвестная ошибка" (unknown error) → "unknown error"
-  - "возможно восстановимо" (possibly recoverable) → "possibly recoverable"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "возможно" (possibly) → "possibly"
-  - "есть" (has) → "has"
-  - "пока" (while) → "while"
-  - "Вернуть" (Return) → "Return" (fixed)
-  - "возможно восстановимо" (possibly recoverable) → "possibly recoverable"
-  - "Проходим" (Iterate through) → "Iterate through" / "Processing"
-  - "Проверка" (Check) → "Check" / "Checking"
-  - "Проверяем" (Check) → "Check" or "Verifying"
-  - "фатальных" (fatal) → "fatal"
-  - "не растёт" (not progressing) → "not progressing"
-  - "старше" (older than) → "older than"
-  - "При" (On) → "On"
-  - "явной" (explicit) → "explicit"
-  - "Можно" (Can) → "Can"
-  - "Определяет" (Determines) → "Determines" / "Identifies"
-  - "Парсит" (Parses) → "Parses" (fixed)
-  - "Должно" (Must) → "Must"
-  - "Должно быть" (Must be) → "Must be"
-  - "Разбиваем" (Split by) → "Split by"
-  - "Последняя" (Last) → "Last"
-  - "Анализирует" (Analyzes) → "Analyzes"
-  - "По умолчанию" (By default) → "By default"
-  - "Возвращает" (Returns) → "Returns"
-  - "Проверяет" (Checks) → "Checks" or "Verifies"
-  - "Проверяет, является ли" (Checks if ... is) → "Checks if ... is" or "Verifies if ... is"
-  - "Запускает" (Launches) → "Launches"
-  - "Форматирует" (Formats) → "Formats"
-  - "Тесты" (Tests) → "Tests"
+  - "Proper" (was Russian) → "Proper"
+  - "Status" (was Russian) → "Status"
+  - "Absence" / "No" (was Russian) → "Absence" / "No"
+  - "fatal" (was Russian) → "fatal"
+  - "possibly recoverable" (was Russian) → "possibly recoverable"
+  - "unknown" (was Russian) → "unknown"
+  - "possible" (was Russian) → "possible" (fixed)
+  - "unknown error" (was Russian) → "unknown error"
+  - "possibly" (was Russian) → "possibly" (many occurrences)
+  - "has" (was Russian) → "has"
+  - "while" (was Russian) → "while"
+  - "Return" (was Russian) → "Return" (fixed)
+  - "Iterate through" / "Processing" (was Russian) → "Iterate through" / "Processing"
+  - "Check" / "Checking" (was Russian) → "Check" / "Checking"
+  - "Check" or "Verifying" (was Russian) → "Check" or "Verifying"
+  - "fatal" (was Russian) → "fatal"
+  - "not progressing" (was Russian) → "not progressing"
+  - "older than" (was Russian) → "older than"
+  - "On" (was Russian) → "On"
+  - "explicit" (was Russian) → "explicit"
+  - "Can" (was Russian) → "Can"
+  - "Determines" / "Identifies" (was Russian) → "Determines" / "Identifies"
+  - "Parses" (was Russian) → "Parses" (fixed)
+  - "Must" (was Russian) → "Must"
+  - "Must be" (was Russian) → "Must be"
+  - "Split by" (was Russian) → "Split by"
+  - "Last" (was Russian) → "Last"
+  - "Analyzes" (was Russian) → "Analyzes"
+  - "By default" (was Russian) → "By default"
+  - "Returns" (was Russian) → "Returns"
+  - "Checks" or "Verifies" (was Russian) → "Checks" or "Verifies"
+  - "Checks if ... is" / "Verifies if ... is" (was Russian) → "Checks if ... is" / "Verifies if ... is"
+  - "Launches" (was Russian) → "Launches"
+  - "Formats" (was Russian) → "Formats"
+  - "Tests" (was Russian) → "Tests"
 - ✅ Build: GREEN
 - ✅ Tests: GREEN
 

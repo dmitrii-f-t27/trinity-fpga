@@ -52,8 +52,9 @@ depending on input distribution). A training
 simulation reveals that BF16 preserves only 7.3\% of gradient updates
 (7-bit mantissa $\to$ quantization step 0.004 at $|w|{=}0.5$), while
 GF16 preserves 63.9\% (9-bit mantissa). On hardware, the LUT cost of
-multiplication follows $2W^2$ regardless of encoding: GF16 multiply
-(505 LUT, zero-DSP) equals a native takum16 LNS multiply (505 LUT).
+multiplication follows $2W^2$ regardless of encoding: a GF16+ (Quire) multiply
+(505 LUT, zero-DSP) equals a native takum16 LNS multiply (505 LUT); plain GF16
+multiply is 587 LUT.
 Ten GoldenFloat formats (GF4--GF32) are proven bit-exact on silicon
 with 0 failures. The $\varphi$-ratio is presented as an empirically
 located heuristic, not a theorem. All oracles, vectors (2.4M), and
@@ -881,7 +882,8 @@ the XC7A200T (11\% of 134,600 LUTs).
 
 A native takum16 multiplier (LNS domain: sign XOR + logarithmic addition +
 tapered re-encode) was synthesized under identical flags, yielding 505 LUT ---
-identical to GF16 MUL (505 LUT in the zero-DSP regime). This confirms that the
+identical to GF16+ (Quire) MUL (505 LUT in the zero-DSP regime); plain GF16 MUL
+is 587 LUT (Table~\ref{tab:lutlaw}). This confirms that the
 hardware cost is determined by format width, not encoding: the LNS multiply
 avoids the mantissa multiplier but the tapered re-encode costs the same.
 
@@ -889,9 +891,10 @@ avoids the mantissa multiplier but the tapered re-encode costs the same.
 \textbf{Observation (Information-Theoretic LUT Floor).}
 \emph{For $W$-bit floating-point multiply on Artix-7 (yosys, zero-DSP),
 the LUT cost converges to $\approx 2W^2$ regardless of encoding
-(IEEE-style linear vs.\ logarithmic tapered).  Both GF16 multiply
+(IEEE-style linear vs.\ logarithmic tapered).  Both GF16+ (Quire) multiply
 (mantissa product + normalize) and takum16 native multiply (logarithmic
-addition + tapered re-encode) yield $\approx$505 LUT at $W=16$.  The
+addition + tapered re-encode) yield $\approx$505 LUT at $W=16$ (plain GF16
+multiply is 587 LUT).  The
 encoding buys dynamic range, not area.}
 \end{quote}
 
@@ -968,7 +971,7 @@ GF16 preserves 63.9\% (9-bit mantissa).}
 \centering
 \includegraphics[width=0.7\textwidth]{robustness_heatmap.pdf}
 \caption{ML workload robustness matrix. Green = pass, Red = fail.
-GF14 and above pass all four tests; FP16 fails dynamic range; BF16 is stochastically fragile on matmul.}
+GF16 and above pass all four tests (GF14 is the matched-budget boundary case, 0/4 here vs 7/7 on the hold-out suite, \S\ref{sec:holdout}); FP16 fails dynamic range; BF16 is stochastically fragile on matmul.}
 \label{fig:robustness}
 \end{figure}
 
@@ -1294,8 +1297,9 @@ Eight findings, restated without superlatives:
   counts are typically 15--30\% higher (see Threats to Validity).
 
 \item \textbf{Encoding invariance (Encoding Equivalence).} By the Encoding
-   Equivalence (\S\ref{sec:named}), GF16 MUL and a native takum16 MUL both
-   cost 505 LUT in the zero-DSP regime: $\text{GF16} \equiv \text{takum16}$.
+   Equivalence (\S\ref{sec:named}), GF16+ (Quire) MUL and a native takum16 MUL
+   both cost 505 LUT in the zero-DSP regime: $\text{GF16+} \equiv \text{takum16}$.
+   (Plain GF16 MUL is 587 LUT.)
    The encoding buys dynamic range, not area.
 
 \item \textbf{GF16+ beats FP32 in training.} GF16+ (GF16 storage + FP32

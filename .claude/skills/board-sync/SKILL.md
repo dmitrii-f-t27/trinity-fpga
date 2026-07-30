@@ -191,15 +191,15 @@ claude:Run /board sync
 claude:Run /board audit
 ```
 
-## Translation Table (EN → RU)
+## English Label Reference
 
-| EN | RU |
-|----|-----|
-| BOARD AUDIT | АУДИТ ДОСКИ |
-| BOARD SYNC | СИНХРОНИЗАЦИЯ ДОСКИ |
-| Fields filled | Полей заполнено |
-| Sync issues | Проблемы синхронизации |
-| Missing fields | Отсутствующие поля |
-| Changes made | Внесённые изменения |
-| Board health | Здоровье доски |
-| fully synced | полностью синхронизирован |
+Under the English-only documentation policy, the following labels are rendered as-is:
+
+- BOARD AUDIT
+- BOARD SYNC
+- Fields filled
+- Sync issues
+- Missing fields
+- Changes made
+- Board health
+- fully synced

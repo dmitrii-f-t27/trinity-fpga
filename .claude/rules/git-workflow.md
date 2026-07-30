@@ -7,11 +7,11 @@
 - `docs(<module>): <description>` — documentation
 - `chore(<module>): <description>` — maintenance
 
-**IMPORTANT**: All commits MUST be bilingual — English + Russian. Use format:
+**IMPORTANT**: All commits MUST be in English only. Use format:
 ```
 <English description>
 
-Translation of the change description.
+Summary of the change.
 ```
 
 ## Rules

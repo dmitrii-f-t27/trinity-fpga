@@ -141,3 +141,59 @@ become reproducible via `bash scripts/lut_measure.sh`, not just "trust the doc".
 gf256 → strict SW-bitexact (3 witnesses, 50230/50230). Horizon-A: SW-bitexact
 72→73, remaining selfconsistent 3→2 (`gf512/1024`). See
 `conformance/README_gf256_bitexact.md`.
+
+---
+
+## G. Loop-3 findings (2026-07-30) — central "505 = 505" claim is mislabeled
+
+### G1. GF16 MUL = 587, NOT 505 — the paper contradicts itself — HIGH
+Reading `paper.tex` directly (no retelling):
+- `paper.tex:863` — the LUT table: `16 & 6 & 9 & 485 & 587` → **plain GF16 MUL = 587 LUT**.
+- `paper.tex:864` — `GF16+ (Quire) & 6 & 9 & 485+75 & 505+75` → **GF16+(Quire) MUL = 505 LUT**.
+- `paper.tex:882-886` and `:890-894` — the prose: *"takum16 … 505 LUT — identical
+  to **GF16 MUL (505 LUT in the zero-DSP regime)**"* and *"GF16 multiply … yield
+  ≈505 LUT at W=16"*.
+
+So the headline **"encoding equivalence 505 = 505"** is actually
+**takum16 MUL (505) == GF16+(Quire) MUL (505)**, while **plain GF16 MUL = 587**.
+The prose conflates "GF16" with "GF16+ (Quire)". A reviewer reading line 863
+(GF16 MUL=587) and line 884 (GF16 MUL=505) sees a direct contradiction.
+**Action:** in the prose (`:884`, `:893`, abstract `:56`, conclusion `:1297-1298`)
+say "GF16+ (Quire) MUL = 505 LUT" wherever the equivalence is drawn, and keep
+"plain GF16 MUL = 587" as the standalone datapoint. Same fix in
+`research/COMPETITIVE_ANALYSIS_number_formats.md` §2/§5 (which I authored and
+which propagated the "GF16 MUL 505" mislabel).
+
+### G2. Vasilev-Floor coefficient 1.55 vs 1.63 — MEDIUM
+- `research/COMPLETE_LUT_TABLE.md:34` — *"ADD: LUT = 1.55 × W² (R² = 0.876)"*.
+- `paper.tex:877` — *"ADD = 1.63W² (R²=0.97)"*.
+Two regressions of the same data give two coefficients and two R². (The earlier
+audit in §A4 already flagged "two inconsistent regressions 1.55/2.06 vs
+1.63/2.09"; here it is re-confirmed with exact line refs.) **Action:** pick ONE
+regression (state the point set: W=4..24, N=11 for ADD) and use it in both the
+paper and COMPLETE_LUT_TABLE; the other becomes a retracted draft.
+
+### G3. MUL-LUT data EXISTS — my own §A4 was imprecise — correction
+My §A4 said "MUL-LUT shows '---' (missing)". Verified now: MUL-LUT is present
+for W≤32 in BOTH `paper.tex:859-867` (GF4..GF32 MUL: 7/174/365/454/587/851/1117/1860)
+and `COMPLETE_LUT_TABLE.md`. The '---' only starts at W≥48 (GF48/64/96/128 have
+ADD but no MUL). So the real gap is narrower than §A4 implied: **MUL-LUT is
+measured only up to W=32; W=48..128 MUL is extrapolated from the scaling law.**
+**Action:** either measure W=48/64/96/128 MUL (the mul cores exist) or label
+those rows "est." in the table. (This loop's `scripts/lut_measure.sh` is built
+to fill exactly this — see below.)
+
+### H. Authored this loop (blocked from commit by a shell/subprocess outage)
+- `scripts/lut_measure.sh` — param-pinning LUT harness (fixes §E2 + fills the
+  W=48..128 MUL gap of §G3): generates an explicit-E/M wrapper per format,
+  pins ONE flow (`-flatten -abc9 [-nodsp] -nocarry -arch xc7`), and prints a
+  LUT2..LUT6 table. **NOT committed / NOT run yet** — the sandbox's
+  subprocess layer (bash, ripgrep, glob) was unavailable this loop
+  (`ChildProcess.spawn` errors). To be run + committed when the shell recovers.
+
+### Note on gf512 / gf1024 (horizon-A remainder)
+`COMPLETE_LUT_TABLE.md:27-28` shows GF512/GF1024 ADD ≈ 406k / 1.6M LUT (401% /
+1605% of the FPGA) — **purely theoretical, exceed any current FPGA**. So their
+SW-bitexact decode is provable (the mpmath/integer/RTL technique scales), but
+they can never be Tier-E (silicon) — worth stating in the paper so the
+"horizon-A" decode work is not read as a silicon claim.
