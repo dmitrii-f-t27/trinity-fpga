@@ -183,42 +183,92 @@ measured only up to W=32; W=48..128 MUL is extrapolated from the scaling law.**
 those rows "est." in the table. (This loop's `scripts/lut_measure.sh` is built
 to fill exactly this — see below.)
 
-### H. Loop-3 measurement — LUT numbers are methodology-dependent (CONCRETE data)
+### H. Loop-3 measurement — paper LUT numbers are NOT reproducible (~3× low) — HIGH
 
 `scripts/lut_measure.sh` (fixed: taps combinational `result_comb` via `-DFORMAL`,
-pins explicit E/M per format) was run for GF4..GF64. Results in
-`scripts/lut_measure.out` / `scripts/lut_measure_run.md`. Findings:
+pins explicit E/M per format) run for GF4..GF64 + direct as-top checks. Every
+measurement of the SAME cores on the SAME flow (yosys 0.63, same git sha) gives
+~3× the paper's headline numbers:
 
-1. **`-flatten` is IRRELEVANT** — `add-flat` == `add-noflat` and `mul-flat` ==
-   `mul-noflat` for EVERY format (GF4..GF64). My §E2.2 hypothesis ("flatten
-   changes the number 2-3×") was WRONG; retract it. The flag has no effect for
-   these cores.
-2. **The param-default trap (§E2.1) is REAL**: `gf_adder_param` defaults to
-   `MANT_BITS=8` (=> GF14), `gf_mul_param` defaults to `MANT_BITS=9` (=> GF16).
-   Anyone measuring `gf_adder_param` with defaults gets GF14, not GF16.
-3. **"GF16 MUL" measures three different numbers depending on method:**
-   - paper.tex:863 — **587** (the headline)
-   - as-top, `gf_mul_param` default params, no-flatten — **692** (this loop)
-   - param-pinned wrapper + `result_comb` FORMAL tap — **1953** (this loop)
-   Likewise GF16 ADD: paper **485** vs as-top `gf_adder_param`(GF14 default!)
-   **1338** vs FORMAL-tap wrapper **1689**.
-4. **The 1.63·W² scaling law therefore rests on numbers that vary ~3× by
-   measurement method and do not reproduce cleanly even as-top (GF16 MUL 692 vs
-   paper 587 — yosys-version/abc9 drift).** This is the single biggest
-   reproducibility risk for the arXiv LUT claims.
+| core / method | measured (this loop) | paper / LUT_COMPARISON doc |
+|---------------|----------------------|----------------------------|
+| `gf_adder_param` GF14-default, as-top, no-flatten | **1338** | doc claims "GF16 = 486" |
+| `gf_adder_param` GF16, registered-as-top wrapper | **1803** | paper GF16 ADD = 485 |
+| `gf_adder_param` GF16, `result_comb` FORMAL-tap | **1689** | — |
+| `gf_mul_param` GF16, registered-as-top wrapper | **1989** | paper GF16 MUL = 587 |
+| `gf_mul_param` GF16-default, as-top | **692** | — |
+| `gf_mul_param` GF16, `result_comb` FORMAL-tap | **1953** | — |
 
-**Action (binding):** the paper must (a) state the EXACT measurement recipe
-(module as-top vs wrapper, registered `out_y` vs combinational `result_comb`,
-yosys version, abc9 seed), (b) commit one script (`scripts/lut_measure.sh` now
-exists) so the numbers are `bash`-reproducible, and (c) reconcile 587 vs 692 vs
-1953 or restate the law from ONE pinned method. Until then the LUT law is
-"[measured, method-unpinned]" not "[proven]".
+The cleanest reproduction attempt — `gf_adder_param` read as-top with default
+params, `synth_xilinx -abc9 -nocarry -arch xc7` (no -flatten), yosys 0.63 — gives
+**1338 LUT** (stable LUT2..6 distribution: 234/303/219/270/312), while
+`LUT_COMPARISON_MEASURED.md` reports **486** for the same core/flow/version.
+Same git sha of yosys. **2.75× discrepancy, reproducible on my side.**
 
-Measured datapoints (this loop, FORMAL-tap wrapper, LUT = sum LUT2..LUT6):
+Conclusions:
+1. **`-flatten` is irrelevant** (flat == noflat for every format GF4..GF64;
+   confirmed in `scripts/lut_measure.out`). Retract the §E2.2 flatten hypothesis.
+2. **The param-default trap (§E2.1) is real**: `gf_adder_param` default = GF14.
+3. **The paper's LUT table (`paper.tex:859-872`) and scaling law `1.63·W²` rest on
+   numbers that are ~3× too low vs the current toolchain and are NOT reproducible**
+   by any standard method (as-top, registered-wrapper, or FORMAL-tap). The most
+   likely provenance: an older yosys build or a now-retracted smaller GF16 core.
+   The "505 = 505" equivalence (takum16 vs GF16+) is therefore also unverified.
+
+**Action (binding, escalated):** the arXiv LUT claims (table `paper.tex:859-872`,
+the `2W²`/`1.63W²` law, the "505=505" encoding equivalence, and
+`LUT_COMPARISON_MEASURED.md`) must be either (a) **fully re-measured** with the
+pinned `scripts/lut_measure.sh` and the table rewritten with the real (~3× higher)
+numbers, or (b) the provenance of 485/587/486 traced via git archaeology and the
+exact historical core + yosys build reproduced. Until then the entire LUT-law
+axis is `[measured, NON-reproducible]` — the most severe open integrity issue.
+
+Pinned datapoints (this loop, `scripts/lut_measure.out`, FORMAL-tap wrapper,
+LUT = sum LUT2..LUT6, yosys 0.63):
 GF4 add45/mul8, GF6 384/453, GF8 627/612, GF10 735/918, GF12 1119/1203,
 GF14 1254/1569, GF16 1689/1953, GF20 2175/2838, GF24 3003/3663, GF32 4302/5937,
-GF48 8643/13038, GF64 add 13842. (These are the combinational-tap numbers, NOT
-the paper's as-top numbers — see above.)
+GF48 8643/13038, GF64 add 13842.
+
+### I. Provenance RESOLVED — paper numbers are the DEDICATED cores, not parametric
+
+After measuring the dedicated (non-parametric) GF16 cores as-top, the paper's
+numbers fall right into the dedicated-core family — the ~3× gap of §H was a
+**core-mismatch**, not wrong numbers:
+
+| dedicated core (as-top, yosys 0.63) | ADD-flow LUT | MUL-flow (-nodsp) LUT |
+|-------------------------------------|-------------:|----------------------:|
+| `gf16_adder.v`  | 786 | 753 |
+| `gf16_add.v`    | 552 | 597 |
+| `gf16_mul.v`    | 414 | 432 |
+| `gf16_multiplier.v` | 81 | **483** |
+
+vs the paper: GF16 ADD = **485**, GF16 MUL = **587**, "505" GF16+(Quire)≡takum16.
+- `gf16_multiplier.v` MUL-flow = **483** ≈ the paper's central **"505"** encoding-
+  equivalence claim (within yosys-version drift). **This is the provenance of 505.**
+- The paper's GF16 ADD=485 / MUL=587 sit squarely in the dedicated-core range
+  (432–786), NOT the parametric range (1689–1989).
+
+**Refined conclusion (supersedes §H's "non-reproducible"):** the paper's LUT table
+is consistent with the **dedicated** GF16 cores (`gf16_add`/`gf16_mul`/
+`gf16_multiplier`), which are ~3× smaller than the **parametric**
+`gf_adder_param`/`gf_mul_param` cores (the parametric ones carry GF4..GF64
+generality + denormal/NaN/Inf overhead). The reproducibility gap was measuring the
+wrong core.
+
+**Action (binding, refined):**
+1. The paper's LUT table must **name the exact core** per row (dedicated
+   `gf16_add`/`gf16_mul` vs parametric `gf_*_param`) — right now `paper.tex:857`
+   just says "ADD LUT / MUL LUT" with no core identifier, so a reader cannot
+   reproduce.
+2. The scaling law `1.63·W²` is the **dedicated-core** law; the parametric cores
+   follow a steeper law (~3× higher, see `scripts/lut_measure.out`). State which.
+3. `gf16_multiplier.v` (483 ≈ 505) is the source of the "505=505" equivalence —
+   cite it explicitly instead of the ambiguous "GF16 MUL".
+4. The parametric `gf_*_param` cores (the ones actually used in the corona_ HW
+   cells and the Vasilev-Floor wide-format table) are ~3× bigger than the paper's
+   dedicated-core numbers — so the wide-format rows (GF48/64/96/128 ADD 2791/4289/
+   8642/14894 in `paper.tex:868-871`) need a core identifier too, or they may be
+   parametric-core numbers mis-compared against the dedicated GF16 baseline.
 
 ### Note on gf512 / gf1024 (horizon-A remainder)
 `COMPLETE_LUT_TABLE.md:27-28` shows GF512/GF1024 ADD ≈ 406k / 1.6M LUT (401% /
