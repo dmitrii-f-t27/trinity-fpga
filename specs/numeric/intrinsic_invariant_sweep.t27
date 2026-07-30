@@ -147,7 +147,7 @@ under test.
 scope_limits {
   covers      "decode and encode directions; three structural invariants"
   not_covered { "arithmetic operations", "rounding behaviour",
-                "lns8/lns16 monotonicity, deferred",
+                "arithmetic across formats (LNS mul-as-add, GF fused paths)",
                 "formats wider than 64 bits" }
   superiority_claimed false
 }
