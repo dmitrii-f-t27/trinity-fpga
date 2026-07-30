@@ -641,28 +641,40 @@ rule itself defines is not evidence at all.
 `# Canonical φ-rule family (arXiv:2606.05017) — wide formats`, then
 `# — ultra-wide formats`. Reading the split by that marker:
 
-| group | formats | claimed in abstract? |
+> **CORRECTION (pass 8).** The table first published here placed gf64 and gf256
+> in the pre-rule block. That was wrong. In `gf_ref.py` the marker
+> `# Canonical φ-rule family (arXiv:2606.05017) — wide formats` sits **after
+> gf32**, so gf48, gf64, gf96, gf128 and gf256 are all inside the rule-derived
+> block. The corrected table and the two-sided consequence follow. The original
+> one-sided reading ("the paper understates, 9/9 → 12/12") was premature.
+
+| group | formats | claimed among the nine? |
 |---|---|---|
-| pre-rule block, claimed | gf4, gf8, gf12, gf16, gf20, gf24, gf32, gf64, gf256 | **yes (the nine)** |
-| pre-rule block, **not claimed** | **gf6, gf10, gf14** | **no** |
-| rule-derived (`Canonical φ-rule family`) | gf48, gf96, gf128, gf512, gf1024 | only GF128/512/1024 named |
+| **pre-rule** (above the marker) | gf4, gf6, gf8, gf10, gf12, gf14, gf16, gf20, gf24, gf32 — **10** | 7 of them: gf4, gf8, gf12, gf16, gf20, gf24, gf32 |
+| **rule-derived** (at/below the marker) | gf48, gf64, gf96, gf128, gf256, gf512, gf1024 — **7** | **2 of them: gf64, gf256** |
 
-Two consequences:
+The count cuts **both ways**, which is why it cannot be "fixed" in one direction:
 
-1. **gf6, gf10, gf14 sit in the same block as the claimed nine and also match.**
-   If they are realised formats — as their placement above the `Canonical φ-rule
-   family` marker indicates — then the reproduction score is **12/12, not 9/9**,
-   and the paper is underselling its own strongest quantitative evidence.
-2. **gf48 and gf96 are rule-derived extensions the abstract never mentions.** The
-   extension list names GF128, GF512, GF1024 only. Minor incompleteness, but the
-   extension set should be stated in full.
+1. **Understated by 3.** gf6, gf10, gf14 are pre-rule, match the rule, and are
+   *not* in the claimed nine. If they predate the rule, each is genuine evidence
+   for it, discarded for free.
+2. **Possibly overstated by 2.** gf64 and gf256 *are* in the claimed nine, but the
+   artefact places them in the rule-derived family. If the rule generated those
+   widths, matching it is circular and they cannot count as reproductions.
 
-**Caveat, stated plainly:** the realised-vs-derived split above is inferred from
-comment placement in `gf_ref.py`. Only the author knows definitively which widths
-were fixed before the rule existed. **Confirm before changing 9/9 to 12/12** — if
-gf6/gf10/gf14 were themselves generated from the rule, then 9/9 is correct as
-published and nothing should change. Do not "upgrade" the number on the strength
-of this inference alone.
+So the true reproduction count is **not established by this pass**. Plausible
+values are **10/10** (if every pre-rule width counts) or **7/7** (claimed minus
+the two derived) — but not 9/9 as it currently stands, and not the 12/12 this
+section originally suggested.
+
+**Do not guess.** The provenance split is inferred from comment placement in
+`gf_ref.py`; only the author knows which widths were fixed before the rule
+existed. This is recorded as `open_question WIDTH_PROVENANCE` in
+`specs/numeric/phi_rule_verification.t27` with `do_not_guess true`.
+
+**gf48 and gf96 remain a separate minor point:** both are rule-derived extensions
+that the abstract's extension list (GF128, GF512, GF1024) omits. State the
+extension set in full.
 
 ### 10.3 The unstated rounding convention is provably moot — say so
 
