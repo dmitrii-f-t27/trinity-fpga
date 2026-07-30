@@ -91,10 +91,25 @@ decode tables.
   resolved false
 }
 
-// ---- Coverage gap ------------------------------------------------------------
+// ---- RETRACTED (pass 19) -----------------------------------------------------
 finding GF_LADDER_HAS_NO_ARITHMETIC_ORACLE {
-  name     "the GF family exposes no format_add / format_mul in this layer"
-  severity MEDIUM
+  status   RETRACTED
+  retracted_by "pass 19, 2026-07-31"
+  retraction """
+THIS FINDING WAS WRONG. The GF ladder DOES have an arithmetic oracle:
+conformance/gf_ref.py exports gf_add (line 286) and gf_mul (line 320), and
+tekum_ref.py exports tekum_add / tekum_mul.
+
+The sweep looked only for the names format_add / format_mul and silently skipped
+every module using a different prefix. That is a harness defect, and it produced a
+false MEDIUM-severity finding that was committed and reported. Retained here in
+full rather than deleted, so the error is visible rather than quietly erased.
+
+Two separate causes had to be fixed before GF results could be produced at all --
+see NAME_CONVENTION_MISMATCH and GF_ID_NAMESPACE_COLLISION below.
+"""
+  name     "(retracted) the GF family exposes no format_add / format_mul in this layer"
+  severity RETRACTED
 
   without_arithmetic { gf, gf_mx, gf16_plus, tekum }
   with_arithmetic    { bf16, decimal, extended, fp8, gfternary, ieee, int,
@@ -141,4 +156,72 @@ compute claims in both papers.
 """
   do_not_guess true
   owner        author
+}
+
+// ---- Added pass 19 -----------------------------------------------------------
+
+finding NAME_CONVENTION_MISMATCH {
+  name     "arithmetic is exported under three different naming conventions"
+  severity LOW
+  conventions {
+    format_prefix { modules "bf16, decimal, extended, fp8, ieee, int, legacy, lns, mxfp, nf4, posit, takum"
+                    symbols "format_add / format_mul" }
+    gf_prefix     { modules "gf_ref"    symbols "gf_add / gf_mul" }
+    tekum_prefix  { modules "tekum_ref" symbols "tekum_add / tekum_mul" }
+    none          { modules "gf16_plus_ref" symbols "no arithmetic" }
+  }
+  consequence """
+Any tool that discovers arithmetic by exact symbol name silently omits whole
+families. This one did, and reported the omission as a property of the artefact
+rather than of itself.
+"""
+  remedy "detect by suffix, or declare a uniform export contract in the oracle layer"
+  resolved true
+}
+
+finding GF_ID_NAMESPACE_COLLISION {
+  name     "gf_ref.py and gf16_plus_ref.py both export all 17 GF format ids"
+  severity MEDIUM
+  detail """
+Both modules define FORMATS containing gf4, gf6, gf8, gf10, gf12, gf14, gf16,
+gf20, gf24, gf32, gf48, gf64, gf96, gf128, gf256, gf512, gf1024 -- the same 17
+identifiers, for what are different formats (gf16_plus is the Quire variant).
+
+Nothing in the layer declares precedence. A tool that scans *_ref.py and keys on
+format name therefore resolves the collision by FILENAME SORT ORDER, which is
+arbitrary: gf16_plus_ref sorts before gf_ref, so the arithmetic-free module won
+and all 17 GF formats were skipped without a warning.
+"""
+  is_my_bug_only false
+  reason """
+The first-wins rule was this tool's choice and is its bug. But the collision is
+real and in the artefact: any independent tool faces the same ambiguity, and
+resolves it by accident rather than by declaration.
+"""
+  remedy "namespace the ids (gf16_plus:gf16), or export an explicit precedence marker"
+  resolved false
+}
+
+// ---- Answers the open question raised in pass 18 -----------------------------
+answered WHERE_IS_GF_ARITHMETIC_VERIFIED {
+  question_from "pass 18"
+  answer """
+The GF arithmetic golden is gf_ref.py's gf_add / gf_mul, Fraction-based with
+round-nearest-even.
+
+The eight HW conformance scripts that define golden_add / golden_mul
+(gf10, gf14, gf32 add+mul; gf16_compute; gfternary_compute) are THIN WRAPPERS --
+verified: each is a one-line delegation, e.g.
+    def golden_add(a, b): return gf_add(GFMT, a, b)
+and every one imports gf_ref. There is no independent re-implementation left.
+
+conformance/compute_golden_consistency.py is RETIRED, and correctly so. It used
+to cross-check self-contained integer references in gf6/gf8/gf12 against
+gf_ref.py; the 2026-07 dedup made those import gf_ref directly, so the check
+became tautological. Bit-exact equivalence was confirmed EXHAUSTIVELY before
+removal: gf6 4096/4096 (full 64x64 grid), gf8 65536/65536 (full 256x256),
+gf12 27840/27840.
+"""
+  verdict "not self-referential; a single golden with the duplicates provably folded into it"
+  concern_resolved true
 }

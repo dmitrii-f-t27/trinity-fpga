@@ -34,6 +34,29 @@ CONF = os.path.join(REPO, "conformance")
 K = 24          # codes sampled per format -> K*K ordered pairs
 
 
+def arithmetic_of(mod):
+    """Find (add, mul) under any naming convention used in this tree.
+
+    Most oracles export format_add / format_mul, but gf_ref.py uses gf_add /
+    gf_mul and tekum_ref.py uses tekum_add / tekum_mul. A first version of this
+    sweep looked only for format_* and therefore skipped the entire GF ladder in
+    silence, producing a false 'no arithmetic oracle' finding. Detect by suffix
+    instead of by exact name.
+    """
+    add = mul = None
+    for attr in dir(mod):
+        if attr.startswith("_"):
+            continue
+        obj = getattr(mod, attr)
+        if not callable(obj):
+            continue
+        if attr.endswith("_add") and add is None:
+            add = obj
+        elif attr.endswith("_mul") and mul is None and "matrix" not in attr:
+            mul = obj
+    return add, mul
+
+
 def load_oracles():
     out = {}
     for fn in sorted(os.listdir(CONF)):
@@ -47,8 +70,15 @@ def load_oracles():
             spec.loader.exec_module(mod)
         except Exception:
             continue
+        has_arith = all(arithmetic_of(mod))
         for name, fmt in getattr(mod, "FORMATS", {}).items():
-            out.setdefault(name, (mod, fmt))
+            # gf16_plus_ref.py and gf_ref.py BOTH export all 17 GF ids. Keying on
+            # format name alone makes the winner depend on filename sort order,
+            # which silently skipped the whole GF ladder in the first run.
+            # Resolve explicitly: a module that provides arithmetic wins.
+            prev = out.get(name)
+            if prev is None or (has_arith and not all(arithmetic_of(prev[0]))):
+                out[name] = (mod, fmt)
     return out
 
 
@@ -96,7 +126,8 @@ def main() -> int:
     violations = {}
     for name in sorted(oracles):
         mod, fmt = oracles[name]
-        if not (hasattr(mod, "format_add") and hasattr(mod, "format_mul")):
+        f_add, f_mul = arithmetic_of(mod)
+        if f_add is None or f_mul is None:
             continue
         width = width_of(fmt, name)
         if width == 0 or width > 64:
@@ -118,10 +149,10 @@ def main() -> int:
         for a in codes:
             for b in codes:
                 try:
-                    ab_add = mod.format_add(fmt, a, b)
-                    ba_add = mod.format_add(fmt, b, a)
-                    ab_mul = mod.format_mul(fmt, a, b)
-                    ba_mul = mod.format_mul(fmt, b, a)
+                    ab_add = f_add(fmt, a, b)
+                    ba_add = f_add(fmt, b, a)
+                    ab_mul = f_mul(fmt, a, b)
+                    ba_mul = f_mul(fmt, b, a)
                 except Exception:
                     continue
                 pairs += 1
@@ -137,11 +168,11 @@ def main() -> int:
             if is_special(mod, fmt, a):
                 continue
             try:
-                if mod.format_add(fmt, a, zero) != a:
+                if f_add(fmt, a, zero) != a:
                     bad["id_add"] += 1
-                if mod.format_mul(fmt, a, zero) != zero:
+                if f_mul(fmt, a, zero) != zero:
                     bad["ann_mul"] += 1
-                if one is not None and mod.format_mul(fmt, a, one) != a:
+                if one is not None and f_mul(fmt, a, one) != a:
                     bad["id_mul"] += 1
             except Exception:
                 pass
