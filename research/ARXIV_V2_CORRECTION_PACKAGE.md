@@ -5,7 +5,7 @@
 > Nothing here is asserted from memory or from a state file.
 >
 > **This is a prepared package, not a submission.** Replacing an arXiv entry
-> needs the author's arXiv credentials — see §10.
+> needs the author's arXiv credentials — see §11.
 
 ## 0. Method
 
@@ -608,7 +608,84 @@ same treatment. They do not:
 The single shared defect is the FLoPS citation, wrong in both (§6.3, §8.3) — one
 source of error, not two.
 
-## 10. What this package cannot do
+## 10. The φ-rule verifies — and Paper A understates it (pass 7)
+
+First pass to check a **numerical claim** rather than a citation. Artefact:
+`research/verify_phi_rule.py` (added with this section, runnable, exit-coded).
+
+It recomputes `e = round((N-1)/φ²)`, `f = N-1-e` from scratch at 60-digit decimal
+precision and compares against the parameters the golden oracle actually uses
+(`conformance/gf_ref.py::FORMATS`) — i.e. against the artefact, not against the
+paper's restatement of itself.
+
+### 10.1 Result: the rule holds for every catalogued GF format
+
+```
+catalogued GF formats satisfying the rule: 17/17
+the abstract claims:                        9/9
+```
+
+All 17 — gf4, gf6, gf8, gf10, gf12, gf14, gf16, gf20, gf24, gf32, gf48, gf64,
+gf96, gf128, gf256, gf512, gf1024 — satisfy both `e` and `m`. **The central rule
+of Paper A independently verifies.**
+
+### 10.2 But "reproduces" and "extends" are different claims — and the split is off
+
+The abstract says the rule *"reproduces the realised exponent widths of nine
+formats … (9/9) and extends consistently to GF128, GF512, GF1024"*. That
+distinction is the right one and the paper is correct to draw it: *reproducing* a
+width chosen independently is evidence **for** the rule; *extending* to a width the
+rule itself defines is not evidence at all.
+
+`gf_ref.py` marks the boundary in its own comments — a block of formats, then
+`# Canonical φ-rule family (arXiv:2606.05017) — wide formats`, then
+`# — ultra-wide formats`. Reading the split by that marker:
+
+| group | formats | claimed in abstract? |
+|---|---|---|
+| pre-rule block, claimed | gf4, gf8, gf12, gf16, gf20, gf24, gf32, gf64, gf256 | **yes (the nine)** |
+| pre-rule block, **not claimed** | **gf6, gf10, gf14** | **no** |
+| rule-derived (`Canonical φ-rule family`) | gf48, gf96, gf128, gf512, gf1024 | only GF128/512/1024 named |
+
+Two consequences:
+
+1. **gf6, gf10, gf14 sit in the same block as the claimed nine and also match.**
+   If they are realised formats — as their placement above the `Canonical φ-rule
+   family` marker indicates — then the reproduction score is **12/12, not 9/9**,
+   and the paper is underselling its own strongest quantitative evidence.
+2. **gf48 and gf96 are rule-derived extensions the abstract never mentions.** The
+   extension list names GF128, GF512, GF1024 only. Minor incompleteness, but the
+   extension set should be stated in full.
+
+**Caveat, stated plainly:** the realised-vs-derived split above is inferred from
+comment placement in `gf_ref.py`. Only the author knows definitively which widths
+were fixed before the rule existed. **Confirm before changing 9/9 to 12/12** — if
+gf6/gf10/gf14 were themselves generated from the rule, then 9/9 is correct as
+published and nothing should change. Do not "upgrade" the number on the strength
+of this inference alone.
+
+### 10.3 The unstated rounding convention is provably moot — say so
+
+The paper writes `round(...)` without specifying half-even or half-up. A picky
+referee can ask, since the two differ on an exact `.5`. The script checks: **no
+GF width lands on an exact `.5`**, so both conventions agree on all 17 formats and
+the ambiguity has no consequence.
+
+That is worth one sentence in the paper — it converts a potential referee question
+into a demonstrated robustness property, at zero cost.
+
+### 10.4 Still unverified from Paper A's abstract
+
+Two numerical claims remain unchecked and are **not** asserted either way here:
+
+- the Lucas-exact accumulator *"verified at 500-digit precision for n = 1 … 256"*;
+- the GF16 FPGA codec *"passing a 35-of-35 testbench at 323 MHz"* (and see §1.2 on
+  which board).
+
+The first is checkable in software and is the natural next pass. The second needs
+the FPGA toolchain that §7.2a records as unavailable here.
+
+## 11. What this package cannot do
 
 Replacing an arXiv entry requires the submitting author's arXiv account. This
 document prepares the exact old → new text and the evidence for each edit; the
