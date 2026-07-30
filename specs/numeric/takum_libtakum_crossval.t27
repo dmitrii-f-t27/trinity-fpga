@@ -58,6 +58,11 @@ a mirrored magnitude.
 """
 
   likely_authority "libtakum"
+  // UPGRADED pass 15: see specs/numeric/negation_invariant.t27 -- the intrinsic
+  // two's-complement negation invariant fails for takum at all four widths while
+  // posit passes as control, and libtakum satisfies it on 65534 codes with 0
+  // failures. Confidence is now ESTABLISHED rather than probable.
+  confidence ESTABLISHED
   reason """
 libtakum is written by the author of the format. Where an independent
 implementation and the originating reference disagree, the reference carries more
