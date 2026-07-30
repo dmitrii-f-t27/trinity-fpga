@@ -1,0 +1,121 @@
+# Trinity Numeric SSOT — coverage delta between the published catalog and the oracle layer
+# Claim under test: arXiv:2606.09686 (83-format catalog), abstract
+# Measured 2026-07-31 against gHashTag/t27 conformance/vectors and local conformance/*_ref.py
+
+spec CatalogCoverageDelta version 1.0.0
+
+description """
+The catalog paper describes "a catalog of 83 numeric formats spanning 13 families"
+together with bit-exact conformance packs cross-validated against ml_dtypes.
+
+A reader reasonably infers one set: the catalogued formats are the ones carrying
+bit-exact oracles. Measured, they are TWO overlapping sets that differ on both
+sides:
+
+  * published conformance packs (gHashTag/t27 conformance/vectors): 83
+  * formats with a golden decode oracle (conformance/*_ref.py FORMATS): 84
+  * formats present in one but not the other: 12 oracle-only, 11 pack-only
+
+The overlap is the majority, so this is not an error in the paper -- it is an
+UNSTATED DISTINCTION. Both numbers are defensible; presenting one number invites
+a reader to assume uniform coverage that does not exist.
+
+No superiority or completeness claim is made or implied here.
+"""
+
+constants {
+  PUBLISHED_PACKS        83
+  ORACLE_FORMATS         84
+  ORACLE_ONLY            12
+  PACK_ONLY              11
+  NAMING_VARIANTS_CONFIRMED 1
+  NAMING_VARIANTS_PROBABLE  3
+}
+
+// Same format under two identifiers -- NOT a coverage gap.
+// Confirmed by reading the pack's own "format" field.
+naming_variants {
+  confirmed {
+    bfloat16_vs_bf16_golden { oracle "bfloat16"    pack "bf16_golden"
+                              evidence "pack format field reads BFLOAT16" }
+  }
+  // Same family and width, differing suffix convention. NOT proven identical --
+  // do not merge these in a count without checking the bit layout.
+  probable {
+    fp8      { oracle "fp8_e4m3"     pack "fp8_e4m3fn"  }
+    mxfp4    { oracle "mxfp4"        pack "mxfp4_e2m1"  }
+    mxfp8    { oracle "mxfp8_e4m3"   pack "mxfp8"       }
+  }
+}
+
+// Golden decode oracle exists, no published conformance pack.
+// These are candidates for pack generation -- the cheapest way to widen the
+// catalog, since the oracle already exists.
+oracle_only {
+  formats { bfloat24, bfloat32, mxint8, pdp11_float,
+            tekum8, tekum16, tekum32,
+            uint4, uint8, uint16, uint32,
+            x87_48bit }
+  count 12
+  note "tekum8/16/32 carry oracles but no packs -- notable because tekum is the
+        standing counterexample the project deliberately ships rather than hides"
+}
+
+// Published pack exists, no FORMATS entry in the oracle layer.
+// Largely STRUCTURAL formats: concepts (block scaling, shared exponent,
+// stochastic rounding, tapered precision) rather than a fixed bit layout, so a
+// decode oracle is not applicable. Coherent by design, not a defect.
+pack_only {
+  formats { block_fp, gf8_bfp, gf_lns_hybrid, minifloat, per_channel_scale,
+            q_format, shared_exp, stochastic_rounding, tapered_fp,
+            unum_i, unum_ii }
+  count 11
+  mostly_structural true
+  consistent_with "INDEX_all_formats.json: structural_packs 8"
+}
+
+finding COVERAGE_SETS_CONFLATED {
+  name     "One number is quoted where two different coverage sets exist"
+  severity LOW
+  is_error false
+  remedy """
+State both numbers and what each means: N formats carry a published conformance
+pack; M carry a golden decode oracle; the structural subset has packs but no
+decode oracle by construction. One added sentence removes the inference that all
+83 are uniformly bit-exact verified.
+"""
+  resolved false
+}
+
+finding TEKUM_PACKS_MISSING {
+  name     "tekum8/16/32 have oracles but no published packs"
+  severity LOW
+  opportunity """
+Generating packs for the 12 oracle-only formats is the cheapest available
+widening of the catalog: the golden oracle already exists, so the pack is
+derivable rather than new work. tekum is the most consequential of them, being
+the counterexample the project ships on purpose.
+"""
+  resolved false
+}
+
+scope_limits {
+  covers      "set membership only -- which identifiers appear on each side"
+  not_covered { "whether probable naming variants are bit-identical",
+                "the '13 families' taxonomy claim, which was NOT checked here",
+                "correctness of any pack or oracle" }
+  superiority_claimed false
+}
+
+open_question FAMILY_TAXONOMY {
+  question """
+The abstract says "spanning 13 families". This pass did NOT verify that number.
+
+A grouping by golden-oracle module yields 15 groups, but module layout is an
+implementation detail, not the catalog's taxonomy -- the two need not agree and a
+mismatch would not be a defect. Checking this requires the catalog's own family
+field in specs/numeric/formats_catalog.t27.
+"""
+  do_not_guess true
+  owner        author
+}
