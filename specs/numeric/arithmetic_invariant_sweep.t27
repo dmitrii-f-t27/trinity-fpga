@@ -16,9 +16,12 @@ commutativity violation admits no design-choice defence.
 Headline: commutativity holds EVERYWHERE. The arithmetic layer passes the one
 law that cannot be explained away.
 
-Two secondary results matter more than they first appear: the takum decode defect
-is shown to propagate into arithmetic, and the GF ladder turns out to have no
-arithmetic oracle at all.
+One secondary result matters more than it first appears: the takum decode defect
+is shown to propagate into arithmetic.
+
+A second, claiming the GF ladder had no arithmetic oracle, was WRONG and is
+retracted in place (pass 19) -- it was a harness defect, not a property of the
+artefact. See GF_LADDER_HAS_NO_ARITHMETIC_ORACLE.
 """
 
 constants {
@@ -140,23 +143,13 @@ scope_limits {
   not_covered { "associativity (does NOT hold in floating point -- not a defect)",
                 "distributivity (likewise)",
                 "rounding-mode behaviour",
-                "GF, gf_mx, gf16_plus, tekum -- no arithmetic to test",
+                "gf_mx (matrix-only) and gf16_plus (no arithmetic)",
                 "exhaustive operand coverage; 24 codes per format were sampled" }
   superiority_claimed false
 }
 
-open_question WHERE_IS_GF_ARITHMETIC_VERIFIED {
-  question """
-If the conformance oracle layer has no GF add/mul, what plays the golden role when
-the FPGA GF compute cells are checked bit-exactly?
-
-Either a golden exists elsewhere and should be linked from the conformance layer,
-or the GF compute conformance is self-referential -- which would matter for the
-compute claims in both papers.
-"""
-  do_not_guess true
-  owner        author
-}
+// ANSWERED in pass 19 -- see `answered WHERE_IS_GF_ARITHMETIC_VERIFIED` below.
+// The premise was false: the oracle layer does have GF add/mul.
 
 // ---- Added pass 19 -----------------------------------------------------------
 
