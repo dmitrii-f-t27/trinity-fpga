@@ -5,7 +5,7 @@
 > Nothing here is asserted from memory or from a state file.
 >
 > **This is a prepared package, not a submission.** Replacing an arXiv entry
-> needs the author's arXiv credentials — see §6.
+> needs the author's arXiv credentials — see §7.
 
 ## 0. Method
 
@@ -271,7 +271,89 @@ if the MXFP4 section is rewritten.
   fetching the file contents from the default branch and grepping locally. Any
   future pass must run the same known-positive control before trusting a search.
 
-## 6. What this package cannot do
+## 6. P3109 versions and a citation defect (added 2026-07-31, pass 3)
+
+### 6.1 The two papers cite incompatible P3109 versions
+
+| paper | what it cites | submitted |
+|---|---|---|
+| A — 2606.05017 | bibitem `p3109_v091`: *"IEEE P3109 Working Group … working draft **v0.9.1**, 2025. Reference implementation: `graphcore-research/gfloat`"* | 2026-06-03 |
+| B — 2606.09686 | abstract: *"an IEEE P3109 **v3.2.0** cross-walk"* | 2026-06-08 |
+
+The papers are **five days apart** and cite version numbers that cannot both
+describe the same document at the same time; a v0.9.1 → v3.2.0 jump in five days
+is not plausible. Either the two numbers refer to different artefacts (e.g. the
+WG draft versus a versioned cross-walk table of our own), or one is wrong.
+
+**Action:** reconcile before either v2 ships. This is the kind of discrepancy a
+reviewer holding both papers finds immediately, and it costs nothing to fix once
+the intended referent is known. Do **not** guess which one is right.
+
+### 6.2 The P3109 draft version is NOT publicly verifiable — stop trying
+
+Checked this pass: there is no `P3109/Public` repository, and no release/tag feed
+for the working group. The related public repositories —
+`awf/p3109-cpp` (C++ implementation, WG participant), `imandra-ai/ieee-p3109`
+(updated 2026-07-27), `rutgers-apl/FLoPS` — expose **no draft-version string**.
+`graphcore-research/gfloat` is named by Paper A as the reference implementation
+and is the best remaining lead.
+
+This closes the open item from pass 1: the version cannot be confirmed from a
+machine-readable public source, so §2.4's instruction stands — the number must
+come from the working group directly, not from a note and not from an inference.
+Recorded here so pass 4+ does not spend another cycle on it.
+
+### 6.3 Citation defect: `flops2026` has a placeholder author and a paraphrased title
+
+Current bibitem in `main_ru.tex`:
+
+> `\bibitem{flops2026}` **Authors of FLoPS**, *"FLoPS: a Lean~4 formalization of
+> IEEE~P3109 low-precision floating-point,"* arXiv:2602.15965, 2026.
+
+Both fields are wrong. Verified against the arXiv API for `2602.15965`:
+
+- **Authors:** Tung-Che Chang, Sehyeok Park, Jay P. Lim, Santosh Nagarakatte
+  (Rutgers — the `rutgers-apl/FLoPS` group).
+- **Actual title:** *"FLoPS: Semantics, Operations, and Properties of P3109
+  Floating-Point Representations in Lean"*.
+
+A paraphrased title is not merely untidy — the reference cannot be found by title
+search, which defeats the point of citing it.
+
+**Corrected bibitem:**
+
+```latex
+\bibitem{flops2026} T.-C. Chang, S. Park, J. P. Lim, and S. Nagarakatte,
+``FLoPS: Semantics, Operations, and Properties of P3109 Floating-Point
+Representations in Lean,'' \texttt{arXiv:2602.15965}, 2026.
+\url{https://arxiv.org/abs/2602.15965}.
+```
+
+**Verified NOT defects** (do not "fix" these): `\bibitem{positstd2022} Posit
+Working Group` and `\bibitem{p3109_v091} IEEE P3109 Working Group` are legitimate
+corporate authors. A scan of the whole bibliography found `flops2026` to be the
+only placeholder-author entry.
+
+### 6.4 Positioning note for Paper B: formal semantics is not implementation conformance
+
+FLoPS is a **Lean 4 machine-checked formalization** of P3109 semantics, from an
+active group (`rutgers-apl/FLoPS`, updated 2026-07-28); `imandra-ai/ieee-p3109`
+is a second formal-methods effort in the same space. A reviewer of Paper B will
+reasonably ask: *if the standard is being formalized in a theorem prover, why do
+bit-exact test vectors add anything?*
+
+The answer is short and should be stated explicitly rather than left implicit: a
+proof about the specification says nothing about whether a **particular decoder,
+kernel or FPGA bitstream** emits the right bits. Formal semantics and executable
+conformance vectors sit on different rungs — spec correctness versus
+implementation conformance — and they compose rather than compete. Paper B
+already cites FLoPS (`flops2026`); it does not yet make this distinction, and it
+is the cheapest available strengthening of its contribution framing.
+
+Status of that claim: `[positioning, not a result]` — it asserts complementarity,
+not superiority over formal methods.
+
+## 7. What this package cannot do
 
 Replacing an arXiv entry requires the submitting author's arXiv account. This
 document prepares the exact old → new text and the evidence for each edit; the
