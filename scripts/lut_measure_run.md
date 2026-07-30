@@ -1,0 +1,55 @@
+# GF LUT measurement — 2026-07-30T03:38:16Z
+
+Toolchain: yosys $(yosys -V | head -1)
+Flow ADD: synth_xilinx -flatten -abc9 -nocarry -arch xc7
+Flow MUL: + -nodsp
+LUT = sum(LUT2..LUT6). Params pinned per format (no reliance on module defaults).
+
+| Format | Core | Flow | LUT | FF | MUXF7 | MUXF8 |
+|--------|------|------|----:|---:|------:|------:|
+| GF4 | gf_adder_param | add-flat | 45 | 0 | 12 | 0 |
+| GF4 | gf_adder_param | add-noflat | 45 | 0 | 12 | 0 |
+| GF4 | gf_mul_param | mul-flat | 8 | 0 | 0 | 0 |
+| GF4 | gf_mul_param | mul-noflat | 8 | 0 | 0 | 0 |
+| GF6 | gf_adder_param | add-flat | 384 | 0 | 24 | 9 |
+| GF6 | gf_adder_param | add-noflat | 384 | 0 | 24 | 9 |
+| GF6 | gf_mul_param | mul-flat | 453 | 0 | 72 | 33 |
+| GF6 | gf_mul_param | mul-noflat | 453 | 0 | 72 | 33 |
+| GF8 | gf_adder_param | add-flat | 627 | 0 | 57 | 24 |
+| GF8 | gf_adder_param | add-noflat | 627 | 0 | 57 | 24 |
+| GF8 | gf_mul_param | mul-flat | 612 | 0 | 12 | 6 |
+| GF8 | gf_mul_param | mul-noflat | 612 | 0 | 12 | 6 |
+| GF10 | gf_adder_param | add-flat | 735 | 0 | 27 | 9 |
+| GF10 | gf_adder_param | add-noflat | 735 | 0 | 27 | 9 |
+| GF10 | gf_mul_param | mul-flat | 918 | 0 | 6 | 3 |
+| GF10 | gf_mul_param | mul-noflat | 918 | 0 | 6 | 3 |
+| GF12 | gf_adder_param | add-flat | 1119 | 0 | 105 | 39 |
+| GF12 | gf_adder_param | add-noflat | 1119 | 0 | 105 | 39 |
+| GF12 | gf_mul_param | mul-flat | 1203 | 0 | 30 | 15 |
+| GF12 | gf_mul_param | mul-noflat | 1203 | 0 | 30 | 15 |
+| GF14 | gf_adder_param | add-flat | 1254 | 0 | 57 | 24 |
+| GF14 | gf_adder_param | add-noflat | 1254 | 0 | 57 | 24 |
+| GF14 | gf_mul_param | mul-flat | 1569 | 0 | 42 | 15 |
+| GF14 | gf_mul_param | mul-noflat | 1569 | 0 | 42 | 15 |
+| GF16 | gf_adder_param | add-flat | 1689 | 0 | 63 | 21 |
+| GF16 | gf_adder_param | add-noflat | 1689 | 0 | 63 | 21 |
+| GF16 | gf_mul_param | mul-flat | 1953 | 0 | 27 | 12 |
+| GF16 | gf_mul_param | mul-noflat | 1953 | 0 | 27 | 12 |
+| GF20 | gf_adder_param | add-flat | 2175 | 0 | 123 | 54 |
+| GF20 | gf_adder_param | add-noflat | 2175 | 0 | 123 | 54 |
+| GF20 | gf_mul_param | mul-flat | 2838 | 0 | 24 | 12 |
+| GF20 | gf_mul_param | mul-noflat | 2838 | 0 | 24 | 12 |
+| GF24 | gf_adder_param | add-flat | 3003 | 0 | 228 | 99 |
+| GF24 | gf_adder_param | add-noflat | 3003 | 0 | 228 | 99 |
+| GF24 | gf_mul_param | mul-flat | 3663 | 0 | 153 | 63 |
+| GF24 | gf_mul_param | mul-noflat | 3663 | 0 | 153 | 63 |
+| GF32 | gf_adder_param | add-flat | 4302 | 0 | 267 | 111 |
+| GF32 | gf_adder_param | add-noflat | 4302 | 0 | 267 | 111 |
+| GF32 | gf_mul_param | mul-flat | 5937 | 0 | 156 | 66 |
+| GF32 | gf_mul_param | mul-noflat | 5937 | 0 | 156 | 66 |
+| GF48 | gf_adder_param | add-flat | 8643 | 0 | 408 | 171 |
+| GF48 | gf_adder_param | add-noflat | 8643 | 0 | 408 | 171 |
+| GF48 | gf_mul_param | mul-flat | 13038 | 0 | 642 | 294 |
+| GF48 | gf_mul_param | mul-noflat | 13038 | 0 | 642 | 294 |
+| GF64 | gf_adder_param | add-flat | 13842 | 0 | 867 | 387 |
+| GF64 | gf_adder_param | add-noflat | 13842 | 0 | 867 | 387 |

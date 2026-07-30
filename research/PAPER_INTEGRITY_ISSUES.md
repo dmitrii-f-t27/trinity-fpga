@@ -183,13 +183,42 @@ measured only up to W=32; W=48..128 MUL is extrapolated from the scaling law.**
 those rows "est." in the table. (This loop's `scripts/lut_measure.sh` is built
 to fill exactly this — see below.)
 
-### H. Authored this loop (blocked from commit by a shell/subprocess outage)
-- `scripts/lut_measure.sh` — param-pinning LUT harness (fixes §E2 + fills the
-  W=48..128 MUL gap of §G3): generates an explicit-E/M wrapper per format,
-  pins ONE flow (`-flatten -abc9 [-nodsp] -nocarry -arch xc7`), and prints a
-  LUT2..LUT6 table. **NOT committed / NOT run yet** — the sandbox's
-  subprocess layer (bash, ripgrep, glob) was unavailable this loop
-  (`ChildProcess.spawn` errors). To be run + committed when the shell recovers.
+### H. Loop-3 measurement — LUT numbers are methodology-dependent (CONCRETE data)
+
+`scripts/lut_measure.sh` (fixed: taps combinational `result_comb` via `-DFORMAL`,
+pins explicit E/M per format) was run for GF4..GF64. Results in
+`scripts/lut_measure.out` / `scripts/lut_measure_run.md`. Findings:
+
+1. **`-flatten` is IRRELEVANT** — `add-flat` == `add-noflat` and `mul-flat` ==
+   `mul-noflat` for EVERY format (GF4..GF64). My §E2.2 hypothesis ("flatten
+   changes the number 2-3×") was WRONG; retract it. The flag has no effect for
+   these cores.
+2. **The param-default trap (§E2.1) is REAL**: `gf_adder_param` defaults to
+   `MANT_BITS=8` (=> GF14), `gf_mul_param` defaults to `MANT_BITS=9` (=> GF16).
+   Anyone measuring `gf_adder_param` with defaults gets GF14, not GF16.
+3. **"GF16 MUL" measures three different numbers depending on method:**
+   - paper.tex:863 — **587** (the headline)
+   - as-top, `gf_mul_param` default params, no-flatten — **692** (this loop)
+   - param-pinned wrapper + `result_comb` FORMAL tap — **1953** (this loop)
+   Likewise GF16 ADD: paper **485** vs as-top `gf_adder_param`(GF14 default!)
+   **1338** vs FORMAL-tap wrapper **1689**.
+4. **The 1.63·W² scaling law therefore rests on numbers that vary ~3× by
+   measurement method and do not reproduce cleanly even as-top (GF16 MUL 692 vs
+   paper 587 — yosys-version/abc9 drift).** This is the single biggest
+   reproducibility risk for the arXiv LUT claims.
+
+**Action (binding):** the paper must (a) state the EXACT measurement recipe
+(module as-top vs wrapper, registered `out_y` vs combinational `result_comb`,
+yosys version, abc9 seed), (b) commit one script (`scripts/lut_measure.sh` now
+exists) so the numbers are `bash`-reproducible, and (c) reconcile 587 vs 692 vs
+1953 or restate the law from ONE pinned method. Until then the LUT law is
+"[measured, method-unpinned]" not "[proven]".
+
+Measured datapoints (this loop, FORMAL-tap wrapper, LUT = sum LUT2..LUT6):
+GF4 add45/mul8, GF6 384/453, GF8 627/612, GF10 735/918, GF12 1119/1203,
+GF14 1254/1569, GF16 1689/1953, GF20 2175/2838, GF24 3003/3663, GF32 4302/5937,
+GF48 8643/13038, GF64 add 13842. (These are the combinational-tap numbers, NOT
+the paper's as-top numbers — see above.)
 
 ### Note on gf512 / gf1024 (horizon-A remainder)
 `COMPLETE_LUT_TABLE.md:27-28` shows GF512/GF1024 ADD ≈ 406k / 1.6M LUT (401% /

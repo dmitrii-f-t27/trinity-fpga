@@ -53,9 +53,10 @@ FORMATS=(
 # Optional single-width filter: bash lut_measure.sh 16
 FILTER="${1:-}"
 
-# Generate an explicit-param wrapper that instantiates the parametric core.
-# Drives clk=0, rst=0, in_valid=1, out_ready=1 so the registered core's LUT is
-# the combinational datapath (FF count will include the out_y/out_valid regs).
+# Generate an explicit-param wrapper that instantiates the parametric core and
+# taps the COMBINATIONAL result (result_comb, exposed under -DFORMAL). Tying
+# clk=1'b0 would otherwise let yosys strip the registered datapath; result_comb
+# is a pure combinational output, so the LUT cost reflects the real datapath.
 gen_wrapper() {
   local core="$1" name="$2" W="$3" E="$4" Mb="$5" Hi="$6"
   local mod="wrap_${name}_${core}"
@@ -64,7 +65,8 @@ module ${mod} (input  wire [${W}-1:0] a, input  wire [${W}-1:0] b, output wire [
     ${core} #(.EXP_BITS(${E}), .MANT_BITS(${Mb}), .HAS_INF(${Hi})) u (
         .clk(1'b0), .rst(1'b0), .in_valid(1'b1),
         .in_a(a), .in_b(b), .in_ready(),
-        .out_valid(), .out_y(y), .out_ready(1'b1));
+        .out_valid(), .out_y(), .out_ready(1'b1),
+        .result_comb(y));
 endmodule
 EOF
   echo "$WRAP/${mod}.v"
@@ -74,7 +76,7 @@ EOF
 measure() {
   local core="$1" name="$2" W="$3" E="$4" Mb="$5" Hi="$6" flow="$7"
   local wv; wv="$(gen_wrapper "$core" "$name" "$W" "$E" "$Mb" "$Hi")"
-  local src="$RTL/${core}.v $wv"
+  local src="-DFORMAL $RTL/${core}.v $wv"
   yosys -p "read_verilog $src; synth_xilinx $flow; stat" 2>&1 \
     | awk '$2 ~ /^(LUT[2-6]|FDCE|FDRE|MUXF7|MUXF8)$/ && $1 ~ /^[0-9]+$/ {c[$2]+=$1}
            END {lut=c["LUT2"]+c["LUT3"]+c["LUT4"]+c["LUT5"]+c["LUT6"];
