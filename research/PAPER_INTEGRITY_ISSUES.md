@@ -248,27 +248,40 @@ vs the paper: GF16 ADD = **485**, GF16 MUL = **587**, "505" GF16+(Quire)≡takum
 - The paper's GF16 ADD=485 / MUL=587 sit squarely in the dedicated-core range
   (432–786), NOT the parametric range (1689–1989).
 
-**Refined conclusion (supersedes §H's "non-reproducible"):** the paper's LUT table
-is consistent with the **dedicated** GF16 cores (`gf16_add`/`gf16_mul`/
+**Refined conclusion (supersedes §H's "non-reproducible"):** the paper's GF16 LUT
+numbers are consistent with the **dedicated** GF16 cores (`gf16_add`/`gf16_mul`/
 `gf16_multiplier`), which are ~3× smaller than the **parametric**
 `gf_adder_param`/`gf_mul_param` cores (the parametric ones carry GF4..GF64
-generality + denormal/NaN/Inf overhead). The reproducibility gap was measuring the
-wrong core.
+generality + denormal/NaN/Inf overhead). The GF16 reproducibility gap was
+measuring the wrong core.
+
+**Two scaling laws (this loop, fits of measured data):**
+- dedicated GF16-family (paper): ADD ≈ 0.93·W² (R²=0.995, all W) / 1.63·W²
+  (R²=0.97, W≤24 as paper.tex states), MUL ≈ 2.09·W².
+- parametric `gf_*_param` (this loop): ADD ≈ **3.56·W²** (R²=0.977),
+  MUL ≈ **5.79·W²** (R²=0.991).
+- Ratio parametric/dedicated ≈ 3.1–3.5×, stable across W.
+
+**Wide formats (GF48–128) NOT reconciled — still open:** verified that
+**NO dedicated wide cores exist** in `fpga/openxc7-synth/` (only parametric
+`gf_*_param` + `corona_compute_*` UART/binary32-proxy wrappers). Yet the paper's
+GF48/64/96/128 ADD rows (2791/4289/8642/14894) follow the SAME low dedicated-core
+coefficient (0.93·W²) as GF16 — i.e. they are **extrapolated from the GF16
+dedicated law, not separately measured** (the parametric cores measure
+~3× higher: GF48 ADD 8643, GF64 13842). `paper.tex:872` already flags GF256+ as
+"estimated from 1.63W²"; GF48–128 are presented as measured but are likewise
+extrapolations.
 
 **Action (binding, refined):**
 1. The paper's LUT table must **name the exact core** per row (dedicated
-   `gf16_add`/`gf16_mul` vs parametric `gf_*_param`) — right now `paper.tex:857`
-   just says "ADD LUT / MUL LUT" with no core identifier, so a reader cannot
-   reproduce.
-2. The scaling law `1.63·W²` is the **dedicated-core** law; the parametric cores
-   follow a steeper law (~3× higher, see `scripts/lut_measure.out`). State which.
+   `gf{W}_*` vs parametric `gf_*_param`) — `paper.tex:857` now carries a
+   Reproducibility caveat (added this loop) pointing to `scripts/lut_measure.sh`.
+2. State explicitly that GF48–128 ADD/MUL are **extrapolated** from the GF16
+   dedicated-core law (no dedicated wide core exists to measure them directly).
 3. `gf16_multiplier.v` (483 ≈ 505) is the source of the "505=505" equivalence —
    cite it explicitly instead of the ambiguous "GF16 MUL".
-4. The parametric `gf_*_param` cores (the ones actually used in the corona_ HW
-   cells and the Vasilev-Floor wide-format table) are ~3× bigger than the paper's
-   dedicated-core numbers — so the wide-format rows (GF48/64/96/128 ADD 2791/4289/
-   8642/14894 in `paper.tex:868-871`) need a core identifier too, or they may be
-   parametric-core numbers mis-compared against the dedicated GF16 baseline.
+4. If wide-format hardware LUT is needed for real, it must come from the
+   parametric cores (3.56·W² / 5.79·W²) — the corona_ HW cells use those.
 
 ### Note on gf512 / gf1024 (horizon-A remainder)
 `COMPLETE_LUT_TABLE.md:27-28` shows GF512/GF1024 ADD ≈ 406k / 1.6M LUT (401% /

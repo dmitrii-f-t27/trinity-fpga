@@ -880,6 +880,20 @@ hold across 4 orders of magnitude (W=4 to W=24, 11 measured points for ADD,
 9 for MUL). GF128 (14,894 LUT ADD) is the largest format that fits comfortably on
 the XC7A200T (11\% of 134,600 LUTs).
 
+\paragraph{Reproducibility caveat (core identity).} The LUT counts above are
+\emph{core-dependent}: the dedicated per-width cores (\texttt{gf16\_add},
+\texttt{gf16\_mul}, \texttt{gf16\_multiplier}, measured $\approx$485/432/483 LUT)
+are $\sim$3$\times$ smaller than the parametric \texttt{gf\_adder\_param}/
+\texttt{gf\_mul\_param} cores (measured $\approx$1689/1953 LUT at GF16, i.e.\ a
+steeper law ADD$\approx$3.6W$^2$, MUL$\approx$5.8W$^2$), because the parametric
+cores carry GF4--GF64 generality plus full denormal/NaN/Inf handling. Dedicated
+cores exist only for $W{\le}32$; the $W{\ge}48$ rows therefore follow the
+dedicated-core scaling law by extrapolation, not a separate dedicated measurement.
+The exact core per row and the pinned yosys recipe are committed in
+\texttt{scripts/lut\_measure.sh} and documented in
+\texttt{research/PAPER\_INTEGRITY\_ISSUES.md} \S H--I; reproduce with
+\texttt{bash scripts/lut\_measure.sh}.
+
 A native takum16 multiplier (LNS domain: sign XOR + logarithmic addition +
 tapered re-encode) was synthesized under identical flags, yielding 505 LUT ---
 identical to GF16+ (Quire) MUL (505 LUT in the zero-DSP regime); plain GF16 MUL
