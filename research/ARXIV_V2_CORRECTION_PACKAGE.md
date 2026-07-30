@@ -686,16 +686,49 @@ the ambiguity has no consequence.
 That is worth one sentence in the paper — it converts a potential referee question
 into a demonstrated robustness property, at zero cost.
 
-### 10.4 Still unverified from Paper A's abstract
+### 10.4 Lucas-exactness — identity VERIFIED (pass 9)
 
-Two numerical claims remain unchecked and are **not** asserted either way here:
+SSOT: `specs/numeric/lucas_exact_verification.t27`.
+Executable companion: `research/verify_lucas_exact.py`.
 
-- the Lucas-exact accumulator *"verified at 500-digit precision for n = 1 … 256"*;
-- the GF16 FPGA codec *"passing a 35-of-35 testbench at 323 MHz"* (and see §1.2 on
-  which board).
+The abstract reports *"an integer-backed Lucas-exact accumulator path verified at
+500-digit precision for n = 1 … 256"*. The identity underneath it is
+`φ^(2n) + φ^(-2n) = L_(2n)`, an integer — and the project anchor
+`φ² + 1/φ² = 3` is its n = 1 case, since `L_2 = 3`.
 
-The first is checkable in software and is the natural next pass. The second needs
-the FPGA toolchain that §7.2a records as unavailable here.
+Recomputed independently: Lucas numbers from the **pure integer recurrence**
+(no floating point on the target side at all), the φ-side in 500-digit decimal.
+
+```
+checked      : 256
+mismatches   : 0
+worst residue: 4.000E-392  at n = 256
+```
+
+`L_512` carries 108 integer digits, leaving ~392 fractional digits at 500-digit
+precision — so the worst residue sits **exactly at the representation floor**
+(relative error ~1e-499 against a magnitude of ~1e107). It is arithmetic noise,
+not a failing identity. **The identity holds across the whole range.**
+
+Worth telling the author: the choice of 500 digits is **well matched to n = 256**,
+not arbitrary — enough headroom without extravagance. One sentence saying so
+pre-empts the obvious referee question *"why 500?"*.
+
+**What this does NOT establish, stated plainly.** The paper claims a verified
+accumulator *path*, not merely a true identity. This pass verifies the
+mathematics the path rests on; it does not execute the accumulator implementation,
+which lives in the RTL/kernel. Recorded as
+`open_question ACCUMULATOR_IMPLEMENTATION` with `do_not_guess true`.
+
+### 10.5 Remaining unverified claim from Paper A
+
+One numerical claim is still unchecked and is **not** asserted either way:
+
+- the GF16 FPGA codec *"passing a 35-of-35 testbench at 323 MHz"* (and §1.2 on
+  which board it ran on).
+
+It needs the FPGA toolchain that §7.2a records as unavailable here — the same
+`nextpnr-xilinx` gap that blocks the paper's own pre-registered experiment.
 
 ## 11. What this package cannot do
 
