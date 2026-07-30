@@ -5,7 +5,7 @@
 > Nothing here is asserted from memory or from a state file.
 >
 > **This is a prepared package, not a submission.** Replacing an arXiv entry
-> needs the author's arXiv credentials — see §5.
+> needs the author's arXiv credentials — see §6.
 
 ## 0. Method
 
@@ -197,7 +197,81 @@ not re-litigate them:
 
 Items 1 and 2 are independent and can ship in either order.
 
-## 5. What this package cannot do
+## 5. Related work published after v1 (added 2026-07-31, pass 2)
+
+Competitor scan over arXiv (`export.arxiv.org` API, sorted by submission date).
+Citation state was checked by fetching `paper1-goldenfloat/main_ru.tex` from the
+**default branch** and grepping locally — see the method warning in §5.4.
+
+### 5.1 Not cited, and it matters: arXiv:2607.13898
+
+*"Jack of All Scales: A Versatile FPGA Tensor Block for MXFP Precisions"*,
+submitted **2026-07-15** — six weeks after Paper A. Verified absent: paper1 cites
+24 arXiv IDs in the 2601–2607 range (`2607.07964`, `2607.08095`, `2607.13511`,
+`2607.14618`, `2607.21446`); `2607.13898` is **not** among them.
+
+Why it belongs in v2 — two independent reasons:
+
+**(a) It is the nearest FPGA-side neighbour.** They characterise MXFP dot products
+on Altera Agilex-5 across soft logic and DSP fixed/float/tensor modes, then propose
+DSP tensor-mode modifications for native MXFP support (preferred design point:
++36 % DSP tile area). Paper A's FPGA claim sits on Xilinx Artix-7 with a
+soft-logic implementation. The axes are **complementary, not ranked** — different
+vendor, different substrate strategy — and that is exactly how the citation should
+read. No superiority claim in either direction.
+
+**(b) It independently corroborates a finding Paper A currently does not state.**
+From their abstract:
+
+> the tensor mode … **cannot implement MXFP6 (E3M2) or any MXFP8 precisions,
+> forcing designers to fall back to lower-density alternatives**
+
+That is an external, different-vendor result showing hard DSP blocks are a poor
+fit for narrow formats. It is the same wall the GF work hit from the other side.
+
+### 5.2 Substantive gap: Paper A never discusses DSP vs soft logic
+
+Grep over `main_ru.tex` for `nodsp` / `DSP48` / `DSP block` / `DSP-блок`:
+**0 hits.** The paper reports an FPGA codec result without stating that the
+implementation is soft-logic-only or why.
+
+The project's own hardware record is that GF multiply synthesis **requires
+`-nodsp`**, because DSP48E1 inference produces a routing failure. That is a
+measured engineering constraint, currently invisible in the paper, and
+arXiv:2607.13898 provides independent external support for the general claim.
+
+Proposed v2 addition (short subsection, FPGA section): state that the GF codec is
+implemented in soft logic with DSP inference disabled, give the routing-failure
+reason, and cite 2607.13898 as an independent observation of the same
+DSP/narrow-format mismatch on a different FPGA family. Status of the joint claim:
+`[measured on our substrate]` + `[externally corroborated, different substrate]` —
+**not** a general claim about all DSP architectures.
+
+### 5.3 Lower-priority 2026 neighbours (log only, no action yet)
+
+- `MXAttention` — data-free optimal scaling / pre-norm quantization for MXFP4
+  attention (2026-07-27).
+- *Stable FP4 Training via Transposition-Invariant Block Quantization* (2026-07-27).
+
+Both are quantization-algorithm papers rather than format-family or FPGA work.
+They matter for Paper B's relevance framing, not for its correctness. Revisit only
+if the MXFP4 section is rewritten.
+
+### 5.4 Verified NOT gaps, and one method warning
+
+- **Tekum is already cited.** *"Tekum: Balanced Ternary Tapered Precision Real
+  Arithmetic"* (2025-11-25) — `main_ru.tex` has 8 mentions and the bibitem
+  `hunhold2025tekum`. Recorded here so a later pass does not "fix" a non-problem.
+  takum (36 mentions) and posit (52) are likewise well covered.
+- **METHOD WARNING — do not use GitHub code search for citation checks.**
+  `search/code?q=…+repo:gHashTag/trinity-papers-ru` returned `total_count: 0` for
+  `2607.17733` (MXSens), a **known positive** that is demonstrably present in
+  PR #17's diff. Code search does not index non-default branches and gave a false
+  negative on the control. Every citation claim in §5 was instead verified by
+  fetching the file contents from the default branch and grepping locally. Any
+  future pass must run the same known-positive control before trusting a search.
+
+## 6. What this package cannot do
 
 Replacing an arXiv entry requires the submitting author's arXiv account. This
 document prepares the exact old → new text and the evidence for each edit; the
