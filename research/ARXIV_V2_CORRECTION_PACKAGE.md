@@ -5,7 +5,7 @@
 > Nothing here is asserted from memory or from a state file.
 >
 > **This is a prepared package, not a submission.** Replacing an arXiv entry
-> needs the author's arXiv credentials — see §7.
+> needs the author's arXiv credentials — see §8.
 
 ## 0. Method
 
@@ -353,7 +353,82 @@ is the cheapest available strengthening of its contribution framing.
 Status of that claim: `[positioning, not a result]` — it asserts complementarity,
 not superiority over formal methods.
 
-## 7. What this package cannot do
+## 7. The conformance-testing lineage is missing (added 2026-07-31, pass 4)
+
+### 7.1 Competitive scan on Paper B's axis returned nothing — and that is the problem
+
+Targeted arXiv searches, sorted by submission date:
+
+| query | hits |
+|---|---|
+| `abs:"conformance test vectors" AND abs:"floating-point"` | **0** |
+| `abs:"numerical formats" AND abs:reference` | 3 — the top hit is **Paper B itself** |
+| `all:"format catalog" AND all:precision` | **0** |
+
+No competing published work was found on Paper B's axis. **This must not be
+written up as uniqueness.** It is absence of evidence in one search space, and the
+binding no-"first/only/best" rule applies with full force. Vendor test suites,
+standards-body vectors and implementation test data exist; they are simply not
+published as arXiv papers.
+
+The actionable reading is the opposite of a victory lap: **Paper B has no
+established category, so a reviewer has no reference frame for it.** A related-work
+section cannot position against peers that do not exist — it has to build the frame
+out of adjacent categories. Three of those are already known:
+
+- **implementation test data** — `ml_dtypes` (cited), `graphcore-research/gfloat`;
+- **formal formalizations** — FLoPS (Lean 4), `imandra-ai/ieee-p3109`;
+- **conformance test suites** — Berkeley TestFloat / SoftFloat (see §7.2).
+
+### 7.2 Neither paper cites the canonical conformance prior art
+
+Verified over `main_ru.tex` (56 bibitems):
+
+| term | occurrences |
+|---|---|
+| `TestFloat` | **1** (bare string; no bibitem) |
+| `SoftFloat`, `Hauser`, `Berkeley` | **0** |
+| a bibitem for **IEEE Std 754 itself** | **none** |
+
+Two omissions, both conspicuous for papers in this area:
+
+**(a) IEEE 754 is discussed in the body but never cited.** A paper proposing a
+floating-point family, positioned explicitly against posit, takum, OCP-MX and
+P3109, carries 56 references and none of them is the base standard. This is
+trivially fixable and is the sort of thing a reviewer notices in the first pass.
+
+**(b) Berkeley TestFloat / SoftFloat (Hauser) is the direct methodological
+ancestor and is uncited.** It is *the* established prior art for floating-point
+conformance testing. For Paper A this is a related-work hole; for **Paper B it is
+the single most likely reviewer objection**, because Paper B's whole contribution
+*is* conformance vectors: *"how does this relate to TestFloat?"* is the first
+question any referee in this area asks, and the paper currently has no answer on
+the page.
+
+The honest answer exists and is strong — TestFloat targets IEEE 754 binary
+arithmetic conformance of *operations*; the catalog targets *format decode/encode*
+across 83 formats, most of which TestFloat does not cover at all (MXFP, NF4,
+posit, takum, LNS, GF). Complementary scopes, different objects under test. It
+just needs to be stated.
+
+**Action:** add both citations plus one paragraph in each paper distinguishing
+scope. Status: `[related work, no result claimed]`.
+
+*Caveat on precision:* the single `TestFloat` occurrence was confirmed by count,
+but its surrounding sentence was **not** read (a context grep over the 177 kB
+source hung and was abandoned). Before editing, read that sentence — the paper may
+already say something adjacent that only needs a citation attached rather than new
+prose.
+
+### 7.3 Paper B's full text was not scanned this pass
+
+`paper2-catalog/` holds `ARXIV_UPLOAD_EN_v2.md` (4 kB — arXiv upload metadata
+only) and the actual manuscript as `statya2_ru.docx` / `.pdf`. The `.docx` is
+binary and was not extracted, so **Paper B's bibliography has not been checked for
+`flops2026`-class defects** (§6.3). That check is still open and needs the docx
+unpacked locally.
+
+## 8. What this package cannot do
 
 Replacing an arXiv entry requires the submitting author's arXiv account. This
 document prepares the exact old → new text and the evidence for each edit; the
