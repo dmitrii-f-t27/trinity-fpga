@@ -414,11 +414,40 @@ just needs to be stated.
 **Action:** add both citations plus one paragraph in each paper distinguishing
 scope. Status: `[related work, no result claimed]`.
 
-*Caveat on precision:* the single `TestFloat` occurrence was confirmed by count,
-but its surrounding sentence was **not** read (a context grep over the 177 kB
-source hung and was abandoned). Before editing, read that sentence — the paper may
-already say something adjacent that only needs a citation attached rather than new
-prose.
+### 7.2a RESOLVED, and the finding is stronger: TestFloat-3 is a load-bearing instrument
+
+The pass-4 caveat above (context not read) is now closed. `main_ru.tex` line 1728
+sits inside the **pre-registration** block (`Дата предрегистрации: 2026-05-31`) —
+i.e. the FL-002 falsification path the abstract promises. Its *Материалы*
+paragraph reads:
+
+- RTL GF16: corrected `gf16_mul.v` / `gf16_add.v` from `gHashTag/tt-trinity-gamma` PR #110
+- RTL posit16: **PERCIVAL** (Mallasen et al., 2022, arXiv:2111.15286) — cited ✓
+- driver: Rust `cli/dlc10` (`gHashTag/t27`)
+- toolchain: **OpenXC7 (yosys + nextpnr-xilinx)** or Vivado 2023.2
+- **correctness gate: an exhaustive TestFloat-3 run, 0 errors required over
+  1 M random samples**, before any area/timing result is accepted
+
+So TestFloat-3 is not mentioned in passing — it is the **correctness gate of the
+pre-registered experiment**. That reclassifies the omission: this is an **uncited
+tool dependency inside the falsification protocol**, which is a stricter failure
+than a related-work gap. A protocol that gates its acceptance criterion on a tool
+must cite that tool.
+
+**Two things worth recording as strengths, not defects** (this package should not
+only hunt faults):
+
+1. The pre-registration is well formed — explicit thresholds (>15 % area, <85 % of
+   posit16 `F_max`), an explicit commitment to report negative results prominently,
+   no post-hoc threshold adjustment, and a date. That is a stronger design than
+   most format papers carry.
+2. The posit16 comparator (PERCIVAL) **is** properly cited.
+
+**Practical blocker worth flagging to the author:** the pre-registered experiment
+requires `nextpnr-xilinx` (OpenXC7). That toolchain is *not installed* on the
+current workstation — the same gap that blocked the AX7203 P&R task this week. The
+falsification experiment cannot run until either OpenXC7 or Vivado 2023.2 is
+available. This is a scheduling fact, not a criticism of the paper.
 
 ### 7.3 Paper B's full text was not scanned this pass
 
