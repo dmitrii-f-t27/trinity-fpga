@@ -24,6 +24,7 @@ plus a clean bill of health for everything else.
 constants {
   FORMATS_SWEPT     70
   RAW_FLAGS         40
+  FLAGS_EXPLAINED   40     // all resolved as of pass 17
   REAL_DEFECTS       1     // takum, already established in negation_invariant.t27
   NEW_DEFECTS        0
 }
@@ -83,10 +84,40 @@ finding MONOTONIC_FLAGS_MOSTLY_BY_DESIGN {
     ms_mbf32, ms_mbf64     // Microsoft binary format layout
     ibm_hfp32, ibm_hfp64   // hexadecimal exponent
   }
-  needs_a_look { lns8, lns16
-                 note "logarithmic; monotonic in the log domain is expected, so the
-                       flag may be sign or zero handling. Not investigated this pass." }
+  // RESOLVED in pass 17 — the last unexplained flag of the sweep.
+  resolved_lns {
+    formats { lns8, lns16 }
+    breaks_per_format 1
+    break_location "exactly at pos_zero (lns8 0x40, lns16 0x4000)"
+    evidence """
+lns8   positive half: 16 finite codes, 1 break -- 0x38 = 128.0 -> 0x40 = 0.0
+lns16  positive half: 128 finite codes, 1 break -- 0x3f00 = 9.223e18 -> 0x4000 = 0.0
+
+In both cases the breaking code IS pos_zero. A logarithmic system has no
+logarithm for zero, so a code must be reserved for it, and here it sits in the
+middle of the ascending ladder. One break, at the reserved code, is the expected
+shape -- not a decode error.
+"""
+    is_defect false
+  }
   is_defect false
+}
+
+// A design property worth recording as a positive, not just an absence of defect.
+finding LNS_REFUSES_TO_FAKE_EXACTNESS {
+  name     "the LNS oracle returns special:irrational instead of rounding silently"
+  severity INFO
+  detail """
+LNS represents 2^(L / 2^frac_bits). For non-integer L/2^frac the value is
+irrational and has no exact Fraction. The oracle returns a `special:irrational`
+marker rather than a rounded approximation -- so lns8 has only 16 finite codes in
+its positive half out of 128, and lns16 only 128 out of 32768.
+
+That is the correct behaviour for an exact oracle: it declines to claim an
+exactness it does not have. It also explains why the family looks sparse under
+any check that only counts finite values.
+"""
+  resolved true
 }
 
 // ---- Harness limitations, stated so results are not over-read ---------------
