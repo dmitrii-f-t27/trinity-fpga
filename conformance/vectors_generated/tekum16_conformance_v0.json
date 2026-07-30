@@ -1,0 +1,99 @@
+{
+  "schema": "t27-conformance/v0.1",
+  "format": "TEKUM16",
+  "format_name": "tekum16",
+  "bitexact": true,
+  "format_notes": "Derived from the golden oracle conformance/tekum_ref.py by research/gen_conformance_pack.py. Curated corner vectors. CANDIDATE pack — not yet reviewed or published.",
+  "catalog": {
+    "id": "tekum16",
+    "bits": 16,
+    "status": "Candidate",
+    "source": "conformance/tekum_ref.py"
+  },
+  "ssot": "https://github.com/gHashTag/t27/blob/master/conformance/FORMAT-SPEC-001.json",
+  "preprint": "https://arxiv.org/abs/2606.05017",
+  "anchor_identity": "phi^2 + 1/phi^2 = 3",
+  "anchor_check": {
+    "value": 3.0,
+    "expected": 3.0,
+    "ieee754_exact": true,
+    "note": "exact grid point"
+  },
+  "round_trip_policy": "decode: exact bits->f64 via the golden oracle. Values outside binary64 range are recorded as null with a note rather than clamped.",
+  "vector_mode": "curated_named",
+  "n_vectors": 9,
+  "max_finite": -5.608679322432503e+76,
+  "vectors": [
+    {
+      "name": "zero",
+      "tekum16_bits_hex": "0x0000",
+      "tekum16_bits_int": 0,
+      "decoded_f64": 0.0,
+      "decoded_f64_hex": "0x0000000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "msb_set",
+      "tekum16_bits_hex": "0x8000",
+      "tekum16_bits_int": 32768,
+      "decoded_f64": null,
+      "note": "nar"
+    },
+    {
+      "name": "all_ones",
+      "tekum16_bits_hex": "0xffff",
+      "tekum16_bits_int": 65535,
+      "decoded_f64": -5.608679322432503e+76,
+      "decoded_f64_hex": "0xcfdf000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "lsb_set",
+      "tekum16_bits_hex": "0x0001",
+      "tekum16_bits_int": 1,
+      "decoded_f64": 1.8351858179575695e-77,
+      "decoded_f64_hex": "0x3001000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "one",
+      "tekum16_bits_hex": "0x4000",
+      "tekum16_bits_int": 16384,
+      "decoded_f64": 1.0,
+      "decoded_f64_hex": "0x3ff0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "minus_one",
+      "tekum16_bits_hex": "0xc000",
+      "tekum16_bits_int": 49152,
+      "decoded_f64": -1.0,
+      "decoded_f64_hex": "0xbff0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "two",
+      "tekum16_bits_hex": "0x4800",
+      "tekum16_bits_int": 18432,
+      "decoded_f64": 2.0,
+      "decoded_f64_hex": "0x4000000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "half",
+      "tekum16_bits_hex": "0x3800",
+      "tekum16_bits_int": 14336,
+      "decoded_f64": 0.5,
+      "decoded_f64_hex": "0x3fe0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "three",
+      "tekum16_bits_hex": "0x4a00",
+      "tekum16_bits_int": 18944,
+      "decoded_f64": 3.0,
+      "decoded_f64_hex": "0x4008000000000000",
+      "abs_error": 0.0
+    }
+  ]
+}

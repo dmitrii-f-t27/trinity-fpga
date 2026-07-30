@@ -1,0 +1,99 @@
+{
+  "schema": "t27-conformance/v0.1",
+  "format": "BFLOAT32",
+  "format_name": "bfloat32",
+  "bitexact": true,
+  "format_notes": "Derived from the golden oracle conformance/bf16_ref.py by research/gen_conformance_pack.py. Curated corner vectors. CANDIDATE pack — not yet reviewed or published.",
+  "catalog": {
+    "id": "bfloat32",
+    "bits": 32,
+    "status": "Candidate",
+    "source": "conformance/bf16_ref.py"
+  },
+  "ssot": "https://github.com/gHashTag/t27/blob/master/conformance/FORMAT-SPEC-001.json",
+  "preprint": "https://arxiv.org/abs/2606.05017",
+  "anchor_identity": "phi^2 + 1/phi^2 = 3",
+  "anchor_check": {
+    "value": 3.0,
+    "expected": 3.0,
+    "ieee754_exact": true,
+    "note": "exact grid point"
+  },
+  "round_trip_policy": "decode: exact bits->f64 via the golden oracle. Values outside binary64 range are recorded as null with a note rather than clamped.",
+  "vector_mode": "curated_named",
+  "n_vectors": 9,
+  "max_finite": 3.0,
+  "vectors": [
+    {
+      "name": "zero",
+      "bfloat32_bits_hex": "0x00000000",
+      "bfloat32_bits_int": 0,
+      "decoded_f64": 0.0,
+      "decoded_f64_hex": "0x0000000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "msb_set",
+      "bfloat32_bits_hex": "0x80000000",
+      "bfloat32_bits_int": 2147483648,
+      "decoded_f64": 0.0,
+      "decoded_f64_hex": "0x0000000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "all_ones",
+      "bfloat32_bits_hex": "0xffffffff",
+      "bfloat32_bits_int": 4294967295,
+      "decoded_f64": null,
+      "note": "NaR/NaN"
+    },
+    {
+      "name": "lsb_set",
+      "bfloat32_bits_hex": "0x00000001",
+      "bfloat32_bits_int": 1,
+      "decoded_f64": 1.401298464324817e-45,
+      "decoded_f64_hex": "0x36a0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "one",
+      "bfloat32_bits_hex": "0x3f800000",
+      "bfloat32_bits_int": 1065353216,
+      "decoded_f64": 1.0,
+      "decoded_f64_hex": "0x3ff0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "minus_one",
+      "bfloat32_bits_hex": "0xbf800000",
+      "bfloat32_bits_int": 3212836864,
+      "decoded_f64": -1.0,
+      "decoded_f64_hex": "0xbff0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "two",
+      "bfloat32_bits_hex": "0x40000000",
+      "bfloat32_bits_int": 1073741824,
+      "decoded_f64": 2.0,
+      "decoded_f64_hex": "0x4000000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "half",
+      "bfloat32_bits_hex": "0x3f000000",
+      "bfloat32_bits_int": 1056964608,
+      "decoded_f64": 0.5,
+      "decoded_f64_hex": "0x3fe0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "three",
+      "bfloat32_bits_hex": "0x40400000",
+      "bfloat32_bits_int": 1077936128,
+      "decoded_f64": 3.0,
+      "decoded_f64_hex": "0x4008000000000000",
+      "abs_error": 0.0
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "schema": "t27-conformance/v0.1",
+  "format": "UINT32",
+  "format_name": "uint32",
+  "bitexact": true,
+  "format_notes": "Derived from the golden oracle conformance/int_ref.py by research/gen_conformance_pack.py. Curated corner vectors. CANDIDATE pack — not yet reviewed or published.",
+  "catalog": {
+    "id": "uint32",
+    "bits": 32,
+    "status": "Candidate",
+    "source": "conformance/int_ref.py"
+  },
+  "ssot": "https://github.com/gHashTag/t27/blob/master/conformance/FORMAT-SPEC-001.json",
+  "preprint": "https://arxiv.org/abs/2606.05017",
+  "anchor_identity": "phi^2 + 1/phi^2 = 3",
+  "anchor_check": {
+    "value": 3.0,
+    "expected": 3.0,
+    "ieee754_exact": true,
+    "note": "exact grid point"
+  },
+  "round_trip_policy": "decode: exact bits->f64 via the golden oracle. Values outside binary64 range are recorded as null with a note rather than clamped.",
+  "vector_mode": "curated_named",
+  "n_vectors": 6,
+  "max_finite": 4294967295.0,
+  "vectors": [
+    {
+      "name": "zero",
+      "uint32_bits_hex": "0x00000000",
+      "uint32_bits_int": 0,
+      "decoded_f64": 0.0,
+      "decoded_f64_hex": "0x0000000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "msb_set",
+      "uint32_bits_hex": "0x80000000",
+      "uint32_bits_int": 2147483648,
+      "decoded_f64": 2147483648.0,
+      "decoded_f64_hex": "0x41e0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "all_ones",
+      "uint32_bits_hex": "0xffffffff",
+      "uint32_bits_int": 4294967295,
+      "decoded_f64": 4294967295.0,
+      "decoded_f64_hex": "0x41efffffffe00000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "lsb_set",
+      "uint32_bits_hex": "0x00000001",
+      "uint32_bits_int": 1,
+      "decoded_f64": 1.0,
+      "decoded_f64_hex": "0x3ff0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "two",
+      "uint32_bits_hex": "0x00000002",
+      "uint32_bits_int": 2,
+      "decoded_f64": 2.0,
+      "decoded_f64_hex": "0x4000000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "three",
+      "uint32_bits_hex": "0x00000003",
+      "uint32_bits_int": 3,
+      "decoded_f64": 3.0,
+      "decoded_f64_hex": "0x4008000000000000",
+      "abs_error": 0.0
+    }
+  ]
+}
