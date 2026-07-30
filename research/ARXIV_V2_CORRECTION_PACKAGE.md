@@ -5,7 +5,7 @@
 > Nothing here is asserted from memory or from a state file.
 >
 > **This is a prepared package, not a submission.** Replacing an arXiv entry
-> needs the author's arXiv credentials — see §8.
+> needs the author's arXiv credentials — see §9.
 
 ## 0. Method
 
@@ -380,9 +380,17 @@ out of adjacent categories. Three of those are already known:
 - **formal formalizations** — FLoPS (Lean 4), `imandra-ai/ieee-p3109`;
 - **conformance test suites** — Berkeley TestFloat / SoftFloat (see §7.2).
 
-### 7.2 Neither paper cites the canonical conformance prior art
+### 7.2 Paper A does not cite the canonical conformance prior art
 
-Verified over `main_ru.tex` (56 bibitems):
+> **CORRECTION (pass 5).** This subsection was originally headed *"Neither paper
+> cites…"*. That was an overreach: it generalised from `main_ru.tex` (Paper A) to
+> both papers without having read Paper B's bibliography. Paper B **does** cite
+> IEEE Std 754-2019 (its ref [15]) and **does** cite conformance-testing prior art
+> (Wintersteiger, *"Floating-point conformance testing in industrial practice"*,
+> IEEE ARITH 2025, ref [11]). The findings below apply to **Paper A only**.
+> TestFloat/Hauser remains uncited in both.
+
+Verified over `main_ru.tex` (Paper A, 56 bibitems):
 
 | term | occurrences |
 |---|---|
@@ -457,7 +465,91 @@ binary and was not extracted, so **Paper B's bibliography has not been checked f
 `flops2026`-class defects** (§6.3). That check is still open and needs the docx
 unpacked locally.
 
-## 8. What this package cannot do
+## 8. Paper B bibliography audit — 4 of 20 references are defective (pass 5)
+
+Paper B's manuscript (`paper2-catalog/statya2_ru.docx`) was unpacked and its
+20-entry reference list extracted. Every arXiv ID was checked against the arXiv
+API. **Four entries (20 %) do not match the work they point at.**
+
+### 8.1 Ref [3] — wholly misattributed (most serious)
+
+| | |
+|---|---|
+| **paper says** | C. Park, J.-H. Lim, S. Nagarakatte, *"ProofWright: Towards verified floating-point arithmetic"*, arXiv:2511.12294v2, 2025 |
+| **arXiv:2511.12294 actually is** | *"ProofWright: Towards **Agentic Formal Verification of CUDA**"* — Bodhisatwa Chatterjee, Drew Zagieboylo, Sana Damani, Siva Hari, Christos Kozyrakis |
+
+**All three listed authors are wrong** (none of Park, Lim or Nagarakatte is on the
+paper), **the title is wrong**, and **the subject is wrong** — it is about agentic
+formal verification of CUDA, not floating-point arithmetic. This is not a
+formatting slip; the citation describes a different work than the ID resolves to.
+
+This is the highest-risk item in this whole package after §1.1. A referee who
+follows one link finds it immediately, and a misattributed citation reads as
+*references that were generated rather than read* — which would cast doubt on the
+rest of the bibliography by association, including the parts that are correct.
+
+**Action:** decide what was actually meant. If the intended reference was the
+Rutgers group's work, ProofWright is the wrong ID; if arXiv:2511.12294 was
+intended, the authors and title must be replaced with the real ones. Do not patch
+half of it.
+
+### 8.2 Refs [19] and [20] — no authors, paraphrased titles
+
+| ref | paper says | reality (arXiv API) |
+|---|---|---|
+| [19] | *"Formal models of Tensor Core numerics for reproducible GEMM"*, arXiv:2512.07004 — **no authors** | *"Accurate Models of NVIDIA Tensor Cores"* — Faizan A. Khattak, Mantas Mikaitis |
+| [20] | *"TAO: Tolerance-aware verification of numerical operators"*, arXiv:2510.16028 — **no authors** | *"TAO: Tolerance-Aware **Optimistic** Verification for **Floating-Point Neural Networks**"* — J. Yao, H. Su, T. Liao, Z. Cheng, H. Zhang, X. Wang, P. Viswanath |
+
+Both entries omit the author list entirely and paraphrase the title. As in §6.3, a
+paraphrased title cannot be found by title search.
+
+### 8.3 Ref [4] — same defect class as Paper A's `flops2026`
+
+| | |
+|---|---|
+| **paper says** | C. Chang, C. Park, J.-H. Lim, S. Nagarakatte, *"P3109 FLoPS: A Lean 4 formalization of IEEE P3109 floating-point semantics"* |
+| **reality** | Tung-Che Chang, Sehyeok Park, Jay P Lim, Santosh Nagarakatte, *"FLoPS: Semantics, Operations, and Properties of P3109 Floating-Point Representations in Lean"* |
+
+Three of four initials are wrong (`C. Chang` → `T.-C. Chang`; `C. Park` →
+`S. Park`; `J.-H. Lim` → `J. P. Lim`; only Nagarakatte is right) and the title is
+paraphrased. **The same work is mis-cited in both papers** (Paper A's `flops2026`,
+§6.3) — so this is a systematic issue with one source, not two independent slips.
+
+### 8.4 Corrected entries
+
+```
+[3]  B. Chatterjee, D. Zagieboylo, S. Damani, S. Hari, C. Kozyrakis,
+     "ProofWright: Towards Agentic Formal Verification of CUDA,"
+     arXiv:2511.12294, 2025.            [ONLY IF this ID was the intended source]
+
+[4]  T.-C. Chang, S. Park, J. P. Lim, S. Nagarakatte, "FLoPS: Semantics,
+     Operations, and Properties of P3109 Floating-Point Representations in Lean,"
+     arXiv:2602.15965, 2026.
+
+[19] F. A. Khattak, M. Mikaitis, "Accurate Models of NVIDIA Tensor Cores,"
+     arXiv:2512.07004, 2025.
+
+[20] J. Yao, H. Su, T. Liao, Z. Cheng, H. Zhang, X. Wang, P. Viswanath,
+     "TAO: Tolerance-Aware Optimistic Verification for Floating-Point Neural
+     Networks," arXiv:2510.16028, 2025.
+```
+
+### 8.5 Verified correct — do not touch
+
+Checked and matching: [1] self-citation 2606.05017, [2] Hunhold takum 2412.20273,
+[5] Rouhani MX 2310.10537, [15] **IEEE Std 754-2019** (so Paper A's omission,
+§7.2, is Paper A's alone), [16] OCP MX v1.0, [17] ml_dtypes 0.5.4 (matches PyPI,
+§2.3), [18] **IEEE SA P3109 Interim Report v3.2.0**.
+
+### 8.6 The P3109 "version conflict" of pass 3 is RESOLVED — no error
+
+Ref [18] reads *"IEEE SA P3109 **Interim Report** v3.2.0"*; Paper A's
+`p3109_v091` reads *"working **draft** v0.9.1, 2025"*. These are **two different
+documents in two different series**, not two versions of one document. §6.1's
+hedge — *"either they name different artefacts or one is wrong"* — resolves to
+**different artefacts**. No edit is required, and pass 6+ should not reopen it.
+
+## 9. What this package cannot do
 
 Replacing an arXiv entry requires the submitting author's arXiv account. This
 document prepares the exact old → new text and the evidence for each edit; the
