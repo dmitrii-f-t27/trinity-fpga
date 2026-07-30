@@ -7,6 +7,67 @@
 > **This is a prepared package, not a submission.** Replacing an arXiv entry
 > needs the author's arXiv credentials — see §11.
 
+## Executive summary (13 verification passes, 2026-07-31)
+
+**Verdict: the science holds. The defects are in citations and in unstated
+distinctions, not in the results.** Every central technical claim that could be
+checked without hardware was recomputed independently and passed:
+
+| claim | result |
+|---|---|
+| φ-rule `e = round((N-1)/φ²)` | **17/17** catalogued widths satisfy it (§10.1) |
+| Lucas identity, 500 digits, n = 1…256 | **256/256**, worst residue at the representation floor (§10.4) |
+| cross-validation vs ml_dtypes 0.5.4 | **66,224 codes, 0 divergences** — exhaustive, not sampled (`specs/numeric/ml_dtypes_crossval.t27`) |
+| SHA-256 fingerprints exist | **yes**, 83 of them (§2.2) |
+| Paper A's bibliography | **clean** — 24 IDs resolve, no misattribution (§9) |
+
+### Do these first
+
+| # | action | where | why now |
+|---|---|---|---|
+| 1 | Remove *"the fabricated TTSKY26b dies"* from Paper A's abstract | §1.1 | A factual claim about physical artefacts, live on a public preprint. Replacement wording already exists in trinity-papers-ru PR #17. |
+| 2 | Fix Paper B ref **[3]** | §8.1 | Wholly misattributed: wrong authors, wrong title, wrong subject. One clicked link damages the whole bibliography's credibility. |
+| 3 | Paper B: **six packs → 83** | §2.1 | Largest positive change available. v1 was accurate at submission; the set completed six days later. Pure upside. |
+| 4 | Fix the remaining citation defects | §8.2, §8.3, §6.3 | Paper B [19] [20] [4] and Paper A `flops2026`. Corrected entries supplied verbatim. |
+| 5 | Cite `arXiv:2607.13898` + add the DSP/soft-logic subsection | §5.1, §5.2 | Nearest FPGA neighbour, and it independently corroborates a finding Paper A never states. |
+| 6 | Paper A: cite IEEE 754 and TestFloat | §7.2, §7.2a | TestFloat-3 is the **correctness gate of the pre-registered experiment** and is uncited — an uncited tool dependency, not a related-work nicety. |
+| 7 | Restore three verbatim titles; add one sentence on rounding | §9.1, §10.3 | Cosmetic, near-zero cost, removes two referee questions. |
+
+### Blocked on the author — nothing else can move these
+
+Three passes in a row ended at the same wall. Each is one answer, not a project:
+
+- **Which GF widths predate the φ-rule?** Until answered, the `9/9` figure cannot be corrected — it is off in *both* directions (§10.2). `open_question WIDTH_PROVENANCE`.
+- **Is "13 families" the catalog's own taxonomy?** Not verified; a module-based grouping gives 15, which would not be a defect. `open_question FAMILY_TAXONOMY`.
+- **Where is the accumulator implementation?** The identity verifies; the *path* the paper claims was not executed (§10.4). `open_question ACCUMULATOR_IMPLEMENTATION`.
+- Plus two smaller ones: which board the 323 MHz figure came from (§1.2), and the current P3109 draft version, which is **not publicly verifiable** (§6.2).
+
+### Blocked on one missing toolchain
+
+`nextpnr-xilinx` (openXC7) is absent. That single gap blocks **three** things at once:
+the GF16 `35/35 @ 323 MHz` check (§10.5), post-route P&R numbers that would close
+`[method not pinned]` in both papers, and **the paper's own pre-registered FL-002
+experiment** (§7.2a). Installing it is the highest-leverage infrastructure action
+available.
+
+### Closed — do not reopen
+
+- The P3109 "version conflict" between the papers is **not an error**: they cite two different document series (§8.6).
+- `ml_dtypes 0.5.4` is **current**; changing it would break reproducibility (§2.3).
+- Tekum, takum and posit are **already cited** in Paper A (§5.4).
+- The 11 pack-only structural formats have no decode oracle **by design** (`specs/numeric/catalog_coverage_delta.t27`).
+
+### Artefacts produced
+
+Five `.t27` SSOT specs under `specs/numeric/` (φ-rule, Lucas, coverage delta,
+derived packs, ml_dtypes cross-validation) and four runnable checks under
+`research/` (`verify_phi_rule.py`, `verify_lucas_exact.py`,
+`crossval_ml_dtypes.py`, `gen_conformance_pack.py`), plus twelve candidate
+conformance packs derived from existing oracles in
+`conformance/vectors_generated/`.
+
+---
+
 ## 0. Method
 
 Abstracts were pulled verbatim from the arXiv API
@@ -65,7 +126,9 @@ numbers simply belong to different substrates.
 
 ### 1.3 Unaffected claims (checked, no change)
 
-- `e = round((N-1)/phi^2)` rule and the 9/9 reproduction — internal, unchanged.
+- `e = round((N-1)/phi^2)` — the **arithmetic** verifies, 17/17 (§10.1).
+  ~~and the 9/9 reproduction — internal, unchanged~~ **SUPERSEDED by pass 8**: the
+  9/9 *count* is not established and is off in both directions (§10.2).
 - "We make no per-rung accuracy or superiority claim" — correct and worth keeping
   verbatim; it is the honesty anchor of the abstract.
 - Breadth/toolchain-coherence as an **open conjecture** with FL-002 falsification
@@ -159,7 +222,7 @@ against PyPI on 2026-07-31: **0.5.4 is the latest release**. This reference is n
 stale and must not be "modernised" — changing it would be churn, and would break
 the reproducibility of the reported cross-validation.
 
-### 2.4 IEEE P3109 v3.2.0 — REQUIRES VERIFICATION BEFORE SUBMITTING
+### 2.4 IEEE P3109 v3.2.0 — partly resolved, see §6.2 and §8.6
 
 The abstract cites an *"IEEE P3109 v3.2.0 cross-walk"*. Project notes elsewhere
 refer to a **P3109 v4.0** carrying a kappa-approximation in §4.4. That newer
@@ -186,7 +249,7 @@ not re-litigate them:
 | "no per-rung superiority claim" | A | correct, load-bearing — keep verbatim |
 | FL-002 open-conjecture framing | A | correct — keep |
 
-## 4. Priority order
+## 4. Priority order — SUPERSEDED, see the executive summary
 
 1. **A §1.1** — fabricated-dies claim. Factual claim about physical artefacts on a
    public preprint; the corrected wording already exists in trinity-papers-ru PR #17.
@@ -457,7 +520,7 @@ current workstation — the same gap that blocked the AX7203 P&R task this week.
 falsification experiment cannot run until either OpenXC7 or Vivado 2023.2 is
 available. This is a scheduling fact, not a criticism of the paper.
 
-### 7.3 Paper B's full text was not scanned this pass
+### 7.3 Paper B's full text — RESOLVED in pass 5, see §8
 
 `paper2-catalog/` holds `ARXIV_UPLOAD_EN_v2.md` (4 kB — arXiv upload metadata
 only) and the actual manuscript as `statya2_ru.docx` / `.pdf`. The `.docx` is
@@ -608,7 +671,7 @@ same treatment. They do not:
 The single shared defect is the FLoPS citation, wrong in both (§6.3, §8.3) — one
 source of error, not two.
 
-## 10. The φ-rule verifies — and Paper A understates it (pass 7)
+## 10. The φ-rule and the Lucas identity verify; the 9/9 count is unresolved (passes 7–9)
 
 First pass to check a **numerical claim** rather than a citation. Artefact:
 `research/verify_phi_rule.py` (added with this section, runnable, exit-coded).
