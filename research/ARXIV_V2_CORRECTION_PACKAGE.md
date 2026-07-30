@@ -5,7 +5,7 @@
 > Nothing here is asserted from memory or from a state file.
 >
 > **This is a prepared package, not a submission.** Replacing an arXiv entry
-> needs the author's arXiv credentials — see §9.
+> needs the author's arXiv credentials — see §10.
 
 ## 0. Method
 
@@ -549,7 +549,66 @@ documents in two different series**, not two versions of one document. §6.1's
 hedge — *"either they name different artefacts or one is wrong"* — resolves to
 **different artefacts**. No edit is required, and pass 6+ should not reopen it.
 
-## 9. What this package cannot do
+## 9. Paper A bibliography audit — clean (pass 6)
+
+Pass 5 found a 20 % defect rate in Paper B, so Paper A could not be left on a
+single spot-check (`flops2026`). All 24 arXiv IDs cited in `main_ru.tex` were
+batch-queried against the arXiv API and every claimed title compared to the real
+one.
+
+**Headline: Paper A's bibliography is clean.** The defect concentration is in
+Paper B, not across both papers.
+
+| check | result |
+|---|---|
+| all 24 IDs resolve | **yes** — no fabricated identifiers |
+| titles matching exactly | **21 of 23** (case style only: sentence vs title case — a style choice, not a defect) |
+| misattributed works (Paper B [3] class) | **none** |
+| wrong author attributions | **none** |
+
+### 9.1 The three minor title restructurings
+
+All three follow one pattern — the `Name: Subtitle` form inverted to
+`Subtitle (Name)`:
+
+| id | paper A writes | real title |
+|---|---|---|
+| 2603.02949 | *"A reference framework for LLM inference carbon estimation (SEAL)"* | *"**SEALing the Gap:** A Reference Framework for LLM Inference Carbon Estimation via …"* |
+| 2603.18046 | *"NANOZK: layerwise zero-knowledge proofs for LLM inference"* | *"NanoZK: **Privacy-Preserving Verifiable Inference for Large Language Models via** Lay…"* |
+| 2607.08095 | *"Decomposing proof construction to scale zero-knowledge machine learning (zkComposer)"* | *"**zkComposer:** Decomposing Proof Construction to Scale **zkML**"* |
+
+Low severity — the ID is right and the work is identifiable — but the entries are
+not findable by title search. Restore the published titles verbatim.
+
+### 9.2 Two inline citations — attributions verified CORRECT
+
+Neither is a bibitem; both are cited in body prose. Both first-author
+attributions check out:
+
+- `arXiv:2605.12464` — paper writes *"ScaleSearch (Gupta и др. 2026)"*. First
+  author is **Tanmaey Gupta** ✓. But the real title is *"Search Your Block
+  Floating Point Scales!"* — there is no "ScaleSearch" in it. The nickname is a
+  reading aid, not a misattribution; still, a reader searching "ScaleSearch" finds
+  nothing. Add the real title on first mention.
+- `arXiv:2605.24391` — paper writes *"MX-SAFE / MXSF (Park и др. 2026)"*. First
+  author is **Dahoon Park** ✓ and the real title does begin *"MX-SAFE: …"* ✓.
+  **Fully correct, no action.**
+
+### 9.3 What this changes about priorities
+
+Before this pass the working assumption was that both bibliographies needed the
+same treatment. They do not:
+
+- **Paper B** — 4 of 20 refs defective (20 %), including one wholly misattributed
+  work (§8.1). Its reference list needs a **full rebuild and re-verification**
+  before v2 ships.
+- **Paper A** — 1 real defect (`flops2026`, §6.3) plus 3 cosmetic title
+  restorations and 1 nickname clarification. **Four targeted edits**, no rebuild.
+
+The single shared defect is the FLoPS citation, wrong in both (§6.3, §8.3) — one
+source of error, not two.
+
+## 10. What this package cannot do
 
 Replacing an arXiv entry requires the submitting author's arXiv account. This
 document prepares the exact old → new text and the evidence for each edit; the
