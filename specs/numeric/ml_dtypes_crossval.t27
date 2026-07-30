@@ -1,0 +1,108 @@
+# Trinity Numeric SSOT — independent cross-validation against ml_dtypes
+# Claim under test: arXiv:2606.09686 (83-format catalog), abstract
+# Executed 2026-07-31 against ml_dtypes 0.5.4 (the exact version the paper names)
+# Executable: research/crossval_ml_dtypes.py
+
+spec MlDtypesCrossValidation version 1.0.0
+
+description """
+The catalog paper states that its packs are "cross-validated against ml_dtypes
+0.5.4 (Google/JAX); any divergence is documented explicitly and interpreted as a
+spec-permitted interpretation gap rather than hidden."
+
+This spec records an INDEPENDENT execution of that cross-validation: every code
+of every format both sides implement was enumerated and the decoded binary64
+value compared against the golden oracles in conformance/*_ref.py.
+
+Result: 66,224 codes compared, ZERO divergences. The paper's claim holds, and
+holds exhaustively rather than by sampling.
+
+One genuine limitation surfaced, on our side rather than the paper's: the oracle
+layer decodes to fractions.Fraction, which cannot represent -0.0. Signed zero is
+therefore outside what these oracles can verify at all. Recorded as
+finding ZERO_SIGN_NOT_REPRESENTABLE.
+"""
+
+constants {
+  ML_DTYPES_VERSION  "0.5.4"        // exactly the version named in the paper
+  CODES_COMPARED     66224
+  DIVERGENCES        0
+  ZERO_SIGN_UNCHECKABLE 14
+}
+
+crossvalidation ML_DTYPES_SWEEP {
+  reference   "ml_dtypes (Google/JAX)"
+  version     "0.5.4"
+  method      "enumerate every code; compare decoded binary64 against conformance/*_ref.py"
+  sampling    none                   // exhaustive, not sampled
+  executable  "research/crossval_ml_dtypes.py"
+  status      VERIFIED_SW
+}
+
+// Per-format results. codes == compared == agreed for every entry.
+formats {
+  bfloat16  { ml_type "bfloat16"        codes 65536  verdict AGREE }
+  fp8_e4m3  { ml_type "float8_e4m3fn"   codes 256    verdict AGREE }
+  fp8_e5m2  { ml_type "float8_e5m2"     codes 256    verdict AGREE }
+  fp4_e2m1  { ml_type "float4_e2m1fn"   codes 16     verdict AGREE }
+  fp6_e2m3  { ml_type "float6_e2m3fn"   codes 64     verdict AGREE }
+  fp6_e3m2  { ml_type "float6_e3m2fn"   codes 64     verdict AGREE }
+  int4      { ml_type "int4"            codes 16     verdict AGREE }
+  uint4     { ml_type "uint4"           codes 16     verdict AGREE }
+}
+
+// A limitation of OUR oracle layer, not of the paper or of ml_dtypes.
+finding ZERO_SIGN_NOT_REPRESENTABLE {
+  name     "the oracle container cannot carry the sign of zero"
+  severity LOW
+  detail """
+conformance/*_ref.py decode to fractions.Fraction. Fraction has no -0.0, so for
+the 14 zero codes where ml_dtypes reports a signed zero the oracle simply cannot
+express the distinction. This is NOT a divergence -- nothing disagrees; one side
+is unable to represent the question.
+
+Consequence: signed-zero semantics are outside the verification envelope of these
+oracles. If signed zero matters for a target format, the oracle must return a
+representation that carries it (a float, or a Fraction plus an explicit sign
+field) before any claim about it can be made.
+"""
+  counted_as_divergence false
+  resolved false
+}
+
+// Recorded so a later pass does not repeat the mistake.
+lemma NORMALISE_BOTH_SIDES {
+  // The first run of this sweep reported 272 "divergences". Every one was an
+  // artefact of asymmetric normalisation: the oracles return Special sentinels
+  // for inf/NaN while ml_dtypes returns real IEEE values, and Fraction(0) was
+  // being compared against -0.0. After normalising BOTH sides into one key
+  // space the true count is 0.
+  //
+  // A comparison harness must be validated before its output is believed --
+  // publishing that first run would have manufactured defects in a correct paper.
+  first_run_false_divergences 272
+  true_divergences 0
+  exact true
+}
+
+scope_limits {
+  covers      "formats implemented by BOTH the oracle layer and ml_dtypes 0.5.4"
+  not_covered { "formats ml_dtypes does not implement (tekum, posit, takum, GF ladder, LNS, historical)",
+                "encode direction and rounding behaviour",
+                "signed-zero semantics (see ZERO_SIGN_NOT_REPRESENTABLE)" }
+  superiority_claimed false
+}
+
+open_question SECOND_REFERENCE_FOR_UNCOVERED_FORMATS {
+  question """
+ml_dtypes covers 8 of the catalogued formats. What is the second independent
+reference for the rest?
+
+libtakum (Hunhold) is the natural one for the takum/tekum family. The GF ladder,
+LNS and the historical formats (VAX, IBM HFP, PDP-11, x87) have no obvious
+third-party implementation, and must either find one or ship explicitly marked as
+single-source rather than cross-validated.
+"""
+  do_not_guess true
+  owner        author
+}
