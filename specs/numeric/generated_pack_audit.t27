@@ -127,3 +127,33 @@ No reference implementation of tekum exists to settle this independently.
   escalate_to  "Hunhold (author of both takum and Tekum)"
   blocks       "publication of tekum8/16/32 candidate packs"
 }
+
+
+// ---- Re-characterised 2026-07-31 (pass 35) ----------------------------------
+correction TEKUM_BLOCK_REASON_WAS_WRONG {
+  supersedes "TEKUM_PACKS_INHERIT_THE_SIGNATURE (the reason, not the decision)"
+
+  retracted_reason """
+The packs were blocked because they obey XOR negation, which was read as the
+"takum-class signature". That reading is RETRACTED: tekum_ref.py, like
+takum_ref.py, documents itself as a deliberate LINEAR structural model. XOR
+negation there is by design, not inherited breakage.
+"""
+
+  better_reason """
+The block STANDS, on the oracle's own stated grounds. tekum_ref.py says:
+
+  "Полная потритовая спецификация tekum требует сверки с полным текстом статьи
+   (23 стр.) ... Абстракт НЕ даёт потритовых таблиц смещений и точного правила
+   баланса ... Поэтому здесь реализована РАБОЧАЯ структурная модель"
+
+The oracle declares itself a working model pending verification against the full
+specification of arXiv:2512.10964 (Hunhold, Dec 2025). Packs derived from a model
+its own author marks as unverified should not ship as conformance material.
+
+This is a stronger reason than the retracted one, and it comes from the artefact
+rather than from my inference.
+"""
+  decision BLOCK_PUBLICATION
+  unblocked_by "verification of tekum_ref.py against the full arXiv:2512.10964 specification"
+}

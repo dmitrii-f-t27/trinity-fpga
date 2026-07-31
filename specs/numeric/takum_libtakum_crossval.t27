@@ -7,6 +7,17 @@
 
 spec TakumLibtakumCrossValidation version 1.0.0
 
+// ============================================================================
+// RETRACTED 2026-07-31 (pass 34/35). The takum "negation defect" is NOT a defect.
+// conformance/takum_ref.py documents itself as a deliberate LINEAR structural
+// model with decode `value = (-1)^S * (1 + M_u/2^p) * 2^c` -- sign-and-magnitude
+// BY DESIGN -- because exact-Fraction arithmetic cannot represent logarithmic
+// takum values, which are irrational. conformance/tekum_ref.py carries the same
+// documented choice. See research/ARXIV_V2_CORRECTION_PACKAGE.md section 15.
+// The MEASUREMENTS below stand; the DEFECT INTERPRETATION does not.
+// ============================================================================
+
+
 description """
 The catalog's takum packs cannot be cross-validated against ml_dtypes, which does
 not implement takum. libtakum is the reference implementation written by the
