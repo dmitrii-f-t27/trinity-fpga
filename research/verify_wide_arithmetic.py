@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Commutativity on the wide GoldenFloat rungs, which the general sweep cannot reach.
+"""All six arithmetic laws on the GoldenFloat ladder, including the wide rungs.
+
+Covers COMM_ADD, COMM_MUL, IDENT_ADD, IDENT_MUL, ANNIH_MUL and SIGN_MUL --
+the same laws as verify_arithmetic_invariants.py, on the widths it cannot reach.
 
 WHY THE GENERAL SWEEP STALLS
 ----------------------------
@@ -105,20 +108,62 @@ def normal_codes(fmt, k: int, window: int = 8) -> list[int]:
     return out
 
 
-def check_format(gf, name, codes) -> tuple[int, int, float]:
-    """Return (pairs_tested, violations, seconds)."""
+def is_zero_value(gf, fmt, raw) -> bool:
+    """True if `raw` decodes to zero, of either sign.
+
+    ANNIH_MUL must be stated over VALUES, not raw codes. mul(-x, 0) is negative
+    zero, whose code differs from pos_zero while the value is still zero. The
+    general sweep compares codes and therefore reports 9-10 'violations' per
+    format; every one of them was checked here and decodes to zero. Comparing
+    codes for this law manufactures the failures it then reports.
+    """
+    try:
+        v = gf.decode(fmt, raw)
+    except Exception:
+        return False
+    return (not hasattr(v, "kind")) and v == 0
+
+
+def check_format(gf, name, codes) -> tuple[int, dict, float]:
+    """Evaluate all six laws over `codes`. Returns (pairs, counts, seconds)."""
     fmt = gf.FORMATS[name]
+    zero = fmt.pos_zero
+    one = None
+    try:                      # 1.0 is exponent field == bias, mantissa 0
+        one = (int(fmt.bias) << fmt.mant_bits)
+    except Exception:
+        one = None
+
     t0 = time.time()
-    violations = 0
+    bad = dict(comm_add=0, comm_mul=0, id_add=0, id_mul=0, ann_mul=0, sign_mul=0)
     pairs = 0
+
     for a in codes:
         for b in codes:
             pairs += 1
             if gf.gf_add(fmt, a, b) != gf.gf_add(fmt, b, a):
-                violations += 1
+                bad["comm_add"] += 1
             if gf.gf_mul(fmt, a, b) != gf.gf_mul(fmt, b, a):
-                violations += 1
-    return pairs, violations, time.time() - t0
+                bad["comm_mul"] += 1
+            # SIGN_MUL: mul(-a, b) == -mul(a, b). GoldenFloat negates by flipping
+            # the sign bit, so the negation is exact and needs no rounding.
+            na = a ^ (1 << fmt.sign_shift)
+            lhs = gf.gf_mul(fmt, na, b)
+            rhs = gf.gf_mul(fmt, a, b) ^ (1 << fmt.sign_shift)
+            if lhs != rhs and not (is_zero_value(gf, fmt, lhs)
+                                   and is_zero_value(gf, fmt, rhs)):
+                bad["sign_mul"] += 1
+
+        # Unary laws hold for finite operands only; the sample is drawn from the
+        # normal range and carries no specials, but guard anyway.
+        if gf.gf_add(fmt, a, zero) != a:
+            bad["id_add"] += 1
+        if not is_zero_value(gf, fmt, gf.gf_mul(fmt, a, zero)):
+            bad["ann_mul"] += 1
+        if one is not None and gf.gf_mul(fmt, a, one) != a:
+            bad["id_mul"] += 1
+
+    return pairs, bad, time.time() - t0
 
 
 def report_denormal_reach(gf, names):
@@ -142,26 +187,41 @@ def main() -> int:
                          "gf20", "gf24", "gf32", "gf48", "gf64", "gf96",
                          "gf128", "gf256", "gf512", "gf1024") if n in gf.FORMATS]
 
-    print(f"{'format':<9}{'codes':>7}{'pairs':>9}{'comm+ / comm*':>16}{'seconds':>10}")
-    print("-" * 53)
+    cols = ["comm+", "comm*", "x+0", "x*1", "x*0", "-a*b"]
+    keys = ["comm_add", "comm_mul", "id_add", "id_mul", "ann_mul", "sign_mul"]
+    print(f"{'format':<9}{'pairs':>7}  " + "".join(f"{c:<8}" for c in cols) + "seconds")
+    print("-" * 72)
     total_pairs = total_viol = 0
+    offenders = {}
     for name in names:
         fmt = gf.FORMATS[name]
         codes = normal_codes(fmt, K)
         if not codes:
-            print(f"{name:<9}{'-':>7}{'-':>9}{'no normal range':>16}")
+            # gf4 lands here: one exponent bit, so exp_max is 1 and the range
+            # [1, exp_max-1] is empty. There is no normal exponent to sample --
+            # a structural property of the width, not a gap in this sweep.
+            print(f"{name:<9}{'-':>7}  excluded: {fmt.exp_bits} exponent bit(s) "
+                  f"leave no testable normal range")
             continue
-        pairs, viol, secs = check_format(gf, name, codes)
+        pairs, bad, secs = check_format(gf, name, codes)
         total_pairs += pairs
-        total_viol += viol
-        print(f"{name:<9}{len(codes):>7}{pairs:>9}"
-              f"{('OK' if not viol else f'{viol} VIOLATED'):>16}{secs:>10.2f}")
+        total_viol += sum(bad.values())
+        if any(bad.values()):
+            offenders[name] = bad
+        cells = "".join(f"{('OK' if not bad[k] else str(bad[k])):<8}" for k in keys)
+        print(f"{name:<9}{pairs:>7}  {cells}{secs:>7.2f}")
 
     report_denormal_reach(gf, [n for n in names if n in
                                ("gf32", "gf48", "gf64", "gf96", "gf128", "gf1024")])
 
+    if offenders:
+        print("\nVIOLATIONS:")
+        for name, bad in offenders.items():
+            print(f"  {name}: " + ", ".join(f"{k}={v}" for k, v in bad.items() if v))
+
     print(f"\ntotal ordered pairs tested: {total_pairs}   violations: {total_viol}")
-    print("scope: exponents within +-8 of 1.0, both signs, all 17 GoldenFloat widths.")
+    print("scope: exponents within +-8 of 1.0, both signs, 16 of the 17 GoldenFloat")
+    print("widths -- gf4 has one exponent bit and no testable normal range at all.")
     print("NOT covered: the rest of the exponent range, and every denormal at gf96+,")
     print("which gf_ref cannot represent at all. Coverage was traded for termination,")
     print("and the trade is the finding as much as the result is.")

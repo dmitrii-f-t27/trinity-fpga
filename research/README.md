@@ -47,6 +47,7 @@ Run from the repository root.
 | `verify_quire_associativity.py` | locates the documented boundary; not a defect report | 0 |
 | `gen_conformance_pack.py` | regenerates a pack | 0 |
 | `verify_arithmetic_invariants.py` | commutativity etc. across families; **slow** — see below | 0 |
+| `verify_wide_arithmetic.py` | all six laws over 16 GoldenFloat widths through gf1024; `violations: 0` in ~1 s | 0 |
 
 ### Scripts that exit non-zero on purpose
 
@@ -68,6 +69,20 @@ arithmetic, and on the wide GoldenFloat rungs a single multiply is enormous — 
 did **not** complete within 600 s on an arm64 Mac. Budget accordingly, or expect
 the same non-termination recorded in
 `specs/numeric/arithmetic_invariant_sweep.t27` for gf64 and above.
+
+`verify_wide_arithmetic.py` covers the GoldenFloat ladder that sweep cannot reach,
+in about a second, by sampling exponents near 1.0 instead of across the whole
+range. The cause of the blowup is documented in
+`specs/numeric/wide_rung_commutativity.t27`: a denormal's `Fraction` denominator
+needs roughly `bias` bits, which is 8.4 Mbit at gf64 and physically impossible
+above gf96. Its coverage is correspondingly narrower — read the scope lines it
+prints.
+
+Note on reading `verify_arithmetic_invariants.py`'s output: the counts it shows
+under `x*0` are **not** defects. They are `mul(-x, 0)` returning negative zero,
+whose raw code differs from `pos_zero` while the value is still zero. That law has
+to be stated over values, not codes; `verify_wide_arithmetic.py` does so and reports
+`OK`.
 
 ## Reading the results
 

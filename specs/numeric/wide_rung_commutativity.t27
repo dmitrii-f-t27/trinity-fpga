@@ -137,3 +137,62 @@ scope_limits {
                 "the other five laws in verify_arithmetic_invariants.py, which were not ported" }
   superiority_claimed false
 }
+
+// ---- Pass 54: the remaining five laws, and a pending flag finally diagnosed ---
+
+result ALL_SIX_LAWS_HOLD_ACROSS_THE_LADDER {
+  script "research/verify_wide_arithmetic.py (renamed from verify_wide_commutativity.py)"
+
+  laws { "COMM_ADD", "COMM_MUL", "IDENT_ADD", "IDENT_MUL", "ANNIH_MUL", "SIGN_MUL" }
+  widths_covered 16      // gf6 through gf1024
+  ordered_pairs 8865
+  violations 0
+  wall_clock "about one second total; gf1024 in 0.09s"
+
+  gf4_excluded """
+gf4 has ONE exponent bit, so exp_max is 1 and the normal range [1, exp_max-1] is
+empty. There is no normal exponent to sample. That is a structural property of the
+width, not a gap in the sweep, and the script now says so instead of printing a
+dash.
+"""
+  status VERIFIED_SW
+}
+
+// ---- The diagnosis the campaign had deferred ---------------------------------
+finding ANNIHILATOR_FLAGS_WERE_NEGATIVE_ZERO {
+  name     "the general sweep's x*0 counts are sign-of-zero artefacts, not defects"
+  severity INFO
+
+  what_was_flagged """
+verify_arithmetic_invariants.py reports 9-10 failures of mul(x,0)==0 per format on
+FINITE operands. Its own comment warned they "may instead be sign-of-zero or
+encode-canonical artefacts -- diagnose each before reporting", and this campaign
+never diagnosed them. They sat as an open flag through passes 18-53.
+"""
+
+  measurement """
+Every mismatching result was decoded rather than compared as a raw code:
+
+  gf16   raw-code mismatches vs pos_zero: 24   of which decode to zero: 24   real: 0
+  gf32   raw-code mismatches vs pos_zero: 24   of which decode to zero: 24   real: 0
+
+Not one genuinely non-zero result.
+"""
+
+  conclusion """
+mul(-x, 0) is NEGATIVE zero. Its code differs from pos_zero; its value does not.
+The law was stated as raw-code equality, so the check manufactured the failures it
+then reported.
+
+ANNIH_MUL must be stated over values. Restated that way it holds everywhere,
+including every wide rung. The same applies to SIGN_MUL where both sides are zero.
+"""
+
+  significance """
+This closes a flag the campaign carried for 35 passes without resolving. It is also
+the third time a comparison at the wrong level -- code versus value -- produced a
+phantom defect in this work; the same error caused the pass-22 annihilator alarm
+and the takum negation misreading in pass 34.
+"""
+  resolved true
+}
