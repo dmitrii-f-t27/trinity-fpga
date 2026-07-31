@@ -239,3 +239,107 @@ for annihilator, identity, sign laws, and any comparison against a reference
 implementation.
 """
 }
+
+// ---- Pass 56: the monotonicity flags -----------------------------------------
+
+correction I_MISREAD_MY_OWN_TABLE_IN_PASS_55 {
+  what_i_said """
+The pass-55 report named "vax_d/f/g and x87_48bit -- negation VIOLATED" as the most
+promising remaining leads.
+"""
+  what_the_table_says """
+The columns are monotonic, negation, roundtrip, and the negation column carries the
+DETECTED CONVENTION, not a verdict. `vax_d  64  VIOLATED  xor  VIOLATED` means
+monotonicity violated, negation follows the xor convention, roundtrip violated.
+
+There are NO negation violations anywhere in the sweep. The only unusual entry is
+bcd, whose negation is "neither" -- no consistent convention -- which for a packed
+decimal digit encoding is unsurprising.
+
+Reading a verdict into a column that reports a classification is the same
+level-confusion the pass-55 rule was written about, committed while writing it.
+"""
+}
+
+// ---- VAX: diagnosed, with a prediction that held exactly ---------------------
+finding VAX_NON_MONOTONICITY_IS_THE_ZERO_EXPONENT_BLOCK {
+  name     "every VAX monotonicity violation lies in the zero-exponent region"
+  severity INFO
+
+  hypothesis_tested_and_REJECTED """
+First hypothesis: VAX F/D/G inherit PDP-11 word ordering, so code order jumps in
+value and un-swapping the 16-bit words should restore monotonicity.
+
+Refuted by measurement. Word-swapping made it far WORSE -- vax_f 15 violations
+becoming 2869, vax_d 15 becoming 2887. Whatever this oracle's layout is, it is not
+recovered by a word swap. Recorded because the hypothesis was plausible and the
+next person will otherwise try it too.
+"""
+
+  hypothesis_confirmed """
+VAX has no denormals: exponent field 0 is true zero regardless of the mantissa
+bits, so a whole block of distinct codes decodes to the same value and a STRICTLY
+increasing test must fail across it.
+
+Prediction: every violating code has exponent field 0, none outside it.
+
+  vax_f  bits=32 exp_bits=8  mant=23    exp==0 -> 15   exp!=0 -> 0
+  vax_d  bits=64 exp_bits=8  mant=55    exp==0 -> 15   exp!=0 -> 0
+  vax_g  bits=64 exp_bits=11 mant=52    exp==0 ->  1   exp!=0 -> 0
+
+Exact. The counts also match the sampling density: vax_f's zero-exponent block is
+2^23 of a 2^31 half, one part in 256, and 4000 samples give ~15.6. vax_g's is 2^52
+of 2^63, one part in 2048, giving ~1.95.
+"""
+  conclusion "a property of an encoding without denormals, not a defect"
+  resolved true
+}
+
+// ---- decimal: NOT diagnosed, and saying so -----------------------------------
+open_question DECIMAL_MONOTONICITY_REMAINS_UNEXPLAINED {
+  observed "decimal32 192 violations, decimal64 241, over a 4000-code sample"
+
+  attempt_1 """
+Group codes by decoded exponent and check monotonicity within each group, on the
+theory that the BID combination field interleaves exponent and significand so code
+order cannot track value order across exponents.
+
+Result: 102 and 165 within-group violations. Not zero, so inconclusive.
+"""
+
+  attempt_2 """
+Split those failures into cohort equalities (BID stores one value several ways) and
+true inversions, expecting the former.
+
+Result: zero equalities, 165 inversions. Also inconclusive.
+"""
+
+  why_BOTH_attempts_are_void """
+Both grouped by the NORMALISED power of ten in the decoded value, which is not the
+stored exponent. Two values such as 832006 and 468322 both normalise to 10^0 and
+land in one group while having unrelated encodings, so the grouping never tested
+what it claimed to.
+
+The 165 "true inversions" are an artefact of that grouping and must not be reported
+as a finding. Recording the number here only to mark it as void.
+"""
+
+  what_would_settle_it """
+The STORED exponent and significand, extracted from the BID encoding itself rather
+than inferred from the value. The oracle has that internally; the diagnostic would
+need to use it.
+"""
+
+  prior_expectation """
+BID is widely understood NOT to be monotonic in code order -- it is why decimal
+comparison requires decoding. That is an expectation, not evidence produced here,
+and it is recorded as such.
+"""
+  resolved false
+}
+
+open_question BCD_MONOTONICITY_UNTOUCHED {
+  observed "7 violations of 128 sampled codes; negation convention 'neither'"
+  note "not investigated this pass; a packed decimal digit encoding has no reason to be monotonic in code order, but that was not measured"
+  resolved false
+}
