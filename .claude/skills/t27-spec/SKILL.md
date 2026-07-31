@@ -97,6 +97,28 @@ CLI is not installed. So a `.t27` spec is the *record*; any executable check is 
 companion that produced the numbers. Say that plainly — do not describe it as a
 generated artefact when nothing generated it.
 
+## Read the artefact's documentation FIRST
+
+Before recording anything as a defect, read the file's own header. A model that
+looks wrong against an external reference may be a documented, deliberate choice
+with a stated reason.
+
+This cost a shipped-then-retracted PR. `conformance/takum_ref.py` was "fixed" from
+sign-and-magnitude to two's-complement negation on the strength of three
+converging measurements plus exhaustive verification against the format author's
+reference library. Its docstring says, in capitals, that it is a deliberate LINEAR
+structural model — because exact-`Fraction` arithmetic cannot represent
+logarithmic takum values, which are irrational — and gives the decode as
+`value = (-1)^S · (1 + M_u/2^p) · 2^c`. Sign-and-magnitude by design.
+
+Converging evidence does not establish that a thing is broken. It establishes that
+it differs from what you compared it to. Those are not the same claim, and only
+the file's own stated intent distinguishes them.
+
+Corollary: a selftest passing after your change is not vindication. That one
+passed because its check vectors (±1) are the symmetric case where both negation
+rules agree.
+
 ## Verification traps (cost real passes here)
 
 - **GitHub code search does not index non-default branches.**

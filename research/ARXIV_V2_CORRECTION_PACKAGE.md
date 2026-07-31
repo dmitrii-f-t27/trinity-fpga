@@ -1043,3 +1043,61 @@ artefact does not.**
 Verify [8] and [13] author lists against the API before pasting — this pass
 checked their titles, not their author lists, and that is exactly the shortcut
 that produced §8.5.
+
+---
+
+## 15. RETRACTION — the takum "fix" was not a fix (pass 34)
+
+PR #281 is **closed unmerged and retracted by me**. It changed
+`conformance/takum_ref.py` from sign-and-magnitude negation to two's complement,
+on the strength of three converging measurements, and shipped with exhaustive
+verification against libtakum.
+
+It was still wrong, because I never read the module's own docstring. It opens, in
+capitals:
+
+> **СТАТУС КОДИРОВКИ — ВАЖНО**: Настоящий takum — ЛОГАРИФМИЧЕСКИЙ … значения в
+> общем случае ИРРАЦИОНАЛЬНЫ и не допускают точной Fraction-арифметики … поэтому
+> здесь реализована **РАБОЧАЯ СТРУКТУРНАЯ МОДЕЛЬ** … интерпретированная
+> **ЛИНЕЙНО** … а НЕ логарифмически.
+
+and states the decode explicitly as `value = (-1)^S · (1 + M_u/2^p) · 2^c` —
+**sign-and-magnitude by design**, reverse-engineered from
+`fpga/openxc7-synth/takum64_decode.v` and validated against named LUT codes.
+
+The reason is principled and is the same one recorded for LNS in
+`intrinsic_invariant_sweep.t27`: an exact-`Fraction` oracle cannot represent
+logarithmic takum values, which are irrational.
+
+### What was true, and what was not
+
+| claim | status |
+|---|---|
+| the oracle disagrees with libtakum on the negative half | **true**, and now explained — a different model on purpose |
+| posit satisfies the negation invariant, takum does not | **true**, but the invariant does not apply to a deliberate linear structural model |
+| the change makes it match libtakum-linear 65536/65536 | **true, and irrelevant** — matching libtakum was never this file's goal |
+| **it was a defect** | **false** |
+
+The selftest kept passing throughout because the documented check vectors
+(`0x40`/`0xC0` = ±1) are exactly the symmetric case where the two negation rules
+coincide — the same blind spot §14's published-pack audit found in curated packs.
+
+### Also retracted
+
+The pass-32 framing *"SW and HW paths implement different variants under one name"*
+is withdrawn as a finding. The split is **documented in that same docstring**, with
+its reason. It is a design decision, not an undiscovered inconsistency.
+
+### What survives
+
+`research/libtakum_bridge.c` and the comparison scripts stand: they established
+that the HW conformance golden is an exact implementation of logarithmic takum
+(60485/60485 at takum16). That is a real, useful measurement independent of the
+retracted interpretation.
+
+### The lesson, recorded in the skill
+
+**Read the artefact's own documentation before calling anything a defect.** Three
+converging measurements and an exhaustive verification did not save me from it,
+because all of them were answering the wrong question. Now in
+`.claude/skills/t27-spec/SKILL.md`.
