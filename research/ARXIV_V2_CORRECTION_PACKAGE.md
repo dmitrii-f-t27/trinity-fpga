@@ -968,3 +968,78 @@ Two consequences:
    whole-abstract pass. A single read of each abstract against the item list in
    this package's executive summary would catch every remaining item at once —
    which is precisely what two rounds of patching did not do.
+
+---
+
+## 14. Paper B bibliography — RE-AUDIT: 8 of 20, not 4 (pass 34)
+
+### 14.1 My pass-5 audit was not rigorous, and this corrects it
+
+§8 reported four defective references and listed others as *"verified correct — do
+not touch"*. That list was produced by checking that each arXiv ID **resolved**,
+and sometimes the authors — **not the titles, systematically**. Re-running the
+check properly against the arXiv API found **four more**, two of them on entries
+§8.5 explicitly cleared.
+
+**Do not rely on §8.5.** It is superseded by this section.
+
+### 14.2 The four newly found
+
+| ref | claimed title | actual title |
+|---|---|---|
+| **[1]** | *"GoldenFloat: A phi-anchored numeric format family and the identity φ²+1/φ²=3"* | *"GoldenFloat: A **Phi-Derived Static-Split** Floating-Point Family from GF4 to GF1024 with a Lucas-Exact Integer Identity"* |
+| **[2]** | *"Takum arithmetic: A new paradigm for low-precision numerics"* | *"**Integer Representations** in IEEE 754, Posit, and Takum Arithmetics"* |
+| **[8]** | *"M2XFP: A unified mixed-precision microscaling floating-point representation…"* | *"M2XFP: A **Metadata-Augmented** Microscaling Data Format for Efficient Low-bit…"* |
+| **[13]** | *"Takum arithmetic in sparse iterative solvers: A precision-vs-storage study"* | *"**Evaluation of Bfloat16, Posit, and Takum** Arithmetics in Sparse Linear…"* |
+
+**[1] is the companion paper, self-cited with the wrong title.** Anyone following
+the reference reaches the right work, but a reader searching by the quoted title
+finds nothing — including the authors' own future selves.
+
+### 14.3 Verified correct on this stricter pass
+
+[5] 2310.10537, [6] 2502.10517, [10] 2504.07835, [14] 2206.02915 — titles match.
+Non-arXiv entries ([7] NVIDIA blog, [9] SIAM News, [11] ARITH 2025, [12] libtakum,
+[15] IEEE 754, [16] OCP MX, [17] ml_dtypes, [18] P3109) were not re-checked here.
+
+### 14.4 The count
+
+**8 of 20 references (40 %) carry a wrong title, wrong authors, or both**:
+[1], [2], [3], [4], [8], [13], [19], [20].
+
+[3] remains the most serious — wrong authors, wrong title *and* wrong subject.
+
+### 14.5 Paper B never cites the paper that defines takum
+
+The takum-defining work is **arXiv:2404.18603, *"Beating Posits at Their Own Game:
+Takum Arithmetic"* (Hunhold)**. Paper A cites it. Paper B does **not** — zero
+occurrences — while cataloguing takum8/16/32/64 as four of its 83 formats.
+
+Its [2] cites the *integer-representations* paper instead, under a title that
+belongs to neither work and reads like the defining one. The likely intent was
+2404.18603.
+
+Worth noting: the project's own takum8 pack cites 2404.18603 correctly in its
+`format_notes`. **The artefact cites the right paper; the paper describing the
+artefact does not.**
+
+### 14.6 Recommended correction
+
+```
+[2]  L. Hunhold, "Beating Posits at Their Own Game: Takum Arithmetic,"
+     arXiv:2404.18603, 2024.                        [if the defining work was meant]
+
+[1]  D. Vasilev, "GoldenFloat: A Phi-Derived Static-Split Floating-Point Family
+     from GF4 to GF1024 with a Lucas-Exact Integer Identity,"
+     arXiv:2606.05017, 2026.
+
+[8]  M. Wang et al., "M2XFP: A Metadata-Augmented Microscaling Data Format for
+     Efficient Low-bit Quantization," arXiv:2601.19213, 2026.
+
+[13] L. Hunhold, "Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse
+     Linear Systems," arXiv:2412.20268, 2024.
+```
+
+Verify [8] and [13] author lists against the API before pasting — this pass
+checked their titles, not their author lists, and that is exactly the shortcut
+that produced §8.5.
