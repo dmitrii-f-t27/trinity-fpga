@@ -76,9 +76,10 @@ oracle, not an error in either's values.
 
 // ---- The gap, closed ----------------------------------------------------------
 result COMMUTATIVITY_HOLDS_ACROSS_THE_WHOLE_LADDER {
-  script "research/verify_wide_commutativity.py"
+  script "research/verify_wide_arithmetic.py"   // renamed in pass 54
 
-  widths 17          // gf4 through gf1024, every catalogued GoldenFloat rung
+  widths 16          // gf6 through gf1024; pass 54 established gf4 has no
+                     // testable normal range, so "17" here was wrong
   ordered_pairs 8865
   violations 0
   wall_clock "under one second total; gf1024 in 0.06s"
@@ -131,11 +132,19 @@ is the same defect this campaign keeps finding in other people's work.
 }
 
 scope_limits {
-  covers      "commutativity of add and mul over a +-8 exponent window at all 17 GoldenFloat widths"
+  covers      "all six arithmetic laws over a +-8 exponent window at 16 GoldenFloat widths"
   not_covered { "the full exponent range at any width",
                 "denormals at gf96 and above -- unrepresentable, not merely untested",
-                "the other five laws in verify_arithmetic_invariants.py, which were not ported" }
+                "gf4, which has one exponent bit and no normal range to sample" }
   superiority_claimed false
+
+  amended_in_pass_54 """
+As first written this said "commutativity of add and mul ... at all 17 widths" and
+listed the other five laws as not ported. Pass 54 ported them and found gf4
+untestable, so both clauses were wrong within a day of being written. Corrected in
+place rather than left standing, since a stale scope claim is exactly the defect
+this campaign reports in other people's work.
+"""
 }
 
 // ---- Pass 54: the remaining five laws, and a pending flag finally diagnosed ---
