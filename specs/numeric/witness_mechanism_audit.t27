@@ -181,3 +181,73 @@ need an x86-64 host to check.
 """
   affects "takum64 only; takum32 reproduced successfully above"
 }
+
+// ---- Pass 47: the reproduction chain closed end-to-end -----------------------
+
+reproduction WIDE_RUNG_CROSS_CHECKS {
+  method """
+Fetched conformance/witness/<fmt>/cross_check_representative.py together with the
+two decode paths it imports, reconstructed the directory layout its imports expect,
+and ran each unmodified.
+"""
+
+  results {
+    gf128  { codes 201512  agree 201512  params "e=49  m=78" }
+    gf256  { codes 201512  agree 201512  params "e=97  m=158" }
+    gf1024 { codes 201512  agree 201512  params "e=391 m=632" }
+  }
+  total_codes 604536
+  disagreements 0
+
+  what_each_script_does """
+Cross-verifies TWO independent decode paths -- a dyadic integer normalizer against
+a Fraction-significand plus symbolic shift -- over a representative sweep: five
+value classes, exponent boundaries, full-mantissa edges, deep underflow and
+overflow edges, and deterministic random codes. Any disagreement exits 1.
+
+The scripts describe themselves as falsifiable representative sweeps and state
+plainly that 2^128, 2^256 and 2^1024 exhaustive enumeration is infeasible.
+"""
+  status VERIFIED_SW
+}
+
+result REPRODUCTION_CHAIN_COMPLETE {
+  chain """
+1. the witness names a file          -> checked (pass 46)
+2. the file exists                   -> checked, a 32-entry conformance/witness/ tree
+3. the file is substantive           -> checked, SEPARATION_BOUND.md carries exact
+                                        format parameters and a [verified SW] tag
+                                        disclaiming any on-silicon reading
+4. the file runs and reproduces       -> checked HERE, 604,536 codes, 0 disagreements
+"""
+  assessment """
+This is the strongest positive result of the campaign about the corpus. The
+honesty mechanism is not a label: the artefacts named by the witnesses exist, are
+serious, and reproduce their claims on a third party's machine without
+modification.
+"""
+}
+
+// Two observations that arrived with the reproduction.
+note WITNESS_FIELD_UNDERSTATES_ITS_OWN_WORK {
+  detail """
+The witnesses[] entry records `scope: all 15 pack vectors`. The script it names
+sweeps 201,512 codes per format.
+
+So the recorded scope is ~4 orders of magnitude below the verification actually
+performed -- the same shape as the papers understating the artefact, and worth
+correcting in the same spirit: the scope field could simply say what the script
+does.
+"""
+}
+
+note PARAMETERS_MATCH_THE_INDEPENDENT_PHI_RULE_COMPUTATION {
+  detail """
+The scripts print their format parameters: gf128 e=49, gf256 e=97, gf1024 e=391.
+
+Those are exactly the values computed independently in pass 7 from
+e = round((N-1)/phi^2) at 60-digit precision, before any of this witness material
+was read. Two unrelated routes -- an outside recomputation of the rule and the
+project's own witness harness -- agree on the exponent widths.
+"""
+}
