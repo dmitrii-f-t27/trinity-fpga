@@ -1,0 +1,140 @@
+# Trinity Numeric SSOT — the corpus against a comparable published artefact
+# Pass 50, 2026-07-31. Competitor research done by measurement rather than by
+# reading project pages: web search and fetch were unavailable this session.
+
+spec RelatedWorkMeasured version 1.0.0
+
+description """
+Pass 46 found Paper B's related-work treatment thin. This pass compares the corpus
+to the most widely deployed artefact of the same SHAPE that is inspectable here:
+numpy's published validation vectors.
+
+The comparison is favourable in one direction and unfavourable in another, and
+both matter. Reporting only the flattering half would be the exact failure the
+campaign has been correcting elsewhere.
+"""
+
+limitation NO_NETWORK_THIS_PASS {
+  detail """
+WebSearch and WebFetch both failed with a backend model error, so Berkeley
+TestFloat, the Posit Standard test suites, libtakum's own tests and the OCP MX
+reference vectors could NOT be surveyed. They remain the obvious comparables and
+are unexamined here.
+
+What follows is therefore a single-comparable measurement, not a survey. It is
+grounded in an artefact actually present on disk rather than in a description of
+one, which is the only advantage it has.
+"""
+}
+
+// ---- The comparable -----------------------------------------------------------
+measurement NUMPY_VALIDATION_SETS {
+  source "numpy 2.4.4, _core/tests/data/umath-validation-set-*.csv"
+  files 20
+
+  row_shape "dtype,input,output,ulperrortol -- e.g. np.float32,0x80000000,0xff800000,3"
+
+  vectors_total 26615
+  formats_covered 2          // np.float32 and np.float64
+  operations 20              // exp, log, log2, log10, sin, cos, tan, sinh, ...
+
+  ulp_tolerances { "1": 12001, "2": 8455, "3": 3799, "4": 2355 }
+  rows_claiming_zero_error 0
+
+  reading """
+The most widely used numerical library in the world publishes fixed vectors with
+hex bit patterns -- the same artefact SHAPE as a conformance pack -- and states a
+tolerance of 1 to 4 ULP on every single row. Not one claims exactness.
+"""
+}
+
+measurement T27_CORPUS {
+  source "conformance/vectors, INDEX_all_formats.json"
+  formats_covered 83         // 75 bit-exact + 8 structural
+  vectors_total 5075
+  operations 1               // decode / encode
+
+  vectors_stating_error 5061
+  of_which_exactly_zero 4949
+  nonzero_disclosed 112
+  disclosure_mechanism "abs_error_allowlist.json; wp18_conformance_gate.py reports undisclosed_nonzero: []"
+}
+
+// ---- What the comparison actually shows ---------------------------------------
+result COMPLEMENTARY_NOT_COMPETING {
+  corpus_is_broader """
+83 formats against 2. That is the corpus's real distinction and it is not close.
+"""
+
+  corpus_is_exact_where_numpy_is_not """
+4949 vectors at abs_error exactly 0, against 0 rows out of 26615 claiming zero.
+"""
+
+  numpy_is_deeper """
+26615 vectors against 5075, and it covers 20 OPERATIONS the corpus does not touch
+at all. On operation coverage the corpus is the narrower artefact by a wide margin.
+"""
+
+  the_honest_reading """
+numpy's tolerance is not sloppiness and must not be reported as though it were.
+Its sets cover TRANSCENDENTAL functions, where correctly-rounded evaluation is not
+guaranteed by any common libm, so a tolerance is the only defensible claim. The
+corpus covers DECODE and ENCODE, which is decidable: an exact rational either is or
+is not the value of a bit pattern.
+
+Exactness is available to the corpus because of the operation class it chose, not
+because of superior rigour. Saying otherwise would be comparing a solvable problem
+to an unsolvable one and taking credit for the difference.
+"""
+  status VERIFIED_SW
+}
+
+// ---- The boundary, confirmed from both sides ----------------------------------
+note THE_SAME_BOUNDARY_SEEN_TWICE {
+  detail """
+Pass 45 measured the corpus's own takum32 pack against libtakum: 12 of 15 vectors
+differ by EXACTLY one ULP, none by more, because a logarithmic decode needs exp().
+That was recorded as a ceiling on bit-exactness for logarithmic formats.
+
+numpy's 1-to-4 ULP tolerances are the same boundary approached from the other
+direction, at far larger scale: 26615 rows, every one of them transcendental, not
+one claiming exactness.
+
+Two independent artefacts agreeing on where exactness stops being attainable is a
+stronger statement than either alone, and it is a genuinely publishable
+observation: the corpus is bit-exact precisely over the class where bit-exactness
+is decidable, and its own takum result marks the frontier from the inside.
+"""
+  links { "witness_mechanism_audit.t27 BIT_EXACTNESS_HAS_A_CEILING_FOR_LOGARITHMIC_FORMATS",
+          "takum_variant_split.t27" }
+}
+
+finding RELATED_WORK_CAN_BE_GROUNDED_CHEAPLY {
+  name     "the papers can state their contribution more precisely, and more modestly"
+  severity LOW
+
+  suggested_framing """
+Existing published vector sets are deep and narrow: numpy ships 26,615 validation
+rows covering 20 transcendental operations across 2 formats, each with a stated 1-4
+ULP tolerance. This corpus is the complement -- 5,075 vectors across 83 formats for
+one operation class, decode/encode, where exactness is decidable and 4,949 vectors
+carry abs_error exactly 0, the remaining 112 being disclosed through an allowlist a
+gate checks.
+"""
+
+  why_this_is_better_than_the_current_text """
+It says what the artefact IS rather than that it is unprecedented, it concedes the
+axis on which it is smaller, and every number in it is checkable from the two
+repositories. It also gives the reader the reason exactness was attainable, which
+is more useful than the claim itself.
+"""
+  resolved false
+}
+
+scope_limits {
+  covers      "numpy 2.4.4's published validation sets against the 83-pack corpus"
+  not_covered { "Berkeley TestFloat, Posit Standard suites, libtakum tests, OCP MX vectors -- network unavailable",
+                "whether numpy's sets are exhaustive over any subdomain",
+                "operation-level conformance in the corpus, which pass 18 found exists for the GF ladder" }
+  superiority_claimed false
+}
