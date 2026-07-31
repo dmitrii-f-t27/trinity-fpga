@@ -27,7 +27,7 @@ checked without hardware was recomputed independently and passed:
 |---|---|---|---|
 | 1 | Remove *"the fabricated TTSKY26b dies"* from Paper A's abstract | §1.1 | A factual claim about physical artefacts, live on a public preprint. Replacement wording already exists in trinity-papers-ru PR #17. |
 | 2 | Fix Paper B ref **[3]** | §8.1 | Wholly misattributed: wrong authors, wrong title, wrong subject. One clicked link damages the whole bibliography's credibility. |
-| 3 | Paper B: **six packs → 83** | §2.1 | Largest positive change available. v1 was accurate at submission; the set completed six days later. Pure upside. |
+| 3 | Paper B: **six packs → 83** — but see §12 | §2.1, **§12** | Still the largest positive change, and **cheaper than pass 1 thought**: the manuscript's own v4→v5 changelog shows the submitted body already said *49 bit-exact / 34 structural*, and the local manuscript is already at **v5 (6 July)** saying "all 83". The abstract disagreed with its own body. The action is an **arXiv replacement**, not a rewrite. |
 | 4 | Fix the remaining citation defects | §8.2, §8.3, §6.3 | Paper B [19] [20] [4] and Paper A `flops2026`. Corrected entries supplied verbatim. |
 | 5 | Cite `arXiv:2607.13898` + add the DSP/soft-logic subsection | §5.1, §5.2 | Nearest FPGA neighbour, and it independently corroborates a finding Paper A never states. |
 | 6 | Paper A: cite IEEE 754 and TestFloat | §7.2, §7.2a | TestFloat-3 is the **correctness gate of the pre-registered experiment** and is uncited — an uncited tool dependency, not a related-work nicety. |
@@ -802,3 +802,64 @@ submission itself is the author's action. The repository carries an
 
 Nothing in `gHashTag/t27` or `gHashTag/trinity-papers-ru` was modified by this
 pass — it was read-only apart from this file.
+
+---
+
+## 12. The arXiv entry is a version behind the manuscript (pass 25)
+
+### 12.1 What the manuscript's own changelog says
+
+`paper2-catalog/statya2_ru.docx` is **v5, dated 6 July 2026**, and carries a
+version history. Its v4→v5 entry reads:
+
+> v4→v5: в v4 (**8 июня 2026 г.**) набор пакетов делился как **49 битоточных /
+> 34 структурных**. К v5 покрытие пересчитано по живому SSOT-индексу
+> `INDEX_all_formats.json` …
+
+8 June 2026 is the arXiv submission date. So the **submitted body already
+described 49 bit-exact + 34 structural = 83 packs**, while the **abstract of the
+same submission** says *"a suite of six bit-exact conformance packs covering GF16,
+MXFP4 element, BF16, FP8 E4M3, FP8 E5M2, and E8M0 block scale"*.
+
+### 12.2 This corrects §2.1
+
+Pass 1 framed the pack count as *"v1 was accurate at submission; the artefact grew
+six days later"*. That is **not what happened**. The body and the abstract of the
+same submission disagreed with each other: the abstract named six specific packs
+where the body counted the whole corpus.
+
+The correction matters because it changes the nature of the fix:
+
+- **pass-1 reading** — the paper was right then and is stale now, so v2 must
+  report new work;
+- **actual situation** — the abstract understated the paper's own body from day
+  one, and the local manuscript has *already* moved to v5 stating "all 83 packs".
+
+So the fix is not authorship at all. It is **submitting the existing v5 to arXiv**.
+No new text has to be written for this item.
+
+### 12.3 What is NOT already fixed
+
+The bibliography audit in §8 was performed against **this same v5 manuscript**, so
+its four defective references — the wholly misattributed [3], the author-less [19]
+and [20], and the mis-initialled [4] — are **present in v5** and still require
+correction before any replacement is submitted.
+
+Replacing the arXiv entry with v5 as it stands would fix the pack count and ship
+the bibliography defects. Both must be done together.
+
+### 12.4 Under-claimed: how wide values are serialised
+
+Pass 24 established that the seven layout-B packs store values as **decimal
+strings** with an explicit `value_encoding` field, because a gf1024 value carries
+a 632-bit mantissa and cannot be held in binary64 at all.
+
+Searching the v5 manuscript, `value_encoding` does not appear and serialisation of
+out-of-double values is discussed once at most. The catalog therefore has a
+working answer to a question the field genuinely has — *how do you publish
+bit-exact conformance vectors for formats wider than a double?* — and does not
+claim it.
+
+This is the same shape as the pack count: a real contribution present in the
+artefact and absent from the prose. Recommended as a short subsection rather than
+a headline claim, since it is engineering, not a result.
