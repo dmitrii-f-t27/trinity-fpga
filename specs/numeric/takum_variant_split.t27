@@ -117,3 +117,66 @@ results is comparing two formats.
   owner        author
   blocks       "takum rows in both papers; interpretation of the #199 takum proofs"
 }
+
+// ---- Added pass 33: what the PUBLISHED packs encode ---------------------------
+
+measurement PUBLISHED_PACKS_VARIANT {
+  // Measured with the verified C bridge (research/libtakum_bridge.c), the same
+  // path used for the takum8/16 results above.
+  takum8 {
+    vectors 256
+    vs_linear      "3/256"
+    vs_logarithmic "49/256"
+    reading "leans logarithmic, but matches it on only 19% of codes"
+  }
+  takum16 {
+    vectors 3
+    vs_linear      "3/3"
+    vs_logarithmic "3/3"
+    reading "UNDECIDABLE -- three vectors cannot separate the variants, exactly the
+             insufficient-witness case established in the published-pack audit"
+  }
+
+  // takum32/64 were NOT measured. See the limitation below.
+  status VERIFIED_SW
+}
+
+limitation CTYPES_BINDING_FAILED_ON_WIDE_WIDTHS {
+  detail """
+An attempt to reach libtakum's 32/64-bit conversions through ctypes (rather than
+the C bridge) returned NaN for EVERY code, including the zero code and the code
+the pack labels 1.0. That is impossible for a correct call, so the binding was
+broken and any numbers it produced are void.
+
+The figures it produced -- takum32 3/15 and takum64 0/15 against both variants --
+are therefore NOT findings and must not be cited. Ninth harness failure of this
+campaign; the pattern is unchanged, and catching it required checking a
+known-good input rather than trusting the aggregate.
+"""
+  affects "takum32 and takum64 variant identification, which remains unmeasured"
+}
+
+// Direct inspection succeeded where the binding did not.
+result PUBLISHED_TAKUM64_IS_INTERNALLY_COHERENT {
+  method "read the pack's own named vectors rather than comparing against a reference"
+  evidence """
+  pos_exp_c2   0x4c00...  ->  2.718281828459045   = e
+  pos_exp_c-2  0x3400...  ->  0.36787944117144233 = 1/e
+  neg_exp_c2   0xcc00...  -> -0.36787944117144233 = -1/e
+  pos_one      0x4000...  ->  1.0
+  neg_one      0xc000...  -> -1.0
+"""
+  reading """
+Two signatures are legible without any external reference:
+
+1. e and 1/e appearing at c = +-2 is the LOGARITHMIC variant, whose value is
+   exp(l/2).
+2. the code for +e complements to -1/e, not to -e -- the reciprocal relationship
+   that two's-complement negation produces in a logarithmic encoding.
+
+So the published takum64 pack is coherent, and both signatures point the same way:
+logarithmic, two's complement. That agrees with the HW path, not with the SW
+oracle.
+"""
+  confidence "signature-level, not a bit-exact match; the bit-exact check remains unmeasured"
+}
