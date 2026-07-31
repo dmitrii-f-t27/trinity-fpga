@@ -40,17 +40,22 @@ why that family reports fewer finite codes than its width suggests.
 
 ## Values wider than a double
 
-Six GoldenFloat rungs exceed what IEEE binary64 can hold — `gf1024` carries a
-632-bit mantissa. Their packs therefore serialise values as **decimal strings**
-with an explicit `value_encoding` field, rather than as a JSON number:
+Six GoldenFloat rungs exceed what IEEE binary64 can hold. `gf128` already has
+M = 78 against binary64's 52, and `gf1024` carries a 632-bit mantissa — a binary64
+lowering **would round**. Their packs therefore carry the value as a string with an
+explicit `value_encoding` field rather than as a JSON number, in one of two forms:
 
-```json
-{ "label": "pos_one", "bits": 0, "hex": "0x…",
-  "value": "1", "value_encoding": "decimal" }
-```
+| `value_encoding` | form | vectors |
+|---|---|---|
+| **`dyadic`** | an exact literal `A*2^B` — no rounding possible | **2046** |
+| `decimal` | a decimal expansion | 35 |
+
+`dyadic` is the dominant and the stronger form: it keeps the value exactly, since
+every finite GoldenFloat value is an exact dyadic rational. `gf256` uses it
+exclusively; the other five rungs use both.
 
 A JSON number would silently become a float64 in most parsers and lose the value.
-Consumers should read `value_encoding` and parse accordingly.
+Consumers must read `value_encoding` and parse accordingly.
 
 This is the corpus's answer to a question the field has generally left open: how to
 publish bit-exact conformance vectors for formats wider than a double.
