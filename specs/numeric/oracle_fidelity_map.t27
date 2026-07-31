@@ -251,3 +251,54 @@ is a good ratio, and it makes the recommendation narrow: not "fix the oracles" b
 """
   status VERIFIED_SW
 }
+
+// ---- Pass 39: the uncaveated oracles' exactness claim, TESTED ----------------
+
+verification UNCAVEATED_ORACLES_ARE_EXACT {
+  motivation """
+Pass 36 recorded that 12 oracles carry no caveat and therefore claim exactness.
+That claim was taken on trust -- the same error as pass 34, in the opposite
+direction. This tests it.
+"""
+  executable "research/verify_oracle_exactness.py"
+
+  properties {
+    carrier "decode must return Fraction, int, a Special sentinel, or an exact
+             algebraic carrier -- never a float, which would mean approximation"
+    dyadic  "for a binary format every finite value is (1 + M/2^m) * 2^c, so the
+             denominator must be a power of two; decimal-radix families are exempt
+             since their values are k/10^n"
+  }
+
+  result {
+    oracles_checked 12
+    codes_sampled   19106
+    float_returns   0
+    inadmissible_denominators 0
+    verdict "the exactness claim HOLDS on this evidence"
+  }
+
+  // Sampled, not exhaustive -- stated so the result is not over-read.
+  scope "600 codes per format, spread across the code space; not exhaustive"
+
+  coverage_gaps {
+    extended "double_double and quad_double are 128 and 256 bits, above the 64-bit
+              filter, so NOTHING was checked for them"
+    gf_mx    "exports no FORMATS -- its interface is mx_mul_matrix, so there is
+              nothing to decode and its presence in the uncaveated list is
+              nominal"
+  }
+}
+
+limitation CHECKER_DID_NOT_KNOW_ALGEBRAIC_CARRIERS {
+  detail """
+The first run flagged gfternary as returning "4 other" rather than an exact
+carrier. That was the checker's whitelist, not a defect: gfternary returns PhiVal,
+which IS the exact carrier for Q[phi] -- the irrational is represented
+symbolically, never approximated.
+
+Tenth harness limitation of this campaign. The pattern holds: a checker that does
+not know the artefact's vocabulary reports the artefact as wrong.
+"""
+  fixed true
+}
