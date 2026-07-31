@@ -1,0 +1,141 @@
+# Trinity Numeric SSOT — which oracles are exact, and which are declared models
+# Produced after mistaking a documented deliberate model for a defect (pass 34).
+# Scanned all 17 oracle headers 2026-07-31.
+
+spec OracleFidelityMap version 1.0.0
+
+description """
+Pass 34 retracted a "defect" that was a documented design choice. This scans every
+oracle header so the same category error cannot recur, and so the catalog's
+bit-exactness claim can be read accurately.
+
+Result: 12 of 17 oracles carry no caveat at all. The five that do fall into THREE
+different classes, and conflating them would repeat the original mistake.
+
+The most useful finding is not a defect. It is that the project already solved,
+correctly and in-house, the exact problem that two other oracles work around.
+"""
+
+constants {
+  ORACLES_TOTAL      17
+  NO_CAVEAT          12
+  WITH_CAVEAT         5
+}
+
+// ---- Class 1: deliberate linear reinterpretation of a logarithmic format -----
+class LINEAR_STRUCTURAL_MODEL {
+  oracles { takum_ref, tekum_ref }
+  formats_affected 7    // takum8/16/32/64 + tekum8/16/32
+
+  what_they_say """
+Both state that the real format is LOGARITHMIC, that its values are therefore
+irrational and cannot be held as exact Fractions, and that what is implemented is a
+structural model reverse-engineered from fpga/openxc7-synth/takum64_decode.v and
+interpreted LINEARLY instead.
+
+tekum adds that the full per-trit specification requires the 23-page
+arXiv:2512.10964, whose tables are not machine-parseable, so its model is
+additionally provisional.
+"""
+
+  consequence_for_the_catalog """
+takum8/16/32/64 and tekum8/16/32 appear in the catalog as bit-exact formats. Their
+oracles implement a linear reinterpretation whose SEMANTICS DIFFER from the format
+being catalogued. Bit-exact against the model is not bit-exact against takum.
+
+This is not concealment -- both files say so in capitals in their first lines. But
+a reader of the catalog, or of arXiv:2606.09686, has no way to see it.
+"""
+  status DOCUMENTED_BY_THE_ARTEFACT
+}
+
+// ---- Class 2: the same problem, solved properly ------------------------------
+class EXACT_IN_THE_LOG_DOMAIN {
+  oracles { lns_ref }
+  formats { lns8, lns16, lns32, lns64 }
+
+  what_it_says """
+"LNS хранит sign(value) + log2(|value|) как fixed-point. Само значение
+ value = (-1)^sign * 2^L в общем случае ИРРАЦИОНАЛЬНО ... Это та же
+ фундаментальная ситуация, что и у takum ... Поэтому оракул работает
+ В ЛОГАРИФМИЧЕСКОЙ ОБЛАСТИ (точно): decode_log(raw) -> точный log2(|value|)
+ как Fraction (хранимое поле — диадическое)."
+"""
+
+  significance """
+LNS faces the IDENTICAL irrationality problem and solves it correctly: it does not
+reinterpret the format, it moves the exactness into the logarithmic domain, where
+the stored field is dyadic and a Fraction is exact.
+
+The lns_ref.py header even names takum as the same situation -- so the connection
+was seen, and the correct technique exists in this repository already.
+
+That makes the takum/tekum linear reinterpretation a choice rather than a
+necessity, and it suggests a concrete improvement rather than a complaint: apply
+the LNS approach to takum and tekum, giving exact log-domain oracles for formats
+that are logarithmic by definition.
+"""
+  status EXACT
+}
+
+// ---- Class 3: a status tag, not a fidelity caveat ----------------------------
+class SW_NOT_HARDWARE_TAG {
+  oracles { gf_ref, gf16_plus_ref }
+  marker "[смоделировано]"
+
+  meaning """
+These say "SW oracle, NOT hardware -- the compute-HW tick is closed only by a
+bit-exact run on AX7203". That is a claim about WHERE the check has been run, not
+about whether the model matches the format.
+
+Filing them beside takum/tekum would be a category error. They are exact
+implementations that have not yet been confirmed on silicon.
+"""
+  status EXACT_SW_PENDING_HW
+}
+
+// ---- The rest ----------------------------------------------------------------
+class NO_CAVEAT {
+  count 12
+  oracles { bf16_ref, decimal_ref, extended_ref, fp8_ref, gf_mx_ref, gfternary_ref,
+            ieee_ref, int_ref, legacy_ref, mxfp_ref, nf4_ref, posit_ref }
+  meaning "claim to be exact implementations of the format, with no stated departure"
+}
+
+finding CATALOG_CANNOT_SHOW_ORACLE_FIDELITY {
+  name     "the catalog exposes no field distinguishing an exact oracle from a declared model"
+  severity MEDIUM
+  detail """
+Seven of the catalogued formats are backed by oracles that state their semantics
+differ from the real format, and nothing in the pack, the index or the paper
+carries that. A consumer sees "bit-exact" uniformly.
+
+A single field -- oracle_fidelity: exact | log_domain_exact | structural_model |
+provisional -- would make the distinction machine-readable at negligible cost, and
+would let the honest caveats already written in the source reach the people relying
+on the artefact.
+"""
+  resolved false
+}
+
+recommendation APPLY_THE_LNS_TECHNIQUE {
+  to "takum_ref.py, tekum_ref.py"
+  from "lns_ref.py"
+  rationale """
+All three formats are logarithmic and all three have irrational values. LNS handles
+this exactly by working in the log domain. takum and tekum instead reinterpret the
+field layout linearly, which changes the semantics.
+
+The technique is already written, tested and in the same directory. This is the
+cheapest available route from "structural model" to "exact oracle" for seven
+catalogued formats.
+"""
+  blocked_by "for tekum, the per-trit tables in arXiv:2512.10964; takum has no such blocker"
+}
+
+scope_limits {
+  covers      "the first 40 lines of all 17 oracle headers"
+  not_covered { "whether the 12 uncaveated oracles are in fact exact -- only that they claim to be",
+                "the FPGA decoders these models were reverse-engineered from" }
+  superiority_claimed false
+}
