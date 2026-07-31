@@ -162,3 +162,80 @@ scope_limits {
                 "formats wider than 64 bits" }
   superiority_claimed false
 }
+
+// ---- Pass 55: the roundtrip flags, diagnosed -------------------------------
+
+finding ROUNDTRIP_FLAGS_ARE_NAN_COLLAPSE_AND_NEGATIVE_ZERO {
+  name     "every roundtrip VIOLATED flag examined is a many-to-one encoding, not a defect"
+  severity INFO
+
+  what_was_flagged """
+This sweep flags roundtrip VIOLATED for 40 formats and states plainly that "a flag
+is a lead, not a verdict". Pass 54 showed the cost of leaving such a lead alone: the
+x*0 flags sat undiagnosed for 35 passes and turned out to be negative zero.
+"""
+
+  method """
+For each format, enumerate every code, find those where encode(decode(raw)) != raw,
+and classify the value rather than the code: NaN, inf, zero, or a genuine finite
+value whose code changed.
+"""
+
+  measurement """
+  format      codes   rt fails   breakdown
+  binary16    65536       2046   NAN_COLLAPSE 2045, NEG_ZERO 1
+  bfloat16    65536        254   NAN_COLLAPSE  253, NEG_ZERO 1
+  gf16        65536       1022   NAN_COLLAPSE 1021, NEG_ZERO 1
+  fp8_e4m3      256          2   NAN_COLLAPSE    1, NEG_ZERO 1
+  fp8_e5m2      256          6   NAN_COLLAPSE    5, NEG_ZERO 1
+  fp4_e2m1       16          1                      NEG_ZERO 1
+
+REAL = 0 in every case.
+"""
+
+  the_arithmetic_confirms_it """
+A format with m mantissa bits has 2*(2^m - 1) NaN codes, one of which is canonical
+and survives the round trip. Predicted phantom count 2*(2^m - 1) - 1, plus one for
+negative zero:
+
+  binary16  2*1023 - 1 = 2045  + 1  = 2046   observed 2046
+  gf16      2*511  - 1 = 1021  + 1  = 1022   observed 1022
+  bfloat16  2*127  - 1 =  253  + 1  =  254   observed  254
+
+Exact agreement. The count itself is the diagnosis: if it matches the formula there
+is nothing to investigate, and if it does not, the residue is the interesting part.
+"""
+  resolved true
+}
+
+correction I_ALMOST_PUBLISHED_57330_PHANTOM_DEFECTS {
+  what_happened """
+The first version of the diagnostic took the format width from
+getattr(fmt, "bits", None) or ... or 16 -- a DEFAULT. No oracle exposed a matching
+attribute, so it enumerated 65536 codes for fp8 (8 bits) and fp4 (4 bits) and
+reported 64260 and 57330 REAL failures with tidy-looking examples: 0x101 -> 0x1.
+"""
+  what_that_actually_was """
+Code 257 masked to code 1. Every one of them was an out-of-range input, not a
+format defect. The examples looked convincing precisely because the masking is
+consistent.
+"""
+  fix """
+Derive the width from the format's own fields, or refuse to run. A default width is
+a silent assumption about someone else's data, and it fabricated more phantom
+defects in one run than this entire campaign has found real ones.
+"""
+}
+
+note THE_RULE_IS_NOW_WRITTEN_DOWN {
+  detail """
+Four phantom defects -- pass 22 annihilator, pass 34 takum negation, pass 54 x*0,
+pass 55 roundtrip -- all came from comparing at the wrong level. The rule, with the
+NaN-count formula that settles such a flag in one line, is recorded in
+.claude/skills/t27-spec/SKILL.md so it applies to work after this campaign.
+
+Codes are right for commutativity, determinism and canonical form. Values are right
+for annihilator, identity, sign laws, and any comparison against a reference
+implementation.
+"""
+}

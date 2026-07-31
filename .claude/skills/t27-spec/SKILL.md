@@ -135,3 +135,47 @@ rules agree.
   a demonstrated property for free.
 - **Regex greps over large single-line `.tex` can hang** (catastrophic
   backtracking). Use fixed-string `grep -F` plus `Read` with an offset.
+
+## At which level does the property live?
+
+Four phantom defects in the numeric-verification campaign had one cause: an
+equality compared at the wrong level. The pass-22 annihilator alarm, the pass-34
+takum negation retraction, the pass-54 `x*0` flags and the pass-55 round-trip flags
+were all the same mistake wearing different clothes.
+
+**An encoding is many-to-one at the special values.** NaN has a payload, so every
+NaN code decodes to one NaN and re-encodes to the canonical one. Negative zero has
+its own code and the same value as positive zero. Any check written as
+`encode(decode(raw)) == raw` or `result_code == pos_zero` therefore *manufactures*
+failures at exactly those codes, and then reports them.
+
+Before writing or believing such a check, ask:
+
+- **Codes** are the right level for: commutativity (`a+b` and `b+a` must produce the
+  identical code), determinism, canonical-form checks.
+- **Values** are the right level for: annihilator (`x*0` is *a* zero, either sign),
+  identity, sign laws, and any comparison against a reference implementation.
+
+### The arithmetic tell
+
+If a round-trip check reports failures, count them before diagnosing. For a format
+with `m` mantissa bits the NaN codes number `2 · (2^m − 1)`, of which one is
+canonical and survives. So the expected phantom count is
+
+```
+2 · (2^m − 1) − 1     plus 1 for negative zero
+```
+
+Measured: binary16 `2·1023 − 1 = 2045` + 1; gf16 `2·511 − 1 = 1021` + 1; bfloat16
+`2·127 − 1 = 253` + 1. All matched exactly. **If the count matches the formula, it
+is not a defect** — and if it does not, the residue is the part worth investigating.
+
+### Two harness rules that came from the same passes
+
+- **Never default a format's width.** A version of the pass-55 diagnostic fell back
+  to 16 bits when no attribute matched, enumerated 65536 codes for a 4-bit format,
+  and produced 57,330 phantom "defects" from out-of-range codes. Derive the width
+  or refuse to run.
+- **A flag is a lead, not a verdict — and an undiagnosed lead rots.** The `x*0`
+  flags sat unexamined for 35 passes with a comment already warning what they
+  probably were. Diagnose on discovery or the flag becomes folklore.
