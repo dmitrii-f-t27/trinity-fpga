@@ -922,3 +922,49 @@ Nothing here is an artefact of reading an outdated preprint. Every finding in
 §§1-12 was derived from the abstracts arXiv serves today and from the v5
 manuscript in the repository. The two headline items — the fabricated-dies claim
 and the pack count — are live in the current public versions.
+
+### 13.5 What the revisions actually changed (pass 27)
+
+Fetched each version's abstract explicitly (`id_list=<id>v<n>`) and diffed them.
+
+**Paper A — 2606.05017**
+
+| step | abstract | change |
+|---|---|---|
+| v1 | 1350 chars | baseline; contains the fabricated-dies clause |
+| v1 → v2 | 1810 chars | **added** a sentence: *"A format-conformance oracle (Corona) ships in the same repository and is used as the blackbox check in our continuous-integration audit."* |
+| v2 → v3 | 1810 chars | **abstract unchanged — empty diff** |
+
+The added Corona sentence is **accurate**: it describes Corona as an oracle
+shipping in the repository and used as a CI check, and claims no silicon. It is
+not part of the problem.
+
+The erratum clause has therefore **never been edited since v1**, and v3 did not
+touch the abstract at all.
+
+**Paper B — 2606.09686**
+
+| step | abstract | change |
+|---|---|---|
+| v1 → v2 | 1326 chars, unchanged length | **exactly one token: `84` → `83`** |
+
+That is the entire v2 abstract revision. Notably it is the *same* 84-vs-83
+discrepancy this campaign found independently in pass 10 — so the author noticed
+it and corrected it. The pack count "six" was left untouched.
+
+### 13.6 The mechanism, and why it matters for the fix
+
+Neither revision was a re-read of the abstract. Both were **narrow targeted
+patches** — one sentence added, one number corrected — and everything around them
+was carried forward unexamined. That is why two rounds of revision left the
+flagged claims in place: they were never in scope of either edit.
+
+Two consequences:
+
+1. **Encouraging.** The 84 → 83 edit shows count corrections do get made once
+   noticed. The six → 83 fix is the same species of change, and the replacement
+   text already exists in the v5 manuscript.
+2. **Actionable.** The failure mode is not carelessness, it is the absence of a
+   whole-abstract pass. A single read of each abstract against the item list in
+   this package's executive summary would catch every remaining item at once —
+   which is precisely what two rounds of patching did not do.
