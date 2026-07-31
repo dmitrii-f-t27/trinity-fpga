@@ -106,3 +106,54 @@ single-source rather than cross-validated.
   do_not_guess true
   owner        author
 }
+
+// ---- Pass 51: the same reproduction standard, applied to my own claim ---------
+
+reproduction RERUN_ON_A_CLEAN_ENVIRONMENT {
+  why """
+Passes 44-47 held the project's witnesses to a standard: the named artefact must
+exist, be substantive, and RUN. A background search for ml_dtypes returned nothing,
+which raised the same question about this campaign's own headline number.
+
+Running research/crossval_ml_dtypes.py on this machine's default interpreter:
+
+    ml_dtypes / numpy not available: No module named 'ml_dtypes'
+
+So the 66,224-code result cited in VERIFICATION_DOSSIER.md section 1 was NOT
+reproducible here as it stood.
+"""
+
+  method """
+Installed ml_dtypes==0.5.4 and numpy into an isolated venv under the scratchpad --
+deliberately not into the user's environment -- and re-ran the script unmodified.
+Python 3.14, a different interpreter from the original run.
+"""
+
+  result {
+    total_codes 66224
+    divergences 0
+    zero_sign_excluded 14
+    formats 8   // bfloat16, fp8 e4m3fn, fp8 e5m2, fp4 e2m1, fp6 e2m3, fp6 e3m2, int4, uint4
+  }
+
+  verdict "the number holds, exactly, on a fresh install and a different interpreter"
+  status VERIFIED_SW
+}
+
+finding MY_OWN_RESULT_NEEDED_A_STATED_DEPENDENCY {
+  name     "the cross-validation number was not reproducible from a bare checkout"
+  severity LOW
+
+  detail """
+The claim was true and is now re-verified, but a third party running the script on
+a clean machine got an ImportError rather than the number. The script prints the
+right install line when the import fails, which is why this was cheap to resolve --
+but nothing in the dossier or the spec said a dependency was required.
+
+Same shape as the pass-48 defect in the project's own generator, at much smaller
+scale: a result that stands only in the environment where it was produced is a
+weaker result than one that says what it needs.
+"""
+  fix "state the pinned dependency wherever the number is cited"
+  resolved true
+}
