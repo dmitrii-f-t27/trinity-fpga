@@ -1,0 +1,122 @@
+# Trinity Numeric SSOT — extending the run-everything sweep to tools/ and scripts/
+# Pass 57, 2026-08-01. The method that found the broken generator in pass 48,
+# applied to the two trees it had not touched.
+
+spec ScriptTreeSweep version 1.0.0
+
+description """
+Pass 49 swept conformance/ by running all 13 scripts. tools/ and scripts/ hold 300
+more, and they are a different kind of code: deploy helpers, git drivers and file
+rewriters sit alongside the analysis. Running them unattended would have been
+reckless, so this pass triaged first and executed only what reads.
+
+The most consequential finding is not in either tree. It is in conformance/witness/,
+which the triage swept up along the way.
+"""
+
+// ---- Triage before execution --------------------------------------------------
+measurement SIDE_EFFECT_TRIAGE {
+  scripts 300
+  method "AST classification: EXEC, NET, GIT, WRITE, or READS"
+
+  buckets { READS 79  WRITE 201  NET 1  EXEC 12  PARSE_FAIL 7 }
+
+  first_pass_was_noise """
+The first classifier put 19 pure-analysis scripts in EXEC because it flagged every
+compile() call -- all of them re.compile -- and flagged str.replace as a filesystem
+write. Its git test matched the substring "gh ", which fires inside "through".
+
+Fixed by matching on the receiver (os./shutil./Path. only) and on word boundaries.
+READS went from 10 to 79. A triage that misclassifies is worse than none: it would
+have hidden 69 safe scripts behind a warning and taught nothing.
+"""
+  status VERIFIED_SW
+}
+
+result READ_ONLY_SCRIPTS_RUN {
+  executed 79
+  exit_zero 47
+  failing 32
+
+  failure_causes """
+26 of the 32 fail identically: ROOT = Path("/Users/playra/t27"), an absolute path
+into a home directory that is not this machine's. The rest want a required argument
+or an uninstalled module (pysr, an in-tree `contrib` package).
+"""
+}
+
+// ---- The finding that matters -------------------------------------------------
+finding WITNESS_DECODE_REFS_FAIL_STANDALONE {
+  name     "the six wide-rung witness files fail when run as the witness names them"
+  severity MEDIUM
+
+  evidence """
+Each defaults to an absolute path under /home/user/workspace when given no argument:
+
+  gf128   /home/user/workspace/gf128_work/gf128_pack.json
+  gf96    /home/user/workspace/gf96_work/gf96_pack.json
+  gf512   /home/user/workspace/gf512_work/gf512_pack.json
+  gf1024  /home/user/workspace/gf1024_work/gf1024_pack.json
+  gf256   /home/user/workspace/gf256_witness/gf256_wide_pack.json
+  gf48    /home/user/workspace/t27/conformance/vectors/gf48_conformance_v0.json
+
+  $ python3 gf128_decode_ref.py
+  FileNotFoundError: '/home/user/workspace/gf128_work/gf128_pack.json'
+"""
+
+  why_this_one_matters """
+These are the artefacts honesty rule #10 points a sceptical reader at. Following the
+witness trail and running the named file is the FIRST thing anyone auditing the
+corpus does, and until now it failed.
+"""
+
+  the_witnesses_are_sound """
+Given the in-repo pack explicitly, each produces its claimed result at once:
+
+  gf128 golden (Fraction exact oracle) vs pack: 15/15 exact
+  VERDICT: gf128 Fraction-oracle path agrees with pack, abs_error=0
+
+Only the default lookup was wrong. Nothing about the decoding changes.
+"""
+
+  scope_of_the_defect """
+The cross_check_representative.py scripts reproduced in pass 47 were never affected:
+they IMPORT these modules and never reach __main__. That pass-47 result -- 201,512
+agreeing codes per format -- stands unqualified.
+"""
+
+  fixed "gHashTag/t27#1581, PR #1582 -- default resolved relative to the script's own location"
+  verification "all six run standalone afterwards, gf48 through gf1024, each at abs_error=0"
+  resolved true
+}
+
+// ---- Reported, deliberately not fixed -----------------------------------------
+finding THIRTY_TWO_SCRIPTS_POINT_AT_ANOTHER_MACHINE {
+  name     "scripts/ carries 32 files hardcoding /Users/playra/t27"
+  severity LOW
+
+  detail """
+34 occurrences across 32 files, chiefly gen_w367_lean.py through gen_w392_lean.py
+plus fix_v09_latex.py. The root does not exist on this machine and is not this
+repository.
+"""
+
+  why_severity_is_low """
+No workflow references any of them -- all 29 under .github/workflows were scanned --
+so CI is unaffected, and nothing in either preprint depends on them.
+"""
+
+  not_fixed_deliberately """
+A 32-file bulk edit of code I have not read, to make scripts run that nobody has
+asked to run, is a worse trade than leaving them. Reported for visibility instead.
+"""
+  resolved false
+}
+
+scope_limits {
+  covers      "300 python files under tools/ and scripts/, triaged; the 79 read-only ones executed"
+  not_covered { "the 201 WRITE, 12 EXEC, 1 NET and 7 unparseable files -- not run, by design",
+                "whether the 47 that exit 0 produce CORRECT output; only that they run",
+                "non-python tooling in either tree" }
+  superiority_claimed false
+}
