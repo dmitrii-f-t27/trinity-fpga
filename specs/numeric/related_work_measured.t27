@@ -138,3 +138,91 @@ scope_limits {
                 "operation-level conformance in the corpus, which pass 18 found exists for the GF ladder" }
   superiority_claimed false
 }
+
+// ---- Pass 60: the survey the network had blocked ------------------------------
+
+measurement FOUR_COMPARABLES_MEASURED {
+  note "supersedes the single-comparable limitation recorded above; the network was
+        always reachable, WebFetch's summarising model was what failed"
+
+  berkeley_testfloat {
+    source  "jhauser.us/arithmetic/TestFloat.html, fetched 2026-08-01"
+    formats 5    // binary16/32/64/80/128
+    verbatim_limit "\"TestFloat cannot test decimal floating-point.\""
+    distribution   "\"distributed in the form of ISO/ANSI C source code\""
+    method  "differential against the SoftFloat reference implementation"
+    ships_vectors false
+    author_stated_weakness "\"not especially good at testing difficult rounding
+                            cases for divisions and square roots\""
+  }
+
+  libtakum {
+    source "github.com/takum-arithmetic/libtakum, tree measured via API"
+    files 721
+    data_files 0
+    method """
+test/codec.c is a ROUND-TRIP block: from_float64(to_float64(t)) == t, driven by
+UNIT_TEST_BLOCK_TYPE_ROUNDTRIP. Self-consistency, not conformance against an
+external reference. Expectations live inline in C.
+"""
+    ships_vectors false
+  }
+
+  microxcaling {
+    source "github.com/microsoft/microxcaling, tree measured via API"
+    files 80
+    data_files_over_4kb 0
+    method "programmatic tests in Python"
+    ships_vectors false
+  }
+
+  numpy {
+    vectors 26615
+    formats 2
+    operations 20
+    tolerance "1 to 4 ULP on every row; 0 rows claim exactness"
+    ships_vectors true
+  }
+}
+
+correction I_ALMOST_MISREAD_LIBTAKUM_ENTIRELY {
+  what_the_first_count_showed """
+613 of libtakum's 721 files are .sh, which read as an enormous shell-driven test
+suite and would have been reported as one.
+"""
+  what_they_are """
+man page generators under man/. The actual test directory holds 97 .c files and no
+data. Checking the paths before describing them is the only reason the survey says
+something true.
+"""
+}
+
+result DISTRIBUTED_VECTORS_ARE_RARE {
+  finding """
+Of four comparables, only numpy ships a table a third party can consume without
+running the project's code -- and it states a 1-4 ULP tolerance rather than
+exactness. The two format-specific references, including the one written by the
+format's own author, ship none.
+"""
+
+  the_honest_reading """
+Exactness here follows from SCOPE, not from superior rigour. numpy and TestFloat
+cover transcendentals and arithmetic where correct rounding is not guaranteed; this
+corpus covers decode/encode, which is decidable.
+
+The corpus's own takum32 result -- 12 of 15 vectors off by exactly one ULP against
+libtakum -- marks that frontier from the inside, and three independent artefacts now
+agree on where it lies.
+"""
+  status VERIFIED_SW
+}
+
+scope_limits {
+  covers      "TestFloat, libtakum, microxcaling and numpy, each measured from the artefact"
+  not_covered { "SoftPosit -- hosted on GitLab, not fetched",
+                "IEEE P3109 draft material -- not publicly available",
+                "whether any of these suites is exhaustive over its own domain" }
+  superiority_claimed false
+  explicit_warning "four comparables is a survey, not a census; the ready-to-paste
+                    text forbids generalising it into 'the first' or 'the only'"
+}

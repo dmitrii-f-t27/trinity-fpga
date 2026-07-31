@@ -1,79 +1,77 @@
 # Ready-to-paste related-work subsection — measured, not asserted
 
-> Produced 2026-07-31, pass 50. Fourth in the ready-to-paste series, after
-> `ARXIV_ABSTRACTS_READY_TO_PASTE.md`, `ARXIV_BODY_FIXES_READY_TO_PASTE.md` and
-> `README_SECTION_READY_TO_PASTE.md`.
+> Produced 2026-07-31, **rewritten 2026-08-01 (pass 60)** after the network turned
+> out to be reachable. The first version rested on one comparable and said so; this
+> one surveys four, each measured from the artefact rather than from its own
+> description.
 >
-> **Why this exists.** Pass 46 found Paper B's related-work treatment thin — it
-> cites IEEE 754 [15] and Wintersteiger [11], but never positions the corpus
-> against an existing published vector set. This gives it one, with every number
-> measured from an artefact on disk.
+> **Target:** Paper B, related work, as a short subsection.
 >
-> **Target:** Paper B, the related-work section, as a short subsection. Paper A can
-> cite it rather than repeat it.
->
-> **Honest limitation, stated up front:** web access was unavailable when this was
-> written, so Berkeley TestFloat, the Posit Standard suites, libtakum's own tests
-> and the OCP MX reference vectors were **not** surveyed. They are the obvious
-> further comparables. What follows rests on one comparable, measured directly.
+> **What this does and does not claim.** Paper A's abstract already positions
+> GoldenFloat against *format families* — posit, takum, OCP-MX, IEEE P3109. That
+> gap does not exist. What no version of either paper does is position the
+> **conformance corpus** against existing published *vector sets*, and that is what
+> this supplies.
 
 ---
 
-## Positioning against existing published vector sets
+## Positioning against existing conformance material
 
-Published conformance vectors are not new; what varies is their shape. The most
-widely deployed example is numpy, which ships 20 validation files of the form
+Conformance testing for numeric formats is well established. What varies, and what
+decides whether a third party can use the result, is the **form** it takes: a
+committed table of bit-pattern → value that anyone can read, or a program that must
+be compiled and run.
 
-```
-dtype,input,output,ulperrortol
-np.float32,0x80000000,0xff800000,3
-```
+Measured from the four comparable projects:
 
-Measured over numpy 2.4.4: **26,615 vectors**, covering **20 transcendental
-operations** across **2 formats** (binary32 and binary64). Every row carries a
-stated tolerance of 1–4 ULP. **None claims exactness.**
+| project | formats | ships consumable vectors | how it checks |
+|---|---|---|---|
+| **Berkeley TestFloat** | 5 (binary16/32/64/80/128; *"cannot test decimal floating-point"*) | **No** — *"distributed in the form of ISO/ANSI C source code"* | differential against the SoftFloat reference implementation |
+| **libtakum** (the takum author's C99 reference) | takum8/16/32/64 + log variants | **No** — 0 data files among 721 | round-trip self-consistency (`from_float64(to_float64(t)) == t`), expectations inline in C |
+| **microxcaling** (Microsoft, MX reference) | the MX formats | **No** — 0 committed data files over 4 KB among 80 | programmatic tests in Python |
+| **numpy** | 2 (binary32, binary64) | **Yes** — 26,615 rows across 20 CSV files | fixed vectors with a stated **1–4 ULP tolerance** |
+| **this corpus** | **83** | **Yes** — 5,075 vectors across 83 packs | fixed vectors, 4,949 at `abs_error = 0`; the remaining 112 disclosed via allowlist |
 
-This corpus is the complement rather than the successor:
+Two things follow, and the second matters more than the first.
 
-| | numpy validation sets | this corpus |
-|---|---|---|
-| vectors | 26,615 | 5,075 |
-| formats | 2 | **83** |
-| operations | 20 (transcendental) | 1 (decode/encode) |
-| error claim | 1–4 ULP tolerance | **4,949 at abs_error = 0** |
-| non-zero errors | every row | 112, disclosed via allowlist |
+**Distributed vectors are rarer than one would expect.** Of the four comparables,
+only numpy ships a table a third party can consume without running the project's
+code — and it carries a tolerance, not an exactness claim. The two format-specific
+references, including the one written by the format's own author, ship none. A
+consumer wanting to check a takum implementation today must compile libtakum and
+compare against it.
 
-The corpus is broader by formats and exact where numpy states a tolerance; numpy is
-deeper by vectors and covers an operation class the corpus does not touch at all.
+**Exactness here is a consequence of scope, not of superior rigour.** numpy's sets
+cover transcendental functions, where correctly-rounded evaluation is not guaranteed
+by any common libm, so a tolerance is the only defensible claim. TestFloat's own
+author notes it is *"not especially good at testing difficult rounding cases for
+divisions and square roots."* This corpus covers decode and encode, which is
+decidable: an exact rational either is or is not the value of a bit pattern. The
+right comparison is not "exact beats approximate" but "a decidable problem admits an
+exact answer, and this is what one looks like."
 
-**The reason for the difference is worth stating plainly, because it is not
-rigour.** numpy's sets cover transcendental functions, where correctly-rounded
-evaluation is not guaranteed by any common libm, so a tolerance is the only
-defensible claim. This corpus covers decode and encode, which is decidable: an
-exact rational either is or is not the value of a bit pattern. Exactness was
-available here because of the operation class, not because of superior method.
-
-That boundary shows up inside the corpus too. Its own `takum32` pack, checked
-against libtakum (the format author's C99 reference), agrees on 3 of 15 vectors
-bit-identically and differs by **exactly one ULP** on the other 12, never by more —
-because a logarithmic decode requires `exp()`. Two unrelated artefacts, at very
-different scales, mark the same frontier: bit-exactness is attainable over the
-decidable class and stops at the transcendental one.
+That boundary is visible inside the corpus too. Its own `takum32` pack, checked
+against libtakum, agrees bit-identically on 3 of 15 vectors and differs by **exactly
+one ULP** on the other 12, never more — because a logarithmic decode needs `exp()`.
+Three independent artefacts at very different scales mark the same frontier.
 
 ---
 
 ### Notes for whoever applies this
 
-- The table is the part worth keeping if space is tight. It concedes the axis on
-  which the corpus is smaller, which is what makes the rest credible.
-- The last paragraph is the actual intellectual contribution — the corpus is
-  bit-exact precisely where bit-exactness is decidable, and its own takum result
-  locates the frontier from the inside. That is more useful to a reader than any
-  novelty claim.
-- Do **not** extend this into "the first exhaustive catalogue" or similar. Only one
-  comparable was measured; TestFloat and the posit suites remain unexamined, and a
-  survey claim would outrun the evidence.
-- Every number above is reproducible: the numpy figures from
-  `numpy/_core/tests/data/umath-validation-set-*.csv`, the corpus figures from
-  `conformance/vectors/INDEX_all_formats.json` and the packs it lists.
+- The table is the load-bearing part. Every cell was measured: TestFloat's from its
+  own distribution page, libtakum's and microxcaling's by counting file types in
+  their repository trees, numpy's from
+  `numpy/_core/tests/data/umath-validation-set-*.csv`, and this corpus's from
+  `INDEX_all_formats.json`.
+- Keep the concession. numpy is deeper (26,615 vectors to 5,075) and covers 20
+  operations this corpus does not touch. Stating that is what makes the 83-vs-5
+  format comparison credible.
+- **Not surveyed, and so not claimed:** SoftPosit (hosted on GitLab, not fetched)
+  and the IEEE P3109 draft's own material (not publicly available). Do not
+  generalise the table into "the first" or "the only" — four comparables is a
+  survey, not a census.
+- The last paragraph is the actual contribution: bit-exactness is attainable over
+  the decidable class, and the corpus's own takum result locates the frontier from
+  the inside. That is more useful to a reader than any novelty claim.
   (`specs/numeric/related_work_measured.t27`)
