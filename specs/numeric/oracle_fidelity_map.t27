@@ -187,3 +187,67 @@ probe rediscovered why the hard way before the hypothesis was corrected.
 """
   status VERIFIED_SW
 }
+
+// ---- Pass 38: the project's exactness toolkit, completed ---------------------
+
+inventory EXACTNESS_TECHNIQUES {
+  // Three CORRECT techniques for representing non-rational values exactly, all
+  // already written in conformance/. Listing them together is the point: the one
+  // place a workaround was used is the one place an existing technique applies.
+
+  technique_1_exact_rational {
+    carrier "fractions.Fraction"
+    used_by "12 uncaveated oracles"
+    applies_to "formats whose values are rational: IEEE-like, GF, int, fp8, mxfp, posit, decimal, legacy"
+    note "posit qualifies -- useed^k * 2^e * (1+f) is all powers of two, hence rational"
+  }
+
+  technique_2_exact_log_domain {
+    carrier "Fraction holding log2(|value|), sign carried separately"
+    used_by "lns_ref"
+    applies_to "logarithmic formats, whose values are irrational (2^(p/q))"
+    proven_transferable_to "takum -- 65534/65534 at takum16, see the feasibility record above"
+  }
+
+  technique_3_exact_algebraic_ring {
+    carrier "gfternary_ref.PhiVal -- an element a + b*phi of Q[phi], a and b rational"
+    used_by "gfternary_ref"
+    applies_to "formats whose values live in an algebraic extension"
+    how_it_stays_exact """
+Multiplication closes in the ring using the golden-ratio identity phi^2 = phi + 1:
+
+  (a + b*phi)(c + d*phi) = ac + bd*phi^2 + (ad + bc)*phi
+                         = (ac + bd) + (ad + bc + bd)*phi
+
+so a product of two exact elements is again exact -- no irrational ever has to be
+approximated.
+"""
+    on_thesis """
+The identity this rests on is the papers' own anchor, phi^2 = phi + 1, equivalently
+phi^2 + 1/phi^2 = 3. The exactness technique and the format family share a
+foundation.
+"""
+  }
+
+  the_one_workaround {
+    technique "linear reinterpretation of a logarithmic field layout"
+    used_by "takum_ref, tekum_ref"
+    formats 7
+    assessment """
+This is the only place in the oracle layer where exactness was obtained by
+CHANGING THE FORMAT'S SEMANTICS rather than by choosing a carrier that can hold
+its values.
+
+Pass 37 established that technique 2 transfers to takum with no new mathematics.
+So the workaround is not forced -- three correct techniques exist in the same
+directory, and one of them fits.
+"""
+  }
+
+  conclusion """
+The project has three correct exactness techniques and used a workaround once. That
+is a good ratio, and it makes the recommendation narrow: not "fix the oracles" but
+"apply technique 2 where it already provably works".
+"""
+  status VERIFIED_SW
+}
