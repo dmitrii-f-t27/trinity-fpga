@@ -7,7 +7,12 @@
 > **This is a prepared package, not a submission.** Replacing an arXiv entry
 > needs the author's arXiv credentials — see §11.
 
-## Executive summary (13 verification passes, 2026-07-31)
+## Executive summary (26 verification passes, 2026-07-31)
+
+> **Read §13 first.** Both preprints have been revised since submission —
+> 2606.05017 is at **v3**, 2606.09686 at **v2**, both updated 2026-06-22 — and the
+> two headline problems below are present in those *current* versions, not in a
+> stale v1. Everything in this package was checked against what arXiv serves today.
 
 **Verdict: the science holds. The defects are in citations and in unstated
 distinctions, not in the results.** Every central technical claim that could be
@@ -25,7 +30,7 @@ checked without hardware was recomputed independently and passed:
 
 | # | action | where | why now |
 |---|---|---|---|
-| 1 | Remove *"the fabricated TTSKY26b dies"* from Paper A's abstract | §1.1 | A factual claim about physical artefacts, live on a public preprint. Replacement wording already exists in trinity-papers-ru PR #17. |
+| 1 | Remove *"the fabricated TTSKY26b dies"* from Paper A's abstract | §1.1, **§13** | A factual claim about physical artefacts, live on a public preprint — and **it has survived two revisions**: arXiv:2606.05017 is at **v3** (updated 2026-06-22) and still contains it. Replacement wording already exists in trinity-papers-ru PR #17. |
 | 2 | Fix Paper B ref **[3]** | §8.1 | Wholly misattributed: wrong authors, wrong title, wrong subject. One clicked link damages the whole bibliography's credibility. |
 | 3 | Paper B: **six packs → 83** — but see §12 | §2.1, **§12** | Still the largest positive change, and **cheaper than pass 1 thought**: the manuscript's own v4→v5 changelog shows the submitted body already said *49 bit-exact / 34 structural*, and the local manuscript is already at **v5 (6 July)** saying "all 83". The abstract disagreed with its own body. The action is an **arXiv replacement**, not a rewrite. |
 | 4 | Fix the remaining citation defects | §8.2, §8.3, §6.3 | Paper B [19] [20] [4] and Paper A `flops2026`. Corrected entries supplied verbatim. |
@@ -863,3 +868,57 @@ claim it.
 This is the same shape as the pack count: a real contribution present in the
 artefact and absent from the prose. Recommended as a short subsection rather than
 a headline claim, since it is engineering, not a result.
+
+---
+
+## 13. Both preprints are already revised — and the problems survived (pass 26)
+
+### 13.1 Current versions
+
+| preprint | current | submitted | last updated |
+|---|---|---|---|
+| 2606.05017 (GoldenFloat) | **v3** | 2026-06-03 | **2026-06-22** |
+| 2606.09686 (catalog) | **v2** | 2026-06-08 | **2026-06-22** |
+
+The arXiv API serves the latest version, so every abstract quoted in this package
+is the **current** one. Verified directly against what arXiv returns today:
+
+- `2606.05017v3` still contains **"fabricated TTSKY26b"**;
+- `2606.09686v2` still contains **"six bit-exact conformance packs"**.
+
+### 13.2 Why this changes the reading of item 1
+
+The fabricated-dies claim is not an oversight left in an initial submission that
+nobody revisited. The preprint has been **updated twice** since — v1 → v2 → v3 —
+and the sentence asserting that fabricated dies exist is still there.
+
+That makes it more urgent rather than less. A claim about physical artefacts that
+persists through two rounds of revision reads, to anyone who later learns the
+silicon was cancelled, as sustained rather than accidental. It is also the single
+cheapest thing in this package to fix: two clauses, with replacement wording
+already written and already applied in `trinity-papers-ru` PR #17.
+
+### 13.3 Correction to §12: two version numberings, not one
+
+§12 said "the arXiv entry is a version behind the manuscript". That is true in
+substance but imprecise in detail, and the detail matters when someone goes to
+submit.
+
+The manuscript keeps its **own** version numbers (its changelog speaks of v4 and
+v5) which do **not** correspond to arXiv's. Concretely:
+
+- manuscript **v4** is dated 8 June 2026 = the date of **arXiv v1**;
+- the local manuscript is **v5**, dated 6 July 2026;
+- arXiv's latest is **v2**, from 22 June 2026 — a revision the manuscript's
+  changelog does not obviously name.
+
+So there is roughly a two-week gap between what arXiv serves and what the
+repository holds, and the two numbering schemes must not be conflated when
+preparing the replacement. Do not assume "manuscript v5" maps to "arXiv v3".
+
+### 13.4 What this means for the package as a whole
+
+Nothing here is an artefact of reading an outdated preprint. Every finding in
+§§1-12 was derived from the abstracts arXiv serves today and from the v5
+manuscript in the repository. The two headline items — the fabricated-dies claim
+and the pack count — are live in the current public versions.
