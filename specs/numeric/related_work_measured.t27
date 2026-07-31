@@ -15,6 +15,8 @@ campaign has been correcting elsewhere.
 """
 
 limitation NO_NETWORK_THIS_PASS {
+  SUPERSEDED_BY "FOUR_COMPARABLES_MEASURED, pass 60 -- see the end of this file"
+
   detail """
 WebSearch and WebFetch both failed with a backend model error, so Berkeley
 TestFloat, the Posit Standard test suites, libtakum's own tests and the OCP MX
@@ -24,6 +26,16 @@ are unexamined here.
 What follows is therefore a single-comparable measurement, not a survey. It is
 grounded in an artefact actually present on disk rather than in a description of
 one, which is the only advantage it has.
+"""
+
+  what_was_wrong_about_this """
+The network was never down. WebFetch's summarising model was failing, and curl
+reached every one of these sources on the first try a pass later.
+
+"The tool errored, therefore the resource is unreachable" is a bad inference, and
+it cost this campaign ten passes of an unnecessarily narrow related-work section.
+When a tool fails, try a different route to the same thing before recording the
+thing as unavailable.
 """
 }
 
