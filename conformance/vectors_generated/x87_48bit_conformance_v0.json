@@ -21,8 +21,8 @@
   },
   "round_trip_policy": "decode: exact bits->f64 via the golden oracle. Values outside binary64 range are recorded as null with a note rather than clamped.",
   "vector_mode": "curated_named",
-  "n_vectors": 9,
-  "max_finite": 3.0,
+  "n_vectors": 16,
+  "max_finite": -4.0,
   "vectors": [
     {
       "name": "zero",
@@ -93,6 +93,61 @@
       "x87_48bit_bits_int": 70371965403136,
       "decoded_f64": 3.0,
       "decoded_f64_hex": "0x4008000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "xor_comp_of_0xffffffffffff",
+      "x87_48bit_bits_hex": "0x7fffffffffff",
+      "x87_48bit_bits_int": 140737488355327,
+      "decoded_f64": null,
+      "note": "not representable in binary64"
+    },
+    {
+      "name": "xor_comp_of_0x1",
+      "x87_48bit_bits_hex": "0x800000000001",
+      "x87_48bit_bits_int": 140737488355329,
+      "decoded_f64": -0.0,
+      "decoded_f64_hex": "0x8000000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "twos_comp_of_0x3fff80000000",
+      "x87_48bit_bits_hex": "0xc00080000000",
+      "x87_48bit_bits_int": 211108380016640,
+      "decoded_f64": -2.0,
+      "decoded_f64_hex": "0xc000000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "twos_comp_of_0x3ffe80000000",
+      "x87_48bit_bits_hex": "0xc00180000000",
+      "x87_48bit_bits_int": 211112674983936,
+      "decoded_f64": -4.0,
+      "decoded_f64_hex": "0xc010000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "xor_comp_of_0x3ffe80000000",
+      "x87_48bit_bits_hex": "0xbffe80000000",
+      "x87_48bit_bits_int": 211099790082048,
+      "decoded_f64": -0.5,
+      "decoded_f64_hex": "0xbfe0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "twos_comp_of_0x4000c0000000",
+      "x87_48bit_bits_hex": "0xbfff40000000",
+      "x87_48bit_bits_int": 211103011307520,
+      "decoded_f64": -0.5,
+      "decoded_f64_hex": "0xbfe0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "xor_comp_of_0x4000c0000000",
+      "x87_48bit_bits_hex": "0xc000c0000000",
+      "x87_48bit_bits_int": 211109453758464,
+      "decoded_f64": -3.0,
+      "decoded_f64_hex": "0xc008000000000000",
       "abs_error": 0.0
     }
   ]

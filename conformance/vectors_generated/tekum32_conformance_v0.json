@@ -21,7 +21,7 @@
   },
   "round_trip_policy": "decode: exact bits->f64 via the golden oracle. Values outside binary64 range are recorded as null with a note rather than clamped.",
   "vector_mode": "curated_named",
-  "n_vectors": 9,
+  "n_vectors": 15,
   "max_finite": -5.789601701167271e+76,
   "vectors": [
     {
@@ -93,6 +93,54 @@
       "tekum32_bits_int": 1241513984,
       "decoded_f64": 3.0,
       "decoded_f64_hex": "0x4008000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "xor_comp_of_0xffffffff",
+      "tekum32_bits_hex": "0x7fffffff",
+      "tekum32_bits_int": 2147483647,
+      "decoded_f64": 5.789601701167271e+76,
+      "decoded_f64_hex": "0x4fdfffff00000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "xor_comp_of_0x1",
+      "tekum32_bits_hex": "0x80000001",
+      "tekum32_bits_int": 2147483649,
+      "decoded_f64": -1.7272353582373176e-77,
+      "decoded_f64_hex": "0xb000000100000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "twos_comp_of_0x48000000",
+      "tekum32_bits_hex": "0xb8000000",
+      "tekum32_bits_int": 3087007744,
+      "decoded_f64": -0.5,
+      "decoded_f64_hex": "0xbfe0000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "xor_comp_of_0x48000000",
+      "tekum32_bits_hex": "0xc8000000",
+      "tekum32_bits_int": 3355443200,
+      "decoded_f64": -2.0,
+      "decoded_f64_hex": "0xc000000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "twos_comp_of_0x4a000000",
+      "tekum32_bits_hex": "0xb6000000",
+      "tekum32_bits_int": 3053453312,
+      "decoded_f64": -0.375,
+      "decoded_f64_hex": "0xbfd8000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "xor_comp_of_0x4a000000",
+      "tekum32_bits_hex": "0xca000000",
+      "tekum32_bits_int": 3388997632,
+      "decoded_f64": -3.0,
+      "decoded_f64_hex": "0xc008000000000000",
       "abs_error": 0.0
     }
   ]

@@ -87,9 +87,17 @@ def to_f64(value):
 
 
 def curated_raws(mod, fmt, width: int) -> list[tuple[str, int]]:
-    """Principled corners for formats too wide to enumerate."""
+    """Principled corners for formats too wide to enumerate.
+
+    Corners alone are not enough. A pack is supposed to let a third party check
+    the format's properties from the pack itself, and an audit of the pass-11
+    packs found that curated mode could not attest to the NEGATION rule at all:
+    without the complement of a code present, decode(-raw) == -decode(raw) is
+    untestable. Both complements of each seed are therefore included.
+    """
     span = 1 << width
-    picks = [("zero", 0), ("msb_set", 1 << (width - 1)),
+    msb = 1 << (width - 1)
+    picks = [("zero", 0), ("msb_set", msb),
              ("all_ones", span - 1), ("lsb_set", 1)]
     if hasattr(mod, "encode"):
         for label, val in (("one", 1), ("minus_one", -1), ("two", 2),
@@ -100,6 +108,15 @@ def curated_raws(mod, fmt, width: int) -> list[tuple[str, int]]:
                     picks.append((label, raw))
             except Exception:
                 pass
+
+    # Negation witnesses: for each finite seed, add BOTH candidate complements so
+    # the pack can attest to which negation rule the format obeys.
+    seeds = [r for _, r in picks if r not in (0, msb)]
+    for raw in list(seeds):
+        for label, comp in ((f"twos_comp_of_0x{raw:x}", (-raw) % span),
+                            (f"xor_comp_of_0x{raw:x}", raw ^ msb)):
+            if 0 <= comp < span:
+                picks.append((label, comp))
     seen, ordered = set(), []
     for label, raw in picks:
         if raw not in seen:

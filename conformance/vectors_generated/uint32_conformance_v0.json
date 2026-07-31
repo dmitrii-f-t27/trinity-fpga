@@ -21,7 +21,7 @@
   },
   "round_trip_policy": "decode: exact bits->f64 via the golden oracle. Values outside binary64 range are recorded as null with a note rather than clamped.",
   "vector_mode": "curated_named",
-  "n_vectors": 6,
+  "n_vectors": 12,
   "max_finite": 4294967295.0,
   "vectors": [
     {
@@ -70,6 +70,54 @@
       "uint32_bits_int": 3,
       "decoded_f64": 3.0,
       "decoded_f64_hex": "0x4008000000000000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "xor_comp_of_0xffffffff",
+      "uint32_bits_hex": "0x7fffffff",
+      "uint32_bits_int": 2147483647,
+      "decoded_f64": 2147483647.0,
+      "decoded_f64_hex": "0x41dfffffffc00000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "xor_comp_of_0x1",
+      "uint32_bits_hex": "0x80000001",
+      "uint32_bits_int": 2147483649,
+      "decoded_f64": 2147483649.0,
+      "decoded_f64_hex": "0x41e0000000200000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "twos_comp_of_0x2",
+      "uint32_bits_hex": "0xfffffffe",
+      "uint32_bits_int": 4294967294,
+      "decoded_f64": 4294967294.0,
+      "decoded_f64_hex": "0x41efffffffc00000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "xor_comp_of_0x2",
+      "uint32_bits_hex": "0x80000002",
+      "uint32_bits_int": 2147483650,
+      "decoded_f64": 2147483650.0,
+      "decoded_f64_hex": "0x41e0000000400000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "twos_comp_of_0x3",
+      "uint32_bits_hex": "0xfffffffd",
+      "uint32_bits_int": 4294967293,
+      "decoded_f64": 4294967293.0,
+      "decoded_f64_hex": "0x41efffffffa00000",
+      "abs_error": 0.0
+    },
+    {
+      "name": "xor_comp_of_0x3",
+      "uint32_bits_hex": "0x80000003",
+      "uint32_bits_int": 2147483651,
+      "decoded_f64": 2147483651.0,
+      "decoded_f64_hex": "0x41e0000000600000",
       "abs_error": 0.0
     }
   ]
