@@ -55,6 +55,7 @@ def audit(path):
     span = 1 << width
     msb = span >> 1
 
+    from fractions import Fraction as _F
     vals = {}
     for v in pack.get("vectors", []):
         raw = v.get(f"{name}_bits_int")
@@ -63,6 +64,21 @@ def audit(path):
                 if k.endswith("_bits_int"):
                     raw = v[k]
                     break
+        # Layout B (wide GF formats): code in `bits`, value as a DECIMAL STRING in
+        # `value`. That is not arbitrary drift -- a gf1024 value has a 632-bit
+        # mantissa and cannot be held in binary64 at all, so decoded_f64 would be
+        # lossy or impossible. Read it exactly, as a Fraction.
+        if raw is None and isinstance(v.get("bits"), int):
+            raw = v["bits"]
+            sv = v.get("value")
+            if isinstance(sv, str) and v.get("value_encoding") == "decimal":
+                try:
+                    vals[raw] = _F(sv)
+                except Exception:
+                    vals[raw] = None
+            else:
+                vals[raw] = None
+            continue
         if raw is None:
             continue
         d = v.get("decoded_f64")
