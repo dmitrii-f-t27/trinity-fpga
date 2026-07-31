@@ -99,8 +99,7 @@ exactly right for the logarithmic variant.
 
 scope_limits {
   covers      "variant identification for takum8 and takum16 on both paths"
-  not_covered { "takum32/64, not enumerable",
-                "which variant the published packs encode",
+  not_covered { "takum32/64 bit-exact variant identification (see the ctypes limitation)",
                 "which variant either paper intends" }
   superiority_claimed false
 }
@@ -179,4 +178,34 @@ logarithmic, two's complement. That agrees with the HW path, not with the SW
 oracle.
 """
   confidence "signature-level, not a bit-exact match; the bit-exact check remains unmeasured"
+}
+
+
+// ---- The tally, and what it implies ------------------------------------------
+result TWO_OF_THREE_ARE_LOGARITHMIC {
+  tally {
+    hw_conformance_golden "LOGARITHMIC -- exact, 60485/60485 at takum16"
+    published_packs       "LOGARITHMIC -- 49/256 at takum8; e / 1-over-e signature at takum64"
+    sw_oracle             "LINEAR -- exact, 65536/65536 at takum16"
+  }
+
+  reading """
+Two of the three implementations are logarithmic. The SW oracle is the outlier.
+
+That shifts the likely answer to WHICH_TAKUM_VARIANT_IS_CANONICAL_HERE: the
+project probably means LOGARITHMIC takum, and conformance/takum_ref.py is the one
+out of step -- not the hardware path and not the packs.
+"""
+
+  consequence_for_the_pass_31_fix """
+The negation fix remains correct for what takum_ref.py implements today, and it
+was verified 65536/65536 against libtakum linear. But if the project means the
+logarithmic variant, that fix made the oracle a more exact implementation of the
+WRONG variant.
+
+Stated plainly rather than buried: the fix is not wasted -- the sign-and-magnitude
+bug was real and would have been wrong in either variant -- but the file may need a
+second change of a different kind, and that change is the author's call.
+"""
+  confidence "two independent implementations agree; the third is exact but alone"
 }
