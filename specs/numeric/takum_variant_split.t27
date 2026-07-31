@@ -1,0 +1,119 @@
+# Trinity Numeric SSOT — the SW and HW takum paths implement DIFFERENT variants
+# Discovered 2026-07-31 while checking whether the pass-31 oracle fix invalidated
+# the HW conformance proofs. It does not — because the two never agreed anyway.
+
+spec TakumVariantSplit version 1.0.0
+
+description """
+libtakum exposes two conversions per width: takum<N>_to_float64 (LINEAR) and
+takum_log<N>_to_float64 (LOGARITHMIC). Both are legitimate takum variants defined
+by the format's author.
+
+This project implements BOTH — under the same format name, in two different
+places, for two different purposes:
+
+  conformance/takum_ref.py                      -> takum LINEAR
+  conformance/takum*_decode_conformance_ax7203.py -> takum LOGARITHMIC
+
+Each is an exactly correct implementation of the variant it implements. The
+problem is that they are not the same format, and the catalog, the packs and the
+#199 hardware proofs do not distinguish them.
+"""
+
+// ---- The measurement ---------------------------------------------------------
+measurement VARIANT_IDENTIFICATION {
+  method "decode every code on both paths; compare against both libtakum conversions"
+
+  takum16 {
+    sw_oracle_vs_linear      "65536/65536"   // exact, after the pass-31 fix
+    sw_oracle_vs_logarithmic "not matching"
+    hw_golden_vs_linear      "5/57313"
+    hw_golden_vs_logarithmic "60485/60485"   // exact
+  }
+  takum8 {
+    sw_oracle_vs_linear      "144/256"
+    sw_oracle_vs_logarithmic "4/256"
+    hw_golden_vs_linear      "3/225"
+    hw_golden_vs_logarithmic "131/237"
+  }
+
+  // takum16 is decisive; takum8 is degraded on both paths by the separately
+  // documented sub-threshold anomaly (n<12), but the variant assignment is
+  // unambiguous there too.
+  verdict "SW path is LINEAR, HW path is LOGARITHMIC, both exactly correct at takum16"
+  status VERIFIED_SW
+}
+
+finding SAME_NAME_TWO_FORMATS {
+  name     "takum SW and HW paths implement different takum variants under one name"
+  severity HIGH
+
+  consequence """
+- SW-bitexact claims for takum, the catalog packs, and anything derived from
+  takum_ref.py describe LINEAR takum.
+- The #199 Tier-E hardware proofs for takum describe LOGARITHMIC takum.
+- "takum16 is bit-exact in software and on hardware" therefore conflates two
+  different formats. Each half of that sentence is true of a different object.
+- Anyone cross-checking a SW pack against a HW result would find near-total
+  disagreement, and would be right to.
+"""
+
+  not_a_bug_in_either """
+Both implementations are correct. The HW golden is an independent mpmath
+implementation matching libtakum's logarithmic conversion exactly (60485/60485 at
+takum16). The SW oracle, after the pass-31 negation fix, matches libtakum's linear
+conversion exactly (65536/65536). Neither is defective; they simply are not the
+same format.
+"""
+
+  what_must_be_decided """
+Which variant does the project mean by "takum"? The answer determines:
+  - whether takum_ref.py should be switched to logarithmic, or the HW path to
+    linear, or both kept with distinct names (e.g. takum16 vs takum_log16);
+  - which of the published takum packs are describing which variant;
+  - how the takum rows in both papers should be labelled.
+This is an authorial decision. Nothing here should be changed by inference.
+"""
+  resolved false
+}
+
+// ---- What this does to earlier findings --------------------------------------
+reframes PRIOR_FINDINGS {
+  pass_14 """
+"Three implementations of takum8 produce three different decode tables" is now
+partly explained: two of the three were implementing different VARIANTS, not
+disagreeing about one. The residual sub-threshold anomaly remains.
+"""
+  pass_31 """
+The negation fix stands and is unaffected. It made takum_ref.py exactly correct AS
+LINEAR TAKUM, verified 65536/65536. If the project decides takum means the
+logarithmic variant, the fix is still correct for what the file implements today,
+and the variant switch is a separate change.
+"""
+  hw_proofs """
+The #199 hardware proofs are NOT invalidated by the pass-31 fix, because the HW
+path never used takum_ref.py -- it carries its own mpmath golden. That golden is
+exactly right for the logarithmic variant.
+"""
+}
+
+scope_limits {
+  covers      "variant identification for takum8 and takum16 on both paths"
+  not_covered { "takum32/64, not enumerable",
+                "which variant the published packs encode",
+                "which variant either paper intends" }
+  superiority_claimed false
+}
+
+open_question WHICH_TAKUM_VARIANT_IS_CANONICAL_HERE {
+  question """
+Does "takum" in this project mean the linear or the logarithmic variant?
+
+Both exist in libtakum and both are implemented here, correctly, in different
+places. Until this is answered, any statement combining the SW and HW takum
+results is comparing two formats.
+"""
+  do_not_guess true
+  owner        author
+  blocks       "takum rows in both papers; interpretation of the #199 takum proofs"
+}
