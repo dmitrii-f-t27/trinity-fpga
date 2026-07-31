@@ -45,6 +45,8 @@ called out in the docstring, and it is the larger of the two departures.
 }
 
 // ---- The order-independence question, and what was NOT established -----------
+// RESOLVED in pass 31 -- see finding ORDER_DEPENDENCE_CONFIRMED below.
+// The three configurations here simply failed to probe the boundary.
 result ORDER_INDEPENDENCE_HELD_BUT_UNPROVEN {
   configurations_tested {
     powers_of_two_tight    { operand_exponents "0..2"      terms 16  distinct_results 1 }
@@ -75,6 +77,7 @@ magnitude and with cancellation. Neither design produced that, and the campaign
 ended before a third was built.
 """
   confidence "insufficient to claim order-independence as a property"
+  superseded_by "ORDER_DEPENDENCE_CONFIRMED (pass 31)"
 }
 
 scope_limits {
@@ -108,4 +111,67 @@ against GF16+ area must state which of the two is meant -- they are different
 designs, and the campaign already recorded that quoting a LUT figure without its
 protocol produces a ~3x spread.
 """
+}
+
+
+// ---- Added pass 31: the third construction, and it breaks ---------------------
+
+finding ORDER_DEPENDENCE_CONFIRMED {
+  name     "GF16+ accumulation is order-dependent, with the boundary at binary64 precision"
+  severity MEDIUM
+  resolves "ORDER_INDEPENDENCE_HELD_BUT_UNPROVEN (pass 30)"
+
+  // Comparable magnitudes with cancellation -- the case pass 30 failed to build.
+  minimal_case """
+BIG = 2^30, EPS = 2^-24, both ordinary GF16-representable values, b = 1.0 throughout:
+
+  MAC(BIG), MACSUB(BIG), MAC(EPS)   -> accumulator 2^-24, flushed 2^-24   CORRECT
+  MAC(BIG), MAC(EPS), MACSUB(BIG)   -> accumulator 0.0,   flushed 0.0     EPS LOST
+
+The two orders differ at both the binary64 accumulator and the flushed GF16 result.
+"""
+
+  threshold {
+    measured "EPS is lost when the exponent gap to the running sum reaches 53 binades; it survives at 52"
+    sweep "BIG=2^30 fixed, EPS from 2^-30 to 2^-19"
+    matches "binary64 mantissa width exactly, as predicted"
+  }
+
+  significance """
+This is not an exotic corner. Accumulate, cancel, keep a small residue is the
+standard dot-product-with-cancellation pattern, and making exactly that pattern
+order-independent is what a quire EXISTS to do. GF16+ fails it at ordinary
+operand magnitudes well inside GF16's range.
+
+So the departure recorded in QUIRE_IS_BINARY64_AND_PRODUCTS_ARE_PRE_ROUNDED is
+not merely structural -- it is observable, with a two-line reproduction.
+"""
+
+  not_a_correctness_defect """
+The oracle documents its accumulator as binary64 and says "exact for small sums".
+Measured behaviour matches that documentation precisely. The finding is about the
+NAME and what readers will infer from it, not about the code doing something other
+than what it says.
+"""
+  resolved true
+}
+
+// Upgraded from a stylistic note to a substantive one.
+open_question IS_QUIRE_THE_RIGHT_WORD_UPGRADED {
+  supersedes "IS_QUIRE_THE_RIGHT_WORD"
+  question """
+Given ORDER_DEPENDENCE_CONFIRMED, the naming question is no longer stylistic.
+
+A reader who knows posit will read "Quire" as a guarantee that dot products with
+cancellation are order-independent and exactly accumulated. GF16+ provides
+neither: products are pre-rounded to 9 bits, the accumulator is binary64, and a
+two-line example shows order changing the result.
+
+Options, all authorial: keep the name with an explicit caveat at first use;
+qualify it ("binary64 quire-style accumulator"); or rename. What should not
+happen is the term appearing unqualified in a paper about numeric formats, where
+the audience is precisely the one that knows what a quire promises.
+"""
+  do_not_guess true
+  owner        author
 }
