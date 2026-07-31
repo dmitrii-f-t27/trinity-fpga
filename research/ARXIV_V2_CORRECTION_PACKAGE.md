@@ -1158,3 +1158,60 @@ re-verified is the error this package exists to document.
 What is unambiguous either way: a gate that warns on every run about an erratum
 that has already been written is a gate people stop reading, and it will not be
 believed on the day the divergence is real.
+
+### 16.2 Resolved, 2026-08-01 — the title is fine
+
+Fetched `export.arxiv.org/api/query?id_list=2606.09686` directly (the earlier
+failure was WebFetch's summarising model, not the network):
+
+```
+TITLE    : An 83-Format Numeric Catalog with Bit-Exact Conformance Vectors:
+           A Vendor-Neutral Reference for FP8, BF16, MXFP4, and Microscaling Formats
+ID       : http://arxiv.org/abs/2606.09686v2
+UPDATED  : 2026-06-22T12:28:45Z
+```
+
+**The v2 replacement corrected the title as well as the abstract.** Both read 83.
+The concern raised in §16 was unfounded, which is why it was recorded as an open
+question rather than a finding.
+
+Two consequences.
+
+**The CI constant is now unambiguously stale.** With title and abstract both at 83,
+`PAPER_DECLARED_COUNT = 84` in `tools/check_catalog_count.py` describes only the
+withdrawn v1, and its permanent `WARN: an erratum is required` refers to work the v2
+replacement already performed.
+
+**The abstract's real defect is confirmed to survive v2.** Verbatim from the fetch:
+
+> "a suite of **six** bit-exact conformance packs covering GF16, MXFP4 element,
+> BF16, FP8 E4M3, FP8 E5M2, and E8M0 block scale"
+
+against 83 packs in the artefact — 75 bit-exact and 8 structural. This remains the
+single highest-value correction in this package, and it is now verified present in
+the current published version, not inferred from an older one.
+
+Also re-confirmed in the current text: "83 numeric formats spanning **13 families**"
+(unverified — §5), and "IEEE P3109 **v3.2.0**" (not publicly checkable — §5).
+
+### 16.3 Paper A, v3 — the flagged sentence is still there
+
+```
+ID     : http://arxiv.org/abs/2606.05017v3
+UPDATED: 2026-06-22T12:03:17Z
+```
+
+> "An RTL-correctness erratum dated 2026-05-31 is reported in Section 5.5; **the
+> fabricated TTSKY26b dies** carry the defective multiplier portfolio, and the
+> corrected generator is the regeneration baseline."
+
+Present verbatim in v3, having now survived two revisions. This is the only claim
+in either paper that measurement contradicts, and §2 of this package gives the
+replacement sentence.
+
+One correction to this package's own framing while here: Paper A's abstract *does*
+position the work against related families — "posit (2022 Posit Standard), takum
+(Hunhold 2024, 2025), OCP-MX (Rouhani et al. 2023), and the IEEE P3109 multi-width
+float draft". The related-work gap identified in pass 50 is narrower than stated: it
+concerns published *conformance vector sets*, not format families, and the
+ready-to-paste subsection should be introduced on those terms.

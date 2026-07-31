@@ -119,3 +119,94 @@ field in specs/numeric/formats_catalog.t27.
   do_not_guess true
   owner        author
 }
+
+// ---- Pass 59: current published text, fetched and read ----------------------
+
+measurement CURRENT_ARXIV_STATE {
+  fetched "2026-08-01, via curl against export.arxiv.org (WebFetch's model was the
+           earlier failure, not the network)"
+
+  paper_b {
+    id      "arXiv:2606.09686v2"
+    updated "2026-06-22T12:28:45Z"
+    title   "An 83-Format Numeric Catalog with Bit-Exact Conformance Vectors: ..."
+  }
+  paper_a {
+    id      "arXiv:2606.05017v3"
+    updated "2026-06-22T12:03:17Z"
+    title   "GoldenFloat: A Phi-Derived Static-Split Floating-Point Family from
+             GF4 to GF1024 with a Lucas-Exact Integer Identity"
+  }
+}
+
+resolution TITLE_CONCERN_WAS_UNFOUNDED {
+  raised_in "pass 58, as an OPEN QUESTION rather than a finding"
+  question "does Paper B's title still read 84-Format, contradicting its own abstract?"
+  answer """
+No. The v2 replacement corrected the title as well as the abstract; both read 83.
+
+Recording this as prominently as a confirmed defect would be recorded. The value of
+having filed it as a question rather than a claim is exactly that it can now be
+closed without a retraction.
+"""
+  resolved true
+}
+
+// ---- The central finding, now verified against the LIVE text ----------------
+finding SIX_PACKS_CLAIM_SURVIVES_V2 {
+  name     "the abstract still describes six conformance packs; the artefact has 83"
+  severity HIGH
+
+  verbatim_from_v2 """
+"a suite of six bit-exact conformance packs covering GF16, MXFP4 element, BF16,
+FP8 E4M3, FP8 E5M2, and E8M0 block scale"
+"""
+
+  against """
+83 packs in conformance/vectors -- 75 bit-exact and 8 structural -- with 5,075
+vectors, 4,949 of them at abs_error exactly 0.
+"""
+
+  why_this_matters_more_now """
+Until this pass the claim was known from a manuscript copy and an earlier fetch.
+It is now confirmed present in the CURRENT published version, updated 2026-06-22,
+which is what a reader gets today.
+
+The abstract reports the paper's central contribution at roughly 7% of its actual
+coverage. It remains the highest-value correction in the package, and it is an
+UNDER-claim -- the rarer and cheaper kind to fix.
+"""
+  resolved false
+}
+
+note PAPER_A_FLAGGED_SENTENCE_SURVIVES_INTO_V3 {
+  verbatim """
+"An RTL-correctness erratum dated 2026-05-31 is reported in Section 5.5; the
+fabricated TTSKY26b dies carry the defective multiplier portfolio, and the
+corrected generator is the regeneration baseline."
+"""
+  detail """
+Present in v3, having survived two revisions. Still the only claim in either paper
+that measurement contradicts -- the silicon track was cancelled, so no fabricated
+dies exist to carry anything.
+"""
+}
+
+correction RELATED_WORK_GAP_WAS_OVERSTATED_IN_PASS_50 {
+  what_pass_50_implied """
+That the papers do not position the work against comparable efforts.
+"""
+  what_the_live_abstract_says """
+Paper A explicitly positions GoldenFloat "alongside posit (2022 Posit Standard),
+takum (Hunhold 2024, 2025), OCP-MX (Rouhani et al. 2023), and the IEEE P3109
+multi-width float draft".
+"""
+  the_narrower_true_claim """
+The gap concerns published CONFORMANCE VECTOR SETS, not format families. Paper A
+positions against the families; neither paper positions against an existing vector
+corpus, which is what the pass-50 numpy comparison supplies.
+
+The ready-to-paste subsection must be introduced on those terms, or it overstates
+an absence that is not there.
+"""
+}
