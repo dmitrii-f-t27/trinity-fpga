@@ -41,18 +41,41 @@ TAPERED = ("takum", "tekum", "posit")
 def audit(path):
     with open(path) as fh:
         pack = json.load(fh)
-    name = pack["format_name"]
-    width = pack["catalog"]["bits"]
-    mode = pack["vector_mode"]
+    # The published corpus is not schema-uniform: some packs omit format_name,
+    # some omit vector_mode, and the bit-width key varies. Derive defensively and
+    # record what was missing rather than crashing on the variation.
+    base = os.path.basename(path).replace("_conformance_v0.json", "")
+    name = pack.get("format_name") or pack.get("format", base).lower()
+    cat = pack.get("catalog") or {}
+    width = cat.get("bits") or cat.get("width") or 0
+    if not width:
+        digits = "".join(c for c in base if c.isdigit())
+        width = int(digits) if digits else 0
+    mode = pack.get("vector_mode") or "(unstated)"
     span = 1 << width
     msb = span >> 1
 
     vals = {}
-    for v in pack["vectors"]:
+    for v in pack.get("vectors", []):
         raw = v.get(f"{name}_bits_int")
+        if raw is None:                     # key naming also varies
+            for k in v:
+                if k.endswith("_bits_int"):
+                    raw = v[k]
+                    break
         if raw is None:
             continue
-        vals[raw] = v.get("decoded_f64")   # None for specials
+        d = v.get("decoded_f64")
+        # decoded_f64 is sometimes serialised as a string ("NaN", "Infinity", or
+        # a quoted number). Coerce; anything non-numeric is treated as a special.
+        if isinstance(d, str):
+            try:
+                d = float(d)
+            except ValueError:
+                d = None
+        if isinstance(d, float) and (d != d or abs(d) == float("inf")):
+            d = None
+        vals[raw] = d
 
     res = {"name": name, "width": width, "mode": mode,
            "n": len(vals), "has_zero": any(x == 0.0 for x in vals.values() if x is not None)}
@@ -96,9 +119,12 @@ def audit(path):
 
 
 def main() -> int:
-    paths = sorted(glob.glob(os.path.join(GEN, "*.json")))
+    # Optional directory argument so the same audit can be run against the
+    # PUBLISHED catalog packs, not just the locally generated candidates.
+    target = sys.argv[1] if len(sys.argv) > 1 else GEN
+    paths = sorted(glob.glob(os.path.join(target, "*.json")))
     if not paths:
-        print(f"no generated packs found in {GEN}")
+        print(f"no packs found in {target}")
         return 0
 
     print(f"{'pack':<14}{'bits':>5} {'mode':<15}{'vectors':>8}  "
