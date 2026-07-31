@@ -158,6 +158,16 @@ def decode(fmt: TakumFormat, raw: int):
         return Special("nar")
 
     S = (raw >> (fmt.n - 1)) & 1
+    if S:
+        # Takum negates by TWO'S COMPLEMENT of the whole code word, not by a
+        # sign-and-magnitude bit. Verified against libtakum (the format author's
+        # C99 reference): the positive half of this decoder already matches it
+        # exactly, so decoding the complement and negating is correct by
+        # construction. The complement of a negative-half code is always in the
+        # positive half and non-zero (raw == 0 and raw == nar are handled above),
+        # so the recursion terminates immediately.
+        return -decode(fmt, (-raw) & fmt.mask)
+
     D = (raw >> (fmt.n - 2)) & 1
     R = (raw >> (fmt.n - 2 - fmt.regime_bits)) & (fmt.regime_count - 1)
     lower = raw & ((1 << fmt.payload_bits) - 1)
@@ -172,6 +182,23 @@ def decode(fmt: TakumFormat, raw: int):
 
 
 def encode(fmt: TakumFormat, value):
+    """Encode a value.
+
+    A negative value is the TWO'S COMPLEMENT of the code for its magnitude — see
+    the note in decode(). There is no negative zero in takum: the complement of
+    the zero code is the zero code.
+    """
+    if isinstance(value, Special):
+        return fmt.nar
+    v = Fraction(value)
+    if v == 0:
+        return fmt.pos_zero
+    raw = _encode_magnitude(fmt, -v if v < 0 else v)
+    return ((-raw) & fmt.mask) if v < 0 else raw
+
+
+def _encode_magnitude(fmt: TakumFormat, value):
+    """Positive-half code for a strictly positive magnitude."""
     if isinstance(value, Special):
         return fmt.nar
 
@@ -179,8 +206,10 @@ def encode(fmt: TakumFormat, value):
     if v == 0:
         return fmt.pos_zero
 
-    sign = 1 if v < 0 else 0
-    a = -v if v < 0 else v
+    # Always packs into the positive half; the caller applies the complement.
+    # Packing a sign bit here is what produced the sign-and-magnitude error.
+    sign = 0
+    a = v
     E = ilog2_floor(a)
     frac = a / pow2(E) - 1
 
