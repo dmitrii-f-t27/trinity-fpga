@@ -139,3 +139,51 @@ scope_limits {
                 "the FPGA decoders these models were reverse-engineered from" }
   superiority_claimed false
 }
+
+// ---- Pass 37: the recommendation is FEASIBLE, probed before proposing --------
+
+feasibility APPLY_THE_LNS_TECHNIQUE_TO_TAKUM {
+  probe    "research/proto_takum_decode_log.py"
+  probes_not_changes "conformance/takum_ref.py was NOT touched"
+
+  hypothesis """
+ell = c + M_u/2^p is the logarithm of the MAGNITUDE and is dyadic; the sign is
+carried separately, exactly as lns_ref stores sign(value) apart from log2(|value|).
+"""
+
+  result {
+    reference "libtakum LOGARITHMIC conversion, takum16"
+    codes_checked 65534
+    agree         65534
+    worst_relative_error "7.4e-15"
+    note "that residual is float64 exp() precision, not a semantic disagreement"
+  }
+
+  verdict FEASIBLE
+  why_it_is_cheap """
+takum_ref.py's field extraction is already correct -- the LAYOUT was never in
+question, only whether the fields are read linearly or logarithmically. So the
+change is additive: a decode_log() beside the existing decode(), reusing
+_regime_params() unchanged. No new mathematics.
+"""
+
+  what_is_established """
+That ell is exact and correct. Agreement was checked by computing exp(ell/2) in
+float64, which is itself inexact, so the probe does NOT establish anything about
+exponentiation -- and it does not need to. Exponentiation stays the caller's
+business, which is precisely lns_ref's contract.
+"""
+
+  // Recorded because it is the same lesson lns_ref's design already encodes.
+  error_made_and_corrected_mid_probe """
+The first hypothesis assumed the two's complement negates ell. It agreed on
+exactly 32768 codes -- the whole positive half -- and failed on the rest, with the
+failures being RECIPROCALS of the expected values.
+
+The complement negates the VALUE, not ell. Since value = +-exp(ell/2), the
+magnitude's logarithm is unchanged and only the sign flips. Conflating sign with
+log-magnitude is exactly what lns_ref avoids by storing them separately, and the
+probe rediscovered why the hard way before the hypothesis was corrected.
+"""
+  status VERIFIED_SW
+}
