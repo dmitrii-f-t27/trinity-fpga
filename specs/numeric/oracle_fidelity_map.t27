@@ -302,3 +302,65 @@ not know the artefact's vocabulary reports the artefact as wrong.
 """
   fixed true
 }
+
+// ---- Pass 40: the last coverage gap closed -----------------------------------
+
+verification EXTENDED_FORMATS_HOLD_THEIR_INVARIANT {
+  motivation """
+Every check in this campaign filtered at 64 bits, so double_double (128) and
+quad_double (256) were reached by NONE of them. They were the only catalogued
+formats with no intrinsic evidence at all.
+"""
+  executable "research/verify_extended_expansion.py"
+
+  property_tested """
+extended_ref implements these as ERROR-FREE EXPANSIONS (Bailey/Hida/Briggs/Dekker):
+a value is the exact sum of 2 or 4 binary64 limbs. The invariant making such an
+expansion well-formed is NON-OVERLAP, |limb[i+1]| <= ulp(limb[i])/2. Overlapping
+limbs still sum correctly but are not canonical -- one value gains many
+representations and round-trip stops being well defined.
+"""
+
+  result {
+    double_double { values 17  roundtrip "17/17"  non_overlap OK  carrier exact }
+    quad_double   { values 17  roundtrip "17/17"  non_overlap OK  carrier exact }
+  }
+
+  scope """
+Constructed set, not exhaustive -- 2^128 and 2^256 cannot be enumerated. Values
+were chosen to stress an expansion: wide separations (2^20 to 2^200), a value
+needing more than 53 bits, one needing more than 106 (beyond double-double's
+reach), and near-ties around a power of two.
+"""
+  status VERIFIED_SW
+}
+
+// A real observation, kept separate from the verification above because it is
+// unresolved rather than measured.
+finding LIMB_ORDER_DOCSTRING_MAY_BE_INVERTED {
+  name     "the documented limb order does not match the observed packing"
+  severity LOW
+
+  documented """
+extended_ref._decode_expansion says: "limb 0 (least-significant bit position) is
+the LO limb; limb (n-1) is the HI limb".
+"""
+  observed """
+Encoding 1 + 2^-60 and reading the two 64-bit halves gives the HI limb (1.0) in the
+LOW 64 bits and the LO limb (2^-60) in the HIGH 64 bits -- the opposite assignment.
+"""
+
+  why_it_does_not_break_anything """
+_decode_expansion SUMS the limbs, and a sum is order-independent, so decode is
+correct either way and round-trip is 17/17. Only the docstring's role assignment is
+in question, and only a reader unpacking the raw by hand would be misled.
+"""
+
+  not_asserted_as_a_defect """
+This campaign has misread a documented convention before (pass 34). The
+verification above was therefore made INDEPENDENT of the question -- limbs are
+ordered by magnitude, not by bit position -- so the invariant result stands
+whichever way the packing goes. Confirming the docstring is the author's call.
+"""
+  resolved false
+}
