@@ -218,3 +218,45 @@ gf12 27840/27840.
   verdict "not self-referential; a single golden with the duplicates provably folded into it"
   concern_resolved true
 }
+
+// ---- GF ladder coverage, pass 19/20 -----------------------------------------
+
+result GF_COMMUTATIVITY_PARTIAL {
+  // Obtained only after resolving GF_ID_NAMESPACE_COLLISION and
+  // NAME_CONVENTION_MISMATCH; before that the whole ladder was skipped silently.
+  swept { gf4, gf6, gf10, gf12, gf14, gf16, gf20, gf24, gf32, gf48 }
+  widths_covered 10
+  widths_total   17
+  comm_add_violations 0
+  comm_mul_violations 0
+  verdict "commutativity holds on every GF width actually tested"
+  status VERIFIED_SW
+
+  // The remaining counts in those rows are the already-diagnosed
+  // UNARY_LAW_FLAGS_ARE_A_COMPARISON_ERROR artefact, not defects.
+}
+
+limitation WIDE_GF_NOT_SWEEPABLE_EXACTLY {
+  not_swept { gf64, gf96, gf128, gf256, gf512, gf1024 }
+  reason """
+gf_ref computes in exact rationals. At gf64 the mantissa is 39 bits and the
+exponent 24, and the intermediate Fractions grow accordingly; by gf1024 the
+mantissa is 632 bits. A 576-pair sweep at those widths did not complete and was
+terminated.
+
+Measured incidentally and worth recording: an attempt merely to TIME a handful of
+gf64 multiplies itself exceeded a two-minute budget. The cost of measuring the
+cost is comparable to the cost itself.
+"""
+  consequence """
+Commutativity on the wide GF rungs is UNTESTED, not passed. The 10 covered widths
+must not be reported as coverage of the ladder.
+"""
+  possible_approaches """
+- bound operand magnitude so intermediates stay small, accepting reduced coverage;
+- test in the integer/exponent domain rather than on decoded rationals;
+- use the RTL or an fp-backed implementation as the comparison target instead of
+  the exact oracle.
+All three change what is being verified, so the choice is not merely technical.
+"""
+}
