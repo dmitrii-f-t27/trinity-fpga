@@ -120,3 +120,103 @@ scope_limits {
                 "non-python tooling in either tree" }
   superiority_claimed false
 }
+
+// ---- Pass 58: the WRITE bucket, run in a disposable copy ---------------------
+
+measurement WRITE_SCRIPTS_RUN {
+  method """
+Copied the repo without .git, confirmed first that no script hardcodes a path into
+the live environment -- the only absolute roots present are /Users/playra/t27 and
+/home/user/workspace, neither of which exists here -- and excluded the one script
+referencing /etc. Then ran the remaining 200 with a 25s ceiling.
+"""
+
+  scripts 200
+  exit_zero 179
+  failing 21
+
+  failure_classes {
+    genuine_code_defects 5   // crash on their own logic, not on the environment
+    timeout 9
+    missing_dependency 2     // scipy, an in-tree `contrib` package
+    foreign_absolute_path 2
+    needs_arguments 2        // documented behaviour, not defects
+    unclear 1
+  }
+
+  the_five_real_ones """
+  ultra_engine_v51_fixed.py       AttributeError: no attribute 'monte_carlo'
+  ultra_engine_v69_lee_control.py NameError: name 'results' is not defined
+  ultra_engine_v81_simple.py      IndexError: index 65 out of bounds, size 61
+  ultra_engine_v82_simplest.py    TypeError: int() argument must be a string...
+  ultra_engine_v66_gpu.py         AttributeError: numpy has no attribute 'asnumpy'
+
+All five are in exploratory discovery engines unrelated to either preprint. Counted
+and named, not individually chased -- they touch nothing the papers rest on.
+"""
+
+  one_alarming_result_that_was_not """
+pslq_bff.py raised PermissionError creating a directory at /Users/playra -- another
+user's home. It failed harmlessly because that path does not exist here, which is
+also the reason the disposable copy was checked for live-environment paths BEFORE
+anything ran rather than after.
+"""
+  status VERIFIED_SW
+}
+
+// ---- What the sweep surfaced that matters ------------------------------------
+finding CI_WARNS_PERMANENTLY_ABOUT_AN_ERRATUM_ALREADY_WRITTEN {
+  name     "check_catalog_count.py hardcodes the pre-correction paper count"
+  severity LOW
+
+  observed """
+Running the repo's own gate prints, on every invocation:
+
+  WARN: SSOT (83) != paper count (84). An erratum to arXiv:2606.09686 is required
+        (see ERRATA_2026-06-14.md). Canonical live count is 83.
+
+The source carries PAPER_DECLARED_COUNT = 84 with the comment "The count claimed in
+arXiv:2606.09686 Table 1 abstract". The v2 abstract changed that token to 83 -- the
+only change it made, established in pass 44 by diffing the two versions.
+"""
+
+  why_it_matters """
+A gate that warns on every run about work already done is a gate people stop
+reading, and it will not be believed on the day the divergence is real.
+"""
+
+  not_patched_deliberately """
+Whether the constant should become 83 depends on whether the paper's TITLE still
+says 84, which could not be re-verified -- network access was unavailable. Changing
+a number to match an unverified expectation is the exact error this campaign
+documents in others.
+"""
+  resolved false
+}
+
+finding THE_CAMPAIGN_NEVER_CHECKED_THE_PAPER_TITLE {
+  name     "57 passes audited reference titles and never Paper B's own"
+  severity MEDIUM
+
+  detail """
+Pass 5 and its re-audit found 8 of 20 REFERENCES defective by title. The correction
+package has an ordered fix list, ready-to-paste abstracts, body fixes and a
+retraction section. Not one item concerns the title of the paper itself.
+
+The repository's erratum quotes it as "An 84-Format Numeric Catalog ..." and then
+states "The number 84 in the paper is superseded". Four artefacts now say 83: the
+SSOT, a fresh codegen run, INDEX_all_formats.json, and the v2 abstract.
+
+If the title still reads 84-Format, the most visible number in the work contradicts
+its own abstract, its own repository and its own erratum -- and it is the one place
+nobody looked.
+"""
+
+  epistemic_status """
+NOT asserted as fact. The v1 title said 84 and the erratum supersedes it; the
+CURRENT v2 title was not fetched, because the network was down. Recorded as the
+open question it is, with the exact API call needed to settle it.
+"""
+  recorded "research/ARXIV_V2_CORRECTION_PACKAGE.md section 16"
+  resolved false
+}

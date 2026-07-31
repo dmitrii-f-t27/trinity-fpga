@@ -1101,3 +1101,60 @@ retracted interpretation.
 converging measurements and an exhaustive verification did not save me from it,
 because all of them were answering the wrong question. Now in
 `.claude/skills/t27-spec/SKILL.md`.
+
+---
+
+## 16. The paper's own title — a gap in this package, found in pass 58
+
+Fifty-seven passes audited the *references'* titles and found 8 of 20 defective.
+None of them looked at **the title of Paper B itself**.
+
+The repository's own erratum quotes it:
+
+> **Paper:** "An **84**-Format Numeric Catalog with Bit-Exact Conformance Vectors:
+> A Vendor-Neutral Reference for FP8, BF16, MXFP4, and Microscaling Formats"
+> (arXiv:2606.09686v1, 8 Jun 2026)
+
+and then states plainly:
+
+> **Canonical count going forward: 83.** The number 84 in the paper is superseded.
+
+Four artefacts now agree on 83 — the SSOT `formats_catalog.t27`, a fresh codegen
+re-run, `INDEX_all_formats.json`, and the **v2 abstract**, whose only change from v1
+was the single token `84` → `83` (§14 of this package). If the title still reads
+*84-Format*, the paper's most visible number contradicts its own abstract, its own
+repository, and its own erratum.
+
+**This is not asserted as fact.** Network access was unavailable when this section
+was written, so the *current* title of v2 was not re-fetched. What is established:
+the v1 title said 84, the erratum supersedes 84, and the abstract was corrected. The
+title is simply the one place nobody in this campaign checked.
+
+**Action:** fetch `export.arxiv.org/api/query?id_list=2606.09686` and read the
+`<title>` element. If it still contains *84-Format*, this belongs at the top of the
+ordered fix list — a title is the one thing every reader sees, and arXiv permits a
+title change on replacement.
+
+### 16.1 A related standing warning in CI
+
+`tools/check_catalog_count.py` hardcodes
+
+```python
+# The count claimed in arXiv:2606.09686 Table 1 abstract ("exactly 84").
+PAPER_DECLARED_COUNT = 84
+```
+
+so every CI run prints
+
+```
+WARN: SSOT (83) != paper count (84). An erratum to arXiv:2606.09686 is required
+```
+
+The comment attributes 84 to the **abstract**, which v2 corrected. Whether the
+constant should become 83 depends on the title question above, so it is reported
+rather than patched — changing a number to match an expectation that has not been
+re-verified is the error this package exists to document.
+
+What is unambiguous either way: a gate that warns on every run about an erratum
+that has already been written is a gate people stop reading, and it will not be
+believed on the day the divergence is real.
