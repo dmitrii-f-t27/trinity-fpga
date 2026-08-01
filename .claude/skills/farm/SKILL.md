@@ -33,7 +33,7 @@ Read tokens from `.env`:
 - FARM-8: 24 workers (hslm-w8-25..48), wave 8
 
 ### Evolution State
-!`cat /Users/playra/trinity-w1/.trinity/evolution_state.json 2>/dev/null | python3 -c "
+!`cat /Users/playom/trinity-fpga/.trinity/evolution_state.json 2>/dev/null | python3 -c "
 import sys,json
 try:
   d=json.load(sys.stdin)
@@ -47,13 +47,13 @@ except: print('No evolution data')
 " 2>/dev/null || echo "No evolution state"`
 
 ### Farm Health
-!`/Users/playra/trinity-w1/zig-out/bin/tri train status 2>&1 | head -20 || echo "tri train unavailable"`
+!`/Users/playom/trinity-fpga/zig-out/bin/tri train status 2>&1 | head -20 || echo "tri train unavailable"`
 
 ## STATUS Mode
 
 Query all 8 Railway accounts for hslm-train services:
 ```bash
-set -a && source /Users/playra/trinity-w1/.env && set +a
+set -a && source /Users/playom/trinity-fpga/.env && set +a
 for i in "" _2 _3 _4 _5 _6 _7 _8; do
   TOKEN_VAR="RAILWAY_API_TOKEN$i"
   TOKEN="${!TOKEN_VAR}"

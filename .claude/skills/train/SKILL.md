@@ -27,7 +27,7 @@ If NOT active, offer to set up:
 
 Run and **display the FULL output to the user as-is**:
 
-!`cd /Users/playra/trinity-w1 && ./zig-out/bin/tri train dashboard 2>&1`
+!`cd /Users/playom/trinity-fpga && ./zig-out/bin/tri train dashboard 2>&1`
 
 **CRITICAL**: The output of `tri train dashboard` IS the report. Show it COMPLETELY. Do NOT summarize, do NOT rephrase, do NOT hide it. The user wants to SEE the ANSI dashboard output directly.
 
@@ -36,7 +36,7 @@ Run and **display the FULL output to the user as-is**:
 After dashboard, show sacred workers explicitly:
 
 ```bash
-cd /Users/playra/trinity-w1 && ./zig-out/bin/tri train dashboard 2>&1 | grep -E "(hslm-r6|hslm-r33|hslm-r5|hslm-r12|hslm-r13|hslm-r11|hslm-r18|hslm-w7-50)" | head -10
+cd /Users/playom/trinity-fpga && ./zig-out/bin/tri train dashboard 2>&1 | grep -E "(hslm-r6|hslm-r33|hslm-r5|hslm-r12|hslm-r13|hslm-r11|hslm-r18|hslm-w7-50)" | head -10
 ```
 
 ## Step 2: Wave 9 Status (REQUIRED) — S3 MultiObj
@@ -57,7 +57,7 @@ HSLM_WAVE = 9
 
 Query ALL 8 Railway accounts (FARM-2 through FARM-12) for wave 9 deployment:
 ```bash
-set -a && source /Users/playra/trinity-w1/.env && set +a
+set -a && source /Users/playom/trinity-fpga/.env && set +a
 for ACCT in 7 8; do
   TOKEN_VAR="RAILWAY_API_TOKEN_$ACCT"
   TOKEN="${!TOKEN_VAR}"
@@ -145,7 +145,7 @@ If ANY S3 MultiObj worker is STALLED, add:
 ## Step 4: Additional Data (if $ARGUMENTS specified)
 
 ### If focus=fpga:
-!`ls -lh /Users/playra/trinity-w1/fpga/openxc7-synth/hslm_full_top.bit 2>/dev/null && echo "Bitstream ready" || echo "No bitstream"`
+!`ls -lh /Users/playom/trinity-fpga/fpga/openxc7-synth/hslm_full_top.bit 2>/dev/null && echo "Bitstream ready" || echo "No bitstream"`
 
 ### If focus=paper:
 Reference: R33 PPL=4.6 (verified), R18 PPL=6.1 (MIRAGE), R19 PPL=2.04 (UNVERIFIED)

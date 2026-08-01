@@ -1,12 +1,58 @@
 ---
 name: fpga-synth
-description: "AX7203 openXC7. 72 format oracles. 10 GF bit-exact. Paper PDF compiled. arXiv-ready."
+description: "AX7203 openXC7 synthesis and flashing. Board truth, the synth recipe, and the failure modes that cost whole sessions. Use for any bitstream, flash, or UART conformance work on the AX7203."
 allowed-tools: Bash(docker *), Bash(ls *), Read, Grep, Glob, Write, Edit
 ---
 
 # FPGA Pipeline — AX7203 XC7A200T
 
-## Current State (2026-07-14, Wave 13 — PDF compiled, paper submittable)
+## Read this before trusting any count below
+
+**`fpga/CATALOG_MATRIX_83.md` is the matrix of record, not this file.** The
+counts in the table below drifted from it once already. Check the catalog.
+
+## Environment truth, verified 2026-08-01
+
+- **No local place-and-route.** No `nextpnr-xilinx` binary, and the Docker
+  daemon is usually down. Synthesis goes through CI; a plan step that assumes a
+  local P&R run will fail. `yosys` and `iverilog` *are* installed, so RTL
+  elaboration and simulation work locally.
+- **`tri` is not installed and `zig-out/` does not exist.** Any skill step
+  invoking `zig-out/bin/tri` or `zig-out/bin/vibee` is dead. `tools/bin/vibee_gen`
+  does exist; `tools/bin/vibee_arm64` is a 0-byte file.
+- **CI workflows only register from `main`.** Pushing a new workflow to a
+  feature branch triggers nothing. Cherry-pick onto a branch based on
+  `origin/main` and push there.
+- **A flash takes 778 s**, not the ~78 s some notes claim — 9.7 MB at the
+  AL321's stable 100 kHz. Run it in the background and pipeline other work.
+  openocd's stdout is block-buffered when redirected, so a 0-byte log during a
+  flash is not a hang.
+- Verify `sudo -n true` at the start of every flash session; the
+  `/etc/sudoers.d/openocd` rule has been lost to a reboot before.
+
+## The failure this pipeline keeps producing: the frame path, not the arithmetic
+
+On 2026-08-01 a first-ever hardware run of `gfternary` scored 7/16 — and the
+seven passes were exactly the seven input pairs whose answer is zero anyway.
+Root cause was commit `6f3001b17`, titled *"frame format bug fix"*, which
+inserted a `0x00` between the `AA 55` magic and the payload across the corpus.
+The `fpga/vivado/gf*` wrappers have no `fmt` field, so **32 hosts had been
+computing `gf_add(0, 0)` for every input for two weeks.**
+
+Every golden self-test passed the whole time. None of them exercises the wire
+encoding.
+
+- **A conformance host is not verified by its self-test.** The encode path needs
+  a witness that did not come from the same source file — the RTL in simulation,
+  or the board.
+- `conformance/frame_alignment_check.py` now compares each host's request length
+  against its wrapper's frame FSM, gated in CI. **Run it before any flash
+  session**; it costs a second and it is the cheapest possible check.
+- When an RTL/host mismatch is suspected, settle it by driving the RTL with both
+  byte sequences rather than by reading the Python — see
+  `formal/gf8_frame_regression_tb.v`.
+
+## Counts as of 2026-07-14, Wave 13 — verify against the catalog before citing
 
 | Axis | Count | Detail |
 |------|-------|--------|

@@ -10,7 +10,7 @@ context: fork
 # 🤖 Agent Swarm Observatory
 
 ## 📡 Railway Service Pools (Live)
-!`curl -s -X POST "https://railway.com/graphql/v2" -H "Authorization: Bearer $(grep RAILWAY_API_TOKEN /Users/playra/trinity-w1/.env | cut -d= -f2)" -H "Content-Type: application/json" -d '{"query":"query($id:String!){project(id:$id){services{edges{node{id name deployments(first:1){edges{node{status createdAt}}}}}}}}","variables":{"id":"aa0efa7f-95e6-4466-8de6-43945a031365"}}' 2>/dev/null | python3 -c "
+!`curl -s -X POST "https://railway.com/graphql/v2" -H "Authorization: Bearer $(grep RAILWAY_API_TOKEN /Users/playom/trinity-fpga/.env | cut -d= -f2)" -H "Content-Type: application/json" -d '{"query":"query($id:String!){project(id:$id){services{edges{node{id name deployments(first:1){edges{node{status createdAt}}}}}}}}","variables":{"id":"aa0efa7f-95e6-4466-8de6-43945a031365"}}' 2>/dev/null | python3 -c "
 import sys,json,datetime
 d=json.load(sys.stdin)
 nodes=[e['node'] for e in d['data']['project']['services']['edges']]
@@ -42,7 +42,7 @@ print(json.dumps({
 !`gh pr list --repo gHashTag/trinity --state open --limit 15 --json number,title,headRefName,statusCheckRollup --jq '.[] | select(.headRefName | startswith("feat/issue-")) | "#\(.number) [\(.headRefName)] \(.title) checks:\(.statusCheckRollup | if . then (. | map(.conclusion // .status) | join(",")) else "none" end)"' 2>&1 || echo "No agent PRs"`
 
 ## 📡 Recent Events (last 25 lines)
-!`if [ -f /Users/playra/trinity-w1/.trinity/cloud_events.jsonl ]; then tail -25 /Users/playra/trinity-w1/.trinity/cloud_events.jsonl | python3 -c "
+!`if [ -f /Users/playom/trinity-fpga/.trinity/cloud_events.jsonl ]; then tail -25 /Users/playom/trinity-fpga/.trinity/cloud_events.jsonl | python3 -c "
 import sys,json
 for line in sys.stdin:
     line=line.strip()
@@ -65,7 +65,7 @@ for line in sys.stdin:
 !`gh api user/packages/container/trinity-agent/versions --jq '.[0] | "📦 trinity-agent:latest — updated \(.updated_at[:10]) tags: \(.metadata.container.tags | join(","))"' 2>/dev/null || echo "⚠️ GHCR package not accessible"`
 
 ## 📊 Local Agent State
-!`if [ -f /Users/playra/trinity-w1/.trinity/cloud_agents.json ]; then cat /Users/playra/trinity-w1/.trinity/cloud_agents.json | python3 -c "
+!`if [ -f /Users/playom/trinity-fpga/.trinity/cloud_agents.json ]; then cat /Users/playom/trinity-fpga/.trinity/cloud_agents.json | python3 -c "
 import sys,json,datetime
 d=json.load(sys.stdin)
 agents=d if isinstance(d,list) else d.get('agents',[])

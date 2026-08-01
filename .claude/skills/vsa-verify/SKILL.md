@@ -8,7 +8,7 @@ allowed-tools: Bash(zig *), Bash(cat *), Read, Grep, Glob
 # VSA Mathematical Verification
 
 ## Current Test Status
-!`cd /Users/playra/trinity-w1 && zig test src/vsa.zig 2>&1 | tail -10`
+!`cd /Users/playom/trinity-fpga && zig test src/vsa.zig 2>&1 | tail -10`
 
 ## Task
 

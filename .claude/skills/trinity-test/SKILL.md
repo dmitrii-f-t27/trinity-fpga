@@ -9,7 +9,7 @@ model: haiku
 # Trinity Test Runner
 
 ## Last Build Status
-!`cd /Users/playra/trinity-w1 && zig build 2>&1 | tail -5`
+!`cd /Users/playom/trinity-fpga && zig build 2>&1 | tail -5`
 
 ## Task
 
@@ -18,10 +18,10 @@ Run tests for: $ARGUMENTS
 ### Test Commands by Module
 | Module | Command |
 |--------|---------|
-| All | `cd /Users/playra/trinity-w1 && zig build test` |
-| VSA | `cd /Users/playra/trinity-w1 && zig test src/vsa.zig` |
-| VM | `cd /Users/playra/trinity-w1 && zig test src/vm.zig` |
-| Single file | `cd /Users/playra/trinity-w1 && zig test src/<file>.zig` |
+| All | `cd /Users/playom/trinity-fpga && zig build test` |
+| VSA | `cd /Users/playom/trinity-fpga && zig test src/vsa.zig` |
+| VM | `cd /Users/playom/trinity-fpga && zig test src/vm.zig` |
+| Single file | `cd /Users/playom/trinity-fpga && zig test src/<file>.zig` |
 
 ### Steps
 1. Run the appropriate test command based on the module argument
