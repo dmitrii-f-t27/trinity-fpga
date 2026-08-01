@@ -1,0 +1,130 @@
+---
+name: trinet
+description: TRI-NET ternary internet — node cell, receipts, mesh, TRI settlement, IGLA CODER agent. Board truth, the honest status of every claim, and the next wave. Use when working on ternary compute nodes, compute receipts, the TRI credit ledger, or growing the network.
+---
+
+# TRI-NET
+
+A network whose unit of work is a 32-wide ternary dot product, executed on FPGA
+nodes, returned with a verifiable receipt, and settled as work credit.
+
+Read `docs/TRI_NET_ARCHITECTURE.md` before changing anything. The two `.t27`
+records are the source of truth for what is actually established:
+`specs/trinet/ternary_hw_verification.t27` and `specs/trinet/settlement_law.t27`.
+
+## Status — do not restate these upward without re-reading the specs
+
+| Claim | Tier |
+|---|---|
+| gfternary MUL bit-exact on AX7203, 16/16 exhaustive | `[measured on FPGA]` |
+| trinet_mac32 bit-exact vs golden, 128/128 | `[simulated]` |
+| trinet_mac32 routed, 429 LC, 0 DSP48 | `[synthesised and routed]` |
+| mesh, ledger, adversary rejection | `VERIFIED_SW` (38 Zig tests) |
+| three physical nodes exchanging work | not done — one board exists |
+| a trained IGLA CODER model | does not exist on this workstation |
+| a receipt proves work ran on an FPGA | **false**, and must not be claimed |
+
+Keep **RTL written ≠ routed ≠ measured on the board** apart. A bitstream that
+builds is not a measurement.
+
+## Files
+
+```
+fpga/vivado/trinet_mac32_ax7203.v              node cell: ternary MAC + CRC receipt
+formal/trinet_mac32_tb.v                       UART-level testbench vs golden vectors
+conformance/trinet_mac32_conformance_ax7203.py golden oracle + hardware host
+.github/workflows/ax7203-trinet-mac32.yml      sim-gated synthesis
+src/trinet/{protocol,serial,net,node,ledger,mesh,model,agent,main}.zig
+specs/trinet/*.t27                             the record
+```
+
+## Commands
+
+```bash
+zig test src/trinet/agent.zig -lc                     # 38 tests, whole stack
+zig build-exe src/trinet/main.zig -lc                 # CLI
+./main selftest                                       # adversaries vs verifier
+./main probe /dev/cu.usbserial-1110                   # verify a flashed board
+./main demo                                           # mesh + agent + books
+
+python3 conformance/trinet_mac32_conformance_ax7203.py --self-test
+python3 conformance/trinet_mac32_conformance_ax7203.py --port /dev/cu.usbserial-1110 --n 512
+```
+
+Flash (13 minutes — pipeline other work against it):
+
+```bash
+sudo -n /opt/homebrew/bin/openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
+  -c "init" -c "pld load 0 <file.bit>" -c "runtest 2000" -c "shutdown"
+```
+
+## Board and toolchain truths
+
+- **Verify `sudo -n true` at the start of every flash session.** The
+  `/etc/sudoers.d/openocd` rule has been lost to a reboot before.
+- **A flash takes 778 s** for a 9.7 MB bitstream at the AL321's stable 100 kHz.
+  Notes claiming ~78 s are wrong by an order of magnitude.
+- **openocd's stdout is block-buffered** when redirected. An empty log file
+  during a flash is not a hang.
+- **Docker is often not running locally** — synthesis goes through CI.
+- **CI workflows only register from `main`.** A push to a feature branch does
+  not trigger them; cherry-pick onto a branch based on `origin/main` and push
+  there.
+- **The DSP guard must match the cell-count column**, `grep -E '^ *[0-9]+ +DSP48'`.
+  Grepping the whole log for `DSP48` matches pass banners and fails a clean build.
+
+## The bug class this project keeps producing
+
+Every RTL defect found here has lived in the **frame path**, not the arithmetic.
+Two more this session:
+
+1. A conformance host emitted one byte too many, so operands shifted and the
+   FPGA read `a = 0` for every job. It scored 7/16 — the exact cases whose
+   answer is zero anyway. The golden oracle's self-test passed throughout,
+   because it never exercised the wire encoding.
+2. A testbench read hex fields with `$fscanf %h` and transmitted them low byte
+   first, reversing every multi-byte field. The dot product could not see it —
+   reversing both operands applies the same permutation to each.
+
+**Therefore:** a conformance host is not verified by its self-test, and
+arithmetic alone is not a sufficient witness for a wire format. Put a checksum
+over the *inputs* in the response; it turns an invisible permutation into an
+immediate localised failure.
+
+## Design invariants — do not collapse these
+
+- `node.execute` produces an **untrusted claim**; `protocol.verify` judges it
+  against an independent recomputation; `ledger.settle` moves credit. Three
+  steps, three functions. Merging them is how a compute network pays for work
+  that never happened.
+- A **tag can never adjudicate whose account a credit belongs in.** A node that
+  computes honestly and signs as someone else passes the protocol verifier —
+  refusing payment is the ledger's job.
+- Full audit is affordable **because this work unit is small**. If the unit
+  grows, lower the audit rate and raise the slash to keep `p·s > r`.
+- No multipliers in the compute core. Ternary products need none, and DSP
+  inference is what made every previous multiply cell unroutable under openXC7.
+
+## The next wave
+
+Ordered by what unblocks the most:
+
+1. **`DNA_PORT` under openXC7.** Can nextpnr-xilinx instantiate it on
+   xc7a200t? Cheap to test, and it settles whether *any* device-bound identity
+   is available. Without it, "FPGA compute network" is a claim about intent.
+2. **A second physical node.** Every distributed claim today is one board plus
+   software. Two boards make the mesh real.
+3. **TF3 balanced-ternary decode** (issue #234) — a different cell from either
+   currently recorded.
+4. **Sign the receipt.** A checksum is not a signature; needed before any
+   settlement crosses a trust boundary.
+5. **Throughput.** UART at 160 kbaud ceilings around 400 jobs/s/board. Real
+   inference needs the USB-3 FIFO boundary issue #48 specifies.
+6. **Name a buyer.** `open_question WHO_BUYS_TERNARY_COMPUTE` in
+   `settlement_law.t27` — every other item is engineering; this one decides
+   whether the engineering matters.
+
+## Words that must not appear in any TRI-NET claim
+
+"first", "best", "only", "beats". Also: never describe credited work as hardware
+compute on the strength of a receipt alone.
