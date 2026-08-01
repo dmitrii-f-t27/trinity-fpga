@@ -1,0 +1,81 @@
+name: AX7203 GFTernary MUL
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, tri-net-ternary-internet]
+    paths:
+      - 'fpga/openxc7-synth/corona_compute_gfternary_mul_ax7203.v'
+      - 'conformance/gfternary_compute_conformance_ax7203.py'
+      - '.github/workflows/ax7203-gfternary-mul.yml'
+jobs:
+  golden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python3 conformance/gfternary_compute_conformance_ax7203.py --self-test --op mul
+
+  bitstream:
+    needs: golden
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker pull regymm/openxc7 (retry on transient 5xx)
+        run: |
+          for i in 1 2 3 4 5 6; do
+            docker pull regymm/openxc7:latest && break
+            echo "::warning::docker pull attempt $i failed, sleeping $((i*20))s"; sleep $((i*20))
+          done
+          docker image inspect regymm/openxc7:latest >/dev/null 2>&1 || { echo "::error::docker pull failed after 6 retries"; exit 1; }
+      - name: Yosys
+        run: |
+          mkdir -p build/gfternary_mul
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
+            read_verilog fpga/openxc7-synth/gf_mul_param.v fpga/openxc7-synth/corona_compute_gfternary_mul_ax7203.v;
+            synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7 -top corona_compute_gfternary_mul_ax7203;
+            setundef -zero -params; write_json build/gfternary_mul/gfternary_mul_ax7203.json" 2>&1 | tee /tmp/yosys.log
+          grep -E "Estimated|ERROR" /tmp/yosys.log
+      - uses: actions/cache@v4
+        id: chipdb
+        with:
+          path: build/gfternary_mul/chipdb/xc7a200tfbg484-2.bin
+          key: chipdb-xc7a200tfbg484-2-regymm-${{ github.run_id }}
+          restore-keys: chipdb-xc7a200tfbg484-2-regymm-
+      - if: steps.chipdb.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p build/gfternary_mul/chipdb
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 bash -c "cd /nextpnr-xilinx && python3 xilinx/python/bbaexport.py --device xc7a200tfbg484-2 --bba /work/build/gfternary_mul/chipdb/xc7a200tfbg484-2.bba && bbasm -l /work/build/gfternary_mul/chipdb/xc7a200tfbg484-2.bba /work/build/gfternary_mul/chipdb/xc7a200tfbg484-2.bin"
+      - name: nextpnr (heap + sa seed search)
+        run: |
+          CLEAN="";
+          for placer in heap sa; do
+            for s in 1 2 3 4 5 6 7 8; do
+              rm -f build/gfternary_mul/gfternary_mul_ax7203.fasm
+              timeout 25m docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
+                --chipdb /work/build/gfternary_mul/chipdb/xc7a200tfbg484-2.bin \
+                --xdc /work/specs/fpga/constraints/gf16_clean_ax7203.xdc \
+                --json /work/build/gfternary_mul/gfternary_mul_ax7203.json \
+                --write /work/build/gfternary_mul/gfternary_mul_ax7203_routed.json \
+                --fasm /work/build/gfternary_mul/gfternary_mul_ax7203.fasm \
+                --freq 50.0 --seed $s --placer $placer --router router1 --timing-allow-fail > /tmp/np_${placer}_$s.log 2>&1 || true
+              if grep -q "Failed to find a route" /tmp/np_${placer}_$s.log || [ ! -f build/gfternary_mul/gfternary_mul_ax7203.fasm ]; then continue; fi
+              CLEAN="$placer/$s"; break
+            done
+            [ -n "$CLEAN" ] && break
+          done
+          [ -z "$CLEAN" ] && { echo "::error::no clean seed across heap+sa x8"; exit 1; }
+          echo "routed with placer/seed = $CLEAN"
+      - name: fasm2bit
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 bash -c "
+            source /prjxray/env/bin/activate && fasm2frames --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --part xc7a200tfbg484-2 /work/build/gfternary_mul/gfternary_mul_ax7203.fasm /work/build/gfternary_mul/gfternary_mul_ax7203.frames && /prjxray/build/tools/xc7frames2bit --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.yaml --part_name xc7a200tfbg484-2 --frm_file /work/build/gfternary_mul/gfternary_mul_ax7203.frames --output_file /work/build/gfternary_mul/gfternary_mul_ax7203.bit"
+          sha256sum build/gfternary_mul/gfternary_mul_ax7203.bit | tee build/gfternary_mul/gfternary_mul_ax7203.bit.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gfternary-mul-bitstream
+          path: |
+            build/gfternary_mul/gfternary_mul_ax7203.bit
+            build/gfternary_mul/gfternary_mul_ax7203.bit.sha256
