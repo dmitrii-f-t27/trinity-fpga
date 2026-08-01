@@ -1382,3 +1382,71 @@ Caught before it was written down. The guard that produced the delay is the same
 that made the correct answer available: refusing a partial result forced the retry.
 """
 }
+
+// ---- Pass 87: the Russian manuscript concedes prior art the English does not --
+
+finding THE_ENGLISH_PAPERS_DO_NOT_MENTION_DLFLOAT {
+  name     "GF16's layout is IBM DLFloat's, acknowledged in the Russian text and absent from both preprints"
+  severity HIGH
+
+  what_main_ru_says """
+Section "IEEE DLFloat и независимый формат 1/6/9 (E6M9)", verbatim in translation:
+
+  "The bitwise layout of GF16 -- sign, 6-bit exponent, 9-bit mantissa (E6M9,
+   BIAS = 31) -- IS NOT NEW AS A LAYOUT AND IS NOT CLAIMED TO BE. IBM DLFloat
+   (Agrawal et al., ARITH 2019, DOI 10.1109/ARITH.2019.00023) is a 16-bit
+   floating-point format with exactly 6 exponent and 9 mantissa bits, proposed for
+   deep learning training and inference; this is exactly GF16's field layout.
+   Popescu, Sentieys et al. (arXiv:2103.15940) independently identify the 1/6/9
+   split as a range-precision compromise for 16-bit training. So the choice of the
+   E6M9 LAYOUT has independent precedent, and GoldenFloat is honestly positioned as
+   ONE OF the formats using that layout, not as its originator. The
+   GoldenFloat-specific contribution is not the GF16 layout itself but the
+   derivation of the e:f split across the whole ladder from GF4 to GF256 from a
+   single closed rule."
+"""
+
+  what_the_preprints_say """
+Nothing. "DLFloat" and "Agrawal" each occur ZERO times in arXiv:2606.05017v3 and in
+arXiv:2606.09686v2.
+"""
+
+  why_this_matters """
+GF16 is the flagship rung -- the one with silicon, the one carrying the 35/35 FPGA
+conformance claim. A reader of either English paper cannot learn that its layout is
+identical to a 2019 IBM format.
+
+This is not a concealment. The author wrote the acknowledgement, in detail, with the
+DOI, and drew the right distinction: the layout is not the contribution, the closed
+rule generating the whole ladder is. It simply did not reach the English versions.
+"""
+
+  the_recommendation """
+Add it. It is an ADDITION THAT STRENGTHENS the paper -- a precise concession of
+prior art, in the author's own words, that sharpens what the contribution actually
+is. Paper A's abstract already says "We make no per-rung accuracy or superiority
+claim", and DLFloat is the most concrete thing that sentence could point at.
+
+The Russian paragraph can be translated almost directly.
+"""
+  resolved false
+  recorded_for "SUBMISSION_CHECKLIST.md"
+}
+
+measurement MAIN_RU_DOIS_RESOLVED {
+  dois_in_entries 7
+  titles_agree 6
+  leads 1
+  note "the single lead is the ARITH misattribution already recorded, inherited from Paper A [11]"
+
+  also_checked """
+Two Zenodo DOIs, the author's own artefacts, both resolve: "5500FP: A 24-Trit
+Balanced Ternary RISC Processor" and "Trinity B007: VSA Operations for Ternary
+Computing v5.0".
+
+One DOI initially looked dead -- DataCite returned "the resource you are looking for
+doesn't exist" for 10.1109/ARITH.2019.00023. IEEE DOIs live in Crossref, not
+DataCite. Queried there it resolves correctly to DLFloat. Querying the wrong
+registry and reporting the answer would have manufactured a dead citation.
+"""
+}
