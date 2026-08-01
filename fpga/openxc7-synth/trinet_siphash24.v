@@ -79,8 +79,13 @@ module trinet_siphash24 #(
         end
     endgenerate
 
+    // A sized localparam rather than a static cast: yosys rejects 8'(X) outside
+    // SystemVerilog mode, and iverilog -g2012 accepts it, so the cast compiled
+    // in simulation and failed in synthesis.
+    localparam [7:0] LEN_BYTE = MSG_BYTES[7:0];
+
     wire [63:0] tail_block = {
-        8'(MSG_BYTES),
+        LEN_BYTE,
         {(56 - 8*TAIL_BYTES){1'b0}},
         msg[8*(8*FULL_WORDS) +: 8*TAIL_BYTES]
     };
