@@ -159,9 +159,22 @@ delivered {
 }
 
 scope_limits {
-  covers      "all 13 scripts under conformance/, and index-to-pack consistency for all 83 packs"
-  not_covered { "scripts under tools/ and scripts/, which were not swept",
+  covers      "the 13 scripts at the TOP LEVEL of conformance/, and index-to-pack
+               consistency for all 83 packs"
+  not_covered { "conformance/witness/ -- a subtree of six decode references that
+                 were NOT among the 13; pass 57 ran them and found all six broken,
+                 defaulting to a /home/user/workspace path",
+                "scripts under tools/ and scripts/, which were not swept",
                 "whether gf16_vectors.json's expectations were ever correct under some layout",
                 "the vectors INSIDE each pack -- that is wp18_conformance_gate.py's job" }
   superiority_claimed false
+
+  amended_pass_83 """
+This read "all 13 scripts under conformance/", which implies the whole subtree. It
+covered the top level only, and the subtree it silently excluded turned out to hold
+six broken files -- the witness decode references, which are the artefacts honesty
+rule #10 points a sceptic at.
+
+The measurement was right. The word "under" claimed more than it.
+"""
 }

@@ -1119,3 +1119,71 @@ negatives, uniqueness phrasings for overclaims.
 The second is what found this pass's two, and it took one grep each.
 """
 }
+
+// ---- Pass 83: the class searches, turned on the specs ------------------------
+
+measurement SPEC_SWEEP_FOR_ABSENCE_AND_UNIQUENESS {
+  files "specs/numeric/*.t27"
+  claims_found 65
+  inside_a_marked_superseded_block 31
+  standing_as_current 34
+
+  the_discrimination_that_mattered """
+These specs deliberately keep refuted claims as history, marked SUPERSEDED_BY or
+inside a `correction` block. Flagging those would have buried the signal under the
+campaign's own honesty record, so a hit counts only when its enclosing block carries
+no supersession marker. Half the hits were history.
+"""
+
+  noise_reduction """
+The first sweep flagged 42. Most of the excess was "the first attempt", "the first
+classifier" -- narrative, not uniqueness claims. Excluding that shape brought it to
+34 and made the real entries readable.
+"""
+}
+
+result THE_SPECS_ABSENCE_CLAIMS_HOLD_UP {
+  checked """
+Sampled the unmarked hits, including the two most likely to have gone stale:
+
+  WHERE_IS_GF_ARITHMETIC_VERIFIED -- "there is no independent re-implementation
+      left" states its evidence: every wrapper is a one-line delegation to gf_ref.
+  CONFORMANCE_SCRIPTS_RUN -- "gen_all_formats.py was the ONLY conformance script
+      reading an uncommitted input", with hardcoded_tmp_inputs 0.
+"""
+
+  finding """
+No false absence claim in the specs. That is the opposite of what the same search
+found in research/*.md, where it turned up a live one immediately in pass 81.
+
+The difference is structural, and worth naming: a spec block states its evidence
+next to its claim, and the .md deliverables state conclusions. A claim written
+beside its measurement is harder to leave standing after the measurement changes.
+"""
+  status VERIFIED_SW
+}
+
+finding A_SCOPE_CLAIM_READ_BROADER_THAN_ITS_MEASUREMENT {
+  name     "\"all 13 scripts under conformance/\" excluded a subtree that held six broken files"
+  severity MEDIUM
+
+  detail """
+generator_runnability_sweep.t27's scope_limits said the pass covered "all 13 scripts
+under conformance/". It covered the top level. conformance/witness/ holds six decode
+references that were not among the 13, and pass 57 ran them and found all six broken
+-- they defaulted to a /home/user/workspace path and failed on any machine but one.
+
+Those are the artefacts honesty rule #10 points a sceptic at.
+"""
+
+  the_shape_of_this_error """
+The measurement was correct and the conclusion was correct. One preposition claimed
+more than either. "Under conformance/" reads as the subtree; "at the top level of
+conformance/" is what was done.
+
+Not an absence claim and not a uniqueness claim -- which is why neither search
+pattern found it. It surfaced from reading the block the search pointed at.
+"""
+  fix "scope corrected, and the excluded subtree named along with what was later found in it"
+  resolved true
+}
