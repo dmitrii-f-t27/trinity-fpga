@@ -793,3 +793,55 @@ Both ISBNs resolve and agree with what is cited.
 that book exist under both years, so this is a lead for the author, not a finding.
 """
 }
+
+// ---- Pass 78: the bibliography findings, consolidated ------------------------
+
+delivered BIBLIOGRAPHY_FIXES_TABLE {
+  artefact  "research/BIBLIOGRAPHY_FIXES.md"
+  generator "research/build_bibliography_table.py"
+
+  totals { paper_a 7  paper_b 11  overall 18 }
+
+  why_generated_not_written """
+The table pulls each entry's CURRENT claim from the published HTML and each work's
+real title from the arXiv API, both at generation time. So it validates itself: if
+a reference number in the defect list were wrong, the "currently says" column would
+not match what that entry actually claims.
+
+Writing it by hand would have produced a snapshot that drifts. Passes 62, 71 and 72
+each found a hand-written document that had gone stale; this one regenerates.
+"""
+
+  what_it_replaces """
+The same findings were spread across SUBMISSION_CHECKLIST.md, three .t27 specs and
+CORRECTED_BIBITEMS.tex. An author fixing a bibliography needs one list, in the order
+they will work through it.
+"""
+}
+
+result THE_TOTAL_HAS_MOVED_A_LONG_WAY {
+  history """
+  pass 5   Paper B: "8 of 20 defective"        by reading
+  pass 63  Paper A: "0 misattributions"        by reading the arXiv-id subset
+  pass 74  Paper A: 1 misattribution           first DOI checked
+  pass 75  Paper B: 9 of 12 arXiv entries      mechanical resolution
+  pass 78  both:    18 entries                 consolidated and re-resolved
+"""
+
+  the_pattern """
+Every increase came from resolving identifiers rather than reading entries, and
+every reading-based figure was an undercount. Not because the readings were careless
+-- because a citation that points at the wrong work usually looks completely normal.
+"""
+
+  what_is_still_not_covered """
+Entries with no machine-resolvable identifier: Paper A [1] (1957 journal), [6] (HAL),
+[27] (working draft), [30] (forum post); Paper B [11], [15], [16], [17], whose URLs
+resolve but whose CONTENT was not compared against what is claimed.
+
+And the [10]/[11] duplicate was found only because two different identifier types
+resolved to the same work. Identifier matching alone does not find that shape, so
+others may remain.
+"""
+  status VERIFIED_SW
+}
