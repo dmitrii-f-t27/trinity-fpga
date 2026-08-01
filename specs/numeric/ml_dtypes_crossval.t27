@@ -471,3 +471,72 @@ and quote it, which is all that was needed. Recorded because the quotes above sh
 be re-checked against a properly rendered copy before they appear in a paper.
 """
 }
+
+// ---- Pass 70: the special-value differences, explained from the source -------
+
+result SPECIAL_DIFFS_PREDICTED_EXACTLY {
+  what_was_unexplained """
+Passes 64-65 attributed the special-value counts -- 3 for fp8 E4M3FN, 9 for E5M2,
+2049 for binary16 -- to "different specifications", without reading what P3109
+actually specifies. That was the last part of the comparison resting on an
+assumption.
+"""
+
+  the_specification """
+Section 3.1, NOTE 1, verbatim:
+
+  "Define the set of closed extended reals to be the reals augmented with positive
+   and negative infinity and NaN. NOTE 1 -- This set contains a SINGLE NaN value.
+   There is NO NEGATIVE ZERO in this set."
+
+Annex A.3, verbatim:
+
+  "Datum sets include exactly one zero. The inclusion of negative zero would incur
+   the cost of an additional code point. Given the decision to encode only a single
+   NaN, placing that NaN at the code point where negative zero would be encoded
+   enables the strictly positive and strictly negative number ranges to be
+   symmetric for signed formats."
+
+And the domain parameter, from the definitions: "domain: format-defining parameter
+in {Finite, Extended} that specifies whether the format's datum set includes
+infinities" -- which is the sf/se suffix on every table filename.
+"""
+
+  prediction_against_observation """
+If P3109 has one NaN and no negative zero, while the corpus's formats follow
+IEEE/OCP, then the differing codes are exactly the corpus's NaN payloads, its
+infinities where defined, and its negative zero:
+
+  format      NaN   inf   -0   predicted   observed
+  binary16   2046     2    1        2049       2049
+  fp8_e5m2      6     2    1           9          9
+  fp8_e4m3fn    2     0    1           3          3
+
+Three formats, three exact matches, from arithmetic over a specification rather
+than from inspection of the residue.
+"""
+  status VERIFIED_SW
+}
+
+result THE_P3109_COMPARISON_IS_NOW_FULLY_ACCOUNTED_FOR {
+  finite_codes """
+Differ by exactly a factor of two, from a documented bias convention: normative
+clause 3.1 ("shall be B = 2^(K-P-1)" signed, "2^(K-P)" unsigned), rationale annex
+A.5 naming the divergence from IEEE-754, 252 of 252 configurations read from the
+published tables, and 258,524 codes compared against four packs.
+"""
+  special_codes """
+Differ by exactly the count that one NaN and no negative zero predicts: 3, 9 and
+2049, matched exactly.
+"""
+  reading """
+Nothing in the comparison is left as "different specifications, presumably". Every
+divergence is now traced to a clause, and every clause's consequence is arithmetic
+that matches the measurement.
+
+Which means the cross-check does what a sixth oracle should: it confirms the
+corpus's decode law -- two correct decoders reading two conventions -- rather than
+finding a defect in either.
+"""
+  status VERIFIED_SW
+}
