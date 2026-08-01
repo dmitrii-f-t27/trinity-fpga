@@ -845,3 +845,69 @@ others may remain.
 """
   status VERIFIED_SW
 }
+
+// ---- Pass 79: the blind spot covered, and two more misattributions -----------
+
+result B_DUPLICATE_SEARCH_BY_WORK_NOT_BY_IDENTIFIER {
+  method """
+Resolve every identifier -- arXiv id and DOI alike -- to a canonical title, then
+group by title. Different identifier TYPES then collapse onto the same work, which
+grouping by identifier cannot do.
+"""
+  paper_a "26 of 33 entries resolved; ONE duplicate"
+  paper_b "12 of 20 entries resolved; none"
+
+  it_validated_itself """
+The one duplicate it found is Paper A's [10]/[11] -- the pair discovered by accident
+in pass 74. A method built to find a known case and finding it is worth more than
+one that finds only new things, because it says the search actually works.
+
+No others exist among the entries either paper's identifiers can resolve.
+"""
+  status VERIFIED_SW
+}
+
+finding TWO_MORE_MISATTRIBUTIONS_FROM_NON_ARXIV_IDENTIFIERS {
+  severity HIGH
+
+  paper_b_11 """
+Cited: "C. M. Wintersteiger, Floating-point conformance testing in industrial
+practice, Proc. IEEE ARITH 2025."
+
+The PDF at the entry's OWN URL is "Formal Verification of the IEEE P3109 Standard
+for Binary Floating-point Formats for Machine Learning", Christoph M. Wintersteiger,
+Imandra Inc.
+
+Right author, different work. The link resolves, which is why a link-checker passed
+it in pass 76 -- reachability is not agreement.
+"""
+
+  paper_a_6 """
+Cited: "F. de Dinechin, L. Forget, J.-M. Muller, and Y. Uguen, Posits: the good, the
+bad and the ugly, 2019. hal-03195756v3."
+
+The HAL record for that id is "Comparing posit and IEEE-754 hardware cost", authors
+Luc Forget, Yohann Uguen, Florent de Dinechin -- a different title, and Muller is not
+among its authors.
+
+Both works exist; the identifier points at the other one.
+"""
+
+  the_pattern_now_complete """
+Every identifier TYPE checked so far has yielded at least one misattribution:
+arXiv ids (9 in Paper B), a DOI (Paper A [11]), a HAL id (Paper A [6]), and a bare
+URL (Paper B [11]). Only the two ISBNs came back clean.
+
+The defect is not specific to one citation database. It is consistent with entries
+written from memory and given an identifier afterwards.
+"""
+  resolved false
+}
+
+note WHAT_REMAINS_UNCHECKABLE {
+  detail """
+Three Paper A entries carry no resolvable identifier at all: [1], a 1957 Mathematics
+Magazine article; [27], an unversioned working draft; [30], a forum post. These
+cannot be checked mechanically and are recorded as unchecked rather than as clean.
+"""
+}

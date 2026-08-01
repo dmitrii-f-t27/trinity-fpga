@@ -40,6 +40,19 @@ ARXIV_DEFECTS = [
 ]
 
 OTHER_DEFECTS = [
+    ("A", "[6]", "cites *\u201cPosits: the good, the bad and the ugly\u201d* by de Dinechin, "
+                 "Forget, **Muller** and Uguen at `hal-03195756v3`. The HAL record "
+                 "for that id is *\u201cComparing posit and IEEE-754 hardware cost\u201d* "
+                 "by **Forget, Uguen and de Dinechin** \u2014 different title, and Muller "
+                 "is not among its authors.",
+     "Either correct the title and author list to the HAL record, or supply the "
+     "HAL id of the paper actually meant \u2014 both works exist."),
+    ("B", "[11]", "cites *\u201cFloating-point conformance testing in industrial "
+                  "practice\u201d*. The PDF at the URL given in the entry is "
+                  "*\u201cFormal Verification of the IEEE P3109 Standard for Binary "
+                  "Floating-point Formats for Machine Learning\u201d*, Wintersteiger, "
+                  "Imandra Inc. Right author, different work.",
+     "Replace the title with the one at the cited URL."),
     ("A", "[11]", "DOI 10.1109/ARITH64983.2025.00019 resolves to *Evaluation of "
                   "Bfloat16, Posit, and Takum Arithmetics in Sparse Linear "
                   "Solvers* (Hunhold and Quinlan) — **the same work [10] already "
@@ -123,14 +136,25 @@ Every arXiv identifier in both bibliographies was resolved and its title compare
 against what the entry claims. That catches the class that matters: a citation that
 *looks* right and points somewhere else.
 
-It does **not** cover entries with no machine-resolvable identifier. In Paper A those
-are `[1]` (1957 journal article), `[6]` (HAL), `[27]` (working draft) and `[30]`
-(forum post); `[23]` and `[33]` carry ISBNs and both resolve correctly. In Paper B
-they are `[11]`, `[15]`, `[16]`, `[17]`, whose URLs were checked and resolve.
+Entries without an arXiv id were pursued through whatever identifier they carry:
 
-One duplicate was found only by resolving two different identifier types and
-noticing they met — Paper A's `[10]` and `[11]`. Identifier matching alone would not
-have found it, so there may be others of that shape.
+- **ISBN** — Paper A `[23]` and `[33]` resolve via OpenLibrary and both agree with
+  what is cited. (One lead, not a defect: `[23]` is dated 2015 and OpenLibrary
+  records 2017; editions exist under both.)
+- **HAL** — Paper A `[6]` resolves, and **disagrees** — it is in the table above.
+- **A bare URL** — Paper B `[11]`'s own link was fetched and read; it **disagrees**,
+  and is in the table above. `[15]`, `[16]` and `[17]` are a standard, a
+  specification and a library repository, whose URLs resolve.
+
+**Still not covered:** Paper A `[1]` (a 1957 journal article with no identifier),
+`[27]` (an unversioned working draft) and `[30]` (a forum post). Those three cannot
+be checked mechanically.
+
+**Duplicates** were searched for twice: by identifier, which found none, and by
+resolving every identifier to a canonical title and grouping — which recovered Paper
+A's `[10]`/`[11]` pair, where one entry carries an arXiv id and the other a DOI for
+the same work. That second method is what the first misses by construction; it found
+no others in either paper among the 26 of 33 and 12 of 20 entries it could resolve.
 """)
     return 0
 

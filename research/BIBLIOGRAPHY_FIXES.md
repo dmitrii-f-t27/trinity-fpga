@@ -9,7 +9,7 @@
 
 ## Paper A — arXiv:2606.05017v3
 
-**7 entries need attention.**
+**8 entries need attention.**
 
 | ref | currently says | actually is | defect |
 |---|---|---|---|
@@ -20,13 +20,16 @@
 | **[22]** | The era of 1-bit LLMs: BitNet b1.58 | The Era of 1-bit LLMs: All Large Language Models are in 1.58 Bits *(Ma et al.)* | shortened title |
 | **[26]** | Fibbinary: quantization of neural networks using Fibonacci representations | Fibbinary-Based Compression and Quantization for Efficient Neural Radio Receivers *(Fiandaca et al.)* | paraphrased — domain changed |
 
+- **[6]** — cites *“Posits: the good, the bad and the ugly”* by de Dinechin, Forget, **Muller** and Uguen at `hal-03195756v3`. The HAL record for that id is *“Comparing posit and IEEE-754 hardware cost”* by **Forget, Uguen and de Dinechin** — different title, and Muller is not among its authors.  
+  → Either correct the title and author list to the HAL record, or supply the HAL id of the paper actually meant — both works exist.
+
 - **[11]** — DOI 10.1109/ARITH64983.2025.00019 resolves to *Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse Linear Solvers* (Hunhold and Quinlan) — **the same work [10] already cites**. Wrong title, wrong authors, and a duplicate.  
   → Delete as a duplicate of [10]. If the ARITH 2025 hardware-evaluation paper was intended, it needs its own DOI — this one is not it.
 
 
 ## Paper B — arXiv:2606.09686v2
 
-**11 entries need attention.**
+**12 entries need attention.**
 
 | ref | currently says | actually is | defect |
 |---|---|---|---|
@@ -39,6 +42,9 @@
 | **[13]** | Takum arithmetic in sparse iterative solvers: A precision-vs-storage study | Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse Linear Solvers *(Hunhold et al.)* | wrong title — different work |
 | **[19]** | (no title) | Novel Aspects of IEEE SA P3109 Arithmetic Formats for Machine Learning *(Fitzgibbon et al.)* | no title given at all |
 | **[20]** | (no title) | Is Finer Better? The Limits of Microscaling Formats in Large Language Models *(Fasoli et al.)* | no title given at all |
+
+- **[11]** — cites *“Floating-point conformance testing in industrial practice”*. The PDF at the URL given in the entry is *“Formal Verification of the IEEE P3109 Standard for Binary Floating-point Formats for Machine Learning”*, Wintersteiger, Imandra Inc. Right author, different work.  
+  → Replace the title with the one at the cited URL.
 
 - **[12]** — credits *C.* Hunhold for libtakum.  
   → The author is **Laslo** Hunhold — confirmed from the arXiv record for 2404.18603.
@@ -55,12 +61,23 @@ Every arXiv identifier in both bibliographies was resolved and its title compare
 against what the entry claims. That catches the class that matters: a citation that
 *looks* right and points somewhere else.
 
-It does **not** cover entries with no machine-resolvable identifier. In Paper A those
-are `[1]` (1957 journal article), `[6]` (HAL), `[27]` (working draft) and `[30]`
-(forum post); `[23]` and `[33]` carry ISBNs and both resolve correctly. In Paper B
-they are `[11]`, `[15]`, `[16]`, `[17]`, whose URLs were checked and resolve.
+Entries without an arXiv id were pursued through whatever identifier they carry:
 
-One duplicate was found only by resolving two different identifier types and
-noticing they met — Paper A's `[10]` and `[11]`. Identifier matching alone would not
-have found it, so there may be others of that shape.
+- **ISBN** — Paper A `[23]` and `[33]` resolve via OpenLibrary and both agree with
+  what is cited. (One lead, not a defect: `[23]` is dated 2015 and OpenLibrary
+  records 2017; editions exist under both.)
+- **HAL** — Paper A `[6]` resolves, and **disagrees** — it is in the table above.
+- **A bare URL** — Paper B `[11]`'s own link was fetched and read; it **disagrees**,
+  and is in the table above. `[15]`, `[16]` and `[17]` are a standard, a
+  specification and a library repository, whose URLs resolve.
+
+**Still not covered:** Paper A `[1]` (a 1957 journal article with no identifier),
+`[27]` (an unversioned working draft) and `[30]` (a forum post). Those three cannot
+be checked mechanically.
+
+**Duplicates** were searched for twice: by identifier, which found none, and by
+resolving every identifier to a canonical title and grouping — which recovered Paper
+A's `[10]`/`[11]` pair, where one entry carries an arXiv id and the other a DOI for
+the same work. That second method is what the first misses by construction; it found
+no others in either paper among the 26 of 33 and 12 of 20 entries it could resolve.
 
