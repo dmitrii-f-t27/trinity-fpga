@@ -24,6 +24,28 @@ pub const block = protocol.n_trits; // 32 trits in, one dot product out
 
 pub const magic = "TRINMDL1";
 
+/// Activation threshold for a 32-wide layer, chosen by measurement rather than
+/// taste. Feeding a fixed input through four synthetic layers and recording the
+/// fraction of non-zero trits that survive each one gives:
+///
+///     threshold 0:  0.69 -> 0.91 -> 0.94 -> 0.91 -> 0.88   saturated
+///     threshold 1:  0.69 -> 0.66 -> 0.56 -> 0.66 -> 0.59
+///     threshold 2:  0.69 -> 0.41 -> 0.28 -> 0.25 -> 0.31   sustained
+///     threshold 3:  0.69 -> 0.22 -> 0.06 -> 0.00 -> 0.00   dead
+///     threshold 4:  0.69 -> 0.22 -> 0.03 -> 0.00 -> 0.00   dead
+///
+/// Both ends destroy the network for different reasons. Too high and the
+/// activations collapse to the zero vector within three layers, after which
+/// every input produces the same output and the model has no opinion about
+/// anything. Too low and no trit is ever zero, which throws away the third
+/// state and leaves a binary network wearing ternary clothes.
+///
+/// The usable band is narrow because a 32-wide ternary dot product has a
+/// standard deviation of only about 3.4. A wider layer would need a
+/// proportionally higher threshold — this constant is tied to `n_trits`, not
+/// universal.
+pub const default_threshold: i8 = 2;
+
 pub const Error = error{
     BadMagic,
     Truncated,
@@ -113,7 +135,7 @@ pub const Model = struct {
                 }
                 r.* = protocol.pack(tv);
             }
-            layers[built] = .{ .rows = rows, .threshold = 4 };
+            layers[built] = .{ .rows = rows, .threshold = default_threshold };
         }
 
         return .{ .gpa = gpa, .layers = layers, .provenance = .synthetic, .name = "synthetic" };
@@ -258,6 +280,46 @@ test "ternary activation has a genuine zero band" {
     // With threshold 0 the zero state collapses and the network is binary.
     try testing.expectEqual(@as(i8, 1), ternarize(1, 0));
     try testing.expectEqual(@as(i8, -1), ternarize(-1, 0));
+}
+
+/// Fraction of trits that are non-zero.
+pub fn density(v: protocol.Trits) f64 {
+    var nz: usize = 0;
+    for (v) |t| {
+        if (t != 0) nz += 1;
+    }
+    return @as(f64, @floatFromInt(nz)) / @as(f64, @floatFromInt(protocol.n_trits));
+}
+
+test "the default threshold keeps a deep network alive without saturating it" {
+    var input: protocol.Trits = @splat(0);
+    for (&input, 0..) |*t, i| t.* = if (i % 3 == 0) 1 else if (i % 3 == 1) -1 else 0;
+    var scratch: [64]i8 = undefined;
+
+    var model = try Model.synthetic(testing.allocator, 4, 32, 0x1614);
+    defer model.deinit();
+    const alive = forwardLocal(model, input, &scratch);
+    const d = density(alive);
+
+    // Not dead: a collapsed network returns the same output for every input,
+    // which reads as a confident answer and is in fact no answer at all.
+    try testing.expect(d > 0.10);
+    // Not saturated: a network with no zero trits has discarded the third
+    // state and is binary.
+    try testing.expect(d < 0.80);
+}
+
+test "a threshold that is too high kills the network within three layers" {
+    var input: protocol.Trits = @splat(0);
+    for (&input, 0..) |*t, i| t.* = if (i % 3 == 0) 1 else if (i % 3 == 1) -1 else 0;
+    var scratch: [64]i8 = undefined;
+
+    var model = try Model.synthetic(testing.allocator, 4, 32, 0x1614);
+    defer model.deinit();
+    for (model.layers) |*l| l.threshold = 4;
+    // Recorded so the failure mode stays visible rather than being rediscovered
+    // as a mysterious zero-margin decision.
+    try testing.expectEqual(@as(f64, 0.0), density(forwardLocal(model, input, &scratch)));
 }
 
 test "a synthetic model reports itself as untrained" {
