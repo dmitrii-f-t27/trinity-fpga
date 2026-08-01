@@ -81,8 +81,16 @@ GOLDEN_OPS = {"add": golden_add, "mul": golden_mul, "div": golden_div, "sqrt": g
 FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
 
 def hw_exchange(ser, a, b, op_name):
-    """Send gfternary compute request and read result."""
-    pkt = FRAME + bytes([0x00, a & 0xFF, b & 0xFF, 0x00])  # fmt=0, a, b, trigger
+    """Send gfternary compute request and read result.
+
+    The wrapper's parser is exactly six bytes wide — AA 55 fmt a b trig — so
+    FRAME already carries the fmt byte and only a, b and the trigger follow.
+    An earlier version emitted a second fmt byte here, which shifted the
+    operands by one: the FPGA read a=0 for every job and dutifully returned
+    zero. It matched the golden oracle on the seven cases whose answer is zero
+    anyway, so the bug was invisible until the cell was first run on silicon.
+    """
+    pkt = FRAME + bytes([a & 0xFF, b & 0xFF, 0x00])  # a, b, trigger
     ser.write(pkt)
     resp = ser.read(5)  # A5 + 4 bytes
     if len(resp) < 5 or resp[0] != 0xA5:
