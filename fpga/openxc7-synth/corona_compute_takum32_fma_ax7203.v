@@ -58,7 +58,7 @@ module corona_compute_takum32_fma_ax7203 (
 
     reg [31:0] a_reg,b_reg,c_reg; reg comp_trigger;
     wire [31:0] fmt_a=a_reg, fmt_b=b_reg, fmt_c=c_reg;
-    wire [7:0] tk_idx_a = fmt_a_a[31:24];
+    wire [7:0] tk_idx_a = fmt_a[31:24];
     reg [31:0] fp32_a;
     always @(*) begin
         case(tk_idx_a)
@@ -321,7 +321,7 @@ module corona_compute_takum32_fma_ax7203 (
             default: fp32_a=32'h00000000;
         endcase
     end
-    wire [7:0] tk_idx_b = fmt_b_b[31:24];
+    wire [7:0] tk_idx_b = fmt_b[31:24];
     reg [31:0] fp32_b;
     always @(*) begin
         case(tk_idx_b)
@@ -584,7 +584,7 @@ module corona_compute_takum32_fma_ax7203 (
             default: fp32_b=32'h00000000;
         endcase
     end
-    wire [7:0] tk_idx_c = fmt_c_c[31:24];
+    wire [7:0] tk_idx_c = fmt_c[31:24];
     reg [31:0] fp32_c;
     always @(*) begin
         case(tk_idx_c)

@@ -56,9 +56,9 @@ module corona_compute_fp80_e11m68_to_fp32_ax7203 (
 
     reg [79:0] a_reg; reg conv_trigger;
     wire [79:0] fmt_a = a_reg;
-    wire f_sign_a = fmt_a_a[79];
-    wire [10:0] f_exp_a = fmt_a_a[78:68];
-    wire [67:0] f_mant_a = fmt_a_a[67:0];
+    wire f_sign_a = fmt_a[79];
+    wire [10:0] f_exp_a = fmt_a[78:68];
+    wire [67:0] f_mant_a = fmt_a[67:0];
     wire f_zero_a = (f_exp_a == 0) && ((f_mant_a == 0));
     wire f_inf_a = (f_exp_a == 2047) && ((f_mant_a == 0));
     wire f_nan_a = (f_exp_a == 2047) && ((f_mant_a != 0));

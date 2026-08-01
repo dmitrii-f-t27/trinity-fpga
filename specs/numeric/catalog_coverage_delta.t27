@@ -2791,3 +2791,79 @@ bounds resolving to undef -- regardless of what yosys returns.
 """
   status IMPLEMENTED
 }
+
+// ---- Pass 104: the operands are connected, and a gate now reads the warnings ----
+
+fix THE_2276_WRAPPERS_ARE_RECONNECTED {
+  detail """
+The repair is one doubled suffix. Each wrapper declares
+
+    wire [15:0] fmt_a = a_reg, fmt_b = b_reg;
+
+and reads fmt_a_a and fmt_b_b; the three-operand FMA cells add fmt_c = c_reg and read
+fmt_c_c. Renaming the doubled names to the declared ones connects the datapath.
+
+  files rewritten                 2,276
+  distinct nets reconnected       4,532
+  files skipped for safety            0
+
+Small is not the same as safe across 2,276 files, so every rewrite was guarded: the
+target had to be already declared with a width in that file, and the doubled name had
+to be undeclared, or renaming it would merge two real nets. Nothing else was touched.
+Zero files hit either guard, which is itself worth knowing -- the defect is uniform.
+"""
+  status IMPLEMENTED
+}
+
+result VERIFIED_BY_THE_TOOL_THAT_REPORTED_IT {
+  detail """
+Yosys on the files that carried the diagnostics before:
+
+  previously failing, re-checked by name      7
+  now reporting a disconnected datapath       0
+  synthesis exit code                         0, with 0 errors
+
+And on a fresh spread sample of 40 drawn from all 3,590 wrappers: 0 diagnostics,
+40 clean.
+"""
+  not_measured """
+I wanted the synthesized cell count before and after, since a design whose operands
+were undef should optimise down to far less logic than one that computes. yosys's
+stat output in this version did not yield a parseable per-module total across several
+attempts, so that comparison is NOT reported. Diagnostics cleared and synthesis
+succeeds; the size delta is unmeasured and is not being implied.
+"""
+  status VERIFIED_SW
+}
+
+fix THE_GATE_RUNS_IN_CI_AND_CHECKS_MORE_THAN_THE_KNOWN_NAME {
+  detail """
+.github/workflows/rtl-datapath-gate.yml runs research/synth_warning_gate.py on every
+push and pull request touching fpga/openxc7-synth.
+
+The gate was widened first. As written in pass 103 it sampled only files matching the
+known bad name, which after the repair is zero files -- a gate that can detect only
+the defect already fixed is theatre. It now samples the whole wrapper pool and fails
+on the diagnostic classes themselves, whatever the net is called: an implicitly
+declared identifier, or a part-select out of bounds resolving to undef.
+
+Negative control, the same discipline as pass 97: with one file reverted to its broken
+state the gate exits 1; with it repaired, 0.
+"""
+  status IMPLEMENTED
+}
+
+open_question DOES_THE_RECONNECTED_LOGIC_COMPUTE_CORRECTLY {
+  detail """
+Connecting the operands makes these designs able to compute. It does not make them
+right, and pass 101 found two further defects in the same wrappers -- input decode
+using another format's layout, and a subnormal branch with a fixed shift where a
+variable one is needed. The layout was repaired; the subnormal normalisation was not,
+because it needs a priority encoder rather than a substitution.
+
+So the honest state is: the datapath now carries the operands, the fields are read
+correctly, and subnormal conversion remains wrong in 560 wrappers. Still no
+conformance script and no Tier-E proof for any of them.
+"""
+  resolved false
+}

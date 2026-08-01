@@ -50,9 +50,9 @@ module corona_compute_fp15_e5m9_add_ax7203 (
 
     reg [14:0] a_reg,b_reg; reg comp_trigger;
     wire [14:0] fmt_a=a_reg, fmt_b=b_reg;
-    wire f_sign_a = fmt_a_a[14];
-    wire [4:0] f_exp_a = fmt_a_a[13:9];
-    wire [8:0] f_mant_a = fmt_a_a[8:0];
+    wire f_sign_a = fmt_a[14];
+    wire [4:0] f_exp_a = fmt_a[13:9];
+    wire [8:0] f_mant_a = fmt_a[8:0];
     wire f_zero_a = (f_exp_a == 0) && ((f_mant_a == 0));
     wire f_inf_a = (f_exp_a == 31) && ((f_mant_a == 0));
     wire f_nan_a = (f_exp_a == 31) && ((f_mant_a != 0));
@@ -69,9 +69,9 @@ module corona_compute_fp15_e5m9_add_ax7203 (
         else if(f_sub_a) fp32_a={f_sign_a, 8'd113, f_mant32_norm_a};
         else fp32_a={f_sign_a, f_exp32_a, f_mant32_a};
     end
-    wire f_sign_b = fmt_b_b[14];
-    wire [4:0] f_exp_b = fmt_b_b[13:9];
-    wire [8:0] f_mant_b = fmt_b_b[8:0];
+    wire f_sign_b = fmt_b[14];
+    wire [4:0] f_exp_b = fmt_b[13:9];
+    wire [8:0] f_mant_b = fmt_b[8:0];
     wire f_zero_b = (f_exp_b == 0) && ((f_mant_b == 0));
     wire f_inf_b = (f_exp_b == 31) && ((f_mant_b == 0));
     wire f_nan_b = (f_exp_b == 31) && ((f_mant_b != 0));

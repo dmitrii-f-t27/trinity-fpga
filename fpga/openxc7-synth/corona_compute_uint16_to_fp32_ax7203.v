@@ -48,7 +48,7 @@ module corona_compute_uint16_to_fp32_ax7203 (
 
     reg [15:0] a_reg; reg conv_trigger;
     wire [15:0] fmt_a = a_reg;
-    wire [15:0] uval_a = fmt_a_a[15:0];
+    wire [15:0] uval_a = fmt_a[15:0];
     wire u_zero_a = (uval_a == 16'd0);
     wire [4:0] u_lzd_a;
     always @(*) begin

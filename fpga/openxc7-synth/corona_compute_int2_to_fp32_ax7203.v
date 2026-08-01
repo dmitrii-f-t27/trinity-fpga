@@ -47,7 +47,7 @@ module corona_compute_int2_to_fp32_ax7203 (
 
     reg [1:0] a_reg; reg conv_trigger;
     wire [1:0] fmt_a = a_reg;
-    wire [1:0] ival_a = fmt_a_a[1:0];
+    wire [1:0] ival_a = fmt_a[1:0];
     wire sign_a = ival_a[1];
     wire [1:0] abs_val_a = sign_a ? (~ival_a + 2'd1) : ival_a;
     reg [31:0] fp32_a;

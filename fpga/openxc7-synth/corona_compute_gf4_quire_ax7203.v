@@ -48,9 +48,9 @@ module corona_compute_gf4_quire_ax7203 (
 
     reg [3:0] a_reg,b_reg; reg comp_trigger;
     wire [3:0] fmt_a=a_reg, fmt_b=b_reg;
-    wire f_sign_a = fmt_a_a[3];
-    wire [0:0] f_exp_a = fmt_a_a[2:2];
-    wire [1:0] f_mant_a = fmt_a_a[1:0];
+    wire f_sign_a = fmt_a[3];
+    wire [0:0] f_exp_a = fmt_a[2:2];
+    wire [1:0] f_mant_a = fmt_a[1:0];
     wire f_zero_a = (f_exp_a == 0) && ((f_mant_a == 0));
     wire f_inf_a = 1'b0;   // gf4 has no Inf: exp=all-ones is finite
     wire f_nan_a = 1'b0;   // gf4 has no NaN encoding

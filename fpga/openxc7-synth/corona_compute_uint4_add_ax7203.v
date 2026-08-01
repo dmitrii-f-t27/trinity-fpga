@@ -48,7 +48,7 @@ module corona_compute_uint4_add_ax7203 (
 
     reg [3:0] a_reg,b_reg; reg comp_trigger;
     wire [3:0] fmt_a=a_reg, fmt_b=b_reg;
-    wire [3:0] uval_a = fmt_a_a[3:0];
+    wire [3:0] uval_a = fmt_a[3:0];
     wire u_zero_a = (uval_a == 4'd0);
     wire [2:0] u_lzd_a;
     always @(*) begin
@@ -67,7 +67,7 @@ module corona_compute_uint4_add_ax7203 (
         if(u_zero_a) fp32_a=32'h00000000;
         else fp32_a={1'b0, u_fp32_exp_a, u_fp32_mant_a};
     end
-    wire [3:0] uval_b = fmt_b_b[3:0];
+    wire [3:0] uval_b = fmt_b[3:0];
     wire u_zero_b = (uval_b == 4'd0);
     wire [2:0] u_lzd_b;
     always @(*) begin

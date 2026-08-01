@@ -81,18 +81,22 @@ def main() -> int:
     if args.files:
         targets = args.files
     else:
-        flagged = [os.path.join(RTL, f) for f in sorted(os.listdir(RTL))
-                   if f.endswith(".v")
-                   and OPERAND.search(open(os.path.join(RTL, f), encoding="utf-8",
-                                           errors="replace").read())]
+        # Every wrapper, not only the ones matching the known bad name. A gate that
+        # can detect just the defect already fixed is theatre: the diagnostics below
+        # catch any disconnected datapath, whatever the net is called.
+        pool = [os.path.join(RTL, f) for f in sorted(os.listdir(RTL))
+                if f.endswith(".v")]
         if args.all:
-            targets = flagged
+            targets = pool
         else:
-            step = max(1, len(flagged) // args.sample)
-            targets = flagged[::step][:args.sample]
-        print(f"files statically flagged as reading an undriven operand: "
-              f"{len(flagged)}")
-        print(f"checking {len(targets)} of them with yosys"
+            step = max(1, len(pool) // args.sample)
+            targets = pool[::step][:args.sample]
+        known = sum(1 for f in pool
+                    if OPERAND.search(open(f, encoding="utf-8",
+                                           errors="replace").read()))
+        print(f"wrappers in the tree: {len(pool)}   "
+              f"still matching the pass-102 name: {known}")
+        print(f"checking {len(targets)} with yosys"
               f"{'' if args.all else ' (a spread sample, and said to be one)'}\n")
 
     bad = clean = 0

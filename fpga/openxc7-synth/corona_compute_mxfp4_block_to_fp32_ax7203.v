@@ -48,8 +48,8 @@ module corona_compute_mxfp4_block_to_fp32_ax7203 (
 
     reg [15:0] a_reg; reg conv_trigger;
     wire [15:0] fmt_a = a_reg;
-    wire [3:0] elem_a = fmt_a_a[3:0];
-    wire [7:0] scale_code_a = fmt_a_a[15:8];
+    wire [3:0] elem_a = fmt_a[3:0];
+    wire [7:0] scale_code_a = fmt_a[15:8];
     wire elem_sign_a = elem_a[3];
     wire [1:0] elem_exp_a = elem_a[2:1];
     wire elem_mant_a = elem_a[0];

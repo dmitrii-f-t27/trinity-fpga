@@ -49,7 +49,7 @@ module corona_compute_int2_fma_ax7203 (
 
     reg [1:0] a_reg,b_reg,c_reg; reg comp_trigger;
     wire [1:0] fmt_a=a_reg, fmt_b=b_reg, fmt_c=c_reg;
-    wire [1:0] ival_a = fmt_a_a[1:0];
+    wire [1:0] ival_a = fmt_a[1:0];
     wire sign_a = ival_a[1];
     wire [1:0] abs_val_a = sign_a ? (~ival_a + 2'd1) : ival_a;
     reg [31:0] fp32_a;
@@ -61,7 +61,7 @@ module corona_compute_int2_fma_ax7203 (
             2'b11: fp32_a=32'hBF800000;
         endcase
     end
-    wire [1:0] ival_b = fmt_b_b[1:0];
+    wire [1:0] ival_b = fmt_b[1:0];
     wire sign_b = ival_b[1];
     wire [1:0] abs_val_b = sign_b ? (~ival_b + 2'd1) : ival_b;
     reg [31:0] fp32_b;
@@ -73,7 +73,7 @@ module corona_compute_int2_fma_ax7203 (
             2'b11: fp32_b=32'hBF800000;
         endcase
     end
-    wire [1:0] ival_c = fmt_c_c[1:0];
+    wire [1:0] ival_c = fmt_c[1:0];
     wire sign_c = ival_c[1];
     wire [1:0] abs_val_c = sign_c ? (~ival_c + 2'd1) : ival_c;
     reg [31:0] fp32_c;

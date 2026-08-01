@@ -59,9 +59,9 @@ module corona_compute_fp45_e11m33_alu_ax7203 (
 
     reg [44:0] a_reg,b_reg; reg [7:0] op_reg; reg comp_trigger;
     wire [44:0] fmt_a=a_reg, fmt_b=b_reg;
-    wire f_sign_a = fmt_a_a[44];
-    wire [10:0] f_exp_a = fmt_a_a[43:33];
-    wire [32:0] f_mant_a = fmt_a_a[32:0];
+    wire f_sign_a = fmt_a[44];
+    wire [10:0] f_exp_a = fmt_a[43:33];
+    wire [32:0] f_mant_a = fmt_a[32:0];
     wire f_zero_a = (f_exp_a == 0) && ((f_mant_a == 0));
     wire f_inf_a = (f_exp_a == 2047) && ((f_mant_a == 0));
     wire f_nan_a = (f_exp_a == 2047) && ((f_mant_a != 0));
@@ -78,9 +78,9 @@ module corona_compute_fp45_e11m33_alu_ax7203 (
         else if(f_sub_a) fp32_a={f_sign_a, 8'd0, f_mant32_norm_a};
         else fp32_a={f_sign_a, f_exp32_a, f_mant32_a};
     end
-    wire f_sign_b = fmt_b_b[44];
-    wire [10:0] f_exp_b = fmt_b_b[43:33];
-    wire [32:0] f_mant_b = fmt_b_b[32:0];
+    wire f_sign_b = fmt_b[44];
+    wire [10:0] f_exp_b = fmt_b[43:33];
+    wire [32:0] f_mant_b = fmt_b[32:0];
     wire f_zero_b = (f_exp_b == 0) && ((f_mant_b == 0));
     wire f_inf_b = (f_exp_b == 2047) && ((f_mant_b == 0));
     wire f_nan_b = (f_exp_b == 2047) && ((f_mant_b != 0));

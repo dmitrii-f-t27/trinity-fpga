@@ -1,0 +1,45 @@
+name: RTL datapath gate
+
+# Yosys reported this defect and the pipeline recorded a pass anyway.
+#
+# 2,276 wrappers read an operand net that nothing drove. Yosys said so in plain
+# words -- "Identifier `\fmt_a_a' is implicitly declared", then "Range select out of
+# bounds ... Setting all 9 result bits to undef" -- and returned 0. The CI job that
+# built those cells gated on the exit code, so GitHub recorded success on designs
+# whose operands never arrived (run 29225131789, job synth, conclusion success).
+#
+# This job reads the diagnostics instead of the exit code. See
+# research/synth_warning_gate.py and specs/numeric/catalog_coverage_delta.t27
+# (pass 103).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fpga/openxc7-synth/**.v'
+      - 'research/synth_warning_gate.py'
+      - '.github/workflows/rtl-datapath-gate.yml'
+  pull_request:
+    paths:
+      - 'fpga/openxc7-synth/**.v'
+      - 'research/synth_warning_gate.py'
+      - '.github/workflows/rtl-datapath-gate.yml'
+  workflow_dispatch:
+
+jobs:
+  datapath:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install yosys
+        run: sudo apt-get update && sudo apt-get install -y yosys
+      - name: Fail on a disconnected datapath
+        # A spread sample rather than all 3,590 files: read_verilog on the whole
+        # tree costs more than the signal is worth per push, and the failure mode
+        # this catches is systematic rather than sporadic -- when it appears, it
+        # appears across a whole batch of generated wrappers at once.
+        run: |
+          python3 research/synth_warning_gate.py --sample 40

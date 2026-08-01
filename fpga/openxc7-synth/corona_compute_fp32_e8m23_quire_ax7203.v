@@ -54,9 +54,9 @@ module corona_compute_fp32_e8m23_quire_ax7203 (
 
     reg [31:0] a_reg,b_reg; reg comp_trigger;
     wire [31:0] fmt_a=a_reg, fmt_b=b_reg;
-    wire f_sign_a = fmt_a_a[31];
-    wire [7:0] f_exp_a = fmt_a_a[30:23];
-    wire [22:0] f_mant_a = fmt_a_a[22:0];
+    wire f_sign_a = fmt_a[31];
+    wire [7:0] f_exp_a = fmt_a[30:23];
+    wire [22:0] f_mant_a = fmt_a[22:0];
     wire f_zero_a = (f_exp_a == 0) && ((f_mant_a == 0));
     wire f_inf_a = (f_exp_a == 255) && ((f_mant_a == 0));
     wire f_nan_a = (f_exp_a == 255) && ((f_mant_a != 0));

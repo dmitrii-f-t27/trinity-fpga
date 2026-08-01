@@ -58,7 +58,7 @@ module corona_compute_uint32_fma_ax7203 (
 
     reg [31:0] a_reg,b_reg,c_reg; reg comp_trigger;
     wire [31:0] fmt_a=a_reg, fmt_b=b_reg, fmt_c=c_reg;
-    wire [31:0] uval_a = fmt_a_a;
+    wire [31:0] uval_a = fmt_a;
     wire u_zero_a = (uval_a == 32'd0);
     wire [5:0] u_lzd_a;
     always @(*) begin
@@ -105,7 +105,7 @@ module corona_compute_uint32_fma_ax7203 (
         if(u_zero_a) fp32_a=32'h00000000;
         else fp32_a={1'b0, u_fp32_exp_a, u_fp32_mant_a};
     end
-    wire [31:0] uval_b = fmt_b_b;
+    wire [31:0] uval_b = fmt_b;
     wire u_zero_b = (uval_b == 32'd0);
     wire [5:0] u_lzd_b;
     always @(*) begin
@@ -152,7 +152,7 @@ module corona_compute_uint32_fma_ax7203 (
         if(u_zero_b) fp32_b=32'h00000000;
         else fp32_b={1'b0, u_fp32_exp_b, u_fp32_mant_b};
     end
-    wire [31:0] uval_c = fmt_c_c;
+    wire [31:0] uval_c = fmt_c;
     wire u_zero_c = (uval_c == 32'd0);
     wire [5:0] u_lzd_c;
     always @(*) begin

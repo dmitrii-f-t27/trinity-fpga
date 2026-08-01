@@ -50,8 +50,8 @@ module corona_compute_mxfp4_block_add_ax7203 (
 
     reg [15:0] a_reg,b_reg; reg comp_trigger;
     wire [15:0] fmt_a=a_reg, fmt_b=b_reg;
-    wire [3:0] elem_a = fmt_a_a[3:0];
-    wire [7:0] scale_code_a = fmt_a_a[15:8];
+    wire [3:0] elem_a = fmt_a[3:0];
+    wire [7:0] scale_code_a = fmt_a[15:8];
     wire elem_sign_a = elem_a[3];
     wire [1:0] elem_exp_a = elem_a[2:1];
     wire elem_mant_a = elem_a[0];
@@ -79,8 +79,8 @@ module corona_compute_mxfp4_block_add_ax7203 (
             else fp32_a = {elem_sign_a, sub_exp_a[7:0], 23'b0};
         end
     end
-    wire [3:0] elem_b = fmt_b_b[3:0];
-    wire [7:0] scale_code_b = fmt_b_b[15:8];
+    wire [3:0] elem_b = fmt_b[3:0];
+    wire [7:0] scale_code_b = fmt_b[15:8];
     wire elem_sign_b = elem_b[3];
     wire [1:0] elem_exp_b = elem_b[2:1];
     wire elem_mant_b = elem_b[0];

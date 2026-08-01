@@ -62,9 +62,9 @@ module corona_compute_binary64_sqrt_ax7203 (
 
     reg [63:0] a_reg,b_reg; reg comp_trigger;
     wire [63:0] fmt_a=a_reg, fmt_b=b_reg;
-    wire f_sign_a = fmt_a_a[63];
-    wire [10:0] f_exp_a = fmt_a_a[62:52];
-    wire [51:0] f_mant_a = fmt_a_a[51:0];
+    wire f_sign_a = fmt_a[63];
+    wire [10:0] f_exp_a = fmt_a[62:52];
+    wire [51:0] f_mant_a = fmt_a[51:0];
     wire f_zero_a = (f_exp_a == 0) && ((f_mant_a == 0));
     wire f_inf_a = (f_exp_a == 2047) && ((f_mant_a == 0));
     wire f_nan_a = (f_exp_a == 2047) && ((f_mant_a != 0));
