@@ -74,8 +74,23 @@ Nobody outside the project can settle these. Each has a spec holding the questio
 - **GF16 FPGA codec, 35/35 at 323 MHz** — `nextpnr-xilinx` is absent here. The same
   gap blocks post-route P&R and the paper's own FL-002 experiment. Anyone with
   openXC7 or Vivado can settle it in an afternoon.
-- **XC7A35T** in Paper A's abstract — worth double-checking against the board the
-  measurement was actually taken on.
+### The FPGA part number — now located, and only you can settle it
+
+The **same** achieved result is attributed to **two different parts**:
+
+| claim | Paper A | `main_ru.tex` |
+|---|---|---|
+| **achieved** — GF16 codec, 35/35 at 323 MHz | **XC7A35T** | **XC7A100T** |
+| *planned* — matched-substrate H₄ (Appendix D) | XC7A100T, QMTech Wukong V1 | — |
+| *physical board* — Tier-E track | — | XC7A200T, ALINX AX7203 |
+
+Paper A is internally consistent: it uses XC7A100T only for the **pre-registered**
+comparison, never for the achieved result. `main_ru.tex` attributes the achieved
+result to that same part — which is precisely the shape a copy-edit produces.
+
+They cannot both be right, and which one is correct needs whoever ran the synthesis.
+It is a one-token fix in whichever document is wrong, and it sits in the abstract of
+both.
 
 ## 4. Deliberately NOT flagged
 
