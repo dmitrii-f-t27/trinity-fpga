@@ -573,3 +573,90 @@ which is Python with a typo. The label was a guess presented with more confidenc
 than it had earned; the syntax error beneath it is the real information.
 """
 }
+
+// ---- Pass 75: the "8 of 20" figure, checked mechanically ---------------------
+
+measurement PAPER_B_BIBLIOGRAPHY_RESOLVED {
+  entries 20
+  with_arxiv_id 12
+  arxiv_titles_agreeing 3
+  arxiv_leads 9
+  with_doi 0
+  neither 8
+}
+
+result THE_HAND_AUDIT_UNDERCOUNTED {
+  the_published_figure "8 of 20 defective"
+
+  what_mechanical_resolution_finds """
+Nine of the TWELVE arXiv-checkable entries differ from the work their identifier
+resolves to, before the other eight are examined at all.
+
+Genuine misattributions -- the cited title belongs to a different work:
+  [2]  "Takum arithmetic: A new paradigm for low-precision numerics"
+       -> "Integer Representations in IEEE 754, Posit, and Takum Arithmetics"   8%
+  [3]  "ProofWright: Towards verified floating-point arithmetic"
+       -> "ProofWright: Towards Agentic Formal Verification of CUDA"           20%
+  [8]  "M2XFP: A unified mixed-precision microscaling floating-point ..."
+       -> "M2XFP: A Metadata-Augmented Microscaling Data Format ..."            4%
+  [13] "Takum arithmetic in sparse iterative solvers: precision-vs-storage"
+       -> "Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse
+           Linear Solvers"                                                     21%
+
+Companion-paper self-citation, wrong title:
+  [1]  "GoldenFloat: A phi-anchored numeric format family and the identity ..."
+       -> "GoldenFloat: A Phi-Derived Static-Split Floating-Point Family from
+           GF4 to GF1024 with a Lucas-Exact Integer Identity"                  18%
+
+Paraphrases -- same work, reworded:
+  [4] FLoPS (50%),  [10] pychop (38%)
+
+No title at all in the bibliography:
+  [19] -> "Novel Aspects of IEEE SA P3109 Arithmetic Formats for Machine Learning"
+  [20] -> "Is Finer Better? The Limits of Microscaling Formats in LLMs"
+"""
+
+  and_two_more_outside_that_set """
+[12] cites "C. Hunhold" for libtakum. The author is LASLO Hunhold -- confirmed from
+     the arXiv record for 2404.18603. Wrong initial.
+
+[18] cites "IEEE SA P3109 Interim Report v3.2.0". Pass 69 read that document: it
+     carries no version number anywhere in its text.
+"""
+
+  conclusion """
+"8 of 20" was produced by reading; it is not wrong so much as incomplete. Mechanical
+resolution finds more, and finds them in the part of the bibliography a reader is
+most likely to click.
+"""
+  status VERIFIED_SW
+}
+
+resolution THE_P3109_VERSION_QUESTION_IS_ANSWERED {
+  detail """
+The checklist carried this as open: Paper B says v3.2.0, Paper A says working draft
+v0.9.1, and an early draft of the package explained it away as "two different
+document series".
+
+Paper B ref [18] names the artefact: "IEEE SA P3109 Interim Report v3.2.0". That is
+the same Interim Report Paper A's ref [27] points at through gfloat, and the same one
+pass 69 read cover to cover for a version string and found none.
+
+So it is not two series. It is a version number attached to a document that does not
+carry one, in both papers, differently.
+"""
+  resolved true
+}
+
+practice A_CONCLUSION_FROM_READING_NEEDS_A_MECHANICAL_SECOND_PASS {
+  detail """
+Twice now a bibliography conclusion has been reached by reading and then broken by
+resolution. Pass 63 found "no misattributions in Paper A" across 23 arXiv entries;
+pass 74 checked the first DOI and found one. Pass 5 found "8 of 20" in Paper B by
+hand; this pass finds nine among twelve.
+
+Reading catches what looks wrong. Resolution catches what looks right and is not --
+which is the whole class that matters, because a plausible-looking citation is the
+one nobody re-checks.
+"""
+}
