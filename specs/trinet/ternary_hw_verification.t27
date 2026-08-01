@@ -11,19 +11,27 @@ description """
 Record of what the ternary column of the format matrix can support as of
 2026-08-01, and at which tier each claim sits.
 
-Two cells are covered. GFTERNARY MUL (the 2-bit {-phi, 0, +phi} format) was
-synthesised and run on the board: exhaustive over its whole 4x4 code space.
-TRINET MAC32 (a 32-wide balanced-ternary dot product with a CRC-32 receipt) is
-bit-exact against its golden oracle in RTL simulation and has a routed
-bitstream, but its hardware run had not completed when this spec was written.
+Two cells are covered, and they establish DIFFERENT things.
 
-Those are three different things and are kept apart: RTL written, yosys/nextpnr
-routed, measured on the board. A routed bitstream is not a measurement.
+TRINET MAC32 is a 32-wide balanced-ternary dot product computed as
+popcount(agreements) - popcount(disagreements), with no floating-point core
+anywhere in the datapath. It is bit-exact on the board, 512/512. This is the
+cell that says something about ternary arithmetic in hardware.
 
-The GFTERNARY cell existed as RTL before this session and had never been
-synthesised — no CI workflow referenced it. Its first hardware run scored 7/16
-and exposed a defect in the conformance host, not in the RTL. See
-finding FRAME_LENGTH_MISMATCH.
+GFTERNARY MUL is bit-exact on the board too, 16/16 exhaustive, but it is NOT a
+ternary datapath. It expands each 2-bit code into a full FP32 constant, runs a
+generic gf_mul_param(8,23) FP32 multiplier, and re-quantises the product back
+to two bits. What its 16/16 establishes is the format's decode/compute/quantise
+LAW, not the cost or structure of ternary arithmetic. Reading it as the latter
+would be wrong, and the distinction is recorded as finding
+GFTERNARY_COMPUTE_IS_FP32_BACKED.
+
+Three tiers are kept apart throughout: RTL written, yosys/nextpnr routed,
+measured on the board. A routed bitstream is not a measurement.
+
+Both cells existed only as RTL before this session; no CI workflow referenced
+either. GFTERNARY's first hardware run scored 7/16 and exposed a defect in the
+conformance host, not in the RTL — see finding FRAME_LENGTH_MISMATCH.
 """
 
 constants {
@@ -111,16 +119,87 @@ verification TRINET_MAC32_SIM {
   matched    128
   status     "[simulated]"
   executable "formal/trinet_mac32_tb.v"
+  superseded_by "TRINET_MAC32_HW for the hardware claim; retained as the pre-silicon gate"
   method     "full UART frame path driven at the synthesised baud divisor, not the datapath alone"
   note       "the frame path is where every RTL defect in this programme has lived"
 }
 
-open_question TRINET_MAC32_HW {
-  do_not_guess true
-  owner        author
-  question     "does trinet_mac32 reproduce its golden oracle on the board"
-  blocked_on   "one flash cycle takes 778 s at the AL321's stable 100 kHz"
-  procedure    "openocd pld load 0, then trinet_mac32_conformance_ax7203.py --port /dev/cu.usbserial-1110 --n 512"
+verification TRINET_MAC32_HW {
+  cell       trinet_mac32
+  ci_run     30702638896
+  checked    512
+  matched    512
+  status     "[measured on FPGA]"
+  board      ax7203
+  port       "/dev/cu.usbserial-1110"
+  baud       160000
+  date       2026-08-01
+  scope      "each pass checks BOTH the dot product against the golden oracle AND the CRC-32 receipt tag; a receipt counts only when both hold"
+  flashed    "openocd pld load 0, 778 s, IDCODE 0x13636093"
+  node_id_reported 0x5452494E
+  independent_hosts {
+    "conformance/trinet_mac32_conformance_ax7203.py --n 512  -> 512/512",
+    "src/trinet/main.zig probe (Zig, libc serial)            -> 64/64"
+  }
+  note "not exhaustive — the input space is 4^32 per operand; 512 vectors open with the structural corners, then pseudo-random"
+}
+
+// The distinction that keeps the ternary column honest.
+finding GFTERNARY_COMPUTE_IS_FP32_BACKED {
+  severity MEDIUM
+  resolved true
+  resolution "recorded, not repaired — the cell is correct for what it is"
+  statement """
+    corona_compute_gfternary_{mul,add,alu,cmp,fma}_ax7203.v are not ternary
+    datapaths. Each expands the 2-bit code to an FP32 constant (0x3FCF1BBD for
+    +phi, 0xBFCF1BBD for -phi, zero for zero), runs a generic FP32 core, and
+    re-quantises to two bits.
+  """
+  evidence "fpga/openxc7-synth/corona_compute_gfternary_mul_ax7203.v:52-70 case-to-FP32, :72-74 gf_mul_param #(.EXP_BITS(8),.MANT_BITS(23))"
+  consequence """
+    A hardware pass on these cells verifies the format's decode/compute/quantise
+    law. It says nothing about the area, latency or energy of ternary
+    arithmetic, and must not be cited as a ternary-compute hardware result.
+    trinet_mac32 is the cell that carries that claim.
+  """
+}
+
+// Recorded because it will silently corrupt any future cross-cell integration.
+finding THREE_INCOMPATIBLE_TRIT_ENCODINGS {
+  severity HIGH
+  resolved false
+  encodings {
+    gfternary    { 0b00 zero, 0b01 plus,  0b10 minus }
+    trinet_mac32 { 0b00 zero, 0b01 plus,  0b10 minus }   // agrees with gfternary
+    tf3          { 0b00 zero, 0b01 minus, 0b10 plus  }   // sign swapped
+    ternary_mac  { 0b00 minus, 0b01 zero, 0b10 plus  }   // shifted
+  }
+  consequence "wiring any two of these together without a converter produces sign errors that arithmetic self-tests will not catch, because each is internally consistent"
+  action "a converter, or one encoding chosen for the tree, before any cell feeds another"
+}
+
+// Not an RTL property — a property of ternary networks, measured here because
+// it made the agent answer every task identically.
+finding DEEP_TERNARY_NETWORKS_COLLAPSE {
+  severity MEDIUM
+  resolved true
+  resolution "default activation threshold set to 2 for 32-wide layers"
+  measurement """
+    Non-zero trit density per layer, fixed input, four synthetic layers:
+      threshold 0:  0.69 -> 0.91 -> 0.94 -> 0.91 -> 0.88   saturated
+      threshold 2:  0.69 -> 0.41 -> 0.28 -> 0.25 -> 0.31   sustained
+      threshold 4:  0.69 -> 0.22 -> 0.03 -> 0.00 -> 0.00   dead
+  """
+  explanation """
+    A 32-wide ternary dot product has a standard deviation near 3.4, so a
+    threshold of 4 zeroes almost everything and the activations reach the zero
+    vector within three layers. A collapsed network returns the same output for
+    every input, which presents as a decision with zero margin rather than as
+    an error. A threshold of 0 has the opposite failure: no trit is ever zero,
+    the third state is discarded, and the network is binary.
+  """
+  scope "the constant is tied to layer width, not universal; a wider layer needs a proportionally higher threshold"
+  witnessed_by "src/trinet/model.zig tests, both failure modes pinned"
 }
 
 // ---------------------------------------------------------------------------
@@ -212,7 +291,6 @@ scope_limits {
     "TF3 balanced-ternary decode as specified in issue #234 — a different cell from either recorded here",
     "any measurement of throughput, energy, or TOPS/W",
     "any comparison against other ternary accelerators",
-    "hardware execution of trinet_mac32",
     "more than one physical board"
   }
   superiority_claimed false
