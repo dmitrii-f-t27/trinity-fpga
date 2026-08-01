@@ -1847,3 +1847,54 @@ Checking two of one's own results against each other found a defect in the newer
 """
   status VERIFIED_SW
 }
+
+// ---- Pass 94: the fix validated, and a distinction the figure was hiding -----
+
+result THE_ATTRIBUTION_FIX_HOLDS_ACROSS_ALL_CELLS {
+  method """
+Pass 93 fixed the attribution and validated it on the single case that motivated it.
+A fix confirmed on its own motivating example is not confirmed, so this prints, for
+every credited cell, the heading of the comment that credited it.
+"""
+
+  result """
+All 45 credited cells are named in their OWN comment heading. None is credited from
+proximity to a HW RESULT line alone.
+
+The headings are unambiguous throughout: "### Tier-E proof: `binary128` (decode --
+IEEE 754 quad FP128)", "### Tier-E proof: `posit8` (decode -- Posit8 (es=0))". The
+format is the explicit subject, not a mention in passing.
+"""
+  status VERIFIED_SW
+}
+
+finding THE_COVERAGE_FIGURE_WAS_ABOUT_DECODE_ONLY {
+  name     "44 of 83 formats have hardware DECODE; arithmetic is verified on 12"
+  severity MEDIUM
+
+  the_split """
+Classifying all 74 four-link proof comments by the operation named in their heading:
+
+  decode      42
+  compute     30   (ADD, MUL, SUB)
+  unlabelled   2   (a gf16 ADD compute re-proof)
+
+The 44-of-83 figure counts DECODE cells. Compute is a separate and much smaller set:
+
+  12 formats -- gf4, gf6, gf8, gf10, gf12, gf14, gf16, gf20, gf24, gf32,
+  double_double, quad_double -- across ADD, MUL and SUB.
+"""
+
+  why_it_matters """
+"44 of the 83 formats carry a physical-board result" is true and can be read as
+covering arithmetic. It does not. Decoding a bit pattern on silicon and adding two
+values on silicon are different claims, and the second is made for the GoldenFloat
+ladder plus the two multi-limb expansions -- not for posit, takum, VAX, IBM HFP or
+the IEEE binaries, whose hardware evidence is decode.
+
+The distinction favours precision over impressiveness, which is the whole point of
+quoting the number at all.
+"""
+  fix "the checklist now states both figures and what each covers"
+  resolved true
+}
