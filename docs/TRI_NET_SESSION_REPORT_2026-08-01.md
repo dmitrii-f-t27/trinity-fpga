@@ -14,7 +14,8 @@ weak points and the competition, and report with three options for the next loop
 | **The same board answers a second, independently written host.** | Zig CLI over libc serial, 64/64 — a different language, a different serial implementation, the same board. |
 | **A compute receipt binds an answer to its job.** CRC-32 over `OP\|NONCE\|W\|X\|Y\|NODE_ID`, agreed by three independent implementations: a Verilog LFSR, `zlib.crc32`, `std.hash.Crc32`. | Anchor tag `0xa8fa2bdf`; CI fails the build if they diverge. |
 | **An agent's inference ran partly on that board.** | `trinet demo`: 288 jobs over a 3-node mesh, 96 on silicon, mesh result equals local recomputation, 0 rows rejected. |
-| **Cheating is caught and costs more than it earns.** | 40 Zig tests. Free rider caught >450/500; replay, identity theft, double-billing all rejected; a layer computes correctly *while a node lies*, and the liar earns nothing. |
+| **Cheating is caught and costs more than it earns.** | 41 Zig tests. Free rider caught >450/500; replay, identity theft, double-billing all rejected; a layer computes correctly *while a node lies*, and the liar earns nothing. |
+| **A node on the other end of a socket earns credit like a local one.** | Real listener, same 24/15-byte framing the FPGA speaks, 25/25 jobs credited to the remote owner. |
 | **`gfternary` MUL bit-exact, 16/16 exhaustive.** | CI run `30702513394`. **But see §2 — this is not a ternary datapath.** |
 
 Before this session the ternary column of the format matrix had no compute entry
@@ -52,10 +53,24 @@ shipped host frame  AA 55 00 3c 00 41 00 00  ->  adder received a=00 b=00
 corrected frame     AA 55 3c 00 41 00 00     ->  adder received a=3c b=41
 ```
 
-**32 hosts fixed.** Every gf compute host had been computing `0 + 0` for each
-input since 2026-07-17. The recorded Tier-E passes predate that commit and are
-not retroactively invalidated — but the corpus could not *re-verify* a single one
-of them. Posted on [#199](https://github.com/gHashTag/trinity-fpga/issues/199).
+**32 hosts fixed, and the fix re-verified on the board.** GF8 ADD was rebuilt,
+flashed, and run with the corrected host: **4096/4096 bit-exact**. Against the
+pre-fix host the same bitstream would have returned `gf_add(0, 0)` for every one
+of those vectors. The RTL was never at fault and has not changed.
+
+Every gf compute host had been computing `0 + 0` for each input since
+2026-07-17. The recorded Tier-E passes predate that commit and are not
+retroactively invalidated — but the corpus could not *re-verify* a single one of
+them. Posted on [#199](https://github.com/gHashTag/trinity-fpga/issues/199).
+
+**A guard is now in CI so this cannot return silently.**
+`conformance/frame_alignment_check.py` compares each host's request length
+against its wrapper's frame FSM — 57 aligned, 0 mismatched, 44 unchecked, with
+unchecked reported honestly rather than counted as passing. Writing it surfaced
+two of its own defects that would have made it useless, found by testing it
+against a deliberately broken host rather than by trusting it. Every CI run now
+re-breaks a host on purpose and requires the guard to fail on it, because a
+guard that has quietly stopped guarding looks exactly like a clean run.
 
 **Every golden self-test passed throughout, before and after.** None of them
 exercises the wire encoding. A conformance host is not verified by its self-test.

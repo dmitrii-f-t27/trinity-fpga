@@ -258,7 +258,7 @@ how correctness is established today.
 ## 10. Running it
 
 ```bash
-zig test src/trinet/agent.zig -lc          # 38 tests, whole stack
+zig test src/trinet/agent.zig -lc          # 41 tests, whole stack
 zig build-exe src/trinet/main.zig -lc      # build the CLI
 ./main selftest                            # adversaries vs the verifier
 ./main probe /dev/cu.usbserial-1110        # verify a flashed board
