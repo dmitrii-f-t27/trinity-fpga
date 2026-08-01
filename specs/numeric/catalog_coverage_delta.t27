@@ -403,3 +403,80 @@ An instruction not to act is still an instruction. It should carry the same
 evidence, and be re-checked on the same schedule, as an instruction to act.
 """
 }
+
+// ---- Pass 73: which document do the fixes actually target? -------------------
+
+measurement THREE_DOCUMENTS_THREE_BIBLIOGRAPHIES {
+  method "counted \\bibitem in each source via the authenticated contents API"
+
+  artefacts {
+    preprint_source {
+      path "gHashTag/goldenfloat-preprint : gf_preprint_v19.tex"
+      bytes 72302  bibitems 28  repo_updated "2026-06-07"
+    }
+    published {
+      path "arXiv:2606.05017v3"
+      bibitems 33  updated "2026-06-22"
+    }
+    russian_manuscript {
+      path "gHashTag/trinity-papers-ru : paper1-goldenfloat/main_ru.tex"
+      bytes 176875  bibitems 56  repo_updated "2026-08-01"
+      venue "Russian-language version for VAK journals -- a different venue"
+    }
+  }
+}
+
+finding THE_PREPRINT_SOURCE_IS_BEHIND_WHAT_IS_PUBLISHED {
+  name     "goldenfloat-preprint has 28 references; the published v3 has 33"
+  severity HIGH
+
+  detail """
+The repository holding the English preprint source was last touched 2026-06-07.
+arXiv v3 was published 2026-06-22 with five more references than that source
+contains.
+
+So whoever opens goldenfloat-preprint to prepare a replacement starts from a
+document that is NOT what arXiv is serving. Edits made there would silently drop
+whatever went into v3 after 2026-06-07.
+"""
+  what_to_do "establish which tree produced v3 before editing anything for a replacement"
+  resolved false
+}
+
+finding THE_BODY_FIX_LINE_NUMBERS_POINT_AT_A_DIFFERENT_PAPER {
+  name     "ARXIV_BODY_FIXES targets main_ru.tex, a Russian paper for VAK journals"
+  severity HIGH
+
+  detail """
+Every line-number reference in ARXIV_BODY_FIXES_READY_TO_PASTE.md points into
+main_ru.tex -- 177 KB, 56 bibitems, described by its own repository as the
+"Russian-language version for VAK journals", a different venue from arXiv.
+
+The checklist that frames all of this is titled "arXiv replacement".
+
+Applying the body fixes as written would edit the Russian journal submission, not
+the preprint. The individual CLAIMS still hold against the published text -- pass 72
+re-verified that IEEE 754 and TestFloat are uncited in v3's 33 references -- but the
+locations do not.
+"""
+  resolved false
+  recorded_for "SUBMISSION_CHECKLIST.md"
+}
+
+correction I_NEARLY_REPORTED_A_404_AS_A_FINDING {
+  what_happened """
+Fetching gf_preprint_v19.tex over raw.githubusercontent returned "404: Not Found",
+which grep dutifully reported as 0 bibitems, 0 cites, 0 occurrences of "754". That
+reads as a paper with no bibliography at all -- a startling finding, and entirely an
+artefact of an unauthenticated request to what appears to be a private repository.
+"""
+  what_caught_it """
+CHANGELOG.md returned 404 too. A file that should exist coming back empty is a
+signal about the FETCH, not about the repository, and checking a second file cost
+one command.
+
+The tree API had worked throughout, because gh authenticates and curl does not.
+Re-fetching through gh api gave 28 bibitems.
+"""
+  lesson "when a fetch yields a surprising absence, fetch something you KNOW exists before believing it"
+}
