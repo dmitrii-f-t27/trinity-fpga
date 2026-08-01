@@ -1,0 +1,77 @@
+name: Conformance frame alignment
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'conformance/**'
+      - 'fpga/vivado/**'
+      - 'fpga/openxc7-synth/**'
+      - '.github/workflows/conformance-frame-alignment.yml'
+  pull_request:
+    paths:
+      - 'conformance/**'
+      - 'fpga/vivado/**'
+      - 'fpga/openxc7-synth/**'
+  schedule:
+    # Daily, so a wrapper edit that silently orphans a host surfaces within a
+    # day rather than at the next flash session.
+    - cron: '17 4 * * *'
+
+jobs:
+  alignment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+
+      - name: Every host must still address its wrapper's operands
+        run: python3 conformance/frame_alignment_check.py --verbose
+
+      # The guard is only worth having if it fails when it should. Break one
+      # host on purpose and require a non-zero exit; a guard that has quietly
+      # stopped guarding looks exactly like a clean run.
+      - name: The guard itself must fail on a broken frame
+        run: |
+          cp conformance/gf8_add_conformance_ax7203.py /tmp/gf8_backup.py
+          sed -i 's/^FRAME = bytes(\[0xAA, 0x55\]).*/FRAME = bytes([0xAA, 0x55, 0x00])/' \
+            conformance/gf8_add_conformance_ax7203.py
+          if python3 conformance/frame_alignment_check.py > /tmp/broken.log 2>&1; then
+            cp /tmp/gf8_backup.py conformance/gf8_add_conformance_ax7203.py
+            echo "::error::the frame guard accepted a deliberately broken host — it is not guarding"
+            cat /tmp/broken.log
+            exit 1
+          fi
+          grep -q "MISMATCH  gf8_add" /tmp/broken.log || {
+            cp /tmp/gf8_backup.py conformance/gf8_add_conformance_ax7203.py
+            echo "::error::the guard failed, but not on the host that was broken"
+            cat /tmp/broken.log
+            exit 1
+          }
+          cp /tmp/gf8_backup.py conformance/gf8_add_conformance_ax7203.py
+          echo "the guard rejects a broken frame, as it should"
+
+  golden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: TRI-NET golden oracle and receipt verifier
+        run: python3 conformance/trinet_mac32_conformance_ax7203.py --self-test
+      - name: GFTernary golden oracle
+        run: |
+          python3 conformance/gfternary_compute_conformance_ax7203.py --self-test --op mul
+          python3 conformance/gfternary_compute_conformance_ax7203.py --self-test --op add
+
+  trinet-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v1
+        with: {version: 0.16.0}
+      - name: TRI-NET stack — protocol, node, ledger, mesh, model, agent
+        run: zig test src/trinet/agent.zig -lc
