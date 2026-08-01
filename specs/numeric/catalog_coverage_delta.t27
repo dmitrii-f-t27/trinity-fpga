@@ -1602,3 +1602,59 @@ A background grep from the previous pass finished and reported that main_ru ment
 the same claim -- which is what prompted the re-check.
 """
 }
+
+// ---- Pass 90: the shared-number check, generalised and bounded ---------------
+
+measurement SHARED_NUMBERS_ACROSS_THREE_DOCUMENTS {
+  method """
+Pass 89's finding came from a shared number with a different neighbourhood: "323 MHz"
+appears in Paper A and main_ru, and each names a different Xilinx part. Generalised
+here -- match on the number, then compare the technical entities around it.
+"""
+
+  first_attempt_was_noise """
+Flagging whenever each document had SOME entity the other lacked gave 25 hits, all
+innocent: 392 candidate ratios, the 10^-499 exponent tables, IEEE 754. Different
+sentences mention different things; that is not disagreement.
+"""
+
+  tightened """
+A lead requires a CLASS CONFLICT -- both documents name a member of the same entity
+class, and name DIFFERENT members. Two XC7A parts for one result conflicts; one
+document mentioning MHz where the other does not is variation.
+
+11 flagged, down from 25.
+"""
+
+  result """
+The top hit is the known 323 MHz / part discrepancy, which is the method finding the
+case it was built from -- worth more than finding something new, because it says the
+search works.
+
+The other ten are noise: the GF-rung class matches GF10, GF12, GF16 and so on, so any
+table compared against prose flags. No new discrepancy.
+"""
+
+  the_number_most_worth_checking """
+83, the format count and Paper B's central figure, is stated identically in all
+three documents: "83 formats" twice in Paper A, four times in Paper B, "83 форматов"
+twice in main_ru, and "84" nowhere.
+"""
+  status VERIFIED_SW
+}
+
+result THE_PART_NUMBER_LOOKS_ISOLATED {
+  finding """
+Across every number the three documents share near a technical entity, exactly one
+carries a conflicting attribute: the FPGA part on the 323 MHz result.
+
+A bounded negative result. The documents disagree about one thing, not many, and
+that one thing is already recorded and located.
+"""
+
+  what_this_does_not_cover """
+Numbers stated WITHOUT a nearby technical entity are invisible to this check, as are
+claims that differ in wording rather than in a named attribute. It bounds one shape
+of inconsistency, not inconsistency.
+"""
+}
