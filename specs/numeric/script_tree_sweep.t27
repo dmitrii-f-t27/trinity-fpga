@@ -114,7 +114,16 @@ asked to run, is a worse trade than leaving them. Reported for visibility instea
 }
 
 scope_limits {
-  covers      "300 python files under tools/ and scripts/, triaged; the 79 read-only ones executed"
+  covers      "300 python files under tools/ and scripts/, triaged; the 79
+               read-only (pass 57), 200 write-capable (pass 58) and 12 exec-capable
+               (pass 61) ones executed -- 291 of 300"
+  amended_pass_84 """
+Was written after pass 57 as "the 79 read-only ones executed", and never updated when
+passes 58 and 61 ran the other two buckets. It UNDERSTATED the work by 212 scripts.
+
+A scope claim can be wrong in the flattering direction too, and that is the harder
+one to notice -- nobody re-reads a limitation to check it is not too modest.
+"""
   not_covered { "the 201 WRITE, 12 EXEC, 1 NET and 7 unparseable files -- not run, by design",
                 "whether the 47 that exit 0 produce CORRECT output; only that they run",
                 "non-python tooling in either tree" }

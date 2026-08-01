@@ -1187,3 +1187,69 @@ pattern found it. It surfaced from reading the block the search pointed at.
   fix "scope corrected, and the excluded subtree named along with what was later found in it"
   resolved true
 }
+
+// ---- Pass 84: scope claims, three URL refs, and the Russian manuscript -------
+
+finding A_TWO_SCOPE_CLAIMS_WERE_WRONG_IN_OPPOSITE_DIRECTIONS {
+  severity MEDIUM
+
+  overstated """
+campaign_self_reproduction.t27: "all 15 scripts in research/". The directory now
+holds 31 -- this campaign kept adding tools after the sweep. "All" was true on the
+day and false a week later, which is what "all" does to a directory that grows.
+Now dated, with the 16 unswept scripts named as unswept.
+"""
+
+  understated """
+script_tree_sweep.t27: "the 79 read-only ones executed". Passes 58 and 61 then ran
+the 200 write-capable and 12 exec-capable buckets. The scope claimed 79 when 291 of
+300 had been run.
+
+A scope can be wrong in the flattering direction too, and that is the harder one to
+notice: nobody re-reads a limitation to check it is not too modest.
+"""
+  resolved true
+}
+
+result B_THE_THREE_URL_REFERENCES {
+  paper_b_17 "ml_dtypes 0.5.4 -- confirmed, it is the latest release of jax-ml/ml_dtypes"
+  paper_b_15 "IEEE Std 754-2019 -- correct designation and year for the current revision"
+  paper_b_16 """
+OCP Microscaling Formats (MX) v1.0 -- NOT verified. The site returns 403 to any
+automated request; it gates spec downloads. Recorded as unverifiable rather than as
+clean.
+"""
+}
+
+measurement C_THE_RUSSIAN_MANUSCRIPT_AUDITED {
+  artefact "trinity-papers-ru/paper1-goldenfloat/main_ru.tex, 56 bibitems"
+  note "the VAK submission -- a third document, never audited before"
+
+  arxiv_entries_resolved 44
+  titles_agree 32
+  leads 12
+
+  inherited_defects """
+[7] through [10] carry exactly the Hunhold paraphrases already recorded against
+Paper A: "Takum arithmetic" for "Beating Posits at Their Own Game", "Integer
+representations of takums" for "Integer Representations in IEEE 754, Posit, and
+Takum Arithmetics", a VHDL codec title the real paper does not use.
+
+The defects propagate between the papers, which is what one would expect of
+bibliographies maintained by copying.
+"""
+
+  one_of_its_own """
+[24] cites "A 16-bit floating point format with 1/6/9 bit allocation for deep
+learning" at arXiv:2103.15940. That id resolves to "Representation range needs for
+16-bit neural network training", Popescu, Venigalla and Wu -- 12% token overlap, a
+different work in the same area.
+"""
+
+  the_rest """
+The remaining leads are abbreviations that keep the identifying name -- NanoZK,
+zkComposer, NativeTernary, SEAL, FLoPS. Weaker than a full title, but they point at
+the right work, unlike Paper B's [3].
+"""
+  status VERIFIED_SW
+}

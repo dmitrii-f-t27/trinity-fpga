@@ -130,7 +130,15 @@ pip line, and the one script that will not finish.
 }
 
 scope_limits {
-  covers      "all 15 scripts in research/, run unmodified on Python 3.14"
+  covers      "the 15 scripts research/ held ON 2026-08-01, run unmodified on
+               Python 3.14"
+  amended_pass_84 """
+Was written as "all 15 scripts in research/". research/ now holds 31: this campaign
+kept adding tools after the sweep. "All" was true on the day and false a week later,
+which is what "all" does to a directory that grows.
+
+The count is now dated. The 16 scripts added since have not been swept.
+"""
   not_covered { "the wide-rung arithmetic sweep beyond gf48 -- does not terminate",
                 "the two libtakum-dependent scripts, which need a C build not attempted here",
                 "whether each script's INTERNAL logic is correct -- this checks reproducibility, not soundness" }
