@@ -20,7 +20,8 @@ distance between them is the entire risk in a project like this.
 | The node cell synthesises with zero DSP48 | **measured** | 429 LCs, CI run `30702638896` |
 | An agent's inference ran partly on that board | **measured** | `demo`: 288 jobs, 96 on silicon, mesh result equals local recomputation |
 | `gfternary MUL` bit-exact on hardware | **measured, but see below** | 16/16 exhaustive, CI run `30702513394` |
-| Mesh, settlement, adversary rejection | **verified in software** | 40 Zig tests |
+| Mesh, settlement, adversary rejection | **verified in software** | 41 Zig tests |
+| GF8 ADD re-verified after the frame fix | **measured on hardware** | 4096/4096 bit-exact, CI run `30704172264` |
 | Three *physical* nodes exchanging work | **not done** | one board is attached; see §7 |
 | A trained ternary code model | **does not exist here** | see §6 |
 | A receipt proves work ran on specific silicon | **false, and not claimed** | see §5 |
