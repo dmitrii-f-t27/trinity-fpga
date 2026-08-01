@@ -52,8 +52,8 @@ module corona_compute_gf8_sqrt_ax7203 (
     wire [2:0] f_exp_a = fmt_a_a[6:4];
     wire [3:0] f_mant_a = fmt_a_a[3:0];
     wire f_zero_a = (f_exp_a == 0) && ((f_mant_a == 0));
-    wire f_inf_a = (f_exp_a == 7) && ((f_mant_a == 0));
-    wire f_nan_a = (f_exp_a == 7) && ((f_mant_a != 0));
+    wire f_inf_a = 1'b0;   // gf8 has no Inf: exp=all-ones is finite
+    wire f_nan_a = 1'b0;   // gf8 has no NaN encoding
     wire f_sub_a = (f_exp_a == 0) && ((f_mant_a != 0));
     wire signed [12:0] f_de_a = $signed({1'b0, f_exp_a}) - 13'sd3 + 13'sd127;
     wire [7:0] f_exp32_a = (f_de_a > 13'sd254) ? 8'd254 : (f_de_a < 0) ? 8'd0 : f_de_a[7:0];

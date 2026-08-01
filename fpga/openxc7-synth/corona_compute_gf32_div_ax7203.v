@@ -55,13 +55,13 @@ module corona_compute_gf32_div_ax7203 (
     reg [31:0] a_reg,b_reg; reg comp_trigger;
     wire [31:0] fmt_a=a_reg, fmt_b=b_reg;
     wire f_sign_a = fmt_a_a[31];
-    wire [6:0] f_exp_a = fmt_a_a[30:24];
-    wire [23:0] f_mant_a = fmt_a_a[23:0];
+    wire [11:0] f_exp_a = fmt_a_a[30:19];
+    wire [18:0] f_mant_a = fmt_a_a[18:0];
     wire f_zero_a = (f_exp_a == 0) && ((f_mant_a == 0));
-    wire f_inf_a = (f_exp_a == 127) && ((f_mant_a == 0));
-    wire f_nan_a = (f_exp_a == 127) && ((f_mant_a != 0));
+    wire f_inf_a = 1'b0;   // gf32 has no Inf: exp=all-ones is finite
+    wire f_nan_a = 1'b0;   // gf32 has no NaN encoding
     wire f_sub_a = (f_exp_a == 0) && ((f_mant_a != 0));
-    wire signed [16:0] f_de_a = $signed({1'b0, f_exp_a}) - 17'sd63 + 17'sd127;
+    wire signed [16:0] f_de_a = $signed({1'b0, f_exp_a}) - 17'sd2047 + 17'sd127;
     wire [7:0] f_exp32_a = (f_de_a > 17'sd254) ? 8'd254 : (f_de_a < 0) ? 8'd0 : f_de_a[7:0];
     wire [22:0] f_mant32_a = {f_mant_a, -1'b0};
     wire [22:0] f_mant32_norm_a = f_mant_a;
@@ -74,13 +74,13 @@ module corona_compute_gf32_div_ax7203 (
         else fp32_a={f_sign_a, f_exp32_a, f_mant32_a};
     end
     wire f_sign_b = fmt_b_b[31];
-    wire [6:0] f_exp_b = fmt_b_b[30:24];
-    wire [23:0] f_mant_b = fmt_b_b[23:0];
+    wire [11:0] f_exp_b = fmt_b_b[30:19];
+    wire [18:0] f_mant_b = fmt_b_b[18:0];
     wire f_zero_b = (f_exp_b == 0) && ((f_mant_b == 0));
-    wire f_inf_b = (f_exp_b == 127) && ((f_mant_b == 0));
-    wire f_nan_b = (f_exp_b == 127) && ((f_mant_b != 0));
+    wire f_inf_b = 1'b0;   // gf32 has no Inf: exp=all-ones is finite
+    wire f_nan_b = 1'b0;   // gf32 has no NaN encoding
     wire f_sub_b = (f_exp_b == 0) && ((f_mant_b != 0));
-    wire signed [16:0] f_de_b = $signed({1'b0, f_exp_b}) - 17'sd63 + 17'sd127;
+    wire signed [16:0] f_de_b = $signed({1'b0, f_exp_b}) - 17'sd2047 + 17'sd127;
     wire [7:0] f_exp32_b = (f_de_b > 17'sd254) ? 8'd254 : (f_de_b < 0) ? 8'd0 : f_de_b[7:0];
     wire [22:0] f_mant32_b = {f_mant_b, -1'b0};
     wire [22:0] f_mant32_norm_b = f_mant_b;

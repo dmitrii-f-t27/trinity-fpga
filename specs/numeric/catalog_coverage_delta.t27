@@ -2527,3 +2527,96 @@ stays unverified. Recalled belief is not evidence and is not recorded as one.
 """
   resolved false
 }
+
+// ---- Pass 101: the layer under the host, never checked before -----------------
+
+result THE_PARAMETERS_THE_WRAPPERS_PASS_ARE_ALL_CORRECT {
+  detail """
+139 wrappers instantiate a parametric core. 121 pass exactly their format's EXP_BITS
+and MANT_BITS. The other 18 pass EXP_BITS(8), MANT_BITS(23) -- and that is right, not
+wrong: div, sqrt, quire and the gf8 block-float variant convert their operands to
+IEEE binary32 and run a binary32 datapath, which the surrounding lines show plainly
+
+    fp32_b = {f_sign_b, 8'd113, f_mant32_norm_b};
+    gf_div_param #(.EXP_BITS(8), .MANT_BITS(23), .HAS_INF(1)) u_comp (...)
+
+18 hits sharing one signature is the shape of a rule, not of 18 mistakes. Checked
+before claiming, as in pass 100.
+"""
+  status VERIFIED_SW
+}
+
+finding NINE_WRAPPERS_DECODED_THEIR_INPUT_AS_A_DIFFERENT_FORMAT {
+  name     "the conversion stage read the wrong layout"
+  severity HIGH
+
+  detail """
+The core parameters were right. The stage that reads the incoming word was not.
+
+  gf16 div/sqrt/quire   decoded 1+5E+10M bias 15   -- that is binary16 exactly
+  gf32 div/sqrt/quire   decoded 1+7E+24M bias 63   -- gf32 is 1+12E+19M bias 2047
+  gf4  div/sqrt/quire   decoded 1+2E+2M  bias 1    -- gf4 is 1+1E+2M bias 0
+  gf8  div/sqrt/quire   correct
+
+gf4's is the worst: f_sign_a = fmt_a_a[3] while f_exp_a = fmt_a_a[3:2], so the sign
+bit and the exponent's top bit were THE SAME BIT.
+
+The three correct gf8 wrappers are the control that shows the check discriminates.
+"""
+  resolved true
+}
+
+finding AND_THEY_INVENTED_INFINITIES_THE_FORMATS_DO_NOT_HAVE {
+  name     "phantom Inf/NaN in formats that have neither"
+  severity HIGH
+
+  detail """
+Visible only once the layout was fixed. gf_ref gives has_inf to gf16 alone; on every
+other rung the all-ones exponent is an ordinary finite band. The add and mul wrappers
+know this -- they pass HAS_INF(0) for gf4, gf8 and gf32 and HAS_INF(1) for gf16,
+matching the catalog exactly. The div/sqrt/quire wrappers passed HAS_INF(1) for all
+of them, and their input decode declared exp==all-ones to be Inf or NaN.
+
+  gf4    8 of 16 codes misread          50.0% of the code space
+  gf8   32 of 256 codes misread         12.5%
+  gf32   1,048,576 of 4,294,967,296     0.02%
+
+gf4 has ONE exponent bit, so exp==1 is every normal number in the format. Those
+wrappers would have classified every finite normal gf4 value as an infinity or a NaN.
+
+HAS_INF(1) on the CORE is correct -- the datapath is binary32 and binary32 has Inf.
+The defect was one stage earlier, in what the wrapper believed it was reading.
+"""
+  resolved true
+}
+
+result NO_PUBLISHED_CLAIM_RESTS_ON_ANY_OF_IT {
+  measured """
+  conformance scripts for div/sqrt/quire            0
+  comments in issue #199 naming such a cell          0
+  CI workflows referencing them by name              0
+"""
+  and_that_is_the_point """
+Pass 98 found a suite too weak to catch a defect. Here there is no suite at all, and
+the defect is far larger -- half a format's code space rather than four vectors in
+512. Nothing ever contradicted these wrappers because nothing ever tested them.
+
+Reported as a real defect in unproven, unclaimed code. It touches nothing either
+paper says.
+"""
+  status VERIFIED_SW
+}
+
+correction MY_FIRST_PATCH_BROKE_ZERO_DETECTION {
+  detail """
+The rewrite replaced every `(f_exp_a == N)` comparison with the all-ones value,
+including `f_zero_a = (f_exp_a == 0)` and `f_sub_a = (f_exp_a == 0)`. That turns zero
+and subnormal detection into a test for the largest exponent -- worse than the defect
+being fixed, and it touched three gf8 files that were already correct.
+
+Caught by reading the diff before committing rather than trusting the substitution.
+Redone to rewrite only the f_inf_ and f_nan_ lines. Exactly 9 files changed after
+that, and the 3 correct gf8 wrappers were left alone.
+"""
+  resolved true
+}

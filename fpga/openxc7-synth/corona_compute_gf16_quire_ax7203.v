@@ -51,13 +51,13 @@ module corona_compute_gf16_quire_ax7203 (
     reg [15:0] a_reg,b_reg; reg comp_trigger;
     wire [15:0] fmt_a=a_reg, fmt_b=b_reg;
     wire f_sign_a = fmt_a_a[15];
-    wire [4:0] f_exp_a = fmt_a_a[14:10];
-    wire [9:0] f_mant_a = fmt_a_a[9:0];
+    wire [5:0] f_exp_a = fmt_a_a[14:9];
+    wire [8:0] f_mant_a = fmt_a_a[8:0];
     wire f_zero_a = (f_exp_a == 0) && ((f_mant_a == 0));
-    wire f_inf_a = (f_exp_a == 31) && ((f_mant_a == 0));
-    wire f_nan_a = (f_exp_a == 31) && ((f_mant_a != 0));
+    wire f_inf_a = (f_exp_a == 63) && ((f_mant_a == 0));
+    wire f_nan_a = (f_exp_a == 63) && ((f_mant_a != 0));
     wire f_sub_a = (f_exp_a == 0) && ((f_mant_a != 0));
-    wire signed [14:0] f_de_a = $signed({1'b0, f_exp_a}) - 15'sd15 + 15'sd127;
+    wire signed [14:0] f_de_a = $signed({1'b0, f_exp_a}) - 15'sd31 + 15'sd127;
     wire [7:0] f_exp32_a = (f_de_a > 15'sd254) ? 8'd254 : (f_de_a < 0) ? 8'd0 : f_de_a[7:0];
     wire [22:0] f_mant32_a = {f_mant_a, 13'b0};
     wire [22:0] f_mant32_norm_a = {1'b0, f_mant_a, 12'b0};
