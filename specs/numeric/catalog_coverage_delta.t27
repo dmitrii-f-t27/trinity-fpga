@@ -210,3 +210,58 @@ The ready-to-paste subsection must be introduced on those terms, or it overstate
 an absence that is not there.
 """
 }
+
+// ---- Pass 62: the deliverable audited against itself ------------------------
+
+finding MY_OWN_DOSSIER_HAD_A_STALE_UNVERIFIED_LIST {
+  name     "two rows in the dossier's 'still unverified' table had been settled since"
+  severity MEDIUM
+
+  detail """
+VERIFICATION_DOSSIER.md section 3 exists so no reader mistakes silence for
+confirmation. Two of its seven rows were wrong by the time anyone would read them:
+
+  "GF commutativity above gf48 -- exact-rational sweeps do not terminate"
+      settled in passes 53-54: all six laws, 16 widths through gf1024,
+      8,865 ordered pairs, 0 violations, under a second
+
+  "takum32/64 published-pack variant -- ctypes returned NaN, measurement void"
+      settled in pass 45: rebuilt through a C bridge, 3 of 15 bit-identical,
+      12 differing by exactly one ULP, none by more
+"""
+
+  why_this_is_the_worse_direction """
+A stale "verified" claim overstates. A stale "unverified" claim understates -- it
+tells the author that work is still open when it is done, and invites them to spend
+effort on it. For a document whose whole purpose is telling someone what remains,
+that is the more damaging error.
+
+Also corrected: the header said 41 passes and the summary said eleven harness false
+alarms. Now 61 and fourteen, with the largest near-miss named -- the 57,330 phantom
+defects from a defaulted format width -- because a reader calibrating trust in the
+remaining numbers should see the worst case, not a count.
+"""
+  resolved true
+}
+
+delivered SUBMISSION_CHECKLIST {
+  artefact "research/SUBMISSION_CHECKLIST.md"
+
+  rationale """
+The package had grown to 7,700 lines across eleven documents. An author cannot act
+on that. This is one page: four ordered changes with cost estimates, four questions
+only the author can answer, two items blocked on a toolchain, five things
+deliberately NOT flagged so nobody re-opens them, and three verified properties the
+papers could claim and do not.
+
+Every line names where its evidence lives. Nothing in it requires reading the other
+documents first.
+"""
+
+  includes_its_own_caution """
+The closing section states the fourteen withdrawn false alarms and the one
+retracted PR, and says to treat the list as claims with evidence attached rather
+than instructions. A checklist that does not say how it could be wrong is asking to
+be trusted more than it has earned.
+"""
+}

@@ -1,11 +1,17 @@
-# Verification dossier — what 41 passes established, against what the papers say
+# Verification dossier — what 61 passes established, against what the papers say
 
-> Produced 2026-07-31. Companion to `ARXIV_V2_CORRECTION_PACKAGE.md` (what to fix)
-> and `ARXIV_ABSTRACTS_READY_TO_PASTE.md` (the text to paste). This one answers a
+> Produced 2026-07-31, **updated 2026-08-01 (pass 62)**. Companion to
+> `ARXIV_V2_CORRECTION_PACKAGE.md` (what to fix) and
+> `ARXIV_ABSTRACTS_READY_TO_PASTE.md` (the text to paste). This one answers a
 > different question: **what can the papers now honestly claim that they don't?**
 >
 > Every row cites the spec under `specs/numeric/` holding the measurement. Nothing
 > here is asserted from memory.
+>
+> The pass-62 update exists because two rows in §3 had been settled since and were
+> still listed as open. A dossier whose "unverified" column is stale is worse than
+> one with a shorter list, so it is re-checked against the specs rather than
+> appended to.
 
 ---
 
@@ -50,8 +56,18 @@ Stated so no reader mistakes silence for confirmation.
 | "83 formats spanning **13 families**" | never checked; a module grouping gives 15, which would not be a defect | author (`FAMILY_TAXONOMY`) |
 | the accumulator **path** (as distinct from the identity) | the identity verifies; the implementation was never executed | author (`ACCUMULATOR_IMPLEMENTATION`) |
 | IEEE P3109 draft version | **not publicly verifiable** — no `P3109/Public`, no release feed | the working group |
-| GF commutativity above gf48 | exact-rational sweeps at gf64+ do not terminate; timing a single gf64 multiply exceeded two minutes | a different verification strategy |
-| takum32/64 published-pack variant | the ctypes binding returned NaN for every code; measurement void | rebuild via the C bridge |
+
+Two rows that stood here have since been settled and moved to §1:
+
+- **GF arithmetic above gf48.** Recorded as unverifiable because exact-rational
+  sweeps at gf64+ did not terminate. Profiling located the cause — a denormal's
+  `Fraction` denominator needs ≈`bias` bits, 8.4 Mbit at gf64 — and sampling
+  exponents near 1.0 instead made all six laws checkable across **16 widths through
+  gf1024, 8,865 ordered pairs, 0 violations, in under a second**.
+- **takum32 published-pack variant.** Recorded as void because a ctypes binding
+  returned NaN for every code. Rebuilt through a C bridge: **3 of 15 vectors
+  bit-identical, 12 differing by exactly one ULP, none by more** — the witness holds
+  at the achievable precision.
 
 ## 4. What the papers say that measurement contradicts
 
@@ -72,7 +88,15 @@ distinctions — not in the results.
 sentence overstates (fabricated dies); a whole section of genuine, measured
 properties goes unmentioned — the pack count above all, at 7 % of true coverage.
 
-**Eleven times in 41 passes, an alarming measurement turned out to be my own
+**Fourteen times in 61 passes, an alarming measurement turned out to be my own
 harness.** Every count in §§1–3 survived that filter; the retracted ones are
 recorded as retracted rather than deleted. That is the reason to trust the
 remaining numbers, and it is also the reason each row here names its spec.
+
+The largest near-miss is worth naming, because it calibrates the rest. One
+diagnostic defaulted a format's width to 16 when it could not find the attribute,
+enumerated 65,536 codes for a 4-bit format, and reported **57,330 "defects"** with
+convincing examples — every one an out-of-range code masked back into range. It was
+caught before publication, like the other thirteen. One correction was **not** caught
+in time: a "fix" to `takum_ref.py` was shipped as a PR, then retracted unmerged when
+the module's own docstring turned out to document the behaviour as deliberate.
