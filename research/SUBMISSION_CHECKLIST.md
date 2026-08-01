@@ -12,6 +12,34 @@
 
 ---
 
+## 0. Read this first — which document are you editing?
+
+There are **three** GoldenFloat papers, with three different bibliographies, and the
+fixes below do not apply to all of them equally:
+
+| document | references | last touched |
+|---|---|---|
+| `goldenfloat-preprint/gf_preprint_v19.tex` | **28** | 2026-06-07 |
+| **arXiv:2606.05017v3 — what a reader sees** | **33** | 2026-06-22 |
+| `trinity-papers-ru/paper1-goldenfloat/main_ru.tex` — Russian, for ВАК journals | **56** | 2026-08-01 |
+
+Two things follow:
+
+- **The preprint source repository is behind what is published.** It has 28
+  references; arXiv v3 has 33, and the repo has not been touched since two weeks
+  before v3 appeared. Establish which tree actually produced v3 *before* editing
+  anything for a replacement, or the replacement will silently drop whatever went
+  in after 2026-06-07.
+- **`ARXIV_BODY_FIXES_READY_TO_PASTE.md`'s line numbers point into `main_ru.tex`** —
+  the Russian ВАК submission, not the preprint. The *claims* hold against the
+  published text (re-verified: IEEE 754 and TestFloat are uncited in v3's 33
+  references). The *locations* do not.
+
+§1 below is stated against the **published arXiv text**. Use the line numbers only
+when editing the Russian manuscript.
+
+---
+
 ## 1. Do these — high value, low cost, no new work required
 
 | # | paper | change | why | cost |
