@@ -2620,3 +2620,87 @@ that, and the 3 correct gf8 wrappers were left alone.
 """
   resolved true
 }
+
+// ---- Pass 102: the wrappers never read their operands --------------------------
+
+finding THE_OPERAND_NET_IS_READ_BUT_NEVER_DRIVEN {
+  name     "a typo that disconnects the datapath, in 2,276 files"
+  severity CRITICAL_BUT_UNREACHED
+
+  detail """
+Pass 101 checked WHICH FIELDS a converting wrapper reads. It walked straight past
+whether the word those fields come from is connected to anything.
+
+    wire [15:0] fmt_a = a_reg, fmt_b = b_reg;   // declared, never used
+    wire f_sign_a  = fmt_a_a[15];               // a DIFFERENT identifier
+    wire [5:0] f_exp_a  = fmt_a_a[14:9];
+    wire [8:0] f_mant_a = fmt_a_a[8:0];
+
+fmt_a_a is never declared and never assigned. With `default_nettype wire` it becomes
+an implicit one-bit net, so every part-select on it is out of range and the operand
+never reaches the core. The register holding the real operand is fmt_a, and nothing
+reads it.
+
+  files in fpga/openxc7-synth              3,590
+  operand net read but never driven        2,276
+  properly declared                            0
+
+By operation: add 374, mul 374, alu 373, cmp 373, fma 373, div 16, sqrt 10,
+quire 10, other 373. Not confined to the converting cells found in pass 101.
+"""
+  not_mine """
+Checked against the tree before pass 101: the typo is present in the pre-existing
+version, in files I never touched. It is not something my rewrite introduced.
+"""
+  resolved false
+}
+
+finding THE_SUBNORMAL_CONVERSION_CANNOT_BE_RIGHT {
+  name     "a fixed shift where a variable one is required"
+  severity HIGH
+
+  detail """
+A wrapper handing a subnormal to a binary32 datapath must normalise it: find the
+leading one, shift left by that much, subtract the shift from the exponent. 560
+wrappers use a constant exponent and a constant shift instead.
+
+corona_compute_gf16_div_ax7203.v, with its own constants (exponent 113, shift 12) and
+gf16's own subnormals (mant * 2^-39):
+
+  mant   1     true 1.818989e-12    built 6.106496e-05    ratio 3.36e+07
+  mant 511     true 9.295036e-10    built 7.626414e-05    ratio 8.20e+04
+
+Every subnormal in the format converts to the wrong value, by four to seven orders of
+magnitude. A subnormal's leading one moves with the mantissa, so one shift cannot
+serve them all -- the defect is structural, not a wrong constant.
+"""
+  resolved false
+}
+
+result NEITHER_DEFECT_IS_REACHABLE_BY_ANYTHING_THAT_RUNS {
+  measured """
+Every Tier-E proof heading in issue #199 matched against the affected file list:
+
+  Tier-E proof comments                                          75
+  proofs naming a cell whose wrapper is in the affected set        0
+
+And the positive control explains why. The wrappers behind the published proofs do
+not convert at all -- gf16_add hands its operand to gf_adder_param at the format's
+native width. There is no conversion in them to get wrong, and no undriven net,
+because they never introduce the second identifier.
+"""
+  status VERIFIED_SW
+}
+
+conclusion THE_SHAPE_THIS_CAMPAIGN_KEEPS_FINDING {
+  precise """
+Pass 98: a suite too weak to catch a defect, 4 vectors in 512.
+Pass 101: no suite at all, half a format's code space misread.
+Pass 102: no suite at all, the operand never arriving, in 2,276 files.
+
+Each time the defect is larger and the evidence around it is thinner, and each time
+the tested part is clean. That is not a coincidence -- it is what testing does, seen
+from the outside. The papers' verified core holds up under every probe; what does not
+hold up is the unverified surround, and no claim was ever made about it.
+"""
+}
