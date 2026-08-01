@@ -28,7 +28,7 @@ The whole flow is open: yosys plus nextpnr-xilinx (openXC7), no vendor tools.
 | Independence of the result | a second host, written in a different language with a different serial implementation, reaches the same board and agrees |
 | Logic cost | 429 logic cells, 296 + 125 flip-flops, **0 DSP48** — the datapath is popcount and an adder tree, no multiplier |
 | Simulation agreement | 128/128 golden vectors through the full UART frame path, gating synthesis in CI |
-| Adversarial behaviour | a node that skips the work and tags its guess correctly is rejected; so are replays, identity claims and double-billing (41 tests) |
+| Adversarial behaviour | a node that skips the work and tags its guess correctly is rejected; so are replays, identity claims and double-billing (42 tests) |
 
 ## What is not measured, and should not be inferred
 

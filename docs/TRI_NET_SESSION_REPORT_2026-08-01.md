@@ -14,7 +14,7 @@ weak points and the competition, and report with three options for the next loop
 | **The same board answers a second, independently written host.** | Zig CLI over libc serial, 64/64 — a different language, a different serial implementation, the same board. |
 | **A compute receipt binds an answer to its job.** CRC-32 over `OP\|NONCE\|W\|X\|Y\|NODE_ID`, agreed by three independent implementations: a Verilog LFSR, `zlib.crc32`, `std.hash.Crc32`. | Anchor tag `0xa8fa2bdf`; CI fails the build if they diverge. |
 | **An agent's inference ran partly on that board.** | `trinet demo`: 288 jobs over a 3-node mesh, 96 on silicon, mesh result equals local recomputation, 0 rows rejected. |
-| **Cheating is caught and costs more than it earns.** | 41 Zig tests. Free rider caught >450/500; replay, identity theft, double-billing all rejected; a layer computes correctly *while a node lies*, and the liar earns nothing. |
+| **Cheating is caught and costs more than it earns.** | 42 Zig tests. Free rider caught >450/500; replay, identity theft, double-billing all rejected; a layer computes correctly *while a node lies*, and the liar earns nothing. |
 | **A node on the other end of a socket earns credit like a local one.** | Real listener, same 24/15-byte framing the FPGA speaks, 25/25 jobs credited to the remote owner. |
 | **`gfternary` MUL bit-exact, 16/16 exhaustive.** | CI run `30702513394`. **But see §2 — this is not a ternary datapath.** |
 

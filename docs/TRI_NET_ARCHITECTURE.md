@@ -20,7 +20,7 @@ distance between them is the entire risk in a project like this.
 | The node cell synthesises with zero DSP48 | **measured** | 429 LCs, CI run `30702638896` |
 | An agent's inference ran partly on that board | **measured** | `demo`: 288 jobs, 96 on silicon, mesh result equals local recomputation |
 | `gfternary MUL` bit-exact on hardware | **measured, but see below** | 16/16 exhaustive, CI run `30702513394` |
-| Mesh, settlement, adversary rejection | **verified in software** | 41 Zig tests |
+| Mesh, settlement, adversary rejection | **verified in software** | 42 Zig tests |
 | GF8 ADD re-verified after the frame fix | **measured on hardware** | 4096/4096 bit-exact, CI run `30704172264` |
 | Three *physical* nodes exchanging work | **not done** | one board is attached; see §7 |
 | A trained ternary code model | **does not exist here** | see §6 |
@@ -143,12 +143,21 @@ What *is* solved:
 
 What is not:
 
-- **Emulation.** Requires a hardware root of trust. Xilinx 7-series exposes a
-  57-bit device DNA (`DNA_PORT`) and eFUSE storage; whether openXC7 can even
-  instantiate `DNA_PORT`, and whether device DNA is secret enough to bind a
-  receipt to a chip, are both open and untested here.
-- **Unforgeability.** A signature, not a checksum, is needed. The receipt format
-  has room for one; nothing currently produces it.
+- **Emulation.** Requires a hardware root of trust, and the cheapest candidate
+  has now been tested and did not work. `DNA_PORT` places, routes and answers
+  over UART under openXC7 — 8/8 reads, correct framing, 57 significant bits
+  reported — and returns **zero for all 57 bits** on an AX7203. All bits reading
+  zero points at the primitive not being configured by the bitstream rather than
+  at a wrong shift sequence; a vendor-toolchain build on the same board would
+  settle it and has not been run. So device-bound identity is not currently
+  reachable on the open flow, and node identity remains **asserted, not proven**.
+- **Unforgeability by the operator.** Partly addressed. `trinet_node_v2` replaces
+  CRC-32 with SipHash-2-4 under a key that exists only inside the bitstream, so
+  a tag can only be produced by a key holder. That stops third parties forging on
+  an operator's behalf, and with per-node keys it stops one operator forging for
+  another — it does not stop an operator forging their own, because they hold the
+  bitstream and therefore the key. Closing the rest needs eFUSE or BBRAM with an
+  encrypted bitstream, or an external secure element.
 - **Sybil identities.** Node ids are chosen at synthesis. Stake is the only
   current cost of a new identity.
 
@@ -259,7 +268,7 @@ how correctness is established today.
 ## 10. Running it
 
 ```bash
-zig test src/trinet/agent.zig -lc          # 41 tests, whole stack
+zig test src/trinet/agent.zig -lc          # 42 tests, whole stack
 zig build-exe src/trinet/main.zig -lc      # build the CLI
 ./main selftest                            # adversaries vs the verifier
 ./main probe /dev/cu.usbserial-1110        # verify a flashed board
