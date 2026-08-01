@@ -1,0 +1,70 @@
+% Corrected bibitems -- titles and authors fetched from the arXiv API,
+% not transcribed. Verify against the rendered PDF before submitting.
+
+% Paper B, ref [1]
+%   currently: GoldenFloat: A phi-anchored numeric format family and the identity phi^2+1/phi^2=3
+\bibitem{goldenfloat2026} D. Vasilev, ``GoldenFloat: A Phi-Derived Static-Split Floating-Point Family from GF4 to GF1024 with a Lucas-Exact Integer Identity,''
+  \texttt{arXiv:2606.05017}, 2026.
+
+% Paper B, ref [2]
+%   currently: Takum arithmetic: A new paradigm for low-precision numerics
+\bibitem{hunhold2024integer} L. Hunhold, ``Integer Representations in IEEE 754, Posit, and Takum Arithmetics,''
+  \texttt{arXiv:2412.20273}, 2024.
+
+% Paper B, ref [3]
+%   currently: ProofWright: Towards verified floating-point arithmetic
+\bibitem{proofwright2025} B. Chatterjee, D. Zagieboylo, S. Damani, S. Hari, and C. Kozyrakis, ``ProofWright: Towards Agentic Formal Verification of CUDA,''
+  \texttt{arXiv:2511.12294}, 2025.
+
+% Paper B, ref [4]
+%   currently: P3109 FLoPS: A Lean 4 formalization of IEEE P3109 floating-point semantics
+\bibitem{flops2026} T. Chang, S. Park, J. P. Lim, and S. Nagarakatte, ``FLoPS: Semantics, Operations, and Properties of P3109 Floating-Point Representations in Lean,''
+  \texttt{arXiv:2602.15965}, 2026.
+
+% Paper B, ref [8]
+%   currently: M2XFP: A unified mixed-precision microscaling floating-point representation
+\bibitem{m2xfp2026} W. Hu, Z. Zhang, H. Zhang, C. Zhang, C. Guo, Y. Feng, T. Hu, G. Li, G. Hu, J. Wang, and J. Leng, ``M2XFP: A Metadata-Augmented Microscaling Data Format for Efficient Low-bit Quantization,''
+  \texttt{arXiv:2601.19213}, 2026.
+
+% Paper B, ref [10]
+%   currently: Pychop: Emulating low-precision arithmetic in Python for ML and scientific computing
+\bibitem{pychop2025} E. Carson and X. Chen, ``pychop: Emulating Low-Precision Arithmetic in Numerical Methods and Neural Networks,''
+  \texttt{arXiv:2504.07835}, 2025.
+
+% Paper B, ref [13]
+%   currently: Takum arithmetic in sparse iterative solvers: A precision-vs-storage study
+\bibitem{hunhold2024solvers} L. Hunhold and J. Quinlan, ``Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse Linear Solvers,''
+  \texttt{arXiv:2412.20268}, 2024.
+
+% Paper B, ref [19]
+%   currently: (no title given)
+\bibitem{sarnoff2026p3109} A. Fitzgibbon, C. M. Wintersteiger, and J. Sarnoff, ``Novel Aspects of IEEE SA P3109 Arithmetic Formats for Machine Learning,''
+  \texttt{arXiv:2606.04028}, 2026.
+
+% Paper B, ref [20]
+%   currently: (no title given)
+\bibitem{fasoli2026finer} A. Fasoli, M. Kar, C. Liu, S. Venkataramani, V. Srinivasan, L. Chang, and N. Wang, ``Is Finer Better? The Limits of Microscaling Formats in Large Language Models,''
+  \texttt{arXiv:2601.19026}, 2026.
+
+
+% ---------------------------------------------------------------------------
+% Not fetchable from arXiv; corrected by hand from the authoritative source:
+%
+% Paper B [12]  -- author initial is wrong
+\bibitem{libtakum} L. Hunhold, ``libtakum: A reference C library for takum
+  arithmetic,'' \url{https://github.com/takum-arithmetic/libtakum}, 2024--2025.
+%   currently: "C. Hunhold". The author is Laslo Hunhold (arXiv:2404.18603).
+%
+% Paper B [18]  -- the document carries no version number
+\bibitem{p3109interim} IEEE P3109 Working Group, ``IEEE P3109 Interim Report,''
+  IEEE Standards Association, retrieved 2026-08-01.
+  \url{https://github.com/P3109/Public}.
+%   currently: "IEEE SA P3109 Interim Report v3.2.0". No version string appears
+%   anywhere in that document; cite it by retrieval date.
+%
+% Paper A [11]  -- the DOI resolves to a DIFFERENT work, already cited as [10].
+%   Delete [11] as a duplicate, and if the ARITH 2025 hardware-evaluation paper
+%   was intended, add it under its own DOI -- 10.1109/ARITH64983.2025.00019
+%   resolves to "Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse
+%   Linear Solvers" (Hunhold and Quinlan), which is what [10] already cites.
+

@@ -660,3 +660,73 @@ which is the whole class that matters, because a plausible-looking citation is t
 one nobody re-checks.
 """
 }
+
+// ---- Pass 76: all three, and two absences that were tooling ------------------
+
+open_question A_THE_V3_SOURCE_TREE_CANNOT_BE_LOCATED_HERE {
+  attempted """
+Searched gHashTag for the content that exists only in the published v3: "MixFP4",
+"GB10 NVFP4", and the actual published title "Lucas-Exact Integer Identity". Zero
+hits for all three. Also checked goldenfloat-preprint's branches: only main.
+"""
+
+  why_the_absence_proves_nothing """
+Control search: "GoldenFloat" across the org returns 30 hits, so code search works.
+But "bibitem" inside goldenfloat-preprint returns 0 -- and that file demonstrably
+contains 28.
+
+So GitHub code search does not index that repository. It may not index whichever
+tree produced v3 either, and no-hits is therefore not evidence of no-tree.
+"""
+  status "undetermined with available tooling, not answered in the negative"
+  who_can_settle "the author, who knows where v3 was built"
+}
+
+delivered B_CORRECTED_BIBITEMS {
+  artefact "research/CORRECTED_BIBITEMS.tex"
+  generator "research/build_corrected_bibitems.py"
+
+  covers """
+Nine Paper B entries whose arXiv id resolves to a different title, plus [12]'s wrong
+author initial, [18]'s version string on a document that has none, and Paper A's
+[11] duplicate.
+"""
+
+  why_generated_rather_than_transcribed """
+The audit scripts truncate author lists to four names for display. Fetching fresh
+from the API for the bibitems found more: ProofWright has five authors, and M2XFP
+has eleven. Transcribing from the report would have shipped short author lists into
+a bibliography being fixed for wrong author lists.
+"""
+}
+
+result C_THE_URL_ONLY_REFERENCES_RESOLVE {
+  checked "the four Paper B references carrying a URL rather than an identifier"
+  findings """
+  arith2025.org/proceedings/215900a157.pdf   200
+  github.com/takum-arithmetic/libtakum       200
+  github.com/jax-ml/ml_dtypes                200
+  opencompute.org/documents/ocp-mx-v1-0      403
+"""
+  the_403 """
+Not reported as a defect. OCP gates spec downloads, and a 403 from a site that
+requires a form is not a dead link. Unresolved either way rather than counted.
+"""
+}
+
+correction I_MANUFACTURED_A_404_BY_TRUNCATING_A_URL {
+  what_happened """
+The ARITH proceedings link first returned 404 and looked like a dead citation in
+the paper. The URL I tested was arith2025.org/proceedings/215900 -- my own truncation
+of the display output. The reference's actual URL is .../215900a157.pdf, which
+returns 200.
+"""
+  the_pattern """
+Second time this pass that an absence was mine: code search "finding nothing" was a
+repository it cannot index, and this 404 was a URL I shortened. Both were caught by
+testing the tool rather than trusting the result -- a control search, and re-reading
+the URL from the source.
+
+An absence is a claim. It needs the same check as a presence.
+"""
+}
