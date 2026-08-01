@@ -971,3 +971,68 @@ paste.
   latex_check "0 problems -- no unescaped specials, no non-ASCII, balanced braces, paired quotes, no repeated keys"
   status VERIFIED_SW
 }
+
+// ---- Pass 81: hunting the duplicated-fact mechanism on purpose ---------------
+
+measurement NUMERIC_DRIFT_SEARCH {
+  method """
+Extract every number together with the noun it qualifies -- "83 packs", "66,224
+codes" -- across the seven deliverable documents, and group by noun. A noun carrying
+two values is either a real distinction or a drift.
+"""
+  nouns_with_multiple_values 6
+  genuine_drifts 0
+
+  reading """
+All six are different facts sharing a word: 19,106 codes (oracle exactness) against
+258,524 (P3109) against 66,224 (ml_dtypes); "83 formats" against the "83-vs-5 format
+comparison". The numeric surface of the deliverables is consistent.
+"""
+}
+
+finding THE_SAME_FALSE_CLAIM_SURVIVED_IN_THE_LARGEST_DOCUMENT {
+  name     "\"there is no P3109/Public repository\" still stood in the correction package"
+  severity HIGH
+
+  detail """
+Pass 72 corrected this claim in ARXIV_ABSTRACTS_READY_TO_PASTE.md. It survived
+untouched in ARXIV_V2_CORRECTION_PACKAGE.md -- 1,217 lines, the largest document in
+the package -- in two places: the executive summary at line 48 and section 6.2,
+which states outright "Checked this pass: there is no P3109/Public repository".
+
+Found by searching for absence-shaped phrasings across all documents, not by
+reading. The numeric search that ran first found nothing, because this claim
+contains no number.
+"""
+
+  the_irony_worth_recording """
+Section 6.2 names graphcore-research/gfloat as "the best remaining lead". Following
+exactly that lead in pass 63 reached P3109/Public in two hops -- gfloat's README
+links to it directly. The document contained the route to its own refutation.
+"""
+
+  fix """
+Corrected in place with the superseded text struck through and quoted. The item is
+settled rather than open: the Interim Report is public and carries no version
+number, so cite it by retrieval date.
+
+This also disposes of section 8.6's "two different document series" explanation,
+which pass 72 had already flagged as an assumption written as a resolution.
+"""
+  resolved true
+}
+
+practice ABSENCE_CLAIMS_NEED_A_SEARCH_OF_THEIR_OWN {
+  detail """
+The numeric-drift detector found zero real problems. Searching for the phrasings of
+ABSENCE -- "not publicly verifiable", "does not exist", "no public", "the only",
+"the first", "uncited" -- found the live one immediately.
+
+That matches what passes 76 and 79 established from the other direction: every
+absence claim this campaign has made was wrong at least once, and every identifier
+type checked has yielded a misattribution. Absence is the claim most likely to be
+stale, because nothing about it changes when the world does -- there is no failing
+test, no mismatched number, nothing to notice.
+"""
+  tool "research/find_duplicated_facts.py, plus a grep over absence phrasings"
+}

@@ -45,7 +45,7 @@ Three passes in a row ended at the same wall. Each is one answer, not a project:
 - **Which GF widths predate the φ-rule?** Until answered, the `9/9` figure cannot be corrected — it is off in *both* directions (§10.2). `open_question WIDTH_PROVENANCE`.
 - **Is "13 families" the catalog's own taxonomy?** Not verified; a module-based grouping gives 15, which would not be a defect. `open_question FAMILY_TAXONOMY`.
 - **Where is the accumulator implementation?** The identity verifies; the *path* the paper claims was not executed (§10.4). `open_question ACCUMULATOR_IMPLEMENTATION`.
-- Plus two smaller ones: which board the 323 MHz figure came from (§1.2), and the current P3109 draft version, which is **not publicly verifiable** (§6.2).
+- Plus one smaller one: which board the 323 MHz figure came from (§1.2). *(The P3109 draft version was listed here too, as "not publicly verifiable". It is settled — the Interim Report is public and simply carries no version number, so cite it by retrieval date. See §6.2.)*
 
 ### Blocked on one missing toolchain
 
@@ -357,19 +357,32 @@ WG draft versus a versioned cross-walk table of our own), or one is wrong.
 reviewer holding both papers finds immediately, and it costs nothing to fix once
 the intended referent is known. Do **not** guess which one is right.
 
-### 6.2 The P3109 draft version is NOT publicly verifiable — stop trying
+### 6.2 The P3109 draft version — ~~not publicly verifiable~~ **corrected, pass 81**
 
-Checked this pass: there is no `P3109/Public` repository, and no release/tag feed
-for the working group. The related public repositories —
+> ⚠️ **The paragraph below was wrong and is kept only to show what was corrected.**
+> It said there is no `P3109/Public` repository. There is:
+> `github.com/P3109/Public`, updated 2026-07-29, holding the *IEEE P3109 Interim
+> Report* and **504 CSV value tables (154 MB)**. It was reached in pass 63 by
+> following the very lead this section names — `graphcore-research/gfloat`, whose
+> README links straight to it.
+>
+> **What is true, and settles the item:** the Interim Report carries **no version
+> number anywhere in its text** — only "unapproved IEEE Standards Draft, subject to
+> change" and a 2026 copyright. So the version cannot be confirmed, but for a
+> different reason than stated: not because nothing is published, but because what
+> is published is unversioned. **Cite the Interim Report by retrieval date.**
+>
+> This also disposes of §8.6's explanation that Paper A and Paper B "cite two
+> different document series". Paper B's ref [18] names the Interim Report
+> explicitly, and Paper A's [27] points at it through gfloat. One document, two
+> different version strings attached to it.
+
+~~Checked this pass: there is no `P3109/Public` repository, and no release/tag feed
+for the working group.~~ The related public repositories —
 `awf/p3109-cpp` (C++ implementation, WG participant), `imandra-ai/ieee-p3109`
 (updated 2026-07-27), `rutgers-apl/FLoPS` — expose **no draft-version string**.
 `graphcore-research/gfloat` is named by Paper A as the reference implementation
-and is the best remaining lead.
-
-This closes the open item from pass 1: the version cannot be confirmed from a
-machine-readable public source, so §2.4's instruction stands — the number must
-come from the working group directly, not from a note and not from an inference.
-Recorded here so pass 4+ does not spend another cycle on it.
+and is the best remaining lead. *(It was. Following it resolves the item.)*
 
 ### 6.3 Citation defect: `flops2026` has a placeholder author and a paraphrased title
 
