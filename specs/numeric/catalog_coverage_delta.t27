@@ -1715,3 +1715,72 @@ that the silicon behaved.
 """
   status VERIFIED_SW
 }
+
+// ---- Pass 92: the two lines crossed ------------------------------------------
+
+result HOW_MANY_PACKS_HAVE_HARDWARE_EVIDENCE {
+  question "of the 83 conformance packs, how many carry a physical-board result?"
+  answer "45 of 83 -- 54%"
+
+  with_hardware """
+bcd 100/100, bfloat16 8/8, binary16 65536/65536, binary32/64/128 64/64,
+decimal32/64/128 64/64, double_double 64/64, fp4_e2m1 16/16, fp6_e2m3 64/64,
+fp6_e3m2 64/64, fp8_e5m2 256/256, gf4/6/8/12/16/20/24/32 up to 512/512,
+gf10 64/64, gf14 64/64, ibm_hfp32/64 64/64, int4 16/16, int8 256/256,
+int16/32 64/64, lns8 256/256, lns16 64/64, ms_mbf32/64 64/64, nf4 16/16,
+posit8 256/256, posit16/32 64/64, quad_double 64/64, takum8 256/256,
+takum16 64/64, takum32 65536/65536, vax_d/f/g 64/64.
+
+Two are exhaustive over the whole code space: binary16 and takum32, at
+65,536/65,536 each.
+"""
+
+  software_only """
+38 packs: afp, binary256, block_fp, cray_float, fp8_e4m3, gf48, gf64, gf96, gf128,
+gf256, gf512, gf1024, gf8_bfp, gf_lns_hybrid, gfternary, ibm_hfp128, int64, int128,
+lns32, lns64, minifloat, mxfp4, mxfp6, mxfp8, mxgf4, mxgf6, per_channel_scale,
+posit64, q_format, shared_exp, stochastic_rounding, takum64, tapered_fp, tf32,
+unum_i, unum_ii, vax_h, x87_fp80.
+"""
+
+  the_split_is_coherent """
+What is on hardware is what fits in the cell. The software-only list is the wide
+rungs (gf48 through gf1024), the wide integers (int64, int128), binary256, x87_fp80,
+takum64 -- and the parametric or structural entries that have no single fixed layout
+to synthesise: minifloat, q_format, block_fp, shared_exp, unum_i/ii, tapered_fp.
+
+That is a physical explanation, not a gap in rigour, and it is what makes the number
+worth publishing.
+"""
+
+  why_this_matters_to_the_papers """
+"83 formats, bit-exact" and "verified on silicon" are different claims about
+overlapping sets, and neither paper distinguishes them. A reader's first question
+about a hardware-backed format catalogue is which formats have hardware, and the
+answer is precise, checkable and favourable: more than half.
+"""
+  status VERIFIED_SW
+}
+
+correction PASS_91_UNDERCOUNTED_THE_TIER_E_CELLS {
+  what_i_reported "34 distinct cells with a complete four-link chain"
+  what_is_true "46 cells, of which 45 match a published pack id"
+
+  why """
+The pass-91 script took the FIRST format name matching in each comment. Comments
+covering several cells were counted once, and formats named only alongside others
+were missed entirely.
+
+Taking every match per comment, and widening the name pattern to the corpus's actual
+ids -- double_double, ms_mbf32, per_channel_scale and the rest -- gives 46.
+"""
+
+  the_shape_of_the_error """
+An undercount from a regex that stopped at the first hit. It made the verified claim
+weaker than the evidence supports, which is the direction that does not get noticed:
+nobody rechecks a number for being too modest.
+
+Third time this campaign has found exactly that -- after the pass-84 scope claim that
+said 79 scripts when 291 had run.
+"""
+}
