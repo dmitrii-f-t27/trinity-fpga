@@ -157,3 +157,82 @@ weaker result than one that says what it needs.
   fix "state the pinned dependency wherever the number is cited"
   resolved true
 }
+
+// ---- Pass 64: cross-validation against the IEEE P3109 working group ----------
+
+measurement P3109_VALUE_TABLES_VS_FP8_PACKS {
+  source "github.com/P3109/Public, Value Tables/Hexadecimal/K8/{P3,P4}/signed"
+  method """
+P3109 names a format binaryKpP by total width K and precision P (significand bits
+INCLUDING the implicit one), so fp8 E4M3 maps to K8P4 and E5M2 to K8P3. Each of the
+four tables was decoded exactly from its hex-float column and compared against the
+in-tree oracle over all 256 codes.
+"""
+
+  result {
+    tables 4
+    finite_codes_compared 1000    // 253+253 for P4, 247+247 for P3
+    finite_agreements 4
+    finite_mismatches 996
+  }
+
+  the_ratio_is_the_finding """
+Across ALL 996 mismatches, in two formats and four tables, the ratio ours/P3109 takes
+exactly ONE distinct value: 2.
+
+A decoder defect scatters. A single uniform factor across every finite code is an
+exponent bias differing by one, and nothing else.
+
+Confirmed arithmetically on the smallest subnormal. Code 0x1 under OCP E4M3FN is
+1 * 2^(1-bias-3) = 2^-9 with bias 7. The P3109 table gives 0x0.4p-8 = 2^-10, so
+their bias is 8.
+"""
+  status VERIFIED_SW
+}
+
+finding P3109_BINARY8P4_IS_NOT_OCP_E4M3 {
+  name     "same field layout, bias differing by one, every finite value a factor of 2 apart"
+  severity MEDIUM
+
+  detail """
+P3109's binary8p4 and OCP's fp8 E4M3FN have identical field widths -- 1 sign, 4
+exponent, 3 stored mantissa -- and different exponent biases, 8 against 7. The same
+holds for binary8p3 against E5M2.
+
+Neither is wrong. They are different specifications that happen to share a layout.
+"""
+
+  why_it_matters_for_the_paper """
+Paper B's abstract, verbatim from v2:
+
+  "an IEEE P3109 v3.2.0 cross-walk that maps each pack to its corresponding
+   standards-track configured format"
+
+A reader can reasonably take "corresponding" to mean the values agree. Measured,
+every finite value differs by exactly a factor of two. If the cross-walk maps
+LAYOUT rather than VALUES, that is a defensible and useful thing to publish -- but
+the abstract does not say which, and the difference is not small.
+
+This is not a claim that the paper is wrong. It is a claim that one word in it is
+carrying more weight than it can bear, and that saying "maps each pack to the
+standards-track format of the same layout" would cost nothing and remove the
+ambiguity entirely.
+"""
+  resolved false
+  recorded_for "SUBMISSION_CHECKLIST.md"
+}
+
+note WHAT_THIS_CROSS_VALIDATION_DOES_ESTABLISH {
+  detail """
+The comparison is not void -- it is informative in the direction that matters.
+
+Exactly 4 finite codes agree across the four tables (the zeros), and the other 996
+differ by a constant. That is the signature of two correct decoders reading two
+different specifications, and it is strong evidence that the in-tree oracle is
+internally consistent: a buggy decoder would not produce a constant offset against
+an independently generated standards-body table over every code.
+
+So the sixth oracle confirms the corpus's fp8 decode LAW while identifying that the
+format it maps to is not the same format.
+"""
+}
