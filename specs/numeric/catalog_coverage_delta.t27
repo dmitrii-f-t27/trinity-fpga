@@ -1253,3 +1253,65 @@ the right work, unlike Paper B's [3].
 """
   status VERIFIED_SW
 }
+
+// ---- Pass 85: three documents in one source, and two harness failures --------
+
+result C_THE_THREE_BIBLIOGRAPHIES_COMPARED {
+  method "key every entry by arXiv id and compare how each document cites it"
+  shared_works 23
+  cited_identically 17
+  cited_differently 6
+
+  the_useful_direction """
+main_ru.tex has the CORRECT title where Paper B has a wrong or missing one:
+
+  arXiv:2601.19213  Paper B "M2XFP: A unified mixed-precision microscaling
+                            floating-point representation"        (invented)
+                    main_ru "M2XFP: a metadata-augmented microscaling data
+                            format for efficient low-bit quantization"  CORRECT
+
+  arXiv:2601.19026  Paper B (no title)
+                    main_ru "Is finer better? The limits of microscaling
+                            formats in large language models"           CORRECT
+
+So two of Paper B's defects already have their fix written, in the author's own
+Russian manuscript. It simply did not propagate.
+"""
+  status VERIFIED_SW
+}
+
+delivered A_THE_THIRD_DOCUMENT_JOINS_THE_SHARED_SOURCE {
+  detail """
+bibliography_defects.py now carries all three documents: 8 for Paper A, 12 for
+Paper B, 7 for main_ru. Both generators render all three.
+
+Four of main_ru's seven are inherited from Paper A verbatim -- the Hunhold
+paraphrases, the HAL misattribution, and the ARITH DOI that resolves to the
+solvers paper. One is its own: [24], an id resolving to "Representation range
+needs for 16-bit neural network training" under a title describing a different
+work.
+"""
+}
+
+correction TWO_HARNESS_FAILURES_IN_ONE_PASS {
+  the_first_would_have_shipped """
+Regenerating the .tex during arXiv throttling produced a file with FOUR bibitems
+instead of nineteen -- every unresolved id printed as "did not resolve" -- and it
+was written over the good file.
+
+Caught by checking the count afterwards. The generator now REFUSES to write when any
+id fails to resolve, exits 2, and says the likely cause. Writing nothing beats
+writing something worse than what is already there.
+"""
+
+  the_second_was_a_false_alarm """
+The LaTeX checker then flagged four correct \\bibitem lines for "unescaped _" --
+underscores inside the citation KEY, which is an argument and never typeset.
+
+Second time this checker's first answer was wrong, after the line-local quote test
+in pass 77. Both times it reported problems in a file that had none. A checker whose
+errors are all false positives trains you to ignore it, which is worse than having
+no checker.
+"""
+  now "24 bibitems, 0 problems, three documents"
+}

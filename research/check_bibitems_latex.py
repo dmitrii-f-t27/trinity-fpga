@@ -42,6 +42,11 @@ def main() -> int:
         probe = re.sub(r"\\[&%#_$~^\\]", "", line)
         probe = re.sub(r"\\url\{[^}]*\}", "", probe)
         probe = re.sub(r"\\texttt\{[^}]*\}", "", probe)
+        # The citation KEY is an argument, not typeset text: underscores in it are
+        # legal and common. Scanning it flagged four correct \bibitem lines on the
+        # pass-85 run -- the second time this checker's first answer was wrong,
+        # after the line-local quote test.
+        probe = re.sub(r"\\bibitem\{[^}]*\}", "", probe)
 
         for ch in SPECIAL:
             if ch in probe:

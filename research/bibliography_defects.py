@@ -10,7 +10,8 @@ outright misattributions.
 Both generators now import from here. Adding a defect in one place updates both.
 
 Fields:
-  paper   "A" or "B"
+  paper   "A" (arXiv:2606.05017v3), "B" (arXiv:2606.09686v2), or
+          "RU" (trinity-papers-ru/paper1-goldenfloat/main_ru.tex, the VAK submission)
   ref     the bibliography number as printed
   ident   ("arxiv", id) | ("doi", id) | ("hal", id) | ("url", url) | ("none", "")
   defect  short class, for the table's last column
@@ -94,6 +95,35 @@ DEFECTS = [
                "\\bibitem{dinechin2019posits} L. Forget, Y. Uguen, and F. de "
                "Dinechin, ``Comparing posit and\n  IEEE-754 hardware cost,'' 2021. "
                "\\texttt{hal-03195756}."),
+    # ---- main_ru.tex (the Russian VAK submission, 56 bibitems) -----------------
+    # Audited in pass 84. Four of its defects are inherited verbatim from Paper A,
+    # which is what bibliographies maintained by copying do.
+    dict(paper="RU", ref="[24]", ident=("arxiv", "2103.15940"), key="popescu2021",
+         defect="wrong work — its own, not inherited"),
+    dict(paper="RU", ref="[7]", ident=("arxiv", "2404.18603"), key="ru_hunhold_takum",
+         defect="shortened title (same as Paper A [7])"),
+    dict(paper="RU", ref="[8]", ident=("arxiv", "2412.20273"), key="ru_hunhold_integer",
+         defect="paraphrased — scope changed (same as Paper A [8])"),
+    dict(paper="RU", ref="[9]", ident=("arxiv", "2408.10594"), key="ru_hunhold_codec",
+         defect="paraphrased — invents 'VHDL' (same as Paper A [9])"),
+    dict(paper="RU", ref="[10]", ident=("arxiv", "2412.20268"), key="ru_hunhold_solvers",
+         defect="paraphrased title (same as Paper A [10])"),
+    dict(paper="RU", ref="[6]", ident=("hal", "hal-03195756"), key="ru_dedinechin",
+         defect="wrong title AND wrong author list (same as Paper A [6])",
+         note="carries Paper A [6] verbatim: *“Posits: the good, the bad and the "
+              "ugly”* attributed to de Dinechin, Forget, **Muller** and Uguen at "
+              "`hal-03195756`, whose record is *“Comparing posit and IEEE-754 "
+              "hardware cost”* by Forget, Uguen and de Dinechin.",
+         fix="Same correction as Paper A [6]."),
+    dict(paper="RU", ref="[11]", ident=("doi", "10.1109/ARITH64983.2025.00019"),
+         key="ru_hunhold_arith",
+         defect="wrong work (same as Paper A [11])",
+         note="carries Paper A [11] verbatim, including the DOI that resolves to "
+              "*Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse "
+              "Linear Solvers* rather than to the ARITH hardware-evaluation paper.",
+         fix="Same correction as Paper A [11]. Note this manuscript also cites that "
+             "solvers paper at [10], so the duplication is present here too."),
+
     dict(paper="A", ref="[11]", ident=("doi", "10.1109/ARITH64983.2025.00019"),
          key="hunhold2025arith", defect="wrong work, and a duplicate of [10]",
          note="DOI 10.1109/ARITH64983.2025.00019 resolves to *Evaluation of "

@@ -13,12 +13,12 @@
 
 | ref | currently says | actually is | defect |
 |---|---|---|---|
-| **[7]** | Takum arithmetic | Beating Posits at Their Own Game: Takum Arithmetic *(Hunhold)* | shortened title |
-| **[8]** | Integer representations of takums | Integer Representations in IEEE 754, Posit, and Takum Arithmetics *(Hunhold)* | paraphrased — scope changed |
-| **[9]** | A VHDL codec for takum arithmetic | Design and Implementation of a Takum Arithmetic Hardware Codec *(Hunhold)* | paraphrased — invents 'VHDL' |
-| **[10]** | Bfloat16, posit and takum number formats in linear-solver workloads | Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse Linear Solvers *(Hunhold et al.)* | paraphrased title |
-| **[22]** | The era of 1-bit LLMs: BitNet b1.58 | The Era of 1-bit LLMs: All Large Language Models are in 1.58 Bits *(Ma et al.)* | shortened title |
-| **[26]** | Fibbinary: quantization of neural networks using Fibonacci representations | Fibbinary-Based Compression and Quantization for Efficient Neural Radio Receivers *(Fiandaca et al.)* | paraphrased — domain changed |
+| **[7]** | Takum arithmetic | (unresolved) | shortened title |
+| **[8]** | Integer representations of takums | (unresolved) | paraphrased — scope changed |
+| **[9]** | A VHDL codec for takum arithmetic | (unresolved) | paraphrased — invents 'VHDL' |
+| **[10]** | Bfloat16, posit and takum number formats in linear-solver workloads | (unresolved) | paraphrased title |
+| **[22]** | The era of 1-bit LLMs: BitNet b1.58 | (unresolved) | shortened title |
+| **[26]** | Fibbinary: quantization of neural networks using Fibonacci representations | (unresolved) | paraphrased — domain changed |
 
 - **[6]** — cites *“Posits: the good, the bad and the ugly”* by de Dinechin, Forget, **Muller** and Uguen at `hal-03195756v3`. The HAL record for that id is *“Comparing posit and IEEE-754 hardware cost”* by **Forget, Uguen and de Dinechin** — different title, and Muller is not among its authors.  
   → Either correct the title and author list to the HAL record, or supply the HAL id of the paper actually meant — both works exist.
@@ -33,15 +33,15 @@
 
 | ref | currently says | actually is | defect |
 |---|---|---|---|
-| **[1]** | GoldenFloat: A phi-anchored numeric format family and the identity φ 2 + 1 / φ | GoldenFloat: A Phi-Derived Static-Split Floating-Point Family from GF4 to GF1024 w *(Vasilev)* | wrong title — the companion paper |
-| **[2]** | Takum arithmetic: A new paradigm for low-precision numerics | Integer Representations in IEEE 754, Posit, and Takum Arithmetics *(Hunhold)* | wrong title — different work |
-| **[3]** | ProofWright: Towards verified floating-point arithmetic | ProofWright: Towards Agentic Formal Verification of CUDA *(Chatterjee et al.)* | wrong title AND wrong subject |
-| **[4]** | P3109 FLoPS: A Lean 4 formalization of IEEE P3109 floating-point semantics | FLoPS: Semantics, Operations, and Properties of P3109 Floating-Point Representatio *(Chang et al.)* | paraphrased title |
-| **[8]** | M 2 M^{2} XFP: A unified mixed-precision microscaling floating-point represent | M2XFP: A Metadata-Augmented Microscaling Data Format for Efficient Low-bit Quantiz *(Hu et al.)* | wrong title — subtitle invented |
-| **[10]** | Pychop: Emulating low-precision arithmetic in Python for ML and scientific com | pychop: Emulating Low-Precision Arithmetic in Numerical Methods and Neural Network *(Carson et al.)* | paraphrased title |
-| **[13]** | Takum arithmetic in sparse iterative solvers: A precision-vs-storage study | Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse Linear Solvers *(Hunhold et al.)* | wrong title — different work |
-| **[19]** | (no title) | Novel Aspects of IEEE SA P3109 Arithmetic Formats for Machine Learning *(Fitzgibbon et al.)* | no title given at all |
-| **[20]** | (no title) | Is Finer Better? The Limits of Microscaling Formats in Large Language Models *(Fasoli et al.)* | no title given at all |
+| **[1]** | GoldenFloat: A phi-anchored numeric format family and the identity φ 2 + 1 / φ | (unresolved) | wrong title — the companion paper |
+| **[2]** | Takum arithmetic: A new paradigm for low-precision numerics | (unresolved) | wrong title — different work |
+| **[3]** | ProofWright: Towards verified floating-point arithmetic | (unresolved) | wrong title AND wrong subject |
+| **[4]** | P3109 FLoPS: A Lean 4 formalization of IEEE P3109 floating-point semantics | (unresolved) | paraphrased title |
+| **[8]** | M 2 M^{2} XFP: A unified mixed-precision microscaling floating-point represent | (unresolved) | wrong title — subtitle invented |
+| **[10]** | Pychop: Emulating low-precision arithmetic in Python for ML and scientific com | (unresolved) | paraphrased title |
+| **[13]** | Takum arithmetic in sparse iterative solvers: A precision-vs-storage study | (unresolved) | wrong title — different work |
+| **[19]** | (no title) | (unresolved) | no title given at all |
+| **[20]** | (no title) | (unresolved) | no title given at all |
 
 - **[11]** — cites *“Floating-point conformance testing in industrial practice”*. The PDF at the entry's own URL is *“Formal Verification of the IEEE P3109 Standard for Binary Floating-point Formats for Machine Learning”*, Wintersteiger, Imandra Inc. Right author, different work.  
   → Replace the title with the one at the cited URL.
@@ -51,6 +51,25 @@
 
 - **[18]** — cites *IEEE SA P3109 Interim Report **v3.2.0***.  
   → That document carries no version number anywhere in its text. Cite it by retrieval date.
+
+
+## Paper RU — trinity-papers-ru/paper1-goldenfloat/main_ru.tex — the Russian VAK submission
+
+**7 entries need attention.**
+
+| ref | currently says | actually is | defect |
+|---|---|---|---|
+| **[24]** | (see the manuscript) | (unresolved) | wrong work — its own, not inherited |
+| **[7]** | (see the manuscript) | (unresolved) | shortened title (same as Paper A [7]) |
+| **[8]** | (see the manuscript) | (unresolved) | paraphrased — scope changed (same as Paper A [8]) |
+| **[9]** | (see the manuscript) | (unresolved) | paraphrased — invents 'VHDL' (same as Paper A [9]) |
+| **[10]** | (see the manuscript) | (unresolved) | paraphrased title (same as Paper A [10]) |
+
+- **[6]** — carries Paper A [6] verbatim: *“Posits: the good, the bad and the ugly”* attributed to de Dinechin, Forget, **Muller** and Uguen at `hal-03195756`, whose record is *“Comparing posit and IEEE-754 hardware cost”* by Forget, Uguen and de Dinechin.  
+  → Same correction as Paper A [6].
+
+- **[11]** — carries Paper A [11] verbatim, including the DOI that resolves to *Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse Linear Solvers* rather than to the ARITH hardware-evaluation paper.  
+  → Same correction as Paper A [11]. Note this manuscript also cites that solvers paper at [10], so the duplication is present here too.
 
 
 ---
