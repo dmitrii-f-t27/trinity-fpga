@@ -139,6 +139,22 @@ pub fn receiptTag(job: Job, y: i8, node_id: u32) u32 {
     return std.hash.Crc32.hash(&preimage(job, y, node_id));
 }
 
+/// Keyed receipt tag — SipHash-2-4 over the same preimage.
+///
+/// The difference from `receiptTag` is the whole point: a CRC can be computed
+/// by anyone, so it proves a response is self-consistent and nothing more. A
+/// keyed tag can only be produced by a key holder, which is what makes a
+/// receipt evidence rather than arithmetic.
+///
+/// It does not make a receipt unforgeable by the party that holds the key. A
+/// node operator has their own bitstream and therefore their own key; this
+/// stops third parties forging on their behalf, and with per-node keys it stops
+/// one operator forging for another. See `fpga/openxc7-synth/trinet_siphash24.v`
+/// for what closing the remaining gap requires.
+pub fn receiptTagKeyed(job: Job, y: i8, node_id: u32, key: [16]u8) u64 {
+    return std.hash.SipHash64(2, 4).toInt(&preimage(job, y, node_id), &key);
+}
+
 pub fn encodeRequest(job: Job) [request_len]u8 {
     var buf: [request_len]u8 = undefined;
     buf[0] = magic_req[0];
@@ -297,6 +313,32 @@ test "verifier accepts honest work and rejects each tampering" {
     var bad_status = good;
     bad_status.status = 0x00;
     try std.testing.expectEqual(Verdict.bad_status, verify(job, bad_status));
+}
+
+test "the keyed tag matches the RTL and depends on the key" {
+    // Reference vector shared with formal/trinet_siphash24_tb.v: the preimage
+    // bytes 0x00..0x19 under key bytes 0x00..0x0f. The RTL reproduces it, so
+    // this pins the Zig side to the same law.
+    var key: [16]u8 = undefined;
+    for (&key, 0..) |*k, i| k.* = @intCast(i);
+    var msg: [preimage_len]u8 = undefined;
+    for (&msg, 0..) |*m, i| m.* = @intCast(i);
+    try std.testing.expectEqual(
+        @as(u64, 0x17d835b85bbb15f3),
+        std.hash.SipHash64(2, 4).toInt(&msg, &key),
+    );
+
+    // And on a real job: a different key must give a different tag, or the key
+    // is not reaching the state.
+    const job = Job.withNonce(0xC0FFEE, @splat(0x55), @splat(0xAA));
+    const y = dot(job.w, job.x);
+    const t1 = receiptTagKeyed(job, y, default_node_id, key);
+    const t2 = receiptTagKeyed(job, y, default_node_id, @splat(0xA5));
+    try std.testing.expect(t1 != t2);
+
+    // Sensitive to the result and the node, exactly like the unkeyed tag.
+    try std.testing.expect(t1 != receiptTagKeyed(job, y +% 1, default_node_id, key));
+    try std.testing.expect(t1 != receiptTagKeyed(job, y, default_node_id +% 1, key));
 }
 
 test "wire encoding round trip" {

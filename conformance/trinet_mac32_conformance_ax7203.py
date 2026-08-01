@@ -96,6 +96,68 @@ def golden_receipt_tag(op: int, nonce: bytes, w_bytes: bytes, x_bytes: bytes,
     return zlib.crc32(receipt_preimage(op, nonce, w_bytes, x_bytes, y, node_id)) & 0xFFFFFFFF
 
 
+# ---------------------------------------------------------------------------
+# Keyed receipt tag — SipHash-2-4
+#
+# The CRC tag above proves a response is self-consistent. It proves nothing
+# about who produced it, because anyone can compute it. The keyed tag can only
+# be produced by a key holder. Implemented here rather than pulled from a
+# dependency so the conformance corpus stays self-contained, and checked
+# against the published vectors in _siphash_self_test.
+# ---------------------------------------------------------------------------
+
+_M64 = (1 << 64) - 1
+
+
+def _rotl64(x: int, n: int) -> int:
+    return ((x << n) | (x >> (64 - n))) & _M64
+
+
+def siphash24(msg: bytes, key: bytes) -> int:
+    assert len(key) == 16
+    k0 = int.from_bytes(key[:8], "little")
+    k1 = int.from_bytes(key[8:], "little")
+    v0 = k0 ^ 0x736F6D6570736575
+    v1 = k1 ^ 0x646F72616E646F6D
+    v2 = k0 ^ 0x6C7967656E657261
+    v3 = k1 ^ 0x7465646279746573
+
+    def rounds(n):
+        nonlocal v0, v1, v2, v3
+        for _ in range(n):
+            v0 = (v0 + v1) & _M64
+            v1 = _rotl64(v1, 13) ^ v0
+            v0 = _rotl64(v0, 32)
+            v2 = (v2 + v3) & _M64
+            v3 = _rotl64(v3, 16) ^ v2
+            v0 = (v0 + v3) & _M64
+            v3 = _rotl64(v3, 21) ^ v0
+            v2 = (v2 + v1) & _M64
+            v1 = _rotl64(v1, 17) ^ v2
+            v2 = _rotl64(v2, 32)
+
+    full = len(msg) // 8 * 8
+    for off in range(0, full, 8):
+        m = int.from_bytes(msg[off:off + 8], "little")
+        v3 ^= m
+        rounds(2)
+        v0 ^= m
+
+    tail = int.from_bytes(msg[full:], "little") | ((len(msg) & 0xFF) << 56)
+    v3 ^= tail
+    rounds(2)
+    v0 ^= tail
+
+    v2 ^= 0xFF
+    rounds(4)
+    return v0 ^ v1 ^ v2 ^ v3
+
+
+def golden_receipt_tag_keyed(op: int, nonce: bytes, w_bytes: bytes, x_bytes: bytes,
+                             y: int, node_id: int, key: bytes) -> int:
+    return siphash24(receipt_preimage(op, nonce, w_bytes, x_bytes, y, node_id), key)
+
+
 def verify_receipt(job, response) -> tuple:
     """Independently verify a (job, response) pair.
 
@@ -223,7 +285,26 @@ def self_test() -> bool:
         else:
             print(f"  verifier rejects {label}: ok")
 
-    # 6. Random cross-check of packing.
+    # 6. The keyed tag must reproduce the published SipHash-2-4 vectors, and
+    #    the same values the RTL and the Zig side produce.
+    ref_key = bytes(range(16))
+    for msg_len, expect in ((0, 0x726FDB47DD0E0E31), (3, 0x85676696D7FB7E2D),
+                            (26, 0x17D835B85BBB15F3)):
+        got = siphash24(bytes(range(msg_len)), ref_key)
+        if got != expect:
+            print(f"  FAIL siphash24 len={msg_len}: {got:#018x} != {expect:#018x}")
+            failures += 1
+    print("  siphash-2-4 reproduces the published vectors: ok")
+
+    keyed_a = golden_receipt_tag_keyed(OP_MAC32, nonce, ones, alt, y, DEFAULT_NODE_ID, ref_key)
+    keyed_b = golden_receipt_tag_keyed(OP_MAC32, nonce, ones, alt, y, DEFAULT_NODE_ID, bytes([0xA5] * 16))
+    if keyed_a == keyed_b:
+        print("  FAIL keyed tag does not depend on the key")
+        failures += 1
+    else:
+        print(f"  keyed receipt tag {keyed_a:#018x}: depends on the key: ok")
+
+    # 7. Random cross-check of packing.
     rng = random.Random(0xF1B0)
     for _ in range(2000):
         trits = [rng.choice([-1, 0, +1]) for _ in range(N_TRITS)]
