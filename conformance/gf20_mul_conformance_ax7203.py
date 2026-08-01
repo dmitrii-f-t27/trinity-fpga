@@ -15,7 +15,7 @@ from gf_ref import FORMATS, gf_mul
 
 FMT = FORMATS["gf20"]             # exp_bits=7, mant_bits=12, bias=63, width=20, no Inf
 WIDTH = FMT.width                 # 20
-FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
+FRAME = bytes([0xAA, 0x55])  # magic only — the gf compute wrappers have no fmt byte
 
 # §3.5-style corner codes (raw, 20-bit): zero, denormal, normals, max-finite.
 CORNERS = [

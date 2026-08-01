@@ -13,7 +13,7 @@ from gf_ref import FORMATS, gf_add
 E, M, BIAS = 4, 7, 7
 TOTAL = 1 + E + M  # 12
 FMT = FORMATS["gf12"]
-FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
+FRAME = bytes([0xAA, 0x55])  # magic only — the gf compute wrappers have no fmt byte
 
 
 def hw_exchange(ser, a, b):

@@ -15,7 +15,7 @@ def golden_sub(a, b):
     return gf_add(GFMT, a, b ^ SIGN)
 
 
-FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
+FRAME = bytes([0xAA, 0x55])  # magic only — the gf compute wrappers have no fmt byte
 
 
 def hw_exchange(ser, a, b):
