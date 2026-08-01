@@ -56,18 +56,22 @@ def hexfloat_log2(s: str):
     return n.bit_length() - d.bit_length()
 
 
-def list_tables() -> list[str]:
+def list_tables(kind: str) -> list[str]:
+    """kind is 'signed' or 'unsigned'.
+
+    They need different exponent arithmetic: a signed binaryKpP spends one bit on
+    the sign, so e = K - P, while an unsigned one has that bit available to the
+    exponent, giving e = K - P + 1.
+
+    Note for anyone comparing against a corpus: P3109's UNSIGNED formats are
+    unsigned FLOATS -- an exponent and a significand with no sign bit -- not
+    integers. They do not correspond to a uint type.
+    """
     out = subprocess.check_output(
         ["gh", "api", "repos/P3109/Public/git/trees/main?recursive=1",
          "--jq", '[.tree[] | select(.type=="blob") | .path] | .[]'], text=True)
-    keep = []
-    for p in out.splitlines():
-        if not p.endswith(".csv") or "Value Tables" not in p:
-            continue
-        if "/signed/" not in p:              # unsigned has no sign bit; different law
-            continue
-        keep.append(p)
-    return keep
+    return [p for p in out.splitlines()
+            if p.endswith(".csv") and "Value Tables" in p and f"/{kind}/" in p]
 
 
 def head(path: str, nbytes: int = 400) -> str:
@@ -80,9 +84,10 @@ def head(path: str, nbytes: int = 400) -> str:
         return ""
 
 
-def main() -> int:
-    tables = list_tables()
-    print(f"signed value tables in the tree: {len(tables)}\n")
+def sweep(kind: str, sign_bits: int) -> tuple[int, int, int, list]:
+    tables = list_tables(kind)
+    print(f"\n=== {kind}: {len(tables)} tables in the tree "
+          f"(exponent bits e = K - P + {1 - sign_bits})")
 
     ok = broken = unread = 0
     breaks = []
@@ -93,7 +98,7 @@ def main() -> int:
         if not m:
             continue
         K, P = int(m.group(1)), int(m.group(2))
-        e = K - P
+        e = K - P + (1 - sign_bits)
         if e < 1:
             continue                          # no exponent field to bias
 
@@ -135,24 +140,35 @@ def main() -> int:
             broken += 1
             breaks.append((K, P, e, bias, expect, row))
 
-    print(f"configurations read : {len(seen)}")
-    print(f"  bias = 2^(e-1)    : {ok}")
-    print(f"  DIFFERENT         : {broken}")
-    print(f"  unreadable        : {unread}")
+    print(f"  configurations read : {len(seen)}")
+    print(f"    bias = 2^(e-1)    : {ok}")
+    print(f"    DIFFERENT         : {broken}")
+    print(f"    unreadable        : {unread}")
+    for K, P, e, got, want, row in breaks[:10]:
+        print(f"      K{K}P{P}  e={e}  bias={got} but 2^(e-1)={want}  (0x1 -> {row})")
+    return ok, broken, unread, breaks
 
-    for K, P, e, got, want, row in breaks[:12]:
-        print(f"    K{K}P{P}  e={e}  bias={got} but 2^(e-1)={want}   (0x1 -> {row})")
+
+def main() -> int:
+    s_ok, s_bad, s_un, _ = sweep("signed", 1)
+    u_ok, u_bad, u_un, u_breaks = sweep("unsigned", 0)
 
     print()
-    if broken == 0 and ok:
-        print(f"P3109 uses bias = 2^(e-1) at every one of the {ok} configurations")
-        print("readable here, against IEEE 754's 2^(e-1) - 1. The four-point result")
-        print("of passes 64-65 generalises to the family: every P3109 binaryKpP")
-        print("value is exactly twice its same-layout IEEE/OCP counterpart.")
-    elif broken:
-        print(f"{broken} configuration(s) do NOT follow 2^(e-1). The rule is not")
-        print("uniform, and the cross-walk claim has to be stated per width.")
-    return 1 if broken else 0
+    total_bad = s_bad + u_bad
+    if total_bad == 0:
+        print(f"bias = 2^(e-1) holds at all {s_ok + u_ok} configurations read --")
+        print(f"{s_ok} signed and {u_ok} unsigned -- against IEEE 754's 2^(e-1) - 1.")
+        print()
+        print("So the convention is a property of the whole P3109 family, not of")
+        print("the four formats compared against packs in passes 64-65. Every")
+        print("binaryKpP value is exactly twice its same-layout IEEE counterpart.")
+        print()
+        print("P3109 unsigned formats are unsigned FLOATS, not integers, so they")
+        print("have no counterpart among the corpus's uint types.")
+    else:
+        print(f"{total_bad} configuration(s) do NOT follow 2^(e-1); the rule is not")
+        print("uniform and any cross-walk claim must be stated per configuration.")
+    return 1 if total_bad else 0
 
 
 if __name__ == "__main__":

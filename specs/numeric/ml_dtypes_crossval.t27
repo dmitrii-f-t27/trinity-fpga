@@ -366,3 +366,41 @@ has not answered the question. The number that matters in a partial result is th
 part that is missing.
 """
 }
+
+// ---- Pass 68: the unsigned half, and the law stated without assumptions ------
+
+measurement BOTH_FAMILIES_SWEPT {
+  signed   { tables 238  configurations 119  follow_law 119  differ 0  unreadable 0 }
+  unsigned { tables 266  configurations 133  follow_law 133  differ 0  unreadable 0 }
+  total_configurations 252
+
+  stated_without_my_labelling """
+`e` was an ASSUMPTION about layout; `bias` was measured from the data. Reporting
+"bias = 2^(e-1) holds" would partly be fitting my own parameter, so the result is
+stated in terms that come only from the file path and the table:
+
+    signed    bias = 2^(K - P - 1)
+    unsigned  bias = 2^(K - P)
+
+both against IEEE 754's 2^(K - P - 1) - 1 for the same layout. The difference of
+exactly one is what produces the factor of two, and it holds at all 252
+configurations.
+"""
+  status VERIFIED_SW
+}
+
+correction I_CLAIMED_AN_OVERLAP_THAT_DOES_NOT_EXIST {
+  what_i_wrote """
+The pass-67 report proposed checking P3109's unsigned family because "the corpus
+contains uint4/8/16/32, so there is an overlap".
+"""
+  what_is_true """
+P3109's unsigned binaryKpP are unsigned FLOATS -- an exponent and a significand
+with no sign bit. They are not integers and have no counterpart among the corpus's
+uint types.
+
+The sweep was still worth running, for a different reason than the one I gave: it
+turns the bias law from a statement about half the family into one about all of it.
+"""
+  note "recorded in list_tables' docstring so the next reader does not repeat it"
+}
