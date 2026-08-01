@@ -20,7 +20,7 @@ records are the source of truth for what is actually established:
 | the board answers a second independent host (Zig CLI, 64/64) | `[measured on FPGA]` |
 | trinet_mac32 routed, 429 LC, 0 DSP48 | `[synthesised and routed]` |
 | gfternary MUL bit-exact, 16/16 exhaustive | `[measured on FPGA]` — **but the datapath is FP32, not ternary** |
-| mesh, ledger, adversary rejection | `VERIFIED_SW` (41 Zig tests) |
+| mesh, ledger, adversary rejection | `VERIFIED_SW` (42 Zig tests) |
 | three *physical* nodes exchanging work | not done — one board exists |
 | a trained IGLA CODER model | does not exist on this workstation |
 | a receipt proves work ran on an FPGA | **false**, and must not be claimed |
@@ -82,7 +82,7 @@ specs/trinet/*.t27                             the record
 ## Commands
 
 ```bash
-zig test src/trinet/agent.zig -lc                     # 41 tests, whole stack
+zig test src/trinet/agent.zig -lc                     # 42 tests, whole stack
 zig build-exe src/trinet/main.zig -lc                 # CLI
 ./main selftest                                       # adversaries vs verifier
 ./main probe /dev/cu.usbserial-1110                   # verify a flashed board

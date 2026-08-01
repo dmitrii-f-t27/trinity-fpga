@@ -118,7 +118,7 @@ fn selftest(gpa: std.mem.Allocator) !void {
     }
 
     line();
-    std.debug.print("run `zig test src/trinet/agent.zig -lc` for the full 41-test suite\n", .{});
+    std.debug.print("run `zig test src/trinet/agent.zig -lc` for the full 42-test suite\n", .{});
     std.debug.print("run `trinet probe` to check a physical board\n", .{});
 }
 
