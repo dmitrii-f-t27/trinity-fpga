@@ -1,0 +1,147 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# TRI-NET NODE — the ternary internet's unit of work
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Source of truth for the wire protocol that a TRI-NET node speaks, in silicon
+# (fpga/vivado/trinet_mac32_ax7203.v), in Zig (src/trinet/protocol.zig) and in
+# Python (conformance/trinet_mac32_conformance_ax7203.py). All three carry an
+# independent implementation of the same law, and CI fails if they disagree.
+#
+# The work unit is one 32-wide ternary dot product, chosen because it is
+# exactly one row of a ternary-weight matrix multiply. A model's forward pass
+# therefore decomposes into these jobs without remainder.
+#
+# φ² + 1/φ² = 3
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: trinet_node
+version: "1.0.0"
+language: zig
+module: trinet.protocol
+
+constants:
+  n_trits:
+    value: 32
+    description: "Trits per operand vector"
+  n_bytes:
+    value: 8
+    description: "Packed operand width — four trits per byte"
+  request_len:
+    value: 24
+    description: "AA 55 OP NONCE[4] W[8] X[8] TRIG"
+  response_len:
+    value: 15
+    description: "A5 Y STATUS NONCE[4] NODE_ID[4] CRC[4]"
+  preimage_len:
+    value: 26
+    description: "OP NONCE[4] W[8] X[8] Y NODE_ID[4] — what the CRC covers"
+  magic_request_0:
+    value: 0xAA
+  magic_request_1:
+    value: 0x55
+  magic_response:
+    value: 0xA5
+  op_mac32:
+    value: 0x01
+  status_ok:
+    value: 0x01
+  default_node_id:
+    value: 0x5452494E
+    description: "ASCII TRIN, little-endian. Override per board at synthesis."
+  crc_polynomial:
+    value: 0xEDB88320
+    description: "CRC-32 IEEE 802.3 reflected — identical to Python zlib.crc32"
+
+types:
+  TritCode:
+    description: "Two-bit packed trit. The reserved code canonicalises to zero."
+    enum:
+      - zero      # 0b00 ->  0
+      - plus      # 0b01 -> +1
+      - minus     # 0b10 -> -1
+      - reserved  # 0b11 ->  0
+
+  Job:
+    description: "One unit of ternary compute"
+    fields:
+      op: U8
+      nonce: U32
+      w: Bytes8
+      x: Bytes8
+
+  Receipt:
+    description: "A node's claim about a job, and the tag that binds it"
+    fields:
+      y: I8
+      status: U8
+      nonce: U32
+      node_id: U32
+      crc: U32
+
+  Verdict:
+    description: "What an independent verifier concluded about a receipt"
+    enum:
+      - ok
+      - bad_status
+      - nonce_mismatch
+      - wrong_result
+      - bad_tag
+
+behaviors:
+  decode_trit:
+    given: "a two-bit code"
+    when: "the node decodes it"
+    then: "0b00 and 0b11 yield 0, 0b01 yields +1, 0b10 yields -1"
+
+  ternary_dot_product:
+    given: "two packed 32-trit vectors w and x"
+    when: "the node computes the job"
+    then: >
+      y equals the count of positions where w and x agree in non-zero sign,
+      minus the count where they disagree, in the range -32 to +32. The
+      implementation must reach this by popcount and subtraction only — no
+      multiplier, no DSP — so the zero-multiplier discipline holds.
+
+  receipt_tag:
+    given: "a job, a result and a node identity"
+    when: "the node builds a receipt"
+    then: >
+      crc equals CRC-32 (reflected, polynomial 0xEDB88320, initial value all
+      ones, final inversion) over the 26-byte preimage OP NONCE W X Y NODE_ID.
+      Changing any input byte, the result, or the claimed identity changes the
+      tag.
+
+  verify_receipt:
+    given: "a job and a receipt"
+    when: "the settlement layer judges it"
+    then: >
+      accept only when status is ok, the nonce echoes the job, y equals an
+      independently recomputed dot product, and the tag matches. The tag alone
+      is never sufficient: a node that skips the work and tags its guess
+      correctly is caught by the recomputation, not by the tag.
+
+  identity_is_not_transferable_by_claim:
+    given: "a receipt whose node_id differs from the node the job was sent to"
+    when: "the settlement layer judges it"
+    then: >
+      credit no account. The tag is valid for the identity it claims, so the
+      protocol verifier passes it; refusing payment is the ledger's
+      responsibility and belongs there, not in the tag.
+
+  cheating_must_be_unprofitable:
+    given: "an audit rate p, a reward r per accepted job and a slash s"
+    when: "settlement parameters are chosen"
+    then: >
+      require p * s > r, and refuse to start with parameters that fail it. A
+      configuration in which skipping the work has positive expected value is a
+      bug, not a tuning choice.
+
+  a_receipt_is_not_a_proof_of_hardware:
+    given: "a verified receipt"
+    when: "anyone asks where the work ran"
+    then: >
+      the receipt does not answer. CRC-32 is a checksum any party can compute,
+      and the node identity is a synthesis-time constant. Distinguishing
+      silicon from emulation requires a hardware root of trust, which this
+      version does not have and must not claim.
