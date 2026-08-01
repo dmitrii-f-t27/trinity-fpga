@@ -15,16 +15,26 @@ distance between them is the entire risk in a project like this.
 
 | Claim | Status | Evidence |
 |---|---|---|
-| A ternary compute cell runs bit-exact on an XC7A200T | **measured on hardware** | `gfternary MUL` 16/16, CI run `30702513394`, flashed 2026-08-01 |
-| The TRI-NET node cell is bit-exact in simulation | **verified in simulation** | 128/128 golden vectors, `formal/trinet_mac32_tb.v` |
+| The TRI-NET node — ternary dot product **and** its receipt tag — is bit-exact on an XC7A200T | **measured on hardware** | 512/512 receipts verified, `trinet_mac32`, flashed 2026-08-01 |
+| The same board answers a second, independent host | **measured on hardware** | Zig CLI `probe` 64/64, separate serial implementation |
 | The node cell synthesises with zero DSP48 | **measured** | 429 LCs, CI run `30702638896` |
-| Mesh, settlement, adversary rejection | **verified in software** | 38 Zig tests |
-| Three physical nodes exchanging work | **not done** | one board is attached; see §7 |
+| An agent's inference ran partly on that board | **measured** | `demo`: 288 jobs, 96 on silicon, mesh result equals local recomputation |
+| `gfternary MUL` bit-exact on hardware | **measured, but see below** | 16/16 exhaustive, CI run `30702513394` |
+| Mesh, settlement, adversary rejection | **verified in software** | 40 Zig tests |
+| Three *physical* nodes exchanging work | **not done** | one board is attached; see §7 |
 | A trained ternary code model | **does not exist here** | see §6 |
 | A receipt proves work ran on specific silicon | **false, and not claimed** | see §5 |
 
-Before this session the ternary column of the format matrix had no hardware
-entry at all. There is now one.
+Before this session the ternary column of the format matrix had no compute
+entry backed by silicon. There is now one.
+
+**The gfternary result needs a caveat, and it matters.** That cell is not a
+ternary datapath: it expands each 2-bit code into a full FP32 constant, runs a
+generic `gf_mul_param(8,23)` FP32 multiplier, and re-quantises to two bits. Its
+16/16 establishes the format's decode/compute/quantise *law* — it says nothing
+about the cost or structure of ternary arithmetic. `trinet_mac32` is the cell
+that carries that claim, because its datapath is popcount and subtraction with
+no floating-point core anywhere in it.
 
 ---
 

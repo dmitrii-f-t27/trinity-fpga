@@ -16,13 +16,25 @@ records are the source of truth for what is actually established:
 
 | Claim | Tier |
 |---|---|
-| gfternary MUL bit-exact on AX7203, 16/16 exhaustive | `[measured on FPGA]` |
-| trinet_mac32 bit-exact vs golden, 128/128 | `[simulated]` |
+| trinet_mac32 dot product **and** receipt tag bit-exact on AX7203, 512/512 | `[measured on FPGA]` |
+| the board answers a second independent host (Zig CLI, 64/64) | `[measured on FPGA]` |
 | trinet_mac32 routed, 429 LC, 0 DSP48 | `[synthesised and routed]` |
-| mesh, ledger, adversary rejection | `VERIFIED_SW` (38 Zig tests) |
-| three physical nodes exchanging work | not done — one board exists |
+| gfternary MUL bit-exact, 16/16 exhaustive | `[measured on FPGA]` — **but the datapath is FP32, not ternary** |
+| mesh, ledger, adversary rejection | `VERIFIED_SW` (40 Zig tests) |
+| three *physical* nodes exchanging work | not done — one board exists |
 | a trained IGLA CODER model | does not exist on this workstation |
 | a receipt proves work ran on an FPGA | **false**, and must not be claimed |
+
+**Do not cite gfternary as a ternary-compute hardware result.** That cell
+expands each 2-bit code into an FP32 constant, runs `gf_mul_param(8,23)`, and
+re-quantises. It verifies the format's decode/compute/quantise law only.
+`trinet_mac32` is the cell whose datapath is actually ternary.
+
+**Three incompatible trit encodings live in this tree** — gfternary and
+trinet_mac32 agree (`00`=0, `01`=+1, `10`=−1), TF3 swaps the signs
+(`01`=−1, `10`=+1), and `ternary_mac_16` shifts them (`00`=−1, `01`=0, `10`=+1).
+Wiring any two together without a converter produces sign errors that
+arithmetic self-tests cannot catch, because each is internally consistent.
 
 Keep **RTL written ≠ routed ≠ measured on the board** apart. A bitstream that
 builds is not a measurement.
