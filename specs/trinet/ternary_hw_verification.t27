@@ -1,0 +1,224 @@
+# Trinity TRI-NET SSOT — ternary compute on AX7203 silicon
+# Board of record: specs/boards/ax7203_full.t27 (IDCODE 0x13636093)
+# Verified 2026-08-01. Executable companions:
+#   conformance/gfternary_compute_conformance_ax7203.py
+#   conformance/trinet_mac32_conformance_ax7203.py
+#   formal/trinet_mac32_tb.v
+
+spec TernaryHardwareVerification version 1.0.0
+
+description """
+Record of what the ternary column of the format matrix can support as of
+2026-08-01, and at which tier each claim sits.
+
+Two cells are covered. GFTERNARY MUL (the 2-bit {-phi, 0, +phi} format) was
+synthesised and run on the board: exhaustive over its whole 4x4 code space.
+TRINET MAC32 (a 32-wide balanced-ternary dot product with a CRC-32 receipt) is
+bit-exact against its golden oracle in RTL simulation and has a routed
+bitstream, but its hardware run had not completed when this spec was written.
+
+Those are three different things and are kept apart: RTL written, yosys/nextpnr
+routed, measured on the board. A routed bitstream is not a measurement.
+
+The GFTERNARY cell existed as RTL before this session and had never been
+synthesised — no CI workflow referenced it. Its first hardware run scored 7/16
+and exposed a defect in the conformance host, not in the RTL. See
+finding FRAME_LENGTH_MISMATCH.
+"""
+
+constants {
+  PHI = 1.6180339887498948482045868343656381177203091798
+  CFGMCLK_MHZ 69            // STARTUPE2 configuration oscillator, measured
+  BAUD_DIV 434              // yields ~160000 baud at CFGMCLK
+  UART_BAUD 160000
+  JTAG_TCK_KHZ 100          // AL321 stable speed
+  FLASH_SECONDS 778         // 9,730,795 bytes at 100 kHz, measured 2026-08-01
+}
+
+// ---------------------------------------------------------------------------
+// Cell 1 — GFTERNARY MUL
+// ---------------------------------------------------------------------------
+
+cell gfternary_mul {
+  rtl        "fpga/openxc7-synth/corona_compute_gfternary_mul_ax7203.v"
+  golden     "conformance/gfternary_compute_conformance_ax7203.py"
+  workflow   ".github/workflows/ax7203-gfternary-mul.yml"
+  format     gfternary
+  width_bits 2
+  encoding   { 0b00 zero, 0b01 plus_phi, 0b10 minus_phi, 0b11 reserved_to_plus_phi }
+  datapath   "decode to fp32, gf_mul_param(8,23), quantise by sign threshold"
+}
+
+verification GFTERNARY_MUL_HW {
+  cell         gfternary_mul
+  ci_run       30702513394
+  checked      16
+  matched      16
+  exhaustive   true            // 4 codes x 4 codes is the entire input space
+  status       "[measured on FPGA]"
+  board        ax7203
+  port         "/dev/cu.usbserial-1110"
+  date         2026-08-01
+  note         "scored 7/16 before FRAME_LENGTH_MISMATCH was fixed in the host"
+}
+
+finding FRAME_LENGTH_MISMATCH {
+  severity   HIGH
+  resolved   true
+  where      "conformance/gfternary_compute_conformance_ax7203.py :: hw_exchange"
+  defect     "host emitted AA 55 fmt fmt a b trig; the wrapper parses AA 55 fmt a b trig"
+  effect     "every operand shifted one byte, so the FPGA read a=0 for all jobs"
+  why_hidden """
+    Returning zero is the correct answer for 7 of the 16 input pairs, so the
+    failure pattern looked internally consistent. The golden oracle's own
+    self-test passed throughout because it never exercised the wire encoding.
+  """
+  lesson     "a conformance host is not verified by its self-test; the encode path needs a witness that did not come from the same file"
+  fixed_in   "commit on main, 2026-08-01"
+}
+
+// ---------------------------------------------------------------------------
+// Cell 2 — TRINET MAC32
+// ---------------------------------------------------------------------------
+
+cell trinet_mac32 {
+  rtl        "fpga/vivado/trinet_mac32_ax7203.v"
+  testbench  "formal/trinet_mac32_tb.v"
+  golden     "conformance/trinet_mac32_conformance_ax7203.py"
+  workflow   ".github/workflows/ax7203-trinet-mac32.yml"
+  operation  "y = sum_{i=0..31} w[i]*x[i], w[i],x[i] in {-1,0,+1}"
+  method     "popcount(agreements) - popcount(disagreements)"
+  encoding   { 0b00 zero, 0b01 plus_one, 0b10 minus_one, 0b11 reserved_to_zero }
+  result_range { min -32, max 32 }
+}
+
+synthesis TRINET_MAC32_SYNTH {
+  cell            trinet_mac32
+  ci_run          30702638896
+  tool            "yosys 0.62 via regymm/openxc7"
+  recipe          "synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7"
+  estimated_lcs   429
+  flipflops       { fdce 296, fdpe 125 }
+  dsp48_cells     0
+  bitstream_bytes 9730795
+  bitstream_sha256 "e476fc03c98c8b4c7f67e310e4d22df392f88d578af3e1326b2762df6a2f86a0"
+  status          "[synthesised and routed]"
+}
+
+verification TRINET_MAC32_SIM {
+  cell       trinet_mac32
+  checked    128
+  matched    128
+  status     "[simulated]"
+  executable "formal/trinet_mac32_tb.v"
+  method     "full UART frame path driven at the synthesised baud divisor, not the datapath alone"
+  note       "the frame path is where every RTL defect in this programme has lived"
+}
+
+open_question TRINET_MAC32_HW {
+  do_not_guess true
+  owner        author
+  question     "does trinet_mac32 reproduce its golden oracle on the board"
+  blocked_on   "one flash cycle takes 778 s at the AL321's stable 100 kHz"
+  procedure    "openocd pld load 0, then trinet_mac32_conformance_ax7203.py --port /dev/cu.usbserial-1110 --n 512"
+}
+
+// ---------------------------------------------------------------------------
+// The receipt tag, and where its equality lives
+// ---------------------------------------------------------------------------
+
+rule RECEIPT_TAG {
+  name       "TRI-NET compute receipt tag"
+  formula    "crc32_ieee_reflected(OP | NONCE[4] | W[8] | X[8] | Y | NODE_ID[4])"
+  polynomial 0xEDB88320
+  init       0xFFFFFFFF
+  final_xor  0xFFFFFFFF
+  trust_tier VERIFIED_ARITHMETIC
+}
+
+verification RECEIPT_TAG_TRIPLE {
+  rule       RECEIPT_TAG
+  status     VERIFIED_SW
+  implementations {
+    "fpga/vivado/trinet_mac32_ax7203.v :: crc32_byte  (Verilog LFSR, [simulated])",
+    "conformance/trinet_mac32_conformance_ax7203.py  (Python zlib.crc32)",
+    "src/trinet/protocol.zig :: receiptTag           (Zig std.hash.Crc32)"
+  }
+  anchor_vector { job all_zero, node_id 0x5452494E, tag 0xa8fa2bdf }
+  note "all three produce the anchor tag; CI fails the build if they diverge"
+}
+
+// The tag covers the job INPUTS, not only the answer. That distinction caught a
+// real defect: the testbench read hex fields with $fscanf %h (first pair into
+// the high byte) and transmitted them low byte first, reversing every
+// multi-byte field. The dot product cannot see this — reversing both operands
+// applies the same permutation to w and x and leaves the sum unchanged — so
+// arithmetic alone was not a sufficient witness. The CRC failed 23 of 24
+// vectors immediately, and vector 0 (all zeros) passed, which localised it.
+lemma INPUT_BINDING_DETECTS_PERMUTATION {
+  exact true
+  witnessed_by "formal/trinet_mac32_tb.v, first run 2026-08-01"
+}
+
+// ---------------------------------------------------------------------------
+// What a receipt does not establish
+// ---------------------------------------------------------------------------
+
+finding RECEIPT_IS_NOT_PROOF_OF_HARDWARE {
+  severity MEDIUM
+  resolved false
+  statement """
+    CRC-32 is a checksum any party can compute, and NODE_ID is a synthesis-time
+    constant. A receipt therefore shows that a specific answer was given for a
+    specific job by a party claiming a specific identity. It does not show where
+    the arithmetic happened. Software emulating this cell produces a receipt
+    indistinguishable from the board's.
+  """
+  consequence "settlement must not describe credited work as hardware compute on the strength of a receipt alone"
+}
+
+open_question DEVICE_BOUND_IDENTITY {
+  do_not_guess true
+  owner        author
+  question     "can nextpnr-xilinx / openXC7 instantiate DNA_PORT on xc7a200t, and is the 57-bit device DNA usable as a receipt-binding secret"
+  why_first    "cheap to test, and it settles whether any device-bound identity is available at all"
+  not_assumed  "no claim is made here that device DNA is secret; readback and side channels are unexamined"
+}
+
+// ---------------------------------------------------------------------------
+// Toolchain facts worth not rediscovering
+// ---------------------------------------------------------------------------
+
+board_facts {
+  flash_rate_correction """
+    Flashing 9,730,795 bytes over the AL321 at its stable 100 kHz takes 778 s,
+    measured. Earlier notes recording ~78 s are wrong by an order of magnitude.
+    Budget 13 minutes per flash.
+  """
+  openocd_buffering """
+    openocd's stdout is block-buffered when redirected to a file, so a running
+    flash shows an empty log for its whole duration. An empty log is not a hang.
+  """
+  dsp_guard """
+    Grepping the whole yosys log for the string DSP48 is a false positive: it
+    appears in pass banners. Match the cell-count column instead,
+    grep -E '^ *[0-9]+ +DSP48'.
+  """
+  local_docker "the Docker daemon was not running on the workstation; all synthesis went through CI"
+}
+
+scope_limits {
+  not_covered {
+    "TF3 balanced-ternary decode as specified in issue #234 — a different cell from either recorded here",
+    "any measurement of throughput, energy, or TOPS/W",
+    "any comparison against other ternary accelerators",
+    "hardware execution of trinet_mac32",
+    "more than one physical board"
+  }
+  superiority_claimed false
+  ternary_matrix_position """
+    This records two cells. It does not restate the 83-format matrix totals, and
+    nothing here should be added to those totals without re-reading
+    fpga/CATALOG_MATRIX_83.md and applying its Tier-E evidence standard.
+  """
+}
