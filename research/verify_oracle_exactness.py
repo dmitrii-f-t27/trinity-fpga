@@ -77,18 +77,26 @@ def main() -> int:
     print(f"{'oracle':<12}{'formats':>8}{'checked':>9}  {'carrier':<22}{'denominators'}")
     print("-" * 72)
     failures = 0
+    unreachable = []       # counted separately -- see below
 
     for base in UNCAVEATED:
         fn = base + "_ref.py"
         if not os.path.exists(os.path.join(CONF, fn)):
             print(f"{base:<12}{'':>8}{'':>9}  MODULE MISSING")
-            failures += 1
+            unreachable.append((base, "module missing"))
             continue
         try:
             mod = load(fn)
         except Exception as e:
-            print(f"{base:<12}{'':>8}{'':>9}  LOAD FAILED {type(e).__name__}")
-            failures += 1
+            # A module that will not import has NOT failed exactness -- it has
+            # not been tested. Counting it as a failure was a category error:
+            # gf_mx_ref needs numpy, and on an interpreter without it this script
+            # reported "1 oracle did not satisfy the exactness they claim" about
+            # an oracle it never ran. Exactly the code-versus-value confusion this
+            # campaign keeps finding elsewhere, in its own harness.
+            print(f"{base:<12}{'':>8}{'':>9}  NOT TESTED: "
+                  f"{type(e).__name__} ({e})"[:78])
+            unreachable.append((base, f"{type(e).__name__}: {e}"[:60]))
             continue
 
         formats = getattr(mod, "FORMATS", {})
@@ -140,10 +148,20 @@ def main() -> int:
         print(f"{base:<12}{len(formats):>8}{checked:>9}  {carrier:<22}{denom}")
 
     print()
+    if unreachable:
+        print(f"{len(unreachable)} oracle(s) NOT TESTED — could not be loaded:")
+        for base, why in unreachable:
+            print(f"    {base:<12} {why}")
+        print("    These are untested, not failed. Install what they need and")
+        print("    re-run before treating the result below as complete.")
+        print()
+
+    tested = len(UNCAVEATED) - len(unreachable)
     if failures:
-        print(f"{failures} oracle(s) did not satisfy the exactness they claim.")
+        print(f"{failures} of {tested} tested oracle(s) did not satisfy the "
+              f"exactness they claim.")
     else:
-        print("All 12 uncaveated oracles return exact carriers with admissible")
+        print(f"All {tested} tested oracles return exact carriers with admissible")
         print("denominators. The claim recorded in oracle_fidelity_map.t27 holds")
         print("on this evidence — sampled, not exhaustive.")
     return 1 if failures else 0

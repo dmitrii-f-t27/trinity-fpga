@@ -90,3 +90,27 @@ Each script prints its own scope limits, and several print the reason a result i
 weaker than it looks (`sampled, not exhaustive`; `verifies the identity, not the
 implementation`). Those lines are part of the result — the specs quote them rather
 than the headline number alone, and anyone citing these figures should do the same.
+
+## Two results that depend on the interpreter
+
+`verify_oracle_exactness.py` reports **12** oracles with `numpy` installed and
+**11** without — `gf_mx_ref.py` imports numpy, and on an interpreter lacking it the
+oracle is *not tested* rather than failed. The script now says so explicitly and
+still exits 0; an earlier version counted the load failure as an exactness failure
+and printed "1 oracle did not satisfy the exactness they claim" about an oracle it
+had never run.
+
+The dossier's "12 oracles verified exact, 19,106 codes" figure is therefore correct
+**with numpy present**. Without it the count is 11.
+
+## Reading crossval_p3109.py's exit code
+
+It exits **0** when the finite codes agree *or* differ by a single uniform ratio,
+and **1** only when the ratios scatter. That is deliberate: P3109 uses
+`bias = 2^(e-1)` where IEEE 754 and OCP use `2^(e-1) - 1`, so every finite value
+differs by exactly a factor of two — measured across 258,524 codes at two widths,
+one distinct ratio. A constant offset is two correct decoders reading two
+conventions; a *scattered* set of ratios would be a defect.
+
+An earlier version exited 1 on any difference, which contradicted the script's own
+printed conclusion.
