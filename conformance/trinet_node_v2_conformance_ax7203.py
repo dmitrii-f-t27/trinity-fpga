@@ -20,9 +20,14 @@ Author: Dmitrii Vasilev (@gHashTag)
 """
 
 import argparse
+import os
 import sys
 
-from trinet_mac32_conformance_ax7203 import (
+# Importable from anywhere, not only from inside conformance/ — a host that
+# only runs from one working directory is a host people run the wrong way.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from trinet_mac32_conformance_ax7203 import (  # noqa: E402
     OP_MAC32, MAGIC_REQ, MAGIC_RESP, STATUS_OK, DEFAULT_NODE_ID,
     generate_vectors, golden_dot, golden_receipt_tag_keyed, build_request,
 )
