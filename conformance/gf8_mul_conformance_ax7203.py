@@ -15,7 +15,7 @@ from gf_ref import FORMATS, gf_mul
 
 FMT = FORMATS["gf8"]            # exp_bits=3, mant_bits=4, width=8, no Inf
 WIDTH = FMT.width              # 8
-FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
+FRAME = bytes([0xAA, 0x55])  # magic only — the gf compute wrappers have no fmt byte
 
 # §3.5-style corner codes (raw, 8-bit): +0, -0, smallest/largest denormal, 1.0, max-finite, large normals.
 CORNERS = [0x00, 0x80, 0x01, 0x0F, 0x70, 0x71, 0x7F, 0x38]

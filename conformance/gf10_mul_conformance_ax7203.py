@@ -10,7 +10,7 @@ GFMT = FORMATS["gf10"]; ONE = GFMT.bias << GFMT.mant_bits; T = 1 << 10
 def golden_mul(a, b):
     return gf_mul(GFMT, a, b)
 
-FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
+FRAME = bytes([0xAA, 0x55])  # magic only — the gf compute wrappers have no fmt byte
 
 def hw_exchange(ser, a, b):
     pkt = FRAME + bytes([a & 0xFF, (a >> 8) & 0xFF, b & 0xFF, (b >> 8) & 0xFF, 0x00])

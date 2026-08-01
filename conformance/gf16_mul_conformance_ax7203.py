@@ -15,7 +15,7 @@ from gf_ref import FORMATS, gf_mul
 
 FMT = FORMATS["gf16"]             # exp_bits=6, mant_bits=9, bias=31, width=16, has_inf=True
 WIDTH = FMT.width                 # 16
-FRAME = bytes([0xAA, 0x55, 0x00])  # AA 55 fmt
+FRAME = bytes([0xAA, 0x55])  # magic only — the gf compute wrappers have no fmt byte
 
 # §3.5-style corner codes (raw): zero, denormal, normal, 1.0/-1.0, max-normal, Inf, NaN.
 # Ordering matters as much as membership: the pairing below is `for b in cov[:8]`,
