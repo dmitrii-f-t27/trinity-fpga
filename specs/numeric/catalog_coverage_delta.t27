@@ -480,3 +480,96 @@ Re-fetching through gh api gave 28 bibitems.
 """
   lesson "when a fetch yields a surprising absence, fetch something you KNOW exists before believing it"
 }
+
+// ---- Pass 74: all three options ----------------------------------------------
+
+result A_WHICH_TREE_PRODUCED_V3 {
+  question "is goldenfloat-preprint/gf_preprint_v19.tex the source of arXiv v3?"
+  answer "No, and it is provable from the reference list."
+
+  evidence """
+Exactly five entries appear in the published v3 and nowhere in v19.tex:
+
+  [28] Sarnoff, "Novel aspects of IEEE SA P3109 arithmetic formats", arXiv:2606.04028
+  [29] AMD Research, "Pretraining LLMs with MXFP4 on native FP4 hardware"
+  [30] NVIDIA Developer Forums, dated 2026-06-17
+  [31] D. Vasilev, "An 83-format numeric catalog..."   <- the companion paper
+  [32] "MixFP4: Enhancing NVFP4 with adaptive FP4/INT4 block representations"
+
+Two of them postdate the repository's last commit (2026-06-07): the NVIDIA forum
+post is dated 2026-06-17, and Paper B appeared 2026-06-08.
+"""
+
+  the_consequence_that_matters """
+Editing v19.tex and submitting it as a replacement would delete Paper A's citation
+of Paper B.
+
+The correction package already flags a companion-paper self-citation defect in the
+other direction. Preparing the replacement from the wrong tree would create the
+same class of defect while trying to fix it.
+"""
+  status VERIFIED_SW
+}
+
+finding B_PAPER_A_HAS_A_REAL_MISATTRIBUTION {
+  name     "ref [11]'s DOI resolves to a different work, already cited as [10]"
+  severity HIGH
+
+  cited """
+[11] L. Hunhold, "Hardware evaluation of takum arithmetic," ARITH 2025
+     (IEEE 32nd Symposium on Computer Arithmetic). DOI 10.1109/ARITH64983.2025.00019
+"""
+
+  what_the_doi_resolves_to """
+Crossref, fetched directly:
+
+  DOI     10.1109/arith64983.2025.00019
+  title   "Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse Linear Solvers"
+  authors Hunhold; Quinlan
+"""
+
+  three_ways_wrong """
+Wrong title, wrong author list (one name cited, two in the record), wrong subject --
+sparse linear solvers rather than hardware evaluation.
+
+And it is a DUPLICATE: ref [10] already cites that same work as arXiv:2412.20268.
+So the bibliography contains the linear-solvers paper twice, once under a title
+belonging to a different one, and the ARITH hardware-evaluation paper the author
+meant to cite is absent.
+"""
+
+  significance """
+Pass 63 concluded Paper A had no misattributions -- 23 arXiv ids checked, 17 titles
+agreeing, 6 paraphrases, 0 pointing at a different work. That conclusion covered
+only the entries carrying an arXiv id. The first DOI checked broke it.
+
+"No misattributions" was true of the 23 entries examined and was reported as true
+of the bibliography. It was not.
+"""
+  resolved false
+  recorded_for "SUBMISSION_CHECKLIST.md item 3"
+}
+
+measurement C_THE_SEVEN_UNPARSEABLE_FILES {
+  detail """
+Counted by every sweep since pass 57 and never opened. All seven are genuinely
+broken Python, not misnamed files:
+
+  compare_gamma_candidates.py         unmatched ')' -- one extra paren
+  overnight_research_agent.py         prose sitting in code at line 699
+  pslq_ramanujan.py                   invalid syntax, line 73
+  pysr_trinity_blind_test_v2.py       unterminated f-string, line 28
+  ultra_engine_v120_hyperbolic.py     invalid syntax, line 141
+  ultra_engine_v69_lee_control_clean.py  malformed conditional expression
+  verify_all_152.py                   COMMITTED MERGE CONFLICT MARKERS at line 4
+"""
+
+  severity_for_the_papers "LOW -- all in scripts/, none referenced by any workflow"
+  worth_reporting "verify_all_152.py carries <<<<<<< Updated upstream in the repository"
+
+  harness_note """
+The classifier's "LOOKS LIKE: not Python at all" fired on compare_gamma_candidates,
+which is Python with a typo. The label was a guess presented with more confidence
+than it had earned; the syntax error beneath it is the real information.
+"""
+}
