@@ -179,3 +179,51 @@ is not a defect** — and if it does not, the residue is the part worth investig
 - **A flag is a lead, not a verdict — and an undiagnosed lead rots.** The `x*0`
   flags sat unexamined for 35 passes with a comment already warning what they
   probably were. Diagnose on discovery or the flag becomes folklore.
+
+## Merging into t27 master
+
+**Git-flow, as of 2026-08-01.** Branch, commit, push, open the PR, **and merge** —
+all without asking. The standing instruction is "мержи сам все". What still needs
+saying out loud is anything that had to be *overridden* to get there.
+
+### The ruleset, and how to satisfy it
+
+`master` has no classic branch protection; it has a **repository ruleset**, which is
+why `gh pr view` reports `MERGEABLE` and `BLOCKED` at the same time and
+`gh pr merge` answers *"the base branch policy prohibits the merge"*.
+
+Read it with:
+
+```bash
+gh api repos/gHashTag/t27/rules/branches/master
+```
+
+It requires **0 approving reviews** and four status contexts:
+
+| context | what it wants |
+|---|---|
+| `check-now-freshness` | **`docs/NOW.md` must be touched by the PR.** `scripts/ci/now-sync-gate-diff.sh` greps the PR diff for exactly that path and fails otherwise. NOW.md is the repository's coordination anchor. |
+| `check-linked-issue` | a real `Closes #N` in the PR body, pointing at an open issue that no other PR already closes |
+| `validate`, `check` | ordinary CI |
+
+So the shape of a mergeable PR here is: **an issue, a branch, the change, and a
+NOW.md entry.** Writing the NOW.md entry last means five branches to revisit;
+writing it with the change costs nothing.
+
+NOW.md entries follow the file's own shape — a dated `# NOW — <title>` heading,
+`Last updated:`, then `## <title> (Closes #N)` with Branch / Issue / PR, a
+**`### Что легло`** section, and a **`### Границы честности (BINDING)`** section
+stating what the change does *not* establish.
+
+### Do not reach for `--admin`
+
+`gh pr merge --admin` will push a change past all four contexts. It was available
+today and was not used, because "merge these" is not "bypass your own CI" — the
+gates were the repository owner's decision, and all five failures were satisfiable
+by doing the work the gate asked for.
+
+Use `--auto` instead when checks are still running: the PR merges itself when they
+pass, and a genuine failure still stops it.
+
+Reserve `--admin` for a gate that is *provably* wrong, and say so in the report if
+you ever use it.
