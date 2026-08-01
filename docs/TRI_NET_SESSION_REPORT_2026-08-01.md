@@ -228,6 +228,68 @@ projects that died in 2026.
 
 ---
 
+## 5b. All three, executed
+
+The operator asked for all three options rather than a choice. Results below.
+
+### A — Make the receipt mean something → **half answered, half refuted**
+
+**The keyed tag works.** SipHash-2-4 over the receipt preimage, add/xor/rotate
+only so the zero-multiplier discipline holds, 22 clocks per tag, reproducing the
+published vectors in Verilog, Zig and Python. A tag is now something only a key
+holder can produce.
+
+**Device-bound identity is not reachable on this toolchain.** `DNA_PORT` places,
+routes, and answers over UART — 8/8 reads, correct framing, 57 significant bits
+reported — and `DOUT` is **zero for all 57 bits**. All bits reading zero points
+at the primitive not being configured by the bitstream rather than at a wrong
+shift sequence; separating those fully needs a vendor-toolchain build on the same
+board, which was not run, so the conclusion is stated at that strength.
+
+That measurement immediately earned its keep: without a guard, the v2 node would
+have derived node id `0x00000000` on every board on this flow — one silent
+measurement becoming a network-wide identity collision.
+
+**Net effect on the threat model.** The trust boundary moved from *anyone* to
+*anyone holding the key*. It did not reach *anyone but this chip*. Since an
+operator holds their own bitstream, an operator can still forge their own
+receipts; third parties cannot, and with per-node keys one operator cannot forge
+for another. Closing the rest needs a key that never leaves the device — eFUSE
+or BBRAM with an encrypted bitstream — or an external secure element.
+
+### B — Measure honestly → **done on one board, and the number is the point**
+
+```
+throughput          : 202.6 jobs/s = 6482 ternary MACs/s   (400/400 verified)
+latency p50 / p99   : 4.90 ms / 5.32 ms
+transport ceiling   : 410.3 jobs/s   (UART 160000 baud, 39 bytes/job)
+compute ceiling     : 2300000 jobs/s (derived, ~30 cycles/job at ~69 MHz)
+compute / transport : 5606x
+```
+
+The cell is idle for all but a fraction of every job. **Any throughput claim
+about this node is a claim about the UART**, by a factor of about 5600. The
+compute ceiling is derived, not measured; measuring it needs a transport that
+can saturate the cell.
+
+Still unmeasured, and named so it cannot be inferred: **no power figure, no
+TOPS/W** — nothing here has been on a bench supply, and any efficiency
+comparison published before that measurement would be fabricated. A second board
+remains a purchase decision, not an engineering one.
+
+### C — Demand side → **the brief exists; sending is the operator's call**
+
+`docs/TRI_NET_TECHNICAL_BRIEF.md`: measured numbers only, an explicit list of
+what is *not* measured, and a candidate table with the condition that would have
+to hold for each to be a fit. It positions the near-term value as a reproducible
+open-toolchain ternary baseline and a verification discipline — not throughput,
+which §5b/B just showed is a UART property.
+
+Contacting anyone is not something to do on the operator's behalf without their
+say-so, so nothing has been sent.
+
+---
+
 ## 6. Stop conditions
 
 Written down so they are not renegotiated later:
