@@ -64,9 +64,18 @@ Block for MXFP Precisions,'' \texttt{arXiv:2607.13898}, 2026.
 ### 3.2 IEEE 754 — the base standard, currently uncited
 
 A paper proposing a floating-point family, positioned against posit, takum,
-OCP-MX and P3109, carries 56 references and none is the base standard (§7.2).
-Paper B already cites it as its ref [15]; mirroring that form keeps the two
-consistent.
+OCP-MX and P3109, cites neither the base standard nor the tool its own experiment
+depends on.
+
+Verified against the **published** text on 2026-08-01: arXiv:2606.05017v3 carries
+**33** references, and a search of all of them for "754", "TestFloat" and
+"SoftFloat" returns nothing. Paper B already cites IEEE 754 as its ref [15];
+mirroring that form keeps the two consistent.
+
+> The count in an earlier draft of this section was **56**, taken from the local
+> `main_ru.tex`. The published v3 has 33. The two artefacts differ, and every
+> line-number reference below points at the manuscript, not at the preprint —
+> check each against whichever you are editing.
 
 ```latex
 \bibitem{ieee754_2019} IEEE Std 754-2019, ``IEEE Standard for Floating-Point

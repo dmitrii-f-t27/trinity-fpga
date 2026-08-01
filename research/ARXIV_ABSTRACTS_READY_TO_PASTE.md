@@ -116,12 +116,19 @@ cosmetic and changing it is a judgement call.
 Five items in these abstracts were examined and **left alone on purpose**. None is
 endorsed as correct; each is unresolved for a stated reason.
 
+> **Re-read 2026-08-01 (pass 72), and one row had gone false.** The P3109 row rested
+> on a repository "not existing" that does, and on a two-document-series explanation
+> that was an assumption rather than a finding. It is marked and corrected below
+> rather than quietly rewritten, because this table's whole purpose is telling an
+> author what *not* to touch — a wrong entry here causes a wrong non-action, which
+> leaves no trace.
+
 | item | where | why untouched |
 |---|---|---|
 | **`(9/9)` reproduction count** | Paper A, ¶2 | Off in **both** directions (§10.2): three pre-rule widths match but are unclaimed, and two claimed widths sit in the rule-derived block where matching is circular. The true count may be 10/10 or 7/7. **Needs the author** — `open_question WIDTH_PROVENANCE`. Do not guess. |
 | **`XC7A35T`** | Paper A, ¶1 | Current hardware work targets XC7A200T, but both parts appear in the repository and XC7A35T may well be right for that original measurement (§1.2). Author confirms; not asserted as an error. |
 | **`13 families`** | Paper B, ¶2 | Never verified. A grouping by oracle module gives 15, but module layout is an implementation detail, not the catalog's taxonomy, and a mismatch would not be a defect. `open_question FAMILY_TAXONOMY`. |
-| **`P3109 v3.2.0`** | Paper B, ¶2 | The draft version is **not publicly verifiable** (§6.2) — no `P3109/Public` repo, no release feed. The apparent conflict with Paper A's `v0.9.1` is **not an error**: they cite two different document series (§8.6). Editing a version string on the strength of a note is the failure mode this whole package removes. |
+| **`P3109 v3.2.0`** | Paper B, ¶2 | ⚠️ **This row was wrong and is corrected as of pass 69.** It previously said there is "no `P3109/Public` repo, no release feed" and that the conflict with Paper A's `v0.9.1` is "not an error — they cite two different document series". `github.com/P3109/Public` **does exist** (updated 2026-07-29; 504 value tables), and nothing supports the two-series explanation — it was an assumption written as a resolution. What is true: the *Interim Report* carries **no version number anywhere in its text**, only "unapproved IEEE Standards Draft, subject to change", so **neither** version string can be checked, and the companion papers do disagree. **Cite the Interim Report by retrieval date.** |
 | **`ml_dtypes 0.5.4`** | Paper B, ¶3 | Checked against PyPI: **still the latest**. Changing it would be churn and would break reproducibility of the reported cross-validation (§2.3). |
 
 ## 4. What this does not fix

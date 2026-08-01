@@ -337,3 +337,69 @@ costs minutes; the contradiction costs the reader's trust in everything else on 
 page.
 """
 }
+
+// ---- Pass 72: the ready-to-paste documents re-read ---------------------------
+
+finding A_DO_NOT_TOUCH_ROW_HAD_GONE_FALSE {
+  name     "the abstracts document told the author not to fix P3109, on evidence that was wrong"
+  severity HIGH
+
+  what_it_said """
+ARXIV_ABSTRACTS_READY_TO_PASTE.md section 3, the "Deliberately NOT changed" table:
+
+  "P3109 v3.2.0 -- The draft version is not publicly verifiable -- no P3109/Public
+   repo, no release feed. The apparent conflict with Paper A's v0.9.1 is NOT an
+   error: they cite two different document series."
+"""
+
+  what_is_true """
+github.com/P3109/Public exists, was updated 2026-07-29, and holds 504 value tables
+(pass 63). And nothing supports the two-document-series explanation -- it was an
+assumption written as a resolution. Pass 69 found the Interim Report carries no
+version number at all, so NEITHER string can be checked and the companion papers do
+disagree.
+"""
+
+  why_this_row_is_the_worst_place_for_it """
+The table's whole purpose is telling an author what NOT to touch. A wrong entry
+there causes a wrong NON-action, which leaves no trace: the author skips the item,
+nothing visibly breaks, and the defect ships.
+
+Every other kind of error in this package produces an edit somebody can review.
+This kind produces silence.
+"""
+  fix "marked and corrected in place, with the superseded text quoted, rather than rewritten"
+  resolved true
+}
+
+finding BODY_FIXES_TARGET_A_DIFFERENT_ARTEFACT {
+  name     "the body-fix list is written against the local manuscript, not the published preprint"
+  severity MEDIUM
+
+  measurement """
+ARXIV_BODY_FIXES_READY_TO_PASTE.md says Paper A "carries 56 references". The
+published arXiv:2606.05017v3 carries 33, counted from its HTML rendering.
+
+The 56 is the local main_ru.tex. Both numbers are true of different documents, and
+every line-number reference in that file points at the manuscript.
+"""
+
+  the_claims_themselves_hold """
+Re-checked against the PUBLISHED v3: searching all 33 references for "754",
+"TestFloat" and "SoftFloat" returns nothing. IEEE 754 and TestFloat really are
+uncited in the preprint, not only in the manuscript.
+"""
+  fix "the section now states which artefact each number describes and warns that line numbers are manuscript-relative"
+  resolved true
+}
+
+practice A_NEGATIVE_INSTRUCTION_NEEDS_THE_SAME_EVIDENCE_AS_A_POSITIVE_ONE {
+  detail """
+This campaign has been careful about what it tells an author to CHANGE, and much
+less careful about what it tells them to LEAVE ALONE. The P3109 row sat wrong for
+nine passes while the corresponding "do this" items were revised repeatedly.
+
+An instruction not to act is still an instruction. It should carry the same
+evidence, and be re-checked on the same schedule, as an instruction to act.
+"""
+}
