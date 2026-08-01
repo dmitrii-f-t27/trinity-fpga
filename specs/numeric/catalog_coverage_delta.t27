@@ -1315,3 +1315,70 @@ no checker.
 """
   now "24 bibitems, 0 problems, three documents"
 }
+
+// ---- Pass 86: the references nobody checked because they agreed --------------
+
+measurement THE_AGREED_POOL_CHECKED {
+  premise """
+Pass 85 examined the 6 works the three documents cite DIFFERENTLY, and left the 17
+they cite identically alone. Agreement was treated as a reason not to look.
+
+For bibliographies maintained by copying that is backwards: consistent copying
+propagates an error consistently, so a work cited the same way everywhere is the one
+nobody notices is wrong.
+"""
+
+  result { agreed_works 17  correct 13  wrong 4 }
+
+  the_four """
+Every one is wrong in BOTH documents that carry it, and all four were already in the
+defect list:
+
+  2404.18603  A[7], RU[7]   "Takum arithmetic"
+                            -> "Beating Posits at Their Own Game: Takum Arithmetic"
+  2408.10594  A[9], RU[9]   "A VHDL codec for takum arithmetic"
+                            -> "Design and Implementation of a Takum Arithmetic
+                                Hardware Codec"
+  2402.17764  A[22], RU[26] "The era of 1-bit LLMs: BitNet b1.58"
+                            -> "...All Large Language Models are in 1.58 Bits"
+  2511.01921  A[26], RU[30] "Fibbinary: quantization of neural networks using
+                             Fibonacci representations"
+                            -> "Fibbinary-Based Compression and Quantization for
+                                Efficient Neural Radio Receivers"
+"""
+
+  what_this_bounds """
+NO NEW defects. The agreed pool is 13/17 correct, and the four exceptions were
+already known.
+
+A negative result worth having: it bounds the problem. The bibliography defects are
+concentrated in the entries the documents disagree about, not spread through the
+ones they share.
+"""
+  status VERIFIED_SW
+}
+
+correction I_ALMOST_REPORTED_A_BIASED_SAMPLE_AS_A_RATE {
+  what_happened """
+arXiv was throttling, so the first attempt used a local cache -- the real titles
+already fetched for the generated .tex. Four of the 17 agreed works were in it, and
+all four were wrong. That reads as a 100% error rate in the agreed pool.
+
+It is nothing of the kind. Those four were IN the cache precisely because they were
+already identified as defective and their real titles fetched for the correction
+file. The sample was selected by the property being measured.
+"""
+
+  the_full_check """
+13 of 17 correct. The real rate is 24%, not 100%.
+"""
+
+  why_this_is_worth_recording """
+A cache assembled for one purpose is not a sample for another. The bias was
+invisible in the numbers -- four out of four looks like a strong signal -- and
+visible only in how the cache came to exist.
+
+Caught before it was written down. The guard that produced the delay is the same one
+that made the correct answer available: refusing a partial result forced the retry.
+"""
+}
