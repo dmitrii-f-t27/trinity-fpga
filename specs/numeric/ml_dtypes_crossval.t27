@@ -404,3 +404,70 @@ turns the bias law from a statement about half the family into one about all of 
 """
   note "recorded in list_tables' docstring so the next reader does not repeat it"
 }
+
+// ---- Pass 69: the law, now quoted from the working group's own normative text -
+
+result BIAS_LAW_IS_NORMATIVE_NOT_INFERRED {
+  source "IEEE P3109 Interim Report.pdf, github.com/P3109/Public, fetched 2026-08-01"
+
+  verbatim_section_3_1 """
+"The exponent bias is derived from the format-defining parameters.
+ For signed formats, the exponent bias shall be B = 2^(K-P-1).
+ For unsigned formats, the exponent bias shall be B = 2^(K-P)."
+"""
+
+  verbatim_annex_A5 """
+"A.5 Exponent bias -- The exponent bias is derived from the format-defining
+ parameters using the formula in 3.1. This differs from IEEE-754, where the
+ exponent bias is defined in terms of e_max, the exponent of the largest finite
+ value..."
+"""
+
+  why_this_closes_it """
+The passes 64-68 result was measured: a uniform ratio of 2 over 258,524 codes, and
+the bias read off 252 configurations. Measurement can only ever say what the tables
+do.
+
+This is the working group SPECIFYING it -- "shall be" -- and separately
+acknowledging the divergence from IEEE-754 in its own rationale annex. Four
+independent supports now agree:
+
+  1. normative clause 3.1
+  2. rationale annex A.5, which names the divergence
+  3. 252 of 252 configurations read from the published tables
+  4. 258,524 finite codes compared against four in-tree packs
+
+So the cross-walk item in the checklist rests on a citable specification rather
+than on my arithmetic.
+"""
+  status VERIFIED_SW
+}
+
+finding NO_VERSION_NUMBER_EXISTS_TO_CITE {
+  name     "the Interim Report carries no version anywhere in its text"
+  severity LOW
+
+  detail """
+Searched the decompressed text for "version" and "Draft N" patterns: nothing. The
+document identifies itself only as an "unapproved IEEE Standards Draft, subject to
+change" with a 2026 IEEE copyright.
+
+So neither Paper B's "v3.2.0" nor Paper A's "working draft v0.9.1, 2025" can be
+checked against the published artefact, and the companion papers disagree with each
+other.
+"""
+  cheapest_fix "cite the Interim Report by retrieval date rather than by version"
+  resolved false
+}
+
+note HOW_THE_PDF_WAS_READ {
+  detail """
+poppler is not installed and installing it would change the user's machine to read
+one file. PDF content streams are FlateDecode, so the text was extracted with
+stdlib zlib and a regex over the text-showing operators.
+
+Crude -- it discards layout entirely -- but sufficient to locate a normative clause
+and quote it, which is all that was needed. Recorded because the quotes above should
+be re-checked against a properly rendered copy before they appear in a paper.
+"""
+}
