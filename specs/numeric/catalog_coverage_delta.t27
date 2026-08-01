@@ -2704,3 +2704,90 @@ from the outside. The papers' verified core holds up under every probe; what doe
 hold up is the unverified surround, and no claim was ever made about it.
 """
 }
+
+// ---- Pass 103: the toolchain said so, and the pipeline recorded a pass ---------
+
+correction CI_DID_BUILD_THESE_CELLS_AND_PASSED_THEM {
+  name     "my pass-101 statement was true of the tree and wrong about the history"
+  severity MEDIUM
+
+  what_i_wrote """
+"0 CI workflows referencing them by name" -- offered as evidence that nothing tested
+these cells.
+"""
+  what_is_true """
+True of the tree as it stands, and misleading. The workflows existed: commit
+1dbf2224f (2026-07-12, "Track A+B+C -- DIV operation (16 formats)") added 16 compute
+wrappers together with 16 workflows named ax7203-corona-compute-<fmt>-div.yml. They
+RAN, twice, on 2026-07-12 and 2026-07-13, and both runs report success. They were
+removed later in 230300bd9, a bulk "3286 CI workflow cleanup" -- not because anything
+was found wrong with them.
+
+My grep looked for corona_compute_gfN_div with underscores; the workflow files use
+hyphens. An absence proven by the wrong query, which is a mistake this campaign has
+made before and recorded before.
+"""
+  and_the_truth_is_stronger """
+"Never tested" would have been a weak claim. "Tested, passed, and the test could not
+have caught it" is the finding.
+"""
+  resolved true
+}
+
+result YOSYS_NAMES_THE_DEFECT_AND_EXITS_ZERO {
+  reproduced_locally """
+yosys 'read_verilog gf_adder_param.v gf_mul_param.v gf_div_param.v
+corona_compute_gf16_div_ax7203.v; synth_xilinx -abc9 -nocarry -arch xc7' -- the same
+command the CI workflow ran:
+
+  :53: Warning: Identifier `\fmt_a_a' is implicitly declared.
+  :53: Warning: Range select out of bounds on signal `\fmt_a_a': Setting result bit
+       to undef.
+  :54: Warning: Range select [14:9] out of bounds on signal `\fmt_a_a': Setting all
+       6 result bits to undef.
+  :55: Warning: Range select [8:0] out of bounds on signal `\fmt_a_a': Setting all
+       9 result bits to undef.
+  ... and four more for fmt_b_b
+
+  yosys exit code: 0
+"""
+  measured_across_a_sample """
+research/synth_warning_gate.py, 20 files spread across the flagged set:
+
+  files with a disconnected-datapath diagnostic   20
+  files clean                                      0
+  of those, yosys still exited 0                  20
+
+FMA cells carry a third operand and report 12 diagnostics rather than 8. The static
+analysis of pass 102 is confirmed by the tool itself.
+"""
+  status VERIFIED_SW
+}
+
+conclusion A_GREEN_SYNTHESIS_RUN_IS_NOT_EVIDENCE_OF_ANYTHING_COMPUTING {
+  precise """
+The toolchain detected the defect, named the net, said every operand bit was undef,
+and returned success. The CI job gated on the exit code, so GitHub recorded a pass --
+run 29225131789, job synth, conclusion success, on a design whose operands never
+arrive.
+
+Nothing here is yosys behaving oddly. Warnings are warnings and an exit code is an
+exit code. The gap is between what the tool reported and what the pipeline read.
+"""
+  same_shape_as_pass_98 """
+Pass 98: a bit-exact hardware result bounds the vectors, not the cell.
+Pass 103: a successful synthesis bounds the exit code, not the design.
+
+Both are cases of evidence being weaker than the sentence built on it, and both are
+worth a paper's saying out loud, because both are easy to state and easy to check.
+"""
+}
+
+fix GATE_ON_THE_DIAGNOSTICS_NOT_THE_EXIT_CODE {
+  detail """
+research/synth_warning_gate.py fails on the two diagnostic classes that mean a
+disconnected datapath -- an implicitly declared identifier, and a part-select out of
+bounds resolving to undef -- regardless of what yosys returns.
+"""
+  status IMPLEMENTED
+}
