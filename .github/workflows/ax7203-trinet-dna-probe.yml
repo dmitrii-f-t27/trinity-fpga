@@ -6,7 +6,7 @@ on:
     paths:
       - 'fpga/vivado/trinet_dna_probe_ax7203.v'
       - 'formal/trinet_dna_probe_tb.v'
-      - - '.github/workflows/ax7203-trinet-dna-probe.yml'
+      - '.github/workflows/ax7203-trinet-dna-probe.yml'
 jobs:
   golden:
     runs-on: ubuntu-latest
