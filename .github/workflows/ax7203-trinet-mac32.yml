@@ -47,7 +47,14 @@ jobs:
             synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7 -top trinet_mac32_ax7203;
             setundef -zero -params; write_json build/trinet_mac32/trinet_mac32_ax7203.json" 2>&1 | tee /tmp/yosys.log
           grep -E "Estimated|ERROR" /tmp/yosys.log
-          grep -q "DSP48" /tmp/yosys.log && { echo "::error::DSP inferred — the zero-multiplier discipline is broken"; exit 1; } || true
+          # Zero-multiplier discipline: match the cell-count column of the stat
+          # table, not any mention of DSP48 in pass banners or option echoes.
+          if grep -qE '^ *[0-9]+ +DSP48' /tmp/yosys.log; then
+            echo "::error::DSP48 cells inferred — the zero-multiplier discipline is broken"
+            grep -E '^ *[0-9]+ +DSP48' /tmp/yosys.log
+            exit 1
+          fi
+          echo "zero-multiplier discipline: no DSP48 cells inferred"
       - uses: actions/cache@v4
         id: chipdb
         with:
