@@ -310,3 +310,59 @@ factor of two on every value, at every width tested.
   cheapest_fix "\"maps each pack to the standards-track configured format of the same layout\""
   resolved false
 }
+
+// ---- Pass 67: the bias law, checked across the whole P3109 family -----------
+
+measurement BIAS_LAW_ACROSS_119_CONFIGURATIONS {
+  method """
+The bias is recoverable from ONE row -- the smallest positive subnormal:
+
+    value(0x1) = 2^(2 - bias - P)   =>   bias = 2 - P - log2(value)
+
+so an HTTP range request for the first few hundred bytes of each table settles it
+without downloading 154 MB. Verified first against the four configurations already
+measured against the in-tree oracles in passes 64-65.
+"""
+
+  signed_tables_in_tree 238
+  configurations_read 119
+  follow_bias_2_pow_e_minus_1 119
+  differ 0
+  unreadable 0
+
+  conclusion """
+P3109 uses bias = 2^(e-1) at every configuration in its signed family, K = 8..23,
+against IEEE 754's 2^(e-1) - 1.
+
+The four-point result generalises: EVERY P3109 binaryKpP value is exactly twice its
+same-layout IEEE/OCP counterpart. This is a statement about the family, not about
+the formats that happened to be checked.
+"""
+  status VERIFIED_SW
+}
+
+// ---- Two harness errors, both caught by refusing to accept a gap -------------
+correction UNREADABLE_COUNTS_ARE_NOT_RESULTS {
+  first_run """
+238 tables, 0 configurations read, 238 "unreadable". The base URL already contained
+"Value%20Tables/Hexadecimal/" and the tree API returns the full path, so every
+request asked for .../Value%20Tables/Hexadecimal/Value%20Tables/... A typo in one
+string, presented as a property of the data.
+"""
+
+  second_run """
+27 read, 184 still unreadable. The codepoint was matched as a STRING against "0x1"
+and "0x01", but wider formats zero-pad -- K16 writes 0x0001 -- so 184 of 211
+configurations were skipped and counted as bad data. Comparing the codepoint by
+VALUE instead reads all 119.
+"""
+
+  the_discipline_that_caught_both """
+Neither was found by inspection. Both were found by refusing to report a result
+that carried a large "unreadable" count, and asking what the gap was made of.
+
+A run that answers the question for 27 of 211 cases and calls the rest unreadable
+has not answered the question. The number that matters in a partial result is the
+part that is missing.
+"""
+}
