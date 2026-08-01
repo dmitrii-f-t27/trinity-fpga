@@ -93,9 +93,14 @@ module trinet_node_v2_ax7203 #(
                     default: ;
                 endcase
             end
-            // Until the shift completes the id would be zero, which must never
-            // reach a receipt; hold the fallback until it is ready.
-            assign node_id = dna_ready ? dna_sr[31:0] : FALLBACK_NODE_ID;
+            // Measured on an AX7203 through openXC7 on 2026-08-01: the
+            // primitive places and routes, the read sequence completes, and
+            // DOUT is zero for all 57 bits. So an all-zero DNA is a real
+            // outcome on this flow, not a transient, and it must never become
+            // a node id — every board would claim the same one. Fall back
+            // whenever the DNA is unavailable OR zero.
+            assign node_id = (dna_ready && dna_sr[31:0] != 32'd0)
+                           ? dna_sr[31:0] : FALLBACK_NODE_ID;
         end else begin : gen_param_id
             assign node_id = FALLBACK_NODE_ID;
         end
