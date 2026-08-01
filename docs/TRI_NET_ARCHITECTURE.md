@@ -24,6 +24,7 @@ distance between them is the entire risk in a project like this.
 | GF8 ADD re-verified after the frame fix | **measured on hardware** | 4096/4096 bit-exact, CI run `30704172264` |
 | Three *physical* nodes exchanging work | **not done** | one board is attached; see §7 |
 | A trained ternary code model | **does not exist here** | see §6 |
+| A receipt can only be produced by a key holder | **measured on hardware** | `trinet_node_v2` 256/256 with the key, every job rejected without it |
 | A receipt proves work ran on specific silicon | **false, and not claimed** | see §5 |
 
 Before this session the ternary column of the format matrix had no compute

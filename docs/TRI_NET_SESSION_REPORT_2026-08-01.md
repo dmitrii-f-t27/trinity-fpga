@@ -234,10 +234,13 @@ The operator asked for all three options rather than a choice. Results below.
 
 ### A — Make the receipt mean something → **half answered, half refuted**
 
-**The keyed tag works.** SipHash-2-4 over the receipt preimage, add/xor/rotate
-only so the zero-multiplier discipline holds, 22 clocks per tag, reproducing the
-published vectors in Verilog, Zig and Python. A tag is now something only a key
-holder can produce.
+**The keyed tag works, and it is on silicon.** SipHash-2-4 over the receipt
+preimage, add/xor/rotate only so the zero-multiplier discipline holds, 22 clocks
+per tag, reproducing the published vectors in Verilog, Zig and Python.
+`trinet_node_v2` flashed and measured: **256/256 keyed receipts verified**, 1336
+LCs, 0 DSP48. With a wrong key, **every** job is rejected — that second run is
+the one that matters, because a tag verifying regardless of the key would mean
+the key never reached the receipt.
 
 **Device-bound identity is not reachable on this toolchain.** `DNA_PORT` places,
 routes, and answers over UART — 8/8 reads, correct framing, 57 significant bits
@@ -246,9 +249,11 @@ at the primitive not being configured by the bitstream rather than at a wrong
 shift sequence; separating those fully needs a vendor-toolchain build on the same
 board, which was not run, so the conclusion is stated at that strength.
 
-That measurement immediately earned its keep: without a guard, the v2 node would
-have derived node id `0x00000000` on every board on this flow — one silent
-measurement becoming a network-wide identity collision.
+That measurement immediately earned its keep, and the guard was then seen
+working on hardware: the v2 node reports its **fallback** identity, not a
+DNA-derived one. Without the guard every board built this way would have
+reported node id `0x00000000`, and a network-wide identity collision would have
+shipped looking like a successful run.
 
 **Net effect on the threat model.** The trust boundary moved from *anyone* to
 *anyone holding the key*. It did not reach *anyone but this chip*. Since an
