@@ -59,14 +59,32 @@ module corona_compute_gf16_sqrt_ax7203 (
     wire f_sub_a = (f_exp_a == 0) && ((f_mant_a != 0));
     wire signed [14:0] f_de_a = $signed({1'b0, f_exp_a}) - 15'sd31 + 15'sd127;
     wire [7:0] f_exp32_a = (f_de_a > 15'sd254) ? 8'd254 : (f_de_a < 0) ? 8'd0 : f_de_a[7:0];
-    wire [22:0] f_mant32_a = {f_mant_a, 13'b0};
-    wire [22:0] f_mant32_norm_a = {1'b0, f_mant_a, 12'b0};
+    wire [22:0] f_mant32_a = {f_mant_a, 14'b0};
+    reg [7:0] nrm_e_a; reg [22:0] nrm_m_a;
+    // subnormal normalisation: a priority encoder, because the
+    // leading one moves with the mantissa and a fixed shift cannot
+    // follow it (the defect recorded in pass 102).
+    always @(*) begin
+        nrm_e_a=8'd0; nrm_m_a=23'd0;
+        casez(f_mant_a)
+                9'b1????????: begin nrm_e_a=8'd96; nrm_m_a=f_mant_a<<15; end
+                9'b01???????: begin nrm_e_a=8'd95; nrm_m_a=f_mant_a<<16; end
+                9'b001??????: begin nrm_e_a=8'd94; nrm_m_a=f_mant_a<<17; end
+                9'b0001?????: begin nrm_e_a=8'd93; nrm_m_a=f_mant_a<<18; end
+                9'b00001????: begin nrm_e_a=8'd92; nrm_m_a=f_mant_a<<19; end
+                9'b000001???: begin nrm_e_a=8'd91; nrm_m_a=f_mant_a<<20; end
+                9'b0000001??: begin nrm_e_a=8'd90; nrm_m_a=f_mant_a<<21; end
+                9'b00000001?: begin nrm_e_a=8'd89; nrm_m_a=f_mant_a<<22; end
+                9'b000000001: begin nrm_e_a=8'd88; nrm_m_a=f_mant_a<<23; end
+                default: begin nrm_e_a=8'd0; nrm_m_a=23'd0; end
+        endcase
+    end
     reg [31:0] fp32_a;
     always @(*) begin
-        if(f_zero_a) fp32_a=32'h00000000;
+        if(f_zero_a) fp32_a={f_sign_a, 31'b0};   // -0 keeps its sign
         else if(f_inf_a) fp32_a=f_sign_a?32'hFF800000:32'h7F800000;
         else if(f_nan_a) fp32_a=32'h7FC00000;
-        else if(f_sub_a) fp32_a={f_sign_a, 8'd113, f_mant32_norm_a};
+        else if(f_sub_a) fp32_a={f_sign_a, nrm_e_a, nrm_m_a};
         else fp32_a={f_sign_a, f_exp32_a, f_mant32_a};
     end
     wire comp_irdy, comp_ovld; wire [31:0] comp_result;
@@ -84,14 +102,15 @@ module corona_compute_gf16_sqrt_ax7203 (
     wire q_nan=(q_in==32'h7FC00000); wire q_zero=(q_in==32'h00000000);
     wire q_inf=(q_exp==8'hFF)&&(q_mant==0);
     wire signed [14:0] tgt_exp_s = $signed({1'b0, q_exp}) - 15'sd127 + 15'sd31;
+    wire [9:0] sub_shift = ({1'b1, q_mant[22:14]}) >> (1 - tgt_exp_s);
     reg [15:0] q_result;
     always @(*) begin
-        if(q_nan) q_result=16'd0;
+        if(q_nan) q_result=16'h7E01;   // canonical qNaN
         else if(q_zero) q_result=16'd0;
         else if(q_inf) q_result={q_sign, 6'd63, 9'd0};
         else if(q_exp >= 8'd159) q_result={q_sign, 6'd63, 9'd0};
         else if(q_exp < 8'd88) q_result={q_sign, 15'b0};
-        else if(tgt_exp_s < 1) q_result={q_sign, 6'b0, q_mant[22:14]};
+        else if(tgt_exp_s < 1) q_result={q_sign, 6'b0, sub_shift[8:0]};   // subnormal result: shift the implicit one back in
         else q_result={q_sign, tgt_exp_s[5:0], q_mant[22:14]};
     end
     reg [31:0] result_reg; reg result_ready;

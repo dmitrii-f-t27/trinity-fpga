@@ -2967,3 +2967,83 @@ Stated rather than quietly dropped. The test is still the right next step, and i
 now easier: the conversion it would check is consistent for gf4, gf8 and gf16.
 """
 }
+
+// ---- Pass 106: the first executable test of the wrapper layer -----------------
+
+result A_TEST_THAT_NEEDS_NO_BOARD {
+  detail """
+conformance/tb_gf16_div_conversion.v plus gf16_div_conversion_conformance.py simulate
+the gf16 DIV wrapper's two conversion stages under iverilog. STARTUPE2 is stubbed, the
+operand register and the divider's result are driven with `force`, and the conversions
+are observed directly. The divider between them is not exercised -- only the code
+passes 101 and 105 changed.
+
+This is the first executable test of a layer that had none, and the reason to write it
+is the finding of passes 98 to 105: untested code fails quietly, so repairing it and
+walking away would repeat the mistake being reported.
+"""
+  status VERIFIED_SW
+}
+
+finding THE_TEST_FOUND_FOUR_MORE_DEFECTS_IMMEDIATELY {
+  severity HIGH
+  detail """
+First run: 4 of 2048 codes decoded correctly. The four were the ones with a zero
+mantissa, which is what pinned the cause.
+
+  1. normal-path mantissa shift
+     wire [22:0] f_mant32_a = {f_mant_a, 13'b0};    // 9 + 13 = 22 bits, not 23
+     13 was right for binary16's 10-bit mantissa. For gf16 it is 23 - 9 = 14.
+     Another leftover of the layout the wrapper was written against.
+
+  2. subnormal decode -- the fixed shift recorded in pass 102, now replaced by a
+     priority encoder, because the leading one moves with the mantissa
+
+  3. subnormal pack -- the mirror defect: a subnormal result needs the implicit one
+     shifted back in by (1 - target exponent) places
+
+  4. sign lost in the subnormal pack
+     {q_sign, 6'b0, <10-bit value>} is 17 bits assigned to a 16-bit word, so the sign
+     was silently truncated off the top. Found because negative subnormals returned
+     their magnitudes.
+
+And two in special-value handling: -0 decoded to +0, and a NaN result packed to zero
+rather than to the format's canonical quiet NaN.
+"""
+  resolved true
+}
+
+result EXHAUSTIVE_AFTER_THE_REPAIRS {
+  measured """
+All 65,536 gf16 codes, both directions, under simulation:
+
+  decode  gf16 -> binary32     65,536 / 65,536 exact
+  pack    binary32 -> gf16     65,536 / 65,536 exact
+
+  normal      63,488 / 63,488
+  subnormal    1,022 / 1,022
+  zero             2 / 2
+  inf              2 / 2
+  nan          1,022 / 1,022
+
+Synthesis still clean: gf16 div, gf8 sqrt and gf4 quire all exit 0.
+"""
+  scope """
+What this bounds is the wrapper's two conversion stages for gf4, gf8 and gf16. The
+divider is forced rather than exercised, the gf32 and wider wrappers remain unfixable
+through a binary32 datapath, and no hardware was involved.
+"""
+  status VERIFIED_SW
+}
+
+conclusion WHY_THIS_PASS_MATTERS_MORE_THAN_THE_REPAIRS {
+  precise """
+Passes 101 to 105 repaired this wrapper three times by reading it. Each repair was
+careful, each was checked against the catalog, and each left defects that the next
+pass found by reading harder.
+
+One test, written in an afternoon and needing no board, found four more in its first
+run and confirmed the rest gone in its second. That is the argument this campaign has
+been making from the outside since pass 98, now made from the inside.
+"""
+}

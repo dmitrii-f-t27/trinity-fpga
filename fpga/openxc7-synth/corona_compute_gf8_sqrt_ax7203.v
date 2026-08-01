@@ -58,13 +58,26 @@ module corona_compute_gf8_sqrt_ax7203 (
     wire signed [12:0] f_de_a = $signed({1'b0, f_exp_a}) - 13'sd3 + 13'sd127;
     wire [7:0] f_exp32_a = (f_de_a > 13'sd254) ? 8'd254 : (f_de_a < 0) ? 8'd0 : f_de_a[7:0];
     wire [22:0] f_mant32_a = {f_mant_a, 19'b0};
-    wire [22:0] f_mant32_norm_a = {1'b0, f_mant_a, 18'b0};
+    reg [7:0] nrm_e_a; reg [22:0] nrm_m_a;
+    // subnormal normalisation: a priority encoder, because the
+    // leading one moves with the mantissa and a fixed shift cannot
+    // follow it (the defect recorded in pass 102).
+    always @(*) begin
+        nrm_e_a=8'd0; nrm_m_a=23'd0;
+        casez(f_mant_a)
+                4'b1???: begin nrm_e_a=8'd124; nrm_m_a=f_mant_a<<20; end
+                4'b01??: begin nrm_e_a=8'd123; nrm_m_a=f_mant_a<<21; end
+                4'b001?: begin nrm_e_a=8'd122; nrm_m_a=f_mant_a<<22; end
+                4'b0001: begin nrm_e_a=8'd121; nrm_m_a=f_mant_a<<23; end
+                default: begin nrm_e_a=8'd0; nrm_m_a=23'd0; end
+        endcase
+    end
     reg [31:0] fp32_a;
     always @(*) begin
-        if(f_zero_a) fp32_a=32'h00000000;
+        if(f_zero_a) fp32_a={f_sign_a, 31'b0};   // -0 keeps its sign
         else if(f_inf_a) fp32_a=f_sign_a?32'hFF800000:32'h7F800000;
         else if(f_nan_a) fp32_a=32'h7FC00000;
-        else if(f_sub_a) fp32_a={f_sign_a, 8'd125, f_mant32_norm_a};
+        else if(f_sub_a) fp32_a={f_sign_a, nrm_e_a, nrm_m_a};
         else fp32_a={f_sign_a, f_exp32_a, f_mant32_a};
     end
     wire comp_irdy, comp_ovld; wire [31:0] comp_result;
@@ -82,6 +95,7 @@ module corona_compute_gf8_sqrt_ax7203 (
     wire q_nan=(q_in==32'h7FC00000); wire q_zero=(q_in==32'h00000000);
     wire q_inf=(q_exp==8'hFF)&&(q_mant==0);
     wire signed [12:0] tgt_exp_s = $signed({1'b0, q_exp}) - 13'sd127 + 13'sd3;
+    wire [4:0] sub_shift = ({1'b1, q_mant[22:19]}) >> (1 - tgt_exp_s);
     reg [7:0] q_result;
     always @(*) begin
         if(q_nan) q_result=8'd0;
@@ -89,7 +103,7 @@ module corona_compute_gf8_sqrt_ax7203 (
         else if(q_inf) q_result={q_sign, 3'd7, 4'd0};
         else if(q_exp >= 8'd132) q_result={q_sign, 3'd7, 4'd0};
         else if(q_exp < 8'd121) q_result={q_sign, 7'b0};
-        else if(tgt_exp_s < 1) q_result={q_sign, 3'b0, q_mant[22:19]};
+        else if(tgt_exp_s < 1) q_result={q_sign, 3'b0, sub_shift[3:0]};   // subnormal result: shift the implicit one back in
         else q_result={q_sign, tgt_exp_s[2:0], q_mant[22:19]};
     end
     reg [31:0] result_reg; reg result_ready;
