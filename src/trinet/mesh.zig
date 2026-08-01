@@ -402,6 +402,52 @@ test "a layer still computes correctly when a node in the mesh is lying" {
     try std.testing.expectEqual(@as(u64, 0), m.ledger.get(2).?.credit_mtri);
 }
 
+test "a node on the other end of a socket earns credit like any other" {
+    const net = @import("net.zig");
+
+    // This is the path a developer on another machine takes, so it is worth
+    // exercising for real rather than asserting the types line up. Binding
+    // before the server thread starts removes the accept/connect race without
+    // a sleep.
+    var listener = try net.listen("127.0.0.1", 39702);
+
+    const Server = struct {
+        fn run(l: *net.Listener) void {
+            var backing = Node.initEmulated(0xBEEF0001, "peer", .honest);
+            while (true) {
+                var conn = l.accept() catch return;
+                defer conn.close();
+                while (true) {
+                    var raw: [protocol.request_len]u8 = undefined;
+                    conn.readExact(&raw) catch break;
+                    const job: protocol.Job = .{
+                        .op = raw[2],
+                        .nonce = raw[3..7].*,
+                        .w = raw[7..15].*,
+                        .x = raw[15..23].*,
+                    };
+                    const r = backing.execute(job) catch break;
+                    conn.writeAll(&protocol.encodeResponse(r)) catch break;
+                }
+            }
+        }
+    };
+    const th = try std.Thread.spawn(.{}, Server.run, .{&listener});
+
+    var m = try Mesh.init(std.testing.allocator, .{});
+    defer m.deinit();
+    try m.join(Node.initRemote(0xBEEF0001, "over-tcp", "127.0.0.1", 39702), "remote-dev", 5000);
+
+    for (0..25) |i| {
+        const o = try m.dispatch(testJob(@intCast(i)));
+        try std.testing.expectEqual(ledger_mod.Outcome.credited, o.settlement.outcome);
+    }
+    try std.testing.expectEqual(@as(u64, 25), m.ledger.get(0xBEEF0001).?.credit_mtri);
+
+    listener.close();
+    th.detach();
+}
+
 test "a mesh with no eligible node fails loudly instead of silently faking work" {
     var m = try Mesh.init(std.testing.allocator, .{});
     defer m.deinit();
