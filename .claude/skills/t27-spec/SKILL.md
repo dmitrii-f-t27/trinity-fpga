@@ -227,3 +227,50 @@ pass, and a genuine failure still stops it.
 
 Reserve `--admin` for a gate that is *provably* wrong, and say so in the report if
 you ever use it.
+
+### Landing several PRs at once: read the head SHA, not the PR
+
+Merging five at once produced four wrong conclusions in a row, every one from
+reading state that had been true a moment earlier. Worth knowing before automating
+it again.
+
+**Entries serialise on one file.** Every PR must touch `docs/NOW.md` and every entry
+goes at its top, so the first merge conflicts every other open PR. Enabling
+`--auto` on all of them does not work — they go `DIRTY` the instant one lands.
+Merge them one at a time, re-resolving between.
+
+**Three races, one fix.**
+
+| what looked true | why it wasn't |
+|---|---|
+| `gh pr merge` succeeded | its exit code was never checked |
+| the PR is still `OPEN`, so the merge failed | GitHub's merge is asynchronous; it reports `OPEN` for a while after landing |
+| all four contexts are green, so merge now | they were green **on the previous head**; after pushing a resolution the merge is refused with *"4 of 4 required status checks are expected"* |
+| `check-linked-issue` failed | an **older** run of that name on the same commit. Several runs share a name — take the newest by `started_at`, not the last one iterated |
+
+All four are the same mistake, and the same fix: **bind every judgement to the head
+SHA.**
+
+```bash
+SHA=$(gh api repos/gHashTag/t27/pulls/$N --jq '.head.sha')
+gh api "repos/gHashTag/t27/commits/$SHA/check-runs" \
+  --jq '[.check_runs[]] | group_by(.name)[] | (sort_by(.started_at)|last)
+        | "\(.name) \(.status)/\(.conclusion)"'
+```
+
+A check counts only if its commit is the PR's current head and its run is the newest
+of that name. A merge counts only when `.merged` is `true` — not when the command
+returned, and not when `state` still says `OPEN`.
+
+**`gh pr edit --body` silently does nothing here.** Its GraphQL mutation trips over
+the deprecated Projects-classic API and the body is left unchanged, with the failure
+looking like a warning. Use REST:
+
+```bash
+gh api -X PATCH repos/gHashTag/t27/pulls/$N -F body=@body.md
+```
+
+Then verify the change actually landed by reading the body back — a `sed` pipeline
+that strips the old `Closes #N` and appends a new one can drop both and leave the PR
+with no issue reference at all, which is exactly what failed `check-linked-issue`
+here.
