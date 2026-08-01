@@ -1527,3 +1527,78 @@ tool prints context precisely so that distinction is made by reading rather than
 count.
 """
 }
+
+// ---- Pass 89: the FPGA part number, located precisely ------------------------
+
+finding THE_ACHIEVED_FPGA_RESULT_CARRIES_TWO_DIFFERENT_PARTS {
+  name     "Paper A says XC7A35T, main_ru says XC7A100T, for the same 35/35 at 323 MHz"
+  severity HIGH
+
+  the_two_statements """
+Paper A, abstract and body, twice:
+  "a GF16 FPGA codec passing a 35-of-35 testbench at 323 MHz on Artix-7
+   (Xilinx XC7A35T)"
+
+main_ru.tex, abstract and body, and again in the status table:
+  "кодек GF16 на FPGA, проходящий тестовое окружение 35 из 35 на частоте 323 МГц
+   на Artix-7 (Xilinx XC7A100T)"
+
+Same testbench count, same frequency, same rung. Different part.
+"""
+
+  paper_a_is_internally_consistent """
+Worth stating, because the first count looked like Paper A contradicting itself.
+It does not. Paper A uses XC7A100T only for the PLANNED matched-substrate experiment
+H4 in Appendix D -- "GF16 and posit16 codecs synthesised on the same Xilinx Artix-7
+(XC7A100T-FGG676, QMTech Wukong V1)" -- which is pre-registered, not achieved.
+
+Two parts for two purposes, correctly distinguished.
+"""
+
+  where_that_leaves_it """
+  claim                                Paper A            main_ru
+  achieved: GF16 codec 35/35 @ 323MHz  XC7A35T            XC7A100T
+  planned : matched-substrate H4       XC7A100T (QMTech)  --
+  Tier-E physical board track          --                 XC7A200T (AX7203)
+
+The two documents cannot both be right about the achieved result. And main_ru's
+choice lands on precisely the part Paper A reserves for the planned comparison,
+which is the shape a copy-edit produces.
+"""
+
+  what_this_replaces """
+The checklist carried "XC7A35T -- worth double-checking against the board the
+measurement was actually taken on" as a vague note in the blocked-on-toolchain
+section. It is now a located discrepancy between two documents, with the third part
+number explained.
+
+Which one is correct cannot be settled from here: it needs whoever ran the synthesis.
+"""
+  resolved false
+}
+
+correction MY_PASS_88_READING_WAS_HALF_RIGHT {
+  what_i_said """
+"Paper A's XC7A35T and main_ru's XC7A200T are not two accounts of one measurement --
+different experiments, different parts."
+"""
+
+  what_holds """
+True of XC7A200T. That is the Tier-E physical-board track, genuinely separate from
+Paper A's synthesis result.
+"""
+
+  what_i_missed """
+I searched main_ru for XC7A35T and XC7A200T and never searched for XC7A100T -- which
+is the part main_ru actually attributes the 323 MHz result to, five times.
+
+So the conclusion "no contradiction" was reached by not looking at the third
+possibility. Checking two candidates and concluding about a set of three.
+"""
+
+  how_it_surfaced """
+A background grep from the previous pass finished and reported that main_ru mentions
+"323" five times. That number had no business being interesting unless main_ru made
+the same claim -- which is what prompted the re-check.
+"""
+}
