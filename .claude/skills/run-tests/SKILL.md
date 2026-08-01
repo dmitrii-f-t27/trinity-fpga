@@ -16,7 +16,7 @@ Run tests for: $ARGUMENTS
 
 1. **Build**
    ```bash
-   cd /Users/playra/trinity-w1 && zig build 2>&1
+   cd /Users/playom/trinity-fpga && zig build 2>&1
    ```
    - Check for warnings and errors
    - Report any compilation issues

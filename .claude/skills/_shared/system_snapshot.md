@@ -10,7 +10,7 @@ All skills and agents SHOULD use these cached snapshots to avoid duplicate API c
 **Reader**: All skills and agents
 
 ```bash
-cd /Users/playra/trinity-w1 && \
+cd /Users/playom/trinity-fpga && \
 if [ -f .trinity/issues_snapshot.json ] && [ $(($(date +%s) - $(stat -f %m .trinity/issues_snapshot.json))) -lt 300 ]; then
   echo "CACHED" && cat .trinity/issues_snapshot.json
 else
@@ -26,7 +26,7 @@ fi
 **Reader**: All skills and agents
 
 ```bash
-cd /Users/playra/trinity-w1 && \
+cd /Users/playom/trinity-fpga && \
 if [ -f .trinity/board_snapshot.json ] && [ $(($(date +%s) - $(stat -f %m .trinity/board_snapshot.json))) -lt 300 ]; then
   echo "CACHED" && cat .trinity/board_snapshot.json
 else
@@ -75,5 +75,5 @@ When reading event log, apply these freshness rules:
 
 After any state-changing action, append:
 ```bash
-echo '{"ts":'$(date +%s)',"agent":"AGENT_NAME","action":"ACTION","detail":"DETAIL","result":"OK|FAIL"}' >> /Users/playra/trinity-w1/.trinity/event_log.jsonl
+echo '{"ts":'$(date +%s)',"agent":"AGENT_NAME","action":"ACTION","detail":"DETAIL","result":"OK|FAIL"}' >> /Users/playom/trinity-fpga/.trinity/event_log.jsonl
 ```

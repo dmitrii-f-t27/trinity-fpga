@@ -7,25 +7,25 @@ Reference this module for common system state queries:
 ### Build Health
 ```bash
 # Build check (exit code + errors)
-cd /Users/playra/trinity-w1 && zig build --summary none 2>&1
+cd /Users/playom/trinity-fpga && zig build --summary none 2>&1
 
 # Test suite
-cd /Users/playra/trinity-w1 && zig build test 2>&1
+cd /Users/playom/trinity-fpga && zig build test 2>&1
 ```
 
 ### Git State
 ```bash
 # Working tree status
-git -C /Users/playra/trinity-w1 status --porcelain
+git -C /Users/playom/trinity-fpga status --porcelain
 
 # Recent commits
-git -C /Users/playra/trinity-w1 log --oneline -5
+git -C /Users/playom/trinity-fpga log --oneline -5
 
 # Current branch
-git -C /Users/playra/trinity-w1 branch --show-current
+git -C /Users/playom/trinity-fpga branch --show-current
 
 # Dirty file count
-git -C /Users/playra/trinity-w1 status --porcelain | wc -l
+git -C /Users/playom/trinity-fpga status --porcelain | wc -l
 ```
 
 ### Agent Processes
@@ -40,7 +40,7 @@ pgrep -la trinity-mcp 2>/dev/null || echo "trinity-mcp: DOWN"
 ```bash
 # Verify all 6 binaries exist
 for bin in trinity-mcp ralph-agent ralph-hook tri-bot tri-api hslm-entrypoint; do
-  if [ -f /Users/playra/trinity-w1/zig-out/bin/$bin ]; then
+  if [ -f /Users/playom/trinity-fpga/zig-out/bin/$bin ]; then
     echo "✅ $bin"
   else
     echo "❌ $bin MISSING"
@@ -51,7 +51,7 @@ done
 ### Evolution State
 ```bash
 # Read evolution leaderboard
-cat /Users/playra/trinity-w1/.trinity/evolution_state.json 2>/dev/null | python3 -c "
+cat /Users/playom/trinity-fpga/.trinity/evolution_state.json 2>/dev/null | python3 -c "
 import sys,json
 try:
   d=json.load(sys.stdin)
@@ -67,7 +67,7 @@ except: print('No evolution data')
 ### Railway Farm Status
 ```bash
 # Query Railway API for service status
-source /Users/playra/trinity-w1/.env 2>/dev/null
+source /Users/playom/trinity-fpga/.env 2>/dev/null
 curl -s -X POST "https://railway.com/graphql/v2" \
   -H "Authorization: Bearer $RAILWAY_API_TOKEN" \
   -H "Content-Type: application/json" \
@@ -77,5 +77,5 @@ curl -s -X POST "https://railway.com/graphql/v2" \
 ### Skill Count
 ```bash
 # Count available skills
-ls -d /Users/playra/trinity-w1/.claude/skills/*/SKILL.md 2>/dev/null | wc -l
+ls -d /Users/playom/trinity-fpga/.claude/skills/*/SKILL.md 2>/dev/null | wc -l
 ```

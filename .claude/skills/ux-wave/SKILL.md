@@ -26,7 +26,7 @@ User says: "when you wake up, think how to improve" or `/ux-wave`
 Each agent gets:
 - Specific file to read FULLY
 - Clear implementation spec
-- Build command: `cd /Users/playra/trinity-w1/apps/queen && swift build 2>&1 | tail -20`
+- Build command: `cd /Users/playom/trinity-fpga/apps/queen && swift build 2>&1 | tail -20`
 - `run_in_background: true`
 
 ### Wave Planning (priority order)

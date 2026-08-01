@@ -10,10 +10,10 @@ context: fork
 # Cloud Dev Dashboard
 
 ## Active Containers
-!`/Users/playra/trinity-w1/zig-out/bin/tri cloud agents 2>&1 || echo "No tri binary — run zig build first"`
+!`/Users/playom/trinity-fpga/zig-out/bin/tri cloud agents 2>&1 || echo "No tri binary — run zig build first"`
 
 ## Recent Events (last 20)
-!`if [ -f /Users/playra/trinity-w1/.trinity/cloud_events.jsonl ]; then tail -20 /Users/playra/trinity-w1/.trinity/cloud_events.jsonl; else echo "No cloud events yet"; fi`
+!`if [ -f /Users/playom/trinity-fpga/.trinity/cloud_events.jsonl ]; then tail -20 /Users/playom/trinity-fpga/.trinity/cloud_events.jsonl; else echo "No cloud events yet"; fi`
 
 ## Agent Issues (labeled agent:spawn)
 !`gh issue list --repo gHashTag/trinity --label "agent:spawn" --state open --limit 10 2>&1 || echo "gh CLI unavailable"`
@@ -28,7 +28,7 @@ context: fork
 !`gh api repos/gHashTag/trinity/actions/runs --jq '.workflow_runs[:5] | .[] | "  \(.name) #\(.run_number) — \(.status) (\(.conclusion // "running"))"' 2>/dev/null || echo "No recent workflow runs"`
 
 ## Priorities
-!`head -30 /Users/playra/trinity-w1/.trinity/priorities.md 2>/dev/null || echo "No priorities file"`
+!`head -30 /Users/playom/trinity-fpga/.trinity/priorities.md 2>/dev/null || echo "No priorities file"`
 
 ## Task
 
