@@ -210,11 +210,34 @@ something true.
 }
 
 result DISTRIBUTED_VECTORS_ARE_RARE {
-  finding """
-Of four comparables, only numpy ships a table a third party can consume without
-running the project's code -- and it states a 1-4 ULP tolerance rather than
-exactness. The two format-specific references, including the one written by the
-format's own author, ship none.
+  SUPERSEDED_BY "pass 63 (P3109) and pass 76 (SoftPosit); corrected below"
+
+  finding_as_first_written """
+"Of four comparables, only numpy ships a table a third party can consume without
+running the project's code."
+"""
+
+  what_is_true_now """
+Six comparables, and TWO ship consumable tables.
+
+The IEEE P3109 working group publishes 504 CSV value tables totalling 154 MB,
+exhaustive per (K,P) configuration, with rows of exactly the shape a conformance
+vector needs -- and its README forbids using them for conformance. numpy publishes
+26,615 rows with a stated 1-4 ULP tolerance.
+
+The four implementations -- TestFloat, libtakum, SoftPosit, microxcaling, including
+two written by the formats' own authors -- ship none.
+
+The corrected statement is sharper than the original, not weaker: the largest exact
+table set in the field exists, is published by the body that would be its natural
+source, and is explicitly unusable for the purpose. That is the gap, and it is a
+better description of it than "only numpy publishes vectors".
+"""
+
+  why_this_sat_stale """
+The .md deliverable was corrected in pass 63. This spec was not, and nothing
+connected them -- the same fact in two files, updated in one. Fourth instance of
+that mechanism, found by the pass-81 sweep for absence and uniqueness claims.
 """
 
   the_honest_reading """
@@ -235,8 +258,11 @@ scope_limits {
                 "IEEE P3109 draft material -- not publicly available",
                 "whether any of these suites is exhaustive over its own domain" }
   superiority_claimed false
-  explicit_warning "four comparables is a survey, not a census; the ready-to-paste
-                    text forbids generalising it into 'the first' or 'the only'"
+  explicit_warning "SIX comparables is a survey, not a census; the ready-to-paste
+                    text forbids generalising it into 'the first' or 'the only'.
+                    Was written as 'four' and left stale when the survey grew --
+                    a count inside a warning against overclaiming, understating
+                    its own coverage."
 }
 
 // ---- Pass 63: a sixth comparable, found by auditing Paper A's references ------

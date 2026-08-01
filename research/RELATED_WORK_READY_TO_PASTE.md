@@ -79,10 +79,18 @@ Three independent artefacts at very different scales mark the same frontier.
 - Keep the concession. numpy is deeper (26,615 vectors to 5,075) and covers 20
   operations this corpus does not touch. Stating that is what makes the 83-vs-5
   format comparison credible.
-- **Not surveyed, and so not claimed:** SoftPosit (hosted on GitLab, not fetched)
-  and the IEEE P3109 draft's own material (not publicly available). Do not
-  generalise the table into "the first" or "the only" — four comparables is a
-  survey, not a census.
+- **Do not generalise the table into "the first" or "the only."** Six comparables is
+  a survey, not a census. What the table supports is "of the six projects measured",
+  and nothing wider.
+- **Not surveyed:** SoftFloat (TestFloat's reference implementation, examined only
+  through TestFloat's description of it), and any vendor-internal vector set, which
+  by definition cannot be checked.
+
+  > An earlier version of this note listed SoftPosit as "not fetched" and P3109's
+  > material as "not publicly available". Both were surveyed afterwards — SoftPosit
+  > in pass 76, P3109 in pass 63 — and both are now *in the table above*, P3109 as
+  > its lead row. The note had come to contradict the table it annotates, in the
+  > paragraph warning against overclaiming.
 - The last paragraph is the actual contribution: bit-exactness is attainable over
   the decidable class, and the corpus's own takum result locates the frontier from
   the inside. That is more useful to a reader than any novelty claim.

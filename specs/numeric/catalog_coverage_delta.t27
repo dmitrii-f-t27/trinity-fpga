@@ -1036,3 +1036,86 @@ test, no mismatched number, nothing to notice.
 """
   tool "research/find_duplicated_facts.py, plus a grep over absence phrasings"
 }
+
+// ---- Pass 82: uniqueness claims, and the same mechanism a fourth time --------
+
+measurement UNIQUENESS_CLAIMS_IN_THE_DELIVERABLES {
+  searched "the only, the first, no other, nobody else, unprecedented, never been"
+  scope "the seven documents an author would actually read"
+
+  result """
+The deliverables are close to clean. The hits are:
+
+  VERIFICATION_DOSSIER "the only evidence these two formats have" -- true, and about
+      the corpus's own evidence for double_double/quad_double
+  RELATED_WORK "the only defensible claim" -- a judgement about numpy's tolerance,
+      and a defensible one
+  SUBMISSION_CHECKLIST "the first thing an auditor does" -- rhetorical
+
+So the campaign has not been making novelty claims in the text that goes to the
+author. That is worth stating, because it was the thing being checked for.
+"""
+}
+
+finding THE_WARNING_AGAINST_OVERCLAIMING_UNDERSTATED_ITS_OWN_COVERAGE {
+  name     "the note forbidding 'the first' and 'the only' listed two surveyed projects as unsurveyed"
+  severity MEDIUM
+
+  what_it_said """
+RELATED_WORK_READY_TO_PASTE.md, notes section:
+
+  "Not surveyed, and so not claimed: SoftPosit (hosted on GitLab, not fetched) and
+   the IEEE P3109 draft's own material (not publicly available). Do not generalise
+   the table into 'the first' or 'the only' -- FOUR comparables is a survey, not a
+   census."
+"""
+
+  what_was_true """
+SoftPosit was surveyed in pass 76. P3109's material was surveyed in pass 63 and is
+the LEAD ROW of the table the note annotates. Six comparables, not four.
+
+The paragraph warning against overclaiming was contradicting the table directly
+above it, and understating its own coverage while doing so.
+"""
+  resolved true
+}
+
+finding THE_SPEC_STILL_SAID_ONLY_NUMPY_SHIPS_TABLES {
+  name     "related_work_measured.t27 carried the pre-P3109 conclusion"
+  severity MEDIUM
+
+  detail """
+"Of four comparables, only numpy ships a table a third party can consume without
+running the project's code."
+
+Corrected in the .md deliverable in pass 63, when P3109's 504 CSV tables were found.
+Never corrected in the spec. Fourth instance of the same mechanism: one fact, two
+files, updated in one.
+"""
+
+  the_corrected_statement_is_stronger """
+Six comparables, TWO of which ship consumable tables. The largest exact table set in
+the field is published by the standards body that would be its natural source -- and
+its README forbids using it for conformance.
+
+That is a sharper description of the gap than "only numpy publishes vectors", so the
+correction improves the claim rather than weakening it.
+"""
+  resolved true
+}
+
+practice FOUR_INSTANCES_IS_A_SYSTEM {
+  detail """
+Passes 71, 72, 80, 81 and 82 each found the same thing: a fact recorded in two
+places and updated in one. The instances differ in surface -- a contradicted table
+row, a do-not-touch instruction, a paste file covering half the defects, an absence
+claim, a count inside a warning -- and are identical underneath.
+
+Two mitigations now exist. Generating both renderings from one source, which makes
+the drift impossible (pass 80). And searching for the CLASS rather than waiting to
+trip over an instance: numbers-with-nouns for drift, absence phrasings for stale
+negatives, uniqueness phrasings for overclaims.
+
+The second is what found this pass's two, and it took one grep each.
+"""
+}
