@@ -1658,3 +1658,60 @@ claims that differ in wording rather than in a named attribute. It bounds one sh
 of inconsistency, not inconsistency.
 """
 }
+
+// ---- Pass 91: Tier-E verified against its own evidence issue -----------------
+
+result TIER_E_HOLDS {
+  claim_under_test """
+main_ru.tex defines Tier-E as requiring ALL FOUR of a public openXC7 CI run with its
+URL, the SHA-256 of the specific bitstream, a UART log "HW RESULT: N/N bit-exact
+(fails=0)" at 160000 baud from the physical board, and a matching IDCODE
+0x13636093 -- and states that a GREEN commit message or a passing simulation does
+NOT count. Proofs are said to be published per-cell in gHashTag/trinity-fpga#199.
+
+That is falsifiable against a public artefact, and it was the strongest unverified
+statement in any of the three documents.
+"""
+
+  measurement {
+    comments_in_issue 217
+    carrying_ci_url 98
+    carrying_sha256 121
+    carrying_uart_log 98
+    carrying_idcode 151
+    carrying_ALL_FOUR 74
+    distinct_cells_with_a_complete_chain 34
+  }
+
+  the_cells """
+bcd 100/100, bfloat16 8/8, binary16 65536/65536, binary32 64/64, binary64 64/64,
+binary128 64/64, decimal32 64/64, decimal64 64/64, decimal128 64/64, fp8 256/256,
+fp8_e5m2 256/256, gf4 512/512, gf6 512/512, gf8 512/512, gf10 64/64, gf12 512/512,
+gf14 64/64, gf16 512/512, gf20 512/512, gf24 512/512, gf32 512/512, int4 16/16,
+int8 256/256, int16 64/64, int32 64/64, posit8 256/256, posit16 64/64,
+posit32 64/64, takum8 256/256, takum16 64/64, vax_d 64/64, vax_f 64/64,
+vax_g 64/64.
+
+binary16 is EXHAUSTIVE -- 65,536 of 65,536 codes bit-exact on the physical board.
+"""
+
+  reading """
+The standard is not aspirational. It is defined strictly, it rules out the two
+easiest ways to fake a hardware claim, and 34 format cells actually meet it with
+four independent links each.
+
+This strengthens the case for item 4c considerably: the English papers are missing
+not a proposed methodology but a met one.
+"""
+
+  what_this_does_and_does_not_check """
+It checks PRESENCE of the four links in a single comment, which is exactly what
+Tier-E's own definition requires -- a chain is only as good as its weakest link
+being present.
+
+It does NOT re-run the CI, re-hash the bitstream, or re-read the UART. Those need
+the board, and saying so matters: this verifies that the evidence was published, not
+that the silicon behaved.
+"""
+  status VERIFIED_SW
+}
