@@ -4,6 +4,7 @@
 //!   trinet probe [serial]        talk to a physical node and verify its receipts
 //!   trinet demo [serial]         stand up a mesh, run the agent, print the books
 //!   trinet agent "<task>"        run one agent task on a mesh
+//!   trinet bench [serial] [n]    measure delivered throughput and the transport gap
 //!   trinet serve <port> [serial] expose a node over TCP so others can use it
 //!   trinet join                  print what a new developer has to do
 //!
@@ -34,6 +35,15 @@ fn line() void {
     std.debug.print("---------------------------------------------------------------\n", .{});
 }
 
+/// Monotonic nanoseconds. Straight onto libc because `std.time.Timer` is one
+/// more thing that moved in 0.16, and a benchmark should not be the place a
+/// standard-library rename shows up.
+fn monoNanos() u64 {
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(.MONOTONIC, &ts);
+    return @as(u64, @intCast(ts.sec)) * std.time.ns_per_s + @as(u64, @intCast(ts.nsec));
+}
+
 /// Zig 0.16 passes the process environment to main rather than exposing it
 /// through globals; taking `Init.Minimal` is how a program reads its argv.
 pub fn main(init: std.process.Init.Minimal) !void {
@@ -51,11 +61,16 @@ pub fn main(init: std.process.Init.Minimal) !void {
     if (std.mem.eql(u8, cmd, "probe")) return probe(gpa, if (args.len > 2) args[2] else default_serial);
     if (std.mem.eql(u8, cmd, "demo")) return demo(gpa, if (args.len > 2) args[2] else null);
     if (std.mem.eql(u8, cmd, "agent")) return runAgent(gpa, if (args.len > 2) args[2] else "fix the failing ternary build", if (args.len > 3) args[3] else null);
+    if (std.mem.eql(u8, cmd, "bench")) return bench(
+        gpa,
+        if (args.len > 2) args[2] else default_serial,
+        if (args.len > 3) try std.fmt.parseInt(usize, args[3], 10) else 500,
+    );
     if (std.mem.eql(u8, cmd, "serve")) return serve(gpa, args);
     if (std.mem.eql(u8, cmd, "join")) return joinHelp();
 
     std.debug.print("unknown command '{s}'\n", .{cmd});
-    std.debug.print("try: selftest | probe | demo | agent | serve | join\n", .{});
+    std.debug.print("try: selftest | probe | bench | demo | agent | serve | join\n", .{});
     return error.UnknownCommand;
 }
 
@@ -178,6 +193,99 @@ fn probe(gpa: std.mem.Allocator, path: []const u8) !void {
     } else {
         std.debug.print("RESULT: not a verified hardware node. Do not report this as silicon.\n", .{});
     }
+}
+
+// ---------------------------------------------------------------------------
+
+/// Measure what one board actually delivers, rather than deriving it.
+///
+/// The interesting number here is not throughput — it is the ratio between what
+/// the transport allows and what the silicon could do. A compute network whose
+/// nodes spend all their time waiting on a serial line is a serial line with a
+/// compute network attached to it, and the honest way to find that out is to
+/// measure both ends and print the gap.
+fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize) !void {
+    std.debug.print("benchmarking the node on {s}, {d} jobs\n", .{ path, n });
+    line();
+
+    var buf: [256]u8 = undefined;
+    const zpath = try std.fmt.bufPrintZ(&buf, "{s}", .{path});
+    var node = try node_mod.Node.initFpga(protocol.default_node_id, "ax7203", zpath, default_baud);
+    defer node.deinit();
+
+    const latencies = try gpa.alloc(u64, n);
+    defer gpa.free(latencies);
+
+    var prng: std.Random.DefaultPrng = .init(0xB3C4);
+    const rand = prng.random();
+
+    // Warm up: the first exchange after a flash includes the host opening the
+    // port and the FPGA's first frame sync, which is not steady-state.
+    for (0..16) |i| {
+        var wv: protocol.Trits = @splat(0);
+        for (&wv) |*t| t.* = rand.intRangeAtMost(i8, -1, 1);
+        _ = node.execute(protocol.Job.withNonce(@intCast(i), protocol.pack(wv), protocol.pack(wv))) catch {};
+    }
+
+    var verified: usize = 0;
+    const t0 = monoNanos();
+
+    for (0..n) |i| {
+        var wv: protocol.Trits = @splat(0);
+        var xv: protocol.Trits = @splat(0);
+        for (&wv) |*t| t.* = rand.intRangeAtMost(i8, -1, 1);
+        for (&xv) |*t| t.* = rand.intRangeAtMost(i8, -1, 1);
+        const job = protocol.Job.withNonce(@intCast(i + 1000), protocol.pack(wv), protocol.pack(xv));
+
+        const start = monoNanos();
+        const r = node.execute(job) catch {
+            latencies[i] = 0;
+            continue;
+        };
+        latencies[i] = monoNanos() - start;
+        if (protocol.verify(job, r).accepted()) verified += 1;
+    }
+
+    const elapsed_ns = monoNanos() - t0;
+    const elapsed_s = @as(f64, @floatFromInt(elapsed_ns)) / 1e9;
+    const jobs_per_s = @as(f64, @floatFromInt(n)) / elapsed_s;
+    const macs_per_s = jobs_per_s * @as(f64, @floatFromInt(protocol.n_trits));
+
+    std.sort.pdq(u64, latencies, {}, std.sort.asc(u64));
+    const p50 = latencies[n / 2];
+    const p99 = latencies[(n * 99) / 100];
+
+    // Transport ceiling: 8N1 costs ten bit-times per byte.
+    const bytes_per_job: f64 = @floatFromInt(protocol.request_len + protocol.response_len);
+    const transport_jobs_per_s = @as(f64, default_baud) / 10.0 / bytes_per_job;
+
+    // Compute ceiling: the dot product is combinational, and the receipt engine
+    // walks 26 preimage bytes at one byte per clock, so a job costs roughly 30
+    // cycles of the measured ~69 MHz configuration oscillator.
+    const cfgmclk_hz: f64 = 69.0e6;
+    const cycles_per_job: f64 = 30.0;
+    const compute_jobs_per_s = cfgmclk_hz / cycles_per_job;
+
+    std.debug.print("receipts verified   : {d}/{d}\n", .{ verified, n });
+    std.debug.print("elapsed             : {d:.3} s\n", .{elapsed_s});
+    std.debug.print("throughput          : {d:.1} jobs/s = {d:.0} ternary MACs/s\n", .{ jobs_per_s, macs_per_s });
+    std.debug.print("latency p50 / p99   : {d:.2} ms / {d:.2} ms\n", .{
+        @as(f64, @floatFromInt(p50)) / 1e6, @as(f64, @floatFromInt(p99)) / 1e6,
+    });
+    line();
+    std.debug.print("transport ceiling   : {d:.1} jobs/s  (UART {d} baud, {d} bytes/job)\n", .{
+        transport_jobs_per_s, default_baud, protocol.request_len + protocol.response_len,
+    });
+    std.debug.print("compute ceiling     : {d:.0} jobs/s  (~{d:.0} cycles/job at ~69 MHz CFGMCLK)\n", .{
+        compute_jobs_per_s, cycles_per_job,
+    });
+    std.debug.print("measured / transport: {d:.1}%\n", .{jobs_per_s / transport_jobs_per_s * 100});
+    std.debug.print("compute / transport : {d:.0}x\n", .{compute_jobs_per_s / transport_jobs_per_s});
+    line();
+    std.debug.print("The silicon is idle for all but a fraction of each job. Any\n", .{});
+    std.debug.print("throughput claim about this node is a claim about the UART.\n", .{});
+    std.debug.print("The compute ceiling above is derived, not measured — measuring it\n", .{});
+    std.debug.print("needs a transport that can saturate the cell.\n", .{});
 }
 
 // ---------------------------------------------------------------------------
