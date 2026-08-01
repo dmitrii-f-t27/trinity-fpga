@@ -40,28 +40,37 @@ from fractions import Fraction
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONF = os.path.join(REPO, "conformance")
-BASE = ("repos/P3109/Public/contents/Value%20Tables/Hexadecimal/K8/"
-        "{p}/signed/Binary8{p_low}{v}.csv")
+RAW = ("https://raw.githubusercontent.com/P3109/Public/main/"
+       "Value%20Tables/Hexadecimal/K{k}/P{p}/signed/Binary{k}p{p}{v}.csv")
 
 PAIRS = [
-    # (t27 format id, P3109 P value, description)
-    ("fp8_e4m3", "P4", "1s4e3m -> K8 P4"),
-    ("fp8_e5m2", "P3", "1s5e2m -> K8 P3"),
+    # (t27 format id, K, P, description)
+    # P counts significand bits INCLUDING the implicit one, so P = stored + 1.
+    ("fp8_e4m3", 8, 4, "1s4e3m"),
+    ("fp8_e5m2", 8, 3, "1s5e2m"),
+    ("bfloat16", 16, 8, "1s8e7m"),
+    ("binary16", 16, 11, "1s5e10m"),
 ]
 
 
-def fetch_table(pdir: str, variant: str) -> list[tuple[int, str, str]]:
-    path = BASE.format(p=pdir, p_low=pdir.lower(), v=variant)
+def fetch_table(k: int, p: int, variant: str) -> list[tuple[int, str, str]]:
+    """Fetch over raw.githubusercontent.
+
+    The contents API base64-encodes and caps at 1 MB; the K16 tables are 1.35 MB,
+    so the API silently returns nothing useful for exactly the widths that matter
+    most. The raw endpoint has no such limit.
+    """
+    url = RAW.format(k=k, p=p, v=variant)
     try:
-        blob = subprocess.check_output(["gh", "api", path, "--jq", ".content"],
+        text = subprocess.check_output(["curl", "-sSL", "--max-time", "120", url],
                                        text=True, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
         return []
-    import base64
-    text = base64.b64decode(blob).decode("utf-8", "replace")
+    if text.lstrip().startswith("404") or "codepoint" not in text[:200]:
+        return []
     rows = []
     for r in csv.DictReader(io.StringIO(text)):
-        cp = r.get("codepoint", "").strip()
+        cp = (r.get("codepoint") or "").strip()
         if not cp:
             continue
         rows.append((int(cp, 16), (r.get("value") or "").strip(),
@@ -95,9 +104,16 @@ def hexfloat_to_fraction(s: str):
     return ("finite", -v if neg else v)
 
 
-def load_oracle():
+def load_oracles():
+    """Map every exported format id to the module that owns it.
+
+    A first version returned the single module exporting fp8_e4m3, which silently
+    skipped bfloat16 and binary16 -- they live in a different *_ref.py. The
+    formats are spread across modules by family, so the lookup has to be too.
+    """
     sys.path.insert(0, CONF)
-    for name in os.listdir(CONF):
+    owners = {}
+    for name in sorted(os.listdir(CONF)):
         if not name.endswith("_ref.py"):
             continue
         try:
@@ -107,26 +123,30 @@ def load_oracle():
             spec.loader.exec_module(mod)
         except Exception:
             continue
-        if "fp8_e4m3" in (getattr(mod, "FORMATS", {}) or {}):
-            return mod
-    return None
+        for f in (getattr(mod, "FORMATS", {}) or {}):
+            owners.setdefault(f, mod)
+    return owners
 
 
 def main() -> int:
-    mod = load_oracle()
-    if mod is None:
-        print("no oracle module exporting fp8_e4m3 found")
+    owners = load_oracles()
+    if not owners:
+        print("no oracle modules found")
         return 2
 
     overall_bad = 0
-    for fid, pdir, desc in PAIRS:
-        fmt = mod.FORMATS[fid]
-        print(f"\n=== {fid}  ({desc})")
+    for fid, K, P, desc in PAIRS:
+        mod = owners.get(fid)
+        fmt = mod.FORMATS.get(fid) if mod else None
+        if fmt is None:
+            print(f"\n=== {fid}  exported by no *_ref module -- skipped")
+            continue
+        print(f"\n=== {fid}  ({desc} -> K{K} P{P})")
 
         for variant in ("se", "sf"):
-            rows = fetch_table(pdir, variant)
+            rows = fetch_table(K, P, variant)
             if not rows:
-                print(f"  Binary8{pdir.lower()}{variant}.csv  unavailable")
+                print(f"  Binary{K}p{P}{variant}.csv  unavailable")
                 continue
 
             agree = finite = spec_diff = bad = 0
@@ -164,7 +184,7 @@ def main() -> int:
                         examples.append((hex(code), val, str(got)[:24]))
 
             overall_bad += bad
-            print(f"  Binary8{pdir.lower()}{variant}.csv  rows={len(rows):<4} "
+            print(f"  Binary{K}p{P}{variant}.csv  rows={len(rows):<6} "
                   f"finite={finite:<4} agree={agree:<4} "
                   f"finite-mismatch={bad:<3} special-differs={spec_diff}")
             for c, theirs, ours in examples:

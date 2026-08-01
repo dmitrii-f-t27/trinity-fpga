@@ -236,3 +236,77 @@ So the sixth oracle confirms the corpus's fp8 decode LAW while identifying that 
 format it maps to is not the same format.
 """
 }
+
+// ---- Pass 65: the difference is systematic, and it is a bias convention ------
+
+measurement WIDENED_TO_TWO_WIDTHS {
+  tables 8            // se and sf for each of four (K,P) configurations
+  formats { "fp8_e4m3 -> K8P4", "fp8_e5m2 -> K8P3",
+            "bfloat16 -> K16P8", "binary16 -> K16P11" }
+
+  finite_codes_compared 258524
+  distinct_ratios_per_table 1
+  ratio_value 2
+
+  reading """
+Four formats, two widths, a quarter of a million finite codes, and every single
+table yields exactly ONE distinct ratio: 2. The 8-bit result was not a quirk.
+"""
+  status VERIFIED_SW
+}
+
+result THE_BIAS_CONVENTION_DIFFERS_BY_ONE_EVERYWHERE {
+  derivation """
+With exp_bits e = K - P:
+
+  IEEE 754 / OCP bias = 2^(e-1) - 1
+  P3109 bias          = 2^(e-1)
+
+  K8P4   fp8 E4M3   e=4   7   vs   8    ratio 2
+  K8P3   fp8 E5M2   e=5  15   vs  16    ratio 2
+  K16P8  bfloat16   e=8  127  vs 128    ratio 2
+  K16P11 binary16   e=5  15   vs  16    ratio 2
+
+Exactly one greater in every case, which is the factor of two, measured across
+258,524 codes rather than inferred from two examples.
+"""
+
+  the_sharper_observation """
+binary16 is IEEE 754 half precision -- a fully standardised format with bias 15 --
+and P3109's binary16p11 differs from it by a factor of two on every finite code.
+
+So this is not an OCP-versus-P3109 discrepancy. It is P3109's parametric family
+using a different bias convention from IEEE 754 itself, uniformly and by design:
+their exponent range is symmetric where IEEE's is not.
+"""
+
+  what_it_does_NOT_mean """
+Neither side is wrong, and the corpus's oracle is not wrong. A decoder defect
+scatters; a constant offset against an independently generated standards-body table
+over a quarter of a million codes is two correct decoders reading two conventions.
+
+The cross-validation therefore CONFIRMS the corpus's decode law at 16-bit width as
+well as 8-bit, which is the strongest external check it has received.
+"""
+  status VERIFIED_SW
+}
+
+finding CROSS_WALK_NEEDS_ONE_WORD {
+  name     "the abstract's P3109 cross-walk maps layout, not values, and does not say so"
+  severity MEDIUM
+
+  detail """
+Paper B v2, verbatim: "an IEEE P3109 v3.2.0 cross-walk that maps each pack to its
+corresponding standards-track configured format".
+
+Measured: for every format checked, the standards-track format of the same layout
+has a bias one greater, so every finite value differs by a factor of two. The
+correspondence is of LAYOUT.
+
+That is worth publishing -- a layout cross-walk is genuinely useful -- but a reader
+may reasonably read "corresponding" as "the same format", and the difference is a
+factor of two on every value, at every width tested.
+"""
+  cheapest_fix "\"maps each pack to the standards-track configured format of the same layout\""
+  resolved false
+}
