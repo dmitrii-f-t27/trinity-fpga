@@ -327,6 +327,38 @@ rule RECEIPT_TAG_KEYED {
   trust_tier VERIFIED_ARITHMETIC
 }
 
+cell trinet_node_v2 {
+  rtl      "fpga/vivado/trinet_node_v2_ax7203.v"
+  core     "fpga/openxc7-synth/trinet_siphash24.v"
+  host     "conformance/trinet_node_v2_conformance_ax7203.py"
+  workflow ".github/workflows/ax7203-trinet-node-v2.yml"
+  changes  "receipt tag CRC-32 -> SipHash-2-4 under a bitstream-resident key; node id from device DNA with a fallback"
+}
+
+verification TRINET_NODE_V2_HW {
+  cell       trinet_node_v2
+  ci_run     30706475630
+  checked    256
+  matched    256
+  status     "[measured on FPGA]"
+  board      ax7203
+  date       2026-08-01
+  synthesis  { estimated_lcs 1336, dna_port_cells 1, dsp48_cells 0 }
+  bitstream_sha256 "e85a5297ccd3dda8583b921db0815c5eaf9448e782baca5aec99b8d3455fdbba"
+  node_id_reported 0x5452494E
+  both_directions """
+    Correct key: 256/256 verified. Wrong key: every job rejected on tag
+    mismatch. The second run is the one that matters — a tag that verified
+    regardless of the key would mean the key never reached the receipt.
+  """
+  dna_guard_observed """
+    The reported node id is the FALLBACK parameter, not a DNA-derived value,
+    because the DNA reads zero on this flow. The guard engaged on hardware as
+    designed; without it every board built this way would have reported node id
+    0x00000000.
+  """
+}
+
 verification RECEIPT_TAG_KEYED_TRIPLE {
   rule   RECEIPT_TAG_KEYED
   status VERIFIED_SW
