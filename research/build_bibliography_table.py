@@ -14,58 +14,20 @@ that carry no arXiv id are stated with their source named.
 from __future__ import annotations
 
 import html
+import os
 import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from bibliography_defects import DEFECTS                       # noqa: E402
+
 PAPERS = {"A": "2606.05017v3", "B": "2606.09686v2"}
 
-# ref -> (paper, arxiv id, defect class)
-ARXIV_DEFECTS = [
-    ("B", "[1]",  "2606.05017", "wrong title — the companion paper"),
-    ("B", "[2]",  "2412.20273", "wrong title — different work"),
-    ("B", "[3]",  "2511.12294", "wrong title AND wrong subject"),
-    ("B", "[4]",  "2602.15965", "paraphrased title"),
-    ("B", "[8]",  "2601.19213", "wrong title — subtitle invented"),
-    ("B", "[10]", "2504.07835", "paraphrased title"),
-    ("B", "[13]", "2412.20268", "wrong title — different work"),
-    ("B", "[19]", "2606.04028", "no title given at all"),
-    ("B", "[20]", "2601.19026", "no title given at all"),
-    ("A", "[7]",  "2404.18603", "shortened title"),
-    ("A", "[8]",  "2412.20273", "paraphrased — scope changed"),
-    ("A", "[9]",  "2408.10594", "paraphrased — invents 'VHDL'"),
-    ("A", "[10]", "2412.20268", "paraphrased title"),
-    ("A", "[22]", "2402.17764", "shortened title"),
-    ("A", "[26]", "2511.01921", "paraphrased — domain changed"),
-]
-
-OTHER_DEFECTS = [
-    ("A", "[6]", "cites *\u201cPosits: the good, the bad and the ugly\u201d* by de Dinechin, "
-                 "Forget, **Muller** and Uguen at `hal-03195756v3`. The HAL record "
-                 "for that id is *\u201cComparing posit and IEEE-754 hardware cost\u201d* "
-                 "by **Forget, Uguen and de Dinechin** \u2014 different title, and Muller "
-                 "is not among its authors.",
-     "Either correct the title and author list to the HAL record, or supply the "
-     "HAL id of the paper actually meant \u2014 both works exist."),
-    ("B", "[11]", "cites *\u201cFloating-point conformance testing in industrial "
-                  "practice\u201d*. The PDF at the URL given in the entry is "
-                  "*\u201cFormal Verification of the IEEE P3109 Standard for Binary "
-                  "Floating-point Formats for Machine Learning\u201d*, Wintersteiger, "
-                  "Imandra Inc. Right author, different work.",
-     "Replace the title with the one at the cited URL."),
-    ("A", "[11]", "DOI 10.1109/ARITH64983.2025.00019 resolves to *Evaluation of "
-                  "Bfloat16, Posit, and Takum Arithmetics in Sparse Linear "
-                  "Solvers* (Hunhold and Quinlan) — **the same work [10] already "
-                  "cites**. Wrong title, wrong authors, and a duplicate.",
-     "Delete as a duplicate of [10]. If the ARITH 2025 hardware-evaluation paper "
-     "was intended, it needs its own DOI — this one is not it."),
-    ("B", "[12]", "credits *C.* Hunhold for libtakum.",
-     "The author is **Laslo** Hunhold — confirmed from the arXiv record for "
-     "2404.18603."),
-    ("B", "[18]", "cites *IEEE SA P3109 Interim Report **v3.2.0***.",
-     "That document carries no version number anywhere in its text. Cite it by "
-     "retrieval date."),
-]
+ARXIV_DEFECTS = [(d["paper"], d["ref"], d["ident"][1], d["defect"])
+                 for d in DEFECTS if d["ident"][0] == "arxiv"]
+OTHER_DEFECTS = [(d["paper"], d["ref"], d.get("note", d["defect"]), d.get("fix", ""))
+                 for d in DEFECTS if d["ident"][0] != "arxiv"]
 
 
 def fetch(ids):

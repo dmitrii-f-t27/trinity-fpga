@@ -911,3 +911,63 @@ Magazine article; [27], an unversioned working draft; [30], a forum post. These
 cannot be checked mechanically and are recorded as unchecked rather than as clean.
 """
 }
+
+// ---- Pass 80: the two deliverables reduced to one source ---------------------
+
+finding THE_TEX_AND_THE_TABLE_HAD_DRIFTED {
+  name     "the paste-ready LaTeX covered 11 defects; the table listed 20"
+  severity HIGH
+
+  detail """
+CORRECTED_BIBITEMS.tex was generated in pass 76 from a list of 11. The table grew to
+18 in pass 78 and 20 in pass 79, from a SECOND list maintained separately in a
+different file.
+
+So an author working from the .tex -- which is the file that exists precisely to be
+pasted -- would have silently skipped nine defects, including both misattributions
+found in pass 79 and every one of Paper A's six paraphrases.
+"""
+
+  why_it_happened """
+Two artefacts enumerated the same defects independently. Nothing connected them, so
+adding a finding to one left the other stale, and neither could report the gap
+because neither knew about the other.
+
+Same shape as the pass-71 checklist contradiction and the pass-72 stale row: a fact
+recorded in two places, updated in one.
+"""
+  resolved true
+}
+
+practice ONE_LIST_TWO_RENDERINGS {
+  what_was_done """
+research/bibliography_defects.py now holds the defect list as data and nothing else.
+Both generators import it:
+
+  build_bibliography_table.py   -> BIBLIOGRAPHY_FIXES.md   (what an author reads)
+  build_corrected_bibitems.py   -> CORRECTED_BIBITEMS.tex  (what an author pastes)
+
+Adding a defect in one place updates both. The .tex also prints its own entry count
+with a line saying that a disagreement with the table means a generator was not
+re-run -- so the failure is visible in the artefact rather than only in the process.
+"""
+
+  the_general_rule """
+Two documents describing the same facts will diverge. The question is only whether
+the divergence is detectable. Generating both from one source makes it impossible;
+printing the count in each makes it visible if the generation is skipped.
+"""
+}
+
+result BOTH_ARTEFACTS_NOW_AGREE {
+  table "8 entries for Paper A, 12 for Paper B -- 20 total"
+  latex "19 bibitems"
+  why_nineteen_not_twenty """
+Paper A [11] gets no replacement bibitem by design: the correct action is deletion,
+because it duplicates [10] and its DOI does not identify the work the author
+intended. The file says so in a comment instead of emitting a citation nobody should
+paste.
+"""
+  latex_check "0 problems -- no unescaped specials, no non-ASCII, balanced braces, paired quotes, no repeated keys"
+  status VERIFIED_SW
+}

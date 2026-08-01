@@ -23,7 +23,7 @@
 - **[6]** — cites *“Posits: the good, the bad and the ugly”* by de Dinechin, Forget, **Muller** and Uguen at `hal-03195756v3`. The HAL record for that id is *“Comparing posit and IEEE-754 hardware cost”* by **Forget, Uguen and de Dinechin** — different title, and Muller is not among its authors.  
   → Either correct the title and author list to the HAL record, or supply the HAL id of the paper actually meant — both works exist.
 
-- **[11]** — DOI 10.1109/ARITH64983.2025.00019 resolves to *Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse Linear Solvers* (Hunhold and Quinlan) — **the same work [10] already cites**. Wrong title, wrong authors, and a duplicate.  
+- **[11]** — DOI 10.1109/ARITH64983.2025.00019 resolves to *Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse Linear Solvers* (Hunhold and Quinlan) — **the same work [10] already cites**.  
   → Delete as a duplicate of [10]. If the ARITH 2025 hardware-evaluation paper was intended, it needs its own DOI — this one is not it.
 
 
@@ -43,7 +43,7 @@
 | **[19]** | (no title) | Novel Aspects of IEEE SA P3109 Arithmetic Formats for Machine Learning *(Fitzgibbon et al.)* | no title given at all |
 | **[20]** | (no title) | Is Finer Better? The Limits of Microscaling Formats in Large Language Models *(Fasoli et al.)* | no title given at all |
 
-- **[11]** — cites *“Floating-point conformance testing in industrial practice”*. The PDF at the URL given in the entry is *“Formal Verification of the IEEE P3109 Standard for Binary Floating-point Formats for Machine Learning”*, Wintersteiger, Imandra Inc. Right author, different work.  
+- **[11]** — cites *“Floating-point conformance testing in industrial practice”*. The PDF at the entry's own URL is *“Formal Verification of the IEEE P3109 Standard for Binary Floating-point Formats for Machine Learning”*, Wintersteiger, Imandra Inc. Right author, different work.  
   → Replace the title with the one at the cited URL.
 
 - **[12]** — credits *C.* Hunhold for libtakum.  
