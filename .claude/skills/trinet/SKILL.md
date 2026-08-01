@@ -39,6 +39,35 @@ arithmetic self-tests cannot catch, because each is internally consistent.
 Keep **RTL written ≠ routed ≠ measured on the board** apart. A bitstream that
 builds is not a measurement.
 
+## Two results that bound what can be claimed
+
+**Device DNA is a dead end on this toolchain.** `DNA_PORT` places, routes, and
+answers over UART — 8/8 reads, correct framing, 57 bits reported — and `DOUT` is
+**zero for all 57 bits** on an AX7203 through openXC7 (2026-08-01). All bits
+zero points at the primitive not being configured by the bitstream rather than
+at a wrong shift sequence; a vendor-toolchain build on the same board would
+settle it and has not been run. **Do not re-run this probe expecting a different
+answer** — and never let a zero DNA become a node id, or every board on this
+flow claims `0x00000000`.
+
+**Throughput is a UART property, by ~5600x.** Measured 202.6 jobs/s (6482
+ternary MACs/s), p50 4.90 ms, against a transport ceiling of 410 jobs/s and a
+*derived* compute ceiling of 2.3M jobs/s. Any performance claim about this node
+is a claim about the serial line. **No power figure exists** — nothing here has
+been on a bench supply, so any TOPS/W comparison would be fabricated.
+
+## The receipt, and exactly how far it reaches
+
+| tag | resists | does not resist |
+|---|---|---|
+| CRC-32 (`trinet_mac32`) | corruption, wrong job, replay, stale nonce | anyone at all — the function is keyless |
+| SipHash-2-4 (`trinet_node_v2`) | third parties forging on an operator's behalf; with per-node keys, one operator forging for another | the operator forging their own — they hold the bitstream, so they hold the key |
+
+Closing the remaining gap needs a key that never leaves the device: eFUSE or
+BBRAM with an encrypted bitstream, or an external secure element. Until then
+node identity is **asserted, not proven**, and must be described that way
+wherever it is published.
+
 ## Files
 
 ```
@@ -121,20 +150,22 @@ immediate localised failure.
 
 Ordered by what unblocks the most:
 
-1. **`DNA_PORT` under openXC7.** Can nextpnr-xilinx instantiate it on
-   xc7a200t? Cheap to test, and it settles whether *any* device-bound identity
-   is available. Without it, "FPGA compute network" is a claim about intent.
-2. **A second physical node.** Every distributed claim today is one board plus
+1. **Name a buyer.** `open_question WHO_BUYS_TERNARY_COMPUTE` in
+   `settlement_law.t27`. `docs/TRI_NET_TECHNICAL_BRIEF.md` is written and ready;
+   sending it is the operator's decision. Every other item is engineering; this
+   one decides whether the engineering matters.
+2. **Escape the UART.** Measured throughput is 0.02% of the derived compute
+   ceiling. The USB-3 FIFO boundary issue #48 specifies is the unlock, and until
+   it exists no performance number here means anything about the silicon.
+3. **A second physical node.** Every distributed claim today is one board plus
    software. Two boards make the mesh real.
-3. **TF3 balanced-ternary decode** (issue #234) — a different cell from either
-   currently recorded.
-4. **Sign the receipt.** A checksum is not a signature; needed before any
-   settlement crosses a trust boundary.
-5. **Throughput.** UART at 160 kbaud ceilings around 400 jobs/s/board. Real
-   inference needs the USB-3 FIFO boundary issue #48 specifies.
-6. **Name a buyer.** `open_question WHO_BUYS_TERNARY_COMPUTE` in
-   `settlement_law.t27` — every other item is engineering; this one decides
-   whether the engineering matters.
+4. **Power on a bench supply.** No TOPS/W exists. Without it there is no
+   defensible comparison against TernaryCore, TeLLMe or anyone else.
+5. **TF3 balanced-ternary decode** (issue #234) — a different cell from any
+   currently recorded, and blocked on picking one trit encoding for the tree.
+6. **Device identity, if it matters enough.** A vendor-toolchain build of the
+   DNA probe for comparison, or an external secure element. Do NOT simply
+   re-run the openXC7 probe.
 
 ## Words that must not appear in any TRI-NET claim
 
