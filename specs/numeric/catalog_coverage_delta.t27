@@ -1962,3 +1962,74 @@ is simply not parameterised by width.
 Not a defect, and worth recording so the next reader does not spend time on it.
 """
 }
+
+// ---- Pass 96: what the hardware compares against, and the one partial result --
+
+finding MY_UART_PATTERN_DID_NOT_REQUIRE_A_CLEAN_RESULT {
+  name     "the Tier-E counter accepted any N/M, not only N/N with fails=0"
+  severity MEDIUM
+
+  detail """
+The pattern was `HW RESULT:\\s*(\\d+)/(\\d+)\\s*bit-exact`, which matches a partial
+result as readily as a complete one. Re-checking every credited comment:
+
+  73 of 74 report N/N with fails=0
+   1 reports 472/576 -- lns16 decode
+"""
+
+  the_one_is_disclosed_not_hidden """
+The lns16 comment states it in full:
+
+  "HW RESULT: 472/576 bit-exact, 104 known-limitation(s), 0 hard-fail(s) [PASS]
+   The 104 known-limitations are all 1-ULP subnormal-band residuals (tagged
+   KNOWN_LIMITATION, documented in report App. A) -- NOT hard-fails. This is the
+   honest ceiling of the current correction path."
+
+So the project counts it as Tier-E on the grounds of zero hard-fails, discloses the
+104 residuals, tags them in the log, and documents them in an appendix. That is a
+defensible accounting choice, stated openly.
+
+What was wrong was my summary, which reported all 74 as though uniformly N/N.
+"""
+  fix "the record now states 73 complete and one partial, with the partial characterised"
+  resolved true
+}
+
+result THE_ONE_ULP_CEILING_NOW_HAS_A_HARDWARE_INSTANCE {
+  detail """
+The 104 residuals are 1-ULP, in the subnormal band, of a LOGARITHMIC format.
+
+That is the same boundary this campaign has met twice before from other directions:
+takum32's pack differs from libtakum by exactly one ULP on 12 of 15 vectors because a
+logarithmic decode needs exp() (pass 45), and numpy states 1-4 ULP tolerances on
+26,615 transcendental rows because correct rounding is not guaranteed by any common
+libm (pass 50).
+
+Software oracle, third-party library, and now silicon -- three independent routes to
+the same statement: bit-exactness is attainable over the decidable class, and
+logarithmic evaluation is not in it.
+"""
+  status VERIFIED_SW
+}
+
+open_question WHAT_THE_COMPUTE_TESTS_COMPARE_AGAINST {
+  asked """
+The corpus proves six arithmetic laws in software with gf_ref.py. The board reports
+N/N bit-exact for ADD, MUL and SUB. If the board is checked against gf_ref.py, the
+two share an oracle and confirm each other only about the RTL.
+"""
+
+  what_the_comments_say """
+"Real-silicon PASS (not SW-golden)" appears on every compute proof, which asserts the
+result came from silicon rather than a software comparison -- but does not name what
+the EXPECTED values were compared against. A bit-exact comparison needs a reference,
+and the comment does not say which.
+"""
+
+  not_answered_here """
+Settling it needs the conformance harness's source, not the issue thread. Recorded as
+open rather than guessed, because the answer decides whether the software and
+hardware results are two witnesses or one.
+"""
+  resolved false
+}
