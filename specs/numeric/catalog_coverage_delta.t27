@@ -1784,3 +1784,66 @@ Third time this campaign has found exactly that -- after the pass-84 scope claim
 said 79 scripts when 291 had run.
 """
 }
+
+// ---- Pass 93: the apparent contradiction was my attribution ------------------
+
+finding I_CREDITED_A_FORMAT_WITH_EVIDENCE_THAT_SAID_THE_OPPOSITE {
+  name     "takum32 was counted as hardware-verified by a comment stating it is unroutable"
+  severity HIGH
+
+  what_happened """
+Pass 92 credited takum32 with a hardware result of 65,536/65,536. Reading the comment
+that produced it:
+
+  "### Tier-E proof: gf16 DECODE (GoldenFloat16 S1E6M9 -> FP32) ...
+   The achievable HW Tier-E ceiling on AX7203 therefore moves 71 -> 72
+   (takum32/64 STILL UNROUTABLE above; 8 structural impossible).
+   UART: HW RESULT: 65536/65536 bit-exact"
+
+The 65,536/65,536 is gf16's. "takum32" appears only in a clause saying it does NOT
+route. My mapper credited any format named anywhere in the comment.
+"""
+
+  the_mechanism """
+Attribution by proximity rather than by claim. A comment can name a format in order
+to say it FAILED, and a matcher that scans the whole body cannot tell the difference.
+"""
+
+  fix """
+A cell is credited only when the format is named in the comment's CLAIM region -- the
+heading line, or within a few lines of its own HW RESULT. Everything else is prose
+that may be saying the opposite. A negative-phrase filter was added as a second
+guard, and did not need to fire: the claim-region restriction alone removed takum32.
+"""
+  resolved true
+}
+
+correction THE_CORRECTED_COVERAGE {
+  was "45 of 83 packs (54%)"
+  now "44 of 83 packs (53%)"
+  removed "takum32 -- the evidence says it is unroutable, not verified"
+  note "small in magnitude, and the right kind of correction: it removes a format the
+        evidence explicitly excludes"
+}
+
+result THE_TWO_CAMPAIGN_RESULTS_WERE_NEVER_IN_TENSION {
+  the_apparent_conflict """
+Pass 45: takum32's pack, against libtakum, agrees bit-identically on 3 of 15 vectors
+and differs by exactly one ULP on the other 12 -- a ceiling on bit-exactness for
+logarithmic decode to float64.
+
+Pass 92 (as reported): takum32 exhaustively bit-exact on hardware, 65,536/65,536.
+
+Those cannot both be true of the same thing, which is why the check was worth running.
+"""
+
+  the_resolution """
+There is no takum32 hardware result at all. The board cannot route it. The
+65,536/65,536 belongs to gf16 decode, and the 1-ULP ceiling stands unchallenged.
+
+The contradiction was manufactured by my attribution error and dissolved with it.
+Checking two of one's own results against each other found a defect in the newer one
+-- which is the point of doing it.
+"""
+  status VERIFIED_SW
+}
