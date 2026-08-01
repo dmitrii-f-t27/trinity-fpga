@@ -25,11 +25,12 @@ fixes below do not apply to all of them equally:
 
 Two things follow:
 
-- **The preprint source repository is behind what is published.** It has 28
-  references; arXiv v3 has 33, and the repo has not been touched since two weeks
-  before v3 appeared. Establish which tree actually produced v3 *before* editing
-  anything for a replacement, or the replacement will silently drop whatever went
-  in after 2026-06-07.
+- **`goldenfloat-preprint` is not the source of v3 — this is now proven.** Five
+  references appear in the published v3 and nowhere in `gf_preprint_v19.tex`, two of
+  them postdating that repository's last commit (2026-06-07): an NVIDIA forum post
+  dated 2026-06-17, and **Paper B itself**, which appeared 2026-06-08.
+  **Editing that file and submitting it would delete Paper A's citation of Paper B.**
+  Locate the tree that actually produced v3 before touching anything.
 - **`ARXIV_BODY_FIXES_READY_TO_PASTE.md`'s line numbers point into `main_ru.tex`** —
   the Russian ВАК submission, not the preprint. The *claims* hold against the
   published text (re-verified: IEEE 754 and TestFloat are uncited in v3's 33
@@ -47,6 +48,7 @@ when editing the Russian manuscript.
 | **1** | **B, abstract** | "a suite of **six** bit-exact conformance packs" → **83 packs (75 bit-exact, 8 structural)** | The single largest defect in either paper, and it is an *under*-claim. The abstract reports the central contribution at ~7 % of its actual coverage. The body already says 49/34. | one sentence |
 | **2** | **A, abstract** | delete or rewrite "**the fabricated TTSKY26b dies** carry the defective multiplier portfolio" | The only claim in either paper that measurement contradicts — the silicon track was cancelled, so there are no fabricated dies to carry anything. Present in v1, v2 and v3. | one clause |
 | **3** | **B, references** | fix **8 of 20** bibitems | Wrong titles, wrong authors, or both — including the companion-paper self-citation **[1]/[2]** and ref **[3]**, which is wholly misattributed (wrong authors, wrong title, wrong subject). One clicked link damages the whole bibliography. | verbatim replacements supplied |
+| **3b** | **A, references** | fix ref **[11]**, and add the work it was meant to cite | Cited as *"L. Hunhold, Hardware evaluation of takum arithmetic, ARITH 2025, DOI 10.1109/ARITH64983.2025.00019"*. That DOI resolves — checked against Crossref — to **"Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse Linear Solvers", Hunhold and Quinlan**: wrong title, wrong author list, wrong subject. It is also a **duplicate of ref [10]**, which cites the same work as `arXiv:2412.20268`. So the bibliography carries one paper twice under two titles, and the ARITH hardware-evaluation paper is missing entirely. | one entry replaced, one added |
 | **4** | **B, abstract** | say what the P3109 cross-walk maps — **layout**, not values | The abstract says it "maps each pack to its **corresponding** standards-track configured format". The working group's own Interim Report, §3.1, is normative: *"For signed formats, the exponent bias **shall be** B = 2^(K−P−1). For unsigned formats, the exponent bias **shall be** B = 2^(K−P)"*, and Annex A.5 states plainly *"This differs from IEEE-754"*. So every `binaryKpP` value is exactly **twice** its same-layout IEEE/OCP counterpart. Confirmed empirically at **all 252 configurations** of their published tables and across **258,524 finite codes** against four packs — one distinct ratio. The special-value codes differ too, by exactly the count P3109's *"single NaN, no negative zero"* predicts: 3, 9 and 2049 observed, 3, 9 and 2049 predicted. Mapping layout is worth publishing; the sentence needs one word to say so. | one word |
 | **5** | **B, related work** | add the four-paragraph subsection | Positions the corpus against *published vector sets*, measured from six projects — including the P3109 working group, which ships **504 exhaustive CSV tables (154 MB)** and whose README forbids using them for conformance. That is the real gap this work fills. | one subsection |
 
