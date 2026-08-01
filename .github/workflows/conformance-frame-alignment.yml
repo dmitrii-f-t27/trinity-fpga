@@ -71,7 +71,26 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: mlugg/setup-zig@v1
-        with: {version: 0.16.0}
+      # Not mlugg/setup-zig: its mirror list returned 503 and 404 across every
+      # entry on the first run of this workflow, failing the job for a reason
+      # that has nothing to do with the code. Pull from ziglang.org with a
+      # retry, and try both tarball naming conventions since 0.14 changed it.
+      - name: Install Zig 0.16.0
+        run: |
+          for name in zig-x86_64-linux-0.16.0 zig-linux-x86_64-0.16.0; do
+            for attempt in 1 2 3; do
+              if curl -fsSL --retry 3 --retry-delay 5 \
+                   "https://ziglang.org/download/0.16.0/${name}.tar.xz" -o /tmp/zig.tar.xz; then
+                sudo tar -xJf /tmp/zig.tar.xz -C /opt
+                echo "/opt/${name}" >> "$GITHUB_PATH"
+                exit 0
+              fi
+              sleep $((attempt * 10))
+            done
+          done
+          echo "::error::could not download Zig 0.16.0 from ziglang.org"
+          exit 1
       - name: TRI-NET stack — protocol, node, ledger, mesh, model, agent
-        run: zig test src/trinet/agent.zig -lc
+        run: |
+          zig version
+          zig test src/trinet/agent.zig -lc
