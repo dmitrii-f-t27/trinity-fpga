@@ -26,20 +26,32 @@ Measured from the four comparable projects:
 
 | project | formats | ships consumable vectors | how it checks |
 |---|---|---|---|
+| **IEEE P3109 WG** (`github.com/P3109/Public`) | one parametric family, `binaryKpP`, K = 8…23 | **Yes** — **504 CSV tables, 154 MB**, exhaustive per configuration, exact hex-float values | published as reference material, and *explicitly disclaimed for conformance* |
 | **Berkeley TestFloat** | 5 (binary16/32/64/80/128; *"cannot test decimal floating-point"*) | **No** — *"distributed in the form of ISO/ANSI C source code"* | differential against the SoftFloat reference implementation |
 | **libtakum** (the takum author's C99 reference) | takum8/16/32/64 + log variants | **No** — 0 data files among 721 | round-trip self-consistency (`from_float64(to_float64(t)) == t`), expectations inline in C |
+| **SoftPosit** (the posit reference) | posit8/16/32 | **No** — 0 data files among 156, no test directory | — |
 | **microxcaling** (Microsoft, MX reference) | the MX formats | **No** — 0 committed data files over 4 KB among 80 | programmatic tests in Python |
 | **numpy** | 2 (binary32, binary64) | **Yes** — 26,615 rows across 20 CSV files | fixed vectors with a stated **1–4 ULP tolerance** |
-| **this corpus** | **83** | **Yes** — 5,075 vectors across 83 packs | fixed vectors, 4,949 at `abs_error = 0`; the remaining 112 disclosed via allowlist |
+| **this corpus** | **83, across 13 families** | **Yes** — 5,075 vectors across 83 packs | fixed vectors, 4,949 at `abs_error = 0`; the remaining 112 disclosed via allowlist |
 
-Two things follow, and the second matters more than the first.
+Three things follow, and the third matters most.
 
-**Distributed vectors are rarer than one would expect.** Of the four comparables,
-only numpy ships a table a third party can consume without running the project's
-code — and it carries a tolerance, not an exactness claim. The two format-specific
-references, including the one written by the format's own author, ship none. A
-consumer wanting to check a takum implementation today must compile libtakum and
-compare against it.
+**The largest exact table set belongs to the standards body, and it may not be used
+for conformance.** P3109's public repository publishes 504 CSV tables totalling 154
+MB, exhaustive per `(K, P)` configuration, with rows of the exact shape a
+conformance vector needs — `codepoint,value,subnormal`, values as exact hex floats
+such as `0x1.8p-15`. Its README then says, in bold terms, that *"the contents of the
+repository must not be utilized for any conformance/compliance purposes"*, because
+they are unapproved drafts subject to change.
+
+So the material exists and the field still has no citable conformance corpus for
+these formats. That is a more precise statement of the gap than "nobody publishes
+vectors", and it is the gap this work actually fills.
+
+**Among implementations, distributed vectors remain rare.** Of TestFloat, libtakum,
+SoftPosit and microxcaling — including the two written by the formats' own authors —
+none ships a consumable table. A consumer wanting to check a takum implementation
+today must compile libtakum and compare against it.
 
 **Exactness here is a consequence of scope, not of superior rigour.** numpy's sets
 cover transcendental functions, where correctly-rounded evaluation is not guaranteed

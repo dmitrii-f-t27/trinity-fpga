@@ -55,7 +55,7 @@ Stated so no reader mistakes silence for confirmation.
 | the `(9/9)` reproduction count | off in **both** directions; needs to know which widths predate the rule | author (`WIDTH_PROVENANCE`) |
 | "83 formats spanning **13 families**" | never checked; a module grouping gives 15, which would not be a defect | author (`FAMILY_TAXONOMY`) |
 | the accumulator **path** (as distinct from the identity) | the identity verifies; the implementation was never executed | author (`ACCUMULATOR_IMPLEMENTATION`) |
-| IEEE P3109 draft version | **not publicly verifiable** — no `P3109/Public`, no release feed | the working group |
+| IEEE P3109 draft version | the repo **is** public — `github.com/P3109/Public`, updated 2026-07-29 — but it carries rolling *unapproved drafts* with no version tags, so a citation to a specific version number still cannot be checked against it. **Paper A ref [27] cites "working draft v0.9.1, 2025" while Paper B's abstract cites "v3.2.0"** — the two companion papers disagree | author, then the working group |
 
 Two rows that stood here have since been settled and moved to §1:
 

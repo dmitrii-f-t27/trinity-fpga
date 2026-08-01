@@ -238,3 +238,90 @@ scope_limits {
   explicit_warning "four comparables is a survey, not a census; the ready-to-paste
                     text forbids generalising it into 'the first' or 'the only'"
 }
+
+// ---- Pass 63: a sixth comparable, found by auditing Paper A's references ------
+
+correction I_SAID_P3109_PUBLISHES_NOTHING_PUBLIC {
+  what_i_recorded """
+The dossier listed the P3109 draft version as "not publicly verifiable -- no
+P3109/Public, no release feed".
+"""
+
+  what_is_actually_there """
+github.com/P3109/Public exists, was updated 2026-07-29, and contains an Interim
+Report PDF, Exemplars, References, and a Value Tables tree holding
+
+  504 CSV files, 153,683,119 bytes
+
+exhaustive per (K, P) configuration for K = 8..23, signed and unsigned, extended
+and finite. Row shape:
+
+  codepoint,value,subnormal
+  0x01,0x0.8p-16,*
+  0x04,0x1p-15,
+
+Values are exact hex floats. That is precisely the shape of a conformance vector,
+and it is the largest such artefact any comparable ships.
+"""
+
+  how_i_found_it """
+Not by looking for it. Auditing Paper A's bibliography, ref [27] named
+"Reference implementation: graphcore-research/gfloat"; gfloat's README links to
+P3109/Public. The thing I had recorded as nonexistent was two hops from a citation
+I was checking for an unrelated reason.
+"""
+
+  the_lesson """
+Second time this campaign that "nobody else does X" failed on contact with
+evidence -- after pass 59 found Paper A already positions against posit, takum,
+OCP-MX and P3109. An absence claim is the most expensive kind to make and the
+cheapest to be wrong about.
+"""
+}
+
+// ---- What the discovery actually shows ---------------------------------------
+finding THE_STANDARDS_BODY_DISCLAIMS_ITS_OWN_TABLES {
+  name     "P3109 publishes 154 MB of exact value tables and forbids using them for conformance"
+  severity INFO
+
+  verbatim_from_their_readme """
+"The contents of the repository represent unapproved drafts of elements that may
+become used in a proposed IEEE Standard. As such, the contents are subject to
+change. USE AT YOUR OWN RISK! In particular, the contents of the repository must
+not be utilized for any conformance/compliance purposes."
+"""
+
+  why_this_strengthens_rather_than_weakens """
+The related-work section as written in pass 60 said only numpy ships a consumable
+table. That was wrong and had to be rewritten.
+
+The corrected statement is more useful. The material exists, at greater scale than
+anything here, produced by the body that would be its natural source -- and it is
+explicitly unusable for the purpose. So the field has no CITABLE conformance corpus
+for these formats, which is a sharper description of the gap than "no vectors
+exist", and it is the gap this work fills.
+
+What distinguishes the corpus is therefore not exactness and not being first. It is
+breadth -- 83 formats across 13 families against one parametric family -- and being
+usable for the purpose at all.
+"""
+  resolved true
+}
+
+finding COMPANION_PAPERS_CITE_DIFFERENT_P3109_VERSIONS {
+  name     "Paper A cites P3109 working draft v0.9.1; Paper B's abstract cites v3.2.0"
+  severity LOW
+
+  detail """
+Paper A ref [27]: "IEEE P3109 Working Group, Standard for binary floating-point
+arithmetic for machine learning, working draft v0.9.1, 2025."
+
+Paper B abstract, verbatim from v2: "an IEEE P3109 v3.2.0 cross-walk".
+
+Same standard, same author, companion papers, two different version numbers. One
+may be the document version and the other a spec version, but nothing in either
+paper says so, and the public repo carries no version tags to settle it.
+"""
+  cheapest_fix "state which artefact each version number refers to, or cite the Interim Report by date"
+  resolved false
+}
