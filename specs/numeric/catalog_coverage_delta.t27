@@ -730,3 +730,66 @@ the URL from the source.
 An absence is a claim. It needs the same check as a presence.
 """
 }
+
+// ---- Pass 77: validating what was delivered ----------------------------------
+
+result B_THE_GENERATED_LATEX_IS_STATICALLY_CLEAN {
+  artefact "research/CORRECTED_BIBITEMS.tex"
+  bibitems 11
+  problems 0
+
+  what_was_checked """
+Unescaped & % # _ $ ~ ^, non-ASCII characters, brace balance, quote pairing, and
+repeated bibitem keys.
+"""
+
+  what_this_is_NOT """
+A compilation. There is no TeX toolchain here and installing TeX Live to verify one
+file would be disproportionate, so the check covers the constructs that STOP a
+build rather than proving one succeeds. The script says so in its own output.
+"""
+
+  my_checker_was_wrong_first """
+The first run reported two problems: a quote opening on one line and closing on the
+next. That is ordinary LaTeX -- a title spanning two lines -- and the test was
+line-local. Quote pairing is now counted over the file.
+
+Two false problems out of two reported. Worth stating plainly: a checker with a
+100% false-positive rate on its first run is not a checker until it has been checked.
+"""
+  status VERIFIED_SW
+}
+
+result A_NO_FURTHER_DUPLICATE_CITATIONS {
+  method "every arXiv id, DOI and URL in both bibliographies, grouped"
+  paper_a "33 entries, no identifier appears twice"
+  paper_b "20 entries, no identifier appears twice"
+
+  the_limit_of_this_method """
+Paper A's known [10]/[11] duplicate is INVISIBLE here: one entry carries an arXiv
+id, the other a DOI, and they are the same work only once both are fetched.
+
+Identifier matching is a lower bound, and the script prints that alongside its
+result rather than leaving "no duplicates found" to be read as "there are none".
+"""
+}
+
+result C_THE_UNIDENTIFIED_PAPER_A_ENTRIES {
+  detail """
+Six Paper A entries carry no arXiv id or DOI. They are not unidentified -- they
+carry ISBNs and a HAL number, which the earlier regex did not look for.
+
+  [23] ISBN 9781482239874 -> "End of Error", John L. Gustafson        title matches
+  [33] ISBN 9783110301731 -> "Computer arithmetic and validity",
+                              Ulrich Kulisch, 2013                    title matches
+  [6]  hal-03195756v3     -- HAL identifier, not resolved here
+  [1] [27] [30]           -- journal 1957, working draft, forum post
+
+Both ISBNs resolve and agree with what is cited.
+"""
+
+  one_lead_not_a_defect """
+[23] is cited as CRC Press 2015; OpenLibrary records 2017. Editions and reprints of
+that book exist under both years, so this is a lead for the author, not a finding.
+"""
+}
