@@ -108,9 +108,9 @@ Timeline:
 49. **GF16 = minimum 4/4 ROBUST** — matmul + gradient + dynamic range + attention all pass
 50. **FP16 fails dynamic range** (5/11 values lost), **BF16 fails matmul** (10× worse)
 51. **φ-rule finds the balance point** where neither E nor M is the bottleneck
-52. **LUT = 2.3 × W²** — encoding-independent information floor (GF16=takum16=505)
-53. **505 = 505** — GF16 MUL ≡ takum16 MUL in zero-DSP regime (LNS re-encode = mantissa multiply)
-54. **Three tiers**: ternary 52 LUT → GF16 505 LUT → takum16 505 LUT (all on one FPGA)
+52. **LUT ≈ 2.3 × W² — ONLY under a pinned protocol** `[method-dependent]`. Measured 2026-07-30: GF16 MUL is **587 / 692 / 1953 LUT** depending on core identity and synthesis flags — a ~3× spread. Two distinct laws, not one: **dedicated** cores ≈ 0.93·W² (ADD), **parametric** cores ≈ 3.56·W² (ADD) / 5.79·W² (MUL), ratio ~3.1–3.5×. Never quote a LUT figure without stating top module, explicit params (`gf_mul_param` default = GF16, `gf_adder_param` default = GF14 — set them), FORMAL-tap vs registered output, and `-flatten`.
+53. **"505" is the dedicated-core figure**, not a universal constant — closest measurement is `gf16_multiplier` = **483**. The GF16≡takum16 equivalence holds *within one protocol*; it is not established across protocols.
+54. **Three tiers** (same protocol only): ternary 52 LUT → GF16 → takum16. All figures are **yosys pre-P&R** `[simulated]`; post-route P&R numbers on AX7203 are **not yet measured** — that gap is what `research/ARXIV_V2_CORRECTION_PACKAGE.md` tracks.
 55. **IGLA RACE**: GF16 used in trios-trainer-igla, champion BPB=2.5329, target <1.50
 56. **BF16 loses 92.7% gradient updates** (7-bit mantissa → step 0.0039 at w=0.5)
 57. **GF16 preserves 63.9% updates** (9-bit mantissa → step 0.00098) — 8.7× more than BF16

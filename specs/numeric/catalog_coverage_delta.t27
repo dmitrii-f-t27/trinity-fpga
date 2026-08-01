@@ -1,0 +1,2125 @@
+# Trinity Numeric SSOT — coverage delta between the published catalog and the oracle layer
+# Claim under test: arXiv:2606.09686 (83-format catalog), abstract
+# Measured 2026-07-31 against gHashTag/t27 conformance/vectors and local conformance/*_ref.py
+
+spec CatalogCoverageDelta version 1.0.0
+
+description """
+The catalog paper describes "a catalog of 83 numeric formats spanning 13 families"
+together with bit-exact conformance packs cross-validated against ml_dtypes.
+
+A reader reasonably infers one set: the catalogued formats are the ones carrying
+bit-exact oracles. Measured, they are TWO overlapping sets that differ on both
+sides:
+
+  * published conformance packs (gHashTag/t27 conformance/vectors): 83
+  * formats with a golden decode oracle (conformance/*_ref.py FORMATS): 84
+  * formats present in one but not the other: 12 oracle-only, 11 pack-only
+
+The overlap is the majority, so this is not an error in the paper -- it is an
+UNSTATED DISTINCTION. Both numbers are defensible; presenting one number invites
+a reader to assume uniform coverage that does not exist.
+
+No superiority or completeness claim is made or implied here.
+"""
+
+constants {
+  PUBLISHED_PACKS        83
+  ORACLE_FORMATS         84
+  ORACLE_ONLY            12
+  PACK_ONLY              11
+  NAMING_VARIANTS_CONFIRMED 1
+  NAMING_VARIANTS_PROBABLE  3
+}
+
+// Same format under two identifiers -- NOT a coverage gap.
+// Confirmed by reading the pack's own "format" field.
+naming_variants {
+  confirmed {
+    bfloat16_vs_bf16_golden { oracle "bfloat16"    pack "bf16_golden"
+                              evidence "pack format field reads BFLOAT16" }
+  }
+  // Same family and width, differing suffix convention. NOT proven identical --
+  // do not merge these in a count without checking the bit layout.
+  probable {
+    fp8      { oracle "fp8_e4m3"     pack "fp8_e4m3fn"  }
+    mxfp4    { oracle "mxfp4"        pack "mxfp4_e2m1"  }
+    mxfp8    { oracle "mxfp8_e4m3"   pack "mxfp8"       }
+  }
+}
+
+// Golden decode oracle exists, no published conformance pack.
+// These are candidates for pack generation -- the cheapest way to widen the
+// catalog, since the oracle already exists.
+oracle_only {
+  formats { bfloat24, bfloat32, mxint8, pdp11_float,
+            tekum8, tekum16, tekum32,
+            uint4, uint8, uint16, uint32,
+            x87_48bit }
+  count 12
+  note "tekum8/16/32 carry oracles but no packs -- notable because tekum is the
+        standing counterexample the project deliberately ships rather than hides"
+}
+
+// Published pack exists, no FORMATS entry in the oracle layer.
+// Largely STRUCTURAL formats: concepts (block scaling, shared exponent,
+// stochastic rounding, tapered precision) rather than a fixed bit layout, so a
+// decode oracle is not applicable. Coherent by design, not a defect.
+pack_only {
+  formats { block_fp, gf8_bfp, gf_lns_hybrid, minifloat, per_channel_scale,
+            q_format, shared_exp, stochastic_rounding, tapered_fp,
+            unum_i, unum_ii }
+  count 11
+  mostly_structural true
+  consistent_with "INDEX_all_formats.json: structural_packs 8"
+}
+
+finding COVERAGE_SETS_CONFLATED {
+  name     "One number is quoted where two different coverage sets exist"
+  severity LOW
+  is_error false
+  remedy """
+State both numbers and what each means: N formats carry a published conformance
+pack; M carry a golden decode oracle; the structural subset has packs but no
+decode oracle by construction. One added sentence removes the inference that all
+83 are uniformly bit-exact verified.
+"""
+  resolved false
+}
+
+finding TEKUM_PACKS_MISSING {
+  name     "tekum8/16/32 have oracles but no published packs"
+  severity LOW
+  opportunity """
+Generating packs for the 12 oracle-only formats is the cheapest available
+widening of the catalog: the golden oracle already exists, so the pack is
+derivable rather than new work. tekum is the most consequential of them, being
+the counterexample the project ships on purpose.
+"""
+  resolved false
+}
+
+scope_limits {
+  covers      "set membership only -- which identifiers appear on each side"
+  not_covered { "whether probable naming variants are bit-identical",
+                "the '13 families' taxonomy claim, which was NOT checked here",
+                "correctness of any pack or oracle" }
+  superiority_claimed false
+}
+
+open_question FAMILY_TAXONOMY {
+  question """
+The abstract says "spanning 13 families". This pass did NOT verify that number.
+
+A grouping by golden-oracle module yields 15 groups, but module layout is an
+implementation detail, not the catalog's taxonomy -- the two need not agree and a
+mismatch would not be a defect. Checking this requires the catalog's own family
+field in specs/numeric/formats_catalog.t27.
+"""
+  do_not_guess true
+  owner        author
+}
+
+// ---- Pass 59: current published text, fetched and read ----------------------
+
+measurement CURRENT_ARXIV_STATE {
+  fetched "2026-08-01, via curl against export.arxiv.org (WebFetch's model was the
+           earlier failure, not the network)"
+
+  paper_b {
+    id      "arXiv:2606.09686v2"
+    updated "2026-06-22T12:28:45Z"
+    title   "An 83-Format Numeric Catalog with Bit-Exact Conformance Vectors: ..."
+  }
+  paper_a {
+    id      "arXiv:2606.05017v3"
+    updated "2026-06-22T12:03:17Z"
+    title   "GoldenFloat: A Phi-Derived Static-Split Floating-Point Family from
+             GF4 to GF1024 with a Lucas-Exact Integer Identity"
+  }
+}
+
+resolution TITLE_CONCERN_WAS_UNFOUNDED {
+  raised_in "pass 58, as an OPEN QUESTION rather than a finding"
+  question "does Paper B's title still read 84-Format, contradicting its own abstract?"
+  answer """
+No. The v2 replacement corrected the title as well as the abstract; both read 83.
+
+Recording this as prominently as a confirmed defect would be recorded. The value of
+having filed it as a question rather than a claim is exactly that it can now be
+closed without a retraction.
+"""
+  resolved true
+}
+
+// ---- The central finding, now verified against the LIVE text ----------------
+finding SIX_PACKS_CLAIM_SURVIVES_V2 {
+  name     "the abstract still describes six conformance packs; the artefact has 83"
+  severity HIGH
+
+  verbatim_from_v2 """
+"a suite of six bit-exact conformance packs covering GF16, MXFP4 element, BF16,
+FP8 E4M3, FP8 E5M2, and E8M0 block scale"
+"""
+
+  against """
+83 packs in conformance/vectors -- 75 bit-exact and 8 structural -- with 5,075
+vectors, 4,949 of them at abs_error exactly 0.
+"""
+
+  why_this_matters_more_now """
+Until this pass the claim was known from a manuscript copy and an earlier fetch.
+It is now confirmed present in the CURRENT published version, updated 2026-06-22,
+which is what a reader gets today.
+
+The abstract reports the paper's central contribution at roughly 7% of its actual
+coverage. It remains the highest-value correction in the package, and it is an
+UNDER-claim -- the rarer and cheaper kind to fix.
+"""
+  resolved false
+}
+
+note PAPER_A_FLAGGED_SENTENCE_SURVIVES_INTO_V3 {
+  verbatim """
+"An RTL-correctness erratum dated 2026-05-31 is reported in Section 5.5; the
+fabricated TTSKY26b dies carry the defective multiplier portfolio, and the
+corrected generator is the regeneration baseline."
+"""
+  detail """
+Present in v3, having survived two revisions. Still the only claim in either paper
+that measurement contradicts -- the silicon track was cancelled, so no fabricated
+dies exist to carry anything.
+"""
+}
+
+correction RELATED_WORK_GAP_WAS_OVERSTATED_IN_PASS_50 {
+  what_pass_50_implied """
+That the papers do not position the work against comparable efforts.
+"""
+  what_the_live_abstract_says """
+Paper A explicitly positions GoldenFloat "alongside posit (2022 Posit Standard),
+takum (Hunhold 2024, 2025), OCP-MX (Rouhani et al. 2023), and the IEEE P3109
+multi-width float draft".
+"""
+  the_narrower_true_claim """
+The gap concerns published CONFORMANCE VECTOR SETS, not format families. Paper A
+positions against the families; neither paper positions against an existing vector
+corpus, which is what the pass-50 numpy comparison supplies.
+
+The ready-to-paste subsection must be introduced on those terms, or it overstates
+an absence that is not there.
+"""
+}
+
+// ---- Pass 62: the deliverable audited against itself ------------------------
+
+finding MY_OWN_DOSSIER_HAD_A_STALE_UNVERIFIED_LIST {
+  name     "two rows in the dossier's 'still unverified' table had been settled since"
+  severity MEDIUM
+
+  detail """
+VERIFICATION_DOSSIER.md section 3 exists so no reader mistakes silence for
+confirmation. Two of its seven rows were wrong by the time anyone would read them:
+
+  "GF commutativity above gf48 -- exact-rational sweeps do not terminate"
+      settled in passes 53-54: all six laws, 16 widths through gf1024,
+      8,865 ordered pairs, 0 violations, under a second
+
+  "takum32/64 published-pack variant -- ctypes returned NaN, measurement void"
+      settled in pass 45: rebuilt through a C bridge, 3 of 15 bit-identical,
+      12 differing by exactly one ULP, none by more
+"""
+
+  why_this_is_the_worse_direction """
+A stale "verified" claim overstates. A stale "unverified" claim understates -- it
+tells the author that work is still open when it is done, and invites them to spend
+effort on it. For a document whose whole purpose is telling someone what remains,
+that is the more damaging error.
+
+Also corrected: the header said 41 passes and the summary said eleven harness false
+alarms. Now 61 and fourteen, with the largest near-miss named -- the 57,330 phantom
+defects from a defaulted format width -- because a reader calibrating trust in the
+remaining numbers should see the worst case, not a count.
+"""
+  resolved true
+}
+
+delivered SUBMISSION_CHECKLIST {
+  artefact "research/SUBMISSION_CHECKLIST.md"
+
+  rationale """
+The package had grown to 7,700 lines across eleven documents. An author cannot act
+on that. This is one page: four ordered changes with cost estimates, four questions
+only the author can answer, two items blocked on a toolchain, five things
+deliberately NOT flagged so nobody re-opens them, and three verified properties the
+papers could claim and do not.
+
+Every line names where its evidence lives. Nothing in it requires reading the other
+documents first.
+"""
+
+  includes_its_own_caution """
+The closing section states the fourteen withdrawn false alarms and the one
+retracted PR, and says to treat the list as claims with evidence attached rather
+than instructions. A checklist that does not say how it could be wrong is asking to
+be trusted more than it has earned.
+"""
+}
+
+// ---- Pass 71: the checklist re-read against everything since ----------------
+
+finding THE_CHECKLIST_CONTRADICTED_ITSELF {
+  name     "section 4 listed the P3109 version as settled while section 2 listed it as open"
+  severity MEDIUM
+
+  detail """
+Section 4, "Deliberately NOT flagged", carried:
+
+  "P3109 v3.2.0, ml_dtypes 0.5.4 -- version strings are internally consistent."
+
+Section 2, four lines earlier, had been updated in pass 69 to say the Interim Report
+carries no version number at all, so neither v3.2.0 nor Paper A's v0.9.1 can be
+checked, and the companion papers disagree with each other.
+
+Both were in the same one-page document, which exists precisely so an author does
+not have to reconcile eleven files.
+"""
+
+  how_it_happened """
+Section 2 was edited when the finding arrived. Section 4 was written earlier and
+never revisited, because nothing in the workflow re-reads a document after amending
+part of it.
+
+That is the same failure mode as the pass-62 dossier: an entry that was true when
+written, left standing after the thing it described changed.
+"""
+
+  fix_applied """
+The stale line now names its own history rather than being deleted: ml_dtypes stays
+in section 4 with its reproduction figure, and a parenthetical records that P3109
+was listed there until pass 69 moved it. A checklist that quietly relocates an item
+from "settled" to "open" is harder to trust than one that says it did so.
+"""
+  resolved true
+}
+
+// ---- Three other drifts fixed in the same read -------------------------------
+note OTHER_STALENESS_FOUND {
+  detail """
+1. "Items 1-3 are corrections. Item 4 is an addition" -- true until pass 64 inserted
+   a new item 4 and pushed the addition to 5. The sentence had been silently
+   mislabelling which items are optional.
+
+2. The harness-false-alarm count still read "fourteen in 61 passes". Now stated as
+   roughly fifteen across seventy, with the four largest named -- a defaulted format
+   width that manufactured 57,330 phantom defects, an oracle loader that skipped two
+   formats, API throttling read as dead references, and a URL typo that made 238
+   files look unreadable. A reader calibrating trust should see the worst cases, not
+   a number.
+
+3. Nothing said the ARTEFACT had been repaired. Five merged PRs fixed defects a
+   reader following the papers' own pointer would have hit -- a generator that could
+   not run on a clean checkout, a regeneration that silently reverted the promotions,
+   six witness files that failed standalone, a CI warning about work already done,
+   and a module that could not be imported. Added as section 6.
+"""
+}
+
+practice RE_READ_THE_WHOLE_DOCUMENT_AFTER_AMENDING_PART {
+  detail """
+Passes 62 and 71 both found stale claims in this campaign's own deliverables, and
+both times the mechanism was identical: a section was amended, the rest was not
+re-read.
+
+Amending part of a document is when it is most likely to contradict itself, because
+the new text is written against current knowledge and the old text is not. The read
+costs minutes; the contradiction costs the reader's trust in everything else on the
+page.
+"""
+}
+
+// ---- Pass 72: the ready-to-paste documents re-read ---------------------------
+
+finding A_DO_NOT_TOUCH_ROW_HAD_GONE_FALSE {
+  name     "the abstracts document told the author not to fix P3109, on evidence that was wrong"
+  severity HIGH
+
+  what_it_said """
+ARXIV_ABSTRACTS_READY_TO_PASTE.md section 3, the "Deliberately NOT changed" table:
+
+  "P3109 v3.2.0 -- The draft version is not publicly verifiable -- no P3109/Public
+   repo, no release feed. The apparent conflict with Paper A's v0.9.1 is NOT an
+   error: they cite two different document series."
+"""
+
+  what_is_true """
+github.com/P3109/Public exists, was updated 2026-07-29, and holds 504 value tables
+(pass 63). And nothing supports the two-document-series explanation -- it was an
+assumption written as a resolution. Pass 69 found the Interim Report carries no
+version number at all, so NEITHER string can be checked and the companion papers do
+disagree.
+"""
+
+  why_this_row_is_the_worst_place_for_it """
+The table's whole purpose is telling an author what NOT to touch. A wrong entry
+there causes a wrong NON-action, which leaves no trace: the author skips the item,
+nothing visibly breaks, and the defect ships.
+
+Every other kind of error in this package produces an edit somebody can review.
+This kind produces silence.
+"""
+  fix "marked and corrected in place, with the superseded text quoted, rather than rewritten"
+  resolved true
+}
+
+finding BODY_FIXES_TARGET_A_DIFFERENT_ARTEFACT {
+  name     "the body-fix list is written against the local manuscript, not the published preprint"
+  severity MEDIUM
+
+  measurement """
+ARXIV_BODY_FIXES_READY_TO_PASTE.md says Paper A "carries 56 references". The
+published arXiv:2606.05017v3 carries 33, counted from its HTML rendering.
+
+The 56 is the local main_ru.tex. Both numbers are true of different documents, and
+every line-number reference in that file points at the manuscript.
+"""
+
+  the_claims_themselves_hold """
+Re-checked against the PUBLISHED v3: searching all 33 references for "754",
+"TestFloat" and "SoftFloat" returns nothing. IEEE 754 and TestFloat really are
+uncited in the preprint, not only in the manuscript.
+"""
+  fix "the section now states which artefact each number describes and warns that line numbers are manuscript-relative"
+  resolved true
+}
+
+practice A_NEGATIVE_INSTRUCTION_NEEDS_THE_SAME_EVIDENCE_AS_A_POSITIVE_ONE {
+  detail """
+This campaign has been careful about what it tells an author to CHANGE, and much
+less careful about what it tells them to LEAVE ALONE. The P3109 row sat wrong for
+nine passes while the corresponding "do this" items were revised repeatedly.
+
+An instruction not to act is still an instruction. It should carry the same
+evidence, and be re-checked on the same schedule, as an instruction to act.
+"""
+}
+
+// ---- Pass 73: which document do the fixes actually target? -------------------
+
+measurement THREE_DOCUMENTS_THREE_BIBLIOGRAPHIES {
+  method "counted \\bibitem in each source via the authenticated contents API"
+
+  artefacts {
+    preprint_source {
+      path "gHashTag/goldenfloat-preprint : gf_preprint_v19.tex"
+      bytes 72302  bibitems 28  repo_updated "2026-06-07"
+    }
+    published {
+      path "arXiv:2606.05017v3"
+      bibitems 33  updated "2026-06-22"
+    }
+    russian_manuscript {
+      path "gHashTag/trinity-papers-ru : paper1-goldenfloat/main_ru.tex"
+      bytes 176875  bibitems 56  repo_updated "2026-08-01"
+      venue "Russian-language version for VAK journals -- a different venue"
+    }
+  }
+}
+
+finding THE_PREPRINT_SOURCE_IS_BEHIND_WHAT_IS_PUBLISHED {
+  name     "goldenfloat-preprint has 28 references; the published v3 has 33"
+  severity HIGH
+
+  detail """
+The repository holding the English preprint source was last touched 2026-06-07.
+arXiv v3 was published 2026-06-22 with five more references than that source
+contains.
+
+So whoever opens goldenfloat-preprint to prepare a replacement starts from a
+document that is NOT what arXiv is serving. Edits made there would silently drop
+whatever went into v3 after 2026-06-07.
+"""
+  what_to_do "establish which tree produced v3 before editing anything for a replacement"
+  resolved false
+}
+
+finding THE_BODY_FIX_LINE_NUMBERS_POINT_AT_A_DIFFERENT_PAPER {
+  name     "ARXIV_BODY_FIXES targets main_ru.tex, a Russian paper for VAK journals"
+  severity HIGH
+
+  detail """
+Every line-number reference in ARXIV_BODY_FIXES_READY_TO_PASTE.md points into
+main_ru.tex -- 177 KB, 56 bibitems, described by its own repository as the
+"Russian-language version for VAK journals", a different venue from arXiv.
+
+The checklist that frames all of this is titled "arXiv replacement".
+
+Applying the body fixes as written would edit the Russian journal submission, not
+the preprint. The individual CLAIMS still hold against the published text -- pass 72
+re-verified that IEEE 754 and TestFloat are uncited in v3's 33 references -- but the
+locations do not.
+"""
+  resolved false
+  recorded_for "SUBMISSION_CHECKLIST.md"
+}
+
+correction I_NEARLY_REPORTED_A_404_AS_A_FINDING {
+  what_happened """
+Fetching gf_preprint_v19.tex over raw.githubusercontent returned "404: Not Found",
+which grep dutifully reported as 0 bibitems, 0 cites, 0 occurrences of "754". That
+reads as a paper with no bibliography at all -- a startling finding, and entirely an
+artefact of an unauthenticated request to what appears to be a private repository.
+"""
+  what_caught_it """
+CHANGELOG.md returned 404 too. A file that should exist coming back empty is a
+signal about the FETCH, not about the repository, and checking a second file cost
+one command.
+
+The tree API had worked throughout, because gh authenticates and curl does not.
+Re-fetching through gh api gave 28 bibitems.
+"""
+  lesson "when a fetch yields a surprising absence, fetch something you KNOW exists before believing it"
+}
+
+// ---- Pass 74: all three options ----------------------------------------------
+
+result A_WHICH_TREE_PRODUCED_V3 {
+  question "is goldenfloat-preprint/gf_preprint_v19.tex the source of arXiv v3?"
+  answer "No, and it is provable from the reference list."
+
+  evidence """
+Exactly five entries appear in the published v3 and nowhere in v19.tex:
+
+  [28] Sarnoff, "Novel aspects of IEEE SA P3109 arithmetic formats", arXiv:2606.04028
+  [29] AMD Research, "Pretraining LLMs with MXFP4 on native FP4 hardware"
+  [30] NVIDIA Developer Forums, dated 2026-06-17
+  [31] D. Vasilev, "An 83-format numeric catalog..."   <- the companion paper
+  [32] "MixFP4: Enhancing NVFP4 with adaptive FP4/INT4 block representations"
+
+Two of them postdate the repository's last commit (2026-06-07): the NVIDIA forum
+post is dated 2026-06-17, and Paper B appeared 2026-06-08.
+"""
+
+  the_consequence_that_matters """
+Editing v19.tex and submitting it as a replacement would delete Paper A's citation
+of Paper B.
+
+The correction package already flags a companion-paper self-citation defect in the
+other direction. Preparing the replacement from the wrong tree would create the
+same class of defect while trying to fix it.
+"""
+  status VERIFIED_SW
+}
+
+finding B_PAPER_A_HAS_A_REAL_MISATTRIBUTION {
+  name     "ref [11]'s DOI resolves to a different work, already cited as [10]"
+  severity HIGH
+
+  cited """
+[11] L. Hunhold, "Hardware evaluation of takum arithmetic," ARITH 2025
+     (IEEE 32nd Symposium on Computer Arithmetic). DOI 10.1109/ARITH64983.2025.00019
+"""
+
+  what_the_doi_resolves_to """
+Crossref, fetched directly:
+
+  DOI     10.1109/arith64983.2025.00019
+  title   "Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse Linear Solvers"
+  authors Hunhold; Quinlan
+"""
+
+  three_ways_wrong """
+Wrong title, wrong author list (one name cited, two in the record), wrong subject --
+sparse linear solvers rather than hardware evaluation.
+
+And it is a DUPLICATE: ref [10] already cites that same work as arXiv:2412.20268.
+So the bibliography contains the linear-solvers paper twice, once under a title
+belonging to a different one, and the ARITH hardware-evaluation paper the author
+meant to cite is absent.
+"""
+
+  significance """
+Pass 63 concluded Paper A had no misattributions -- 23 arXiv ids checked, 17 titles
+agreeing, 6 paraphrases, 0 pointing at a different work. That conclusion covered
+only the entries carrying an arXiv id. The first DOI checked broke it.
+
+"No misattributions" was true of the 23 entries examined and was reported as true
+of the bibliography. It was not.
+"""
+  resolved false
+  recorded_for "SUBMISSION_CHECKLIST.md item 3"
+}
+
+measurement C_THE_SEVEN_UNPARSEABLE_FILES {
+  detail """
+Counted by every sweep since pass 57 and never opened. All seven are genuinely
+broken Python, not misnamed files:
+
+  compare_gamma_candidates.py         unmatched ')' -- one extra paren
+  overnight_research_agent.py         prose sitting in code at line 699
+  pslq_ramanujan.py                   invalid syntax, line 73
+  pysr_trinity_blind_test_v2.py       unterminated f-string, line 28
+  ultra_engine_v120_hyperbolic.py     invalid syntax, line 141
+  ultra_engine_v69_lee_control_clean.py  malformed conditional expression
+  verify_all_152.py                   COMMITTED MERGE CONFLICT MARKERS at line 4
+"""
+
+  severity_for_the_papers "LOW -- all in scripts/, none referenced by any workflow"
+  worth_reporting "verify_all_152.py carries <<<<<<< Updated upstream in the repository"
+
+  harness_note """
+The classifier's "LOOKS LIKE: not Python at all" fired on compare_gamma_candidates,
+which is Python with a typo. The label was a guess presented with more confidence
+than it had earned; the syntax error beneath it is the real information.
+"""
+}
+
+// ---- Pass 75: the "8 of 20" figure, checked mechanically ---------------------
+
+measurement PAPER_B_BIBLIOGRAPHY_RESOLVED {
+  entries 20
+  with_arxiv_id 12
+  arxiv_titles_agreeing 3
+  arxiv_leads 9
+  with_doi 0
+  neither 8
+}
+
+result THE_HAND_AUDIT_UNDERCOUNTED {
+  the_published_figure "8 of 20 defective"
+
+  what_mechanical_resolution_finds """
+Nine of the TWELVE arXiv-checkable entries differ from the work their identifier
+resolves to, before the other eight are examined at all.
+
+Genuine misattributions -- the cited title belongs to a different work:
+  [2]  "Takum arithmetic: A new paradigm for low-precision numerics"
+       -> "Integer Representations in IEEE 754, Posit, and Takum Arithmetics"   8%
+  [3]  "ProofWright: Towards verified floating-point arithmetic"
+       -> "ProofWright: Towards Agentic Formal Verification of CUDA"           20%
+  [8]  "M2XFP: A unified mixed-precision microscaling floating-point ..."
+       -> "M2XFP: A Metadata-Augmented Microscaling Data Format ..."            4%
+  [13] "Takum arithmetic in sparse iterative solvers: precision-vs-storage"
+       -> "Evaluation of Bfloat16, Posit, and Takum Arithmetics in Sparse
+           Linear Solvers"                                                     21%
+
+Companion-paper self-citation, wrong title:
+  [1]  "GoldenFloat: A phi-anchored numeric format family and the identity ..."
+       -> "GoldenFloat: A Phi-Derived Static-Split Floating-Point Family from
+           GF4 to GF1024 with a Lucas-Exact Integer Identity"                  18%
+
+Paraphrases -- same work, reworded:
+  [4] FLoPS (50%),  [10] pychop (38%)
+
+No title at all in the bibliography:
+  [19] -> "Novel Aspects of IEEE SA P3109 Arithmetic Formats for Machine Learning"
+  [20] -> "Is Finer Better? The Limits of Microscaling Formats in LLMs"
+"""
+
+  and_two_more_outside_that_set """
+[12] cites "C. Hunhold" for libtakum. The author is LASLO Hunhold -- confirmed from
+     the arXiv record for 2404.18603. Wrong initial.
+
+[18] cites "IEEE SA P3109 Interim Report v3.2.0". Pass 69 read that document: it
+     carries no version number anywhere in its text.
+"""
+
+  conclusion """
+"8 of 20" was produced by reading; it is not wrong so much as incomplete. Mechanical
+resolution finds more, and finds them in the part of the bibliography a reader is
+most likely to click.
+"""
+  status VERIFIED_SW
+}
+
+resolution THE_P3109_VERSION_QUESTION_IS_ANSWERED {
+  detail """
+The checklist carried this as open: Paper B says v3.2.0, Paper A says working draft
+v0.9.1, and an early draft of the package explained it away as "two different
+document series".
+
+Paper B ref [18] names the artefact: "IEEE SA P3109 Interim Report v3.2.0". That is
+the same Interim Report Paper A's ref [27] points at through gfloat, and the same one
+pass 69 read cover to cover for a version string and found none.
+
+So it is not two series. It is a version number attached to a document that does not
+carry one, in both papers, differently.
+"""
+  resolved true
+}
+
+practice A_CONCLUSION_FROM_READING_NEEDS_A_MECHANICAL_SECOND_PASS {
+  detail """
+Twice now a bibliography conclusion has been reached by reading and then broken by
+resolution. Pass 63 found "no misattributions in Paper A" across 23 arXiv entries;
+pass 74 checked the first DOI and found one. Pass 5 found "8 of 20" in Paper B by
+hand; this pass finds nine among twelve.
+
+Reading catches what looks wrong. Resolution catches what looks right and is not --
+which is the whole class that matters, because a plausible-looking citation is the
+one nobody re-checks.
+"""
+}
+
+// ---- Pass 76: all three, and two absences that were tooling ------------------
+
+open_question A_THE_V3_SOURCE_TREE_CANNOT_BE_LOCATED_HERE {
+  attempted """
+Searched gHashTag for the content that exists only in the published v3: "MixFP4",
+"GB10 NVFP4", and the actual published title "Lucas-Exact Integer Identity". Zero
+hits for all three. Also checked goldenfloat-preprint's branches: only main.
+"""
+
+  why_the_absence_proves_nothing """
+Control search: "GoldenFloat" across the org returns 30 hits, so code search works.
+But "bibitem" inside goldenfloat-preprint returns 0 -- and that file demonstrably
+contains 28.
+
+So GitHub code search does not index that repository. It may not index whichever
+tree produced v3 either, and no-hits is therefore not evidence of no-tree.
+"""
+  status "undetermined with available tooling, not answered in the negative"
+  who_can_settle "the author, who knows where v3 was built"
+}
+
+delivered B_CORRECTED_BIBITEMS {
+  artefact "research/CORRECTED_BIBITEMS.tex"
+  generator "research/build_corrected_bibitems.py"
+
+  covers """
+Nine Paper B entries whose arXiv id resolves to a different title, plus [12]'s wrong
+author initial, [18]'s version string on a document that has none, and Paper A's
+[11] duplicate.
+"""
+
+  why_generated_rather_than_transcribed """
+The audit scripts truncate author lists to four names for display. Fetching fresh
+from the API for the bibitems found more: ProofWright has five authors, and M2XFP
+has eleven. Transcribing from the report would have shipped short author lists into
+a bibliography being fixed for wrong author lists.
+"""
+}
+
+result C_THE_URL_ONLY_REFERENCES_RESOLVE {
+  checked "the four Paper B references carrying a URL rather than an identifier"
+  findings """
+  arith2025.org/proceedings/215900a157.pdf   200
+  github.com/takum-arithmetic/libtakum       200
+  github.com/jax-ml/ml_dtypes                200
+  opencompute.org/documents/ocp-mx-v1-0      403
+"""
+  the_403 """
+Not reported as a defect. OCP gates spec downloads, and a 403 from a site that
+requires a form is not a dead link. Unresolved either way rather than counted.
+"""
+}
+
+correction I_MANUFACTURED_A_404_BY_TRUNCATING_A_URL {
+  what_happened """
+The ARITH proceedings link first returned 404 and looked like a dead citation in
+the paper. The URL I tested was arith2025.org/proceedings/215900 -- my own truncation
+of the display output. The reference's actual URL is .../215900a157.pdf, which
+returns 200.
+"""
+  the_pattern """
+Second time this pass that an absence was mine: code search "finding nothing" was a
+repository it cannot index, and this 404 was a URL I shortened. Both were caught by
+testing the tool rather than trusting the result -- a control search, and re-reading
+the URL from the source.
+
+An absence is a claim. It needs the same check as a presence.
+"""
+}
+
+// ---- Pass 77: validating what was delivered ----------------------------------
+
+result B_THE_GENERATED_LATEX_IS_STATICALLY_CLEAN {
+  artefact "research/CORRECTED_BIBITEMS.tex"
+  bibitems 11
+  problems 0
+
+  what_was_checked """
+Unescaped & % # _ $ ~ ^, non-ASCII characters, brace balance, quote pairing, and
+repeated bibitem keys.
+"""
+
+  what_this_is_NOT """
+A compilation. There is no TeX toolchain here and installing TeX Live to verify one
+file would be disproportionate, so the check covers the constructs that STOP a
+build rather than proving one succeeds. The script says so in its own output.
+"""
+
+  my_checker_was_wrong_first """
+The first run reported two problems: a quote opening on one line and closing on the
+next. That is ordinary LaTeX -- a title spanning two lines -- and the test was
+line-local. Quote pairing is now counted over the file.
+
+Two false problems out of two reported. Worth stating plainly: a checker with a
+100% false-positive rate on its first run is not a checker until it has been checked.
+"""
+  status VERIFIED_SW
+}
+
+result A_NO_FURTHER_DUPLICATE_CITATIONS {
+  method "every arXiv id, DOI and URL in both bibliographies, grouped"
+  paper_a "33 entries, no identifier appears twice"
+  paper_b "20 entries, no identifier appears twice"
+
+  the_limit_of_this_method """
+Paper A's known [10]/[11] duplicate is INVISIBLE here: one entry carries an arXiv
+id, the other a DOI, and they are the same work only once both are fetched.
+
+Identifier matching is a lower bound, and the script prints that alongside its
+result rather than leaving "no duplicates found" to be read as "there are none".
+"""
+}
+
+result C_THE_UNIDENTIFIED_PAPER_A_ENTRIES {
+  detail """
+Six Paper A entries carry no arXiv id or DOI. They are not unidentified -- they
+carry ISBNs and a HAL number, which the earlier regex did not look for.
+
+  [23] ISBN 9781482239874 -> "End of Error", John L. Gustafson        title matches
+  [33] ISBN 9783110301731 -> "Computer arithmetic and validity",
+                              Ulrich Kulisch, 2013                    title matches
+  [6]  hal-03195756v3     -- HAL identifier, not resolved here
+  [1] [27] [30]           -- journal 1957, working draft, forum post
+
+Both ISBNs resolve and agree with what is cited.
+"""
+
+  one_lead_not_a_defect """
+[23] is cited as CRC Press 2015; OpenLibrary records 2017. Editions and reprints of
+that book exist under both years, so this is a lead for the author, not a finding.
+"""
+}
+
+// ---- Pass 78: the bibliography findings, consolidated ------------------------
+
+delivered BIBLIOGRAPHY_FIXES_TABLE {
+  artefact  "research/BIBLIOGRAPHY_FIXES.md"
+  generator "research/build_bibliography_table.py"
+
+  totals { paper_a 7  paper_b 11  overall 18 }
+
+  why_generated_not_written """
+The table pulls each entry's CURRENT claim from the published HTML and each work's
+real title from the arXiv API, both at generation time. So it validates itself: if
+a reference number in the defect list were wrong, the "currently says" column would
+not match what that entry actually claims.
+
+Writing it by hand would have produced a snapshot that drifts. Passes 62, 71 and 72
+each found a hand-written document that had gone stale; this one regenerates.
+"""
+
+  what_it_replaces """
+The same findings were spread across SUBMISSION_CHECKLIST.md, three .t27 specs and
+CORRECTED_BIBITEMS.tex. An author fixing a bibliography needs one list, in the order
+they will work through it.
+"""
+}
+
+result THE_TOTAL_HAS_MOVED_A_LONG_WAY {
+  history """
+  pass 5   Paper B: "8 of 20 defective"        by reading
+  pass 63  Paper A: "0 misattributions"        by reading the arXiv-id subset
+  pass 74  Paper A: 1 misattribution           first DOI checked
+  pass 75  Paper B: 9 of 12 arXiv entries      mechanical resolution
+  pass 78  both:    18 entries                 consolidated and re-resolved
+"""
+
+  the_pattern """
+Every increase came from resolving identifiers rather than reading entries, and
+every reading-based figure was an undercount. Not because the readings were careless
+-- because a citation that points at the wrong work usually looks completely normal.
+"""
+
+  what_is_still_not_covered """
+Entries with no machine-resolvable identifier: Paper A [1] (1957 journal), [6] (HAL),
+[27] (working draft), [30] (forum post); Paper B [11], [15], [16], [17], whose URLs
+resolve but whose CONTENT was not compared against what is claimed.
+
+And the [10]/[11] duplicate was found only because two different identifier types
+resolved to the same work. Identifier matching alone does not find that shape, so
+others may remain.
+"""
+  status VERIFIED_SW
+}
+
+// ---- Pass 79: the blind spot covered, and two more misattributions -----------
+
+result B_DUPLICATE_SEARCH_BY_WORK_NOT_BY_IDENTIFIER {
+  method """
+Resolve every identifier -- arXiv id and DOI alike -- to a canonical title, then
+group by title. Different identifier TYPES then collapse onto the same work, which
+grouping by identifier cannot do.
+"""
+  paper_a "26 of 33 entries resolved; ONE duplicate"
+  paper_b "12 of 20 entries resolved; none"
+
+  it_validated_itself """
+The one duplicate it found is Paper A's [10]/[11] -- the pair discovered by accident
+in pass 74. A method built to find a known case and finding it is worth more than
+one that finds only new things, because it says the search actually works.
+
+No others exist among the entries either paper's identifiers can resolve.
+"""
+  status VERIFIED_SW
+}
+
+finding TWO_MORE_MISATTRIBUTIONS_FROM_NON_ARXIV_IDENTIFIERS {
+  severity HIGH
+
+  paper_b_11 """
+Cited: "C. M. Wintersteiger, Floating-point conformance testing in industrial
+practice, Proc. IEEE ARITH 2025."
+
+The PDF at the entry's OWN URL is "Formal Verification of the IEEE P3109 Standard
+for Binary Floating-point Formats for Machine Learning", Christoph M. Wintersteiger,
+Imandra Inc.
+
+Right author, different work. The link resolves, which is why a link-checker passed
+it in pass 76 -- reachability is not agreement.
+"""
+
+  paper_a_6 """
+Cited: "F. de Dinechin, L. Forget, J.-M. Muller, and Y. Uguen, Posits: the good, the
+bad and the ugly, 2019. hal-03195756v3."
+
+The HAL record for that id is "Comparing posit and IEEE-754 hardware cost", authors
+Luc Forget, Yohann Uguen, Florent de Dinechin -- a different title, and Muller is not
+among its authors.
+
+Both works exist; the identifier points at the other one.
+"""
+
+  the_pattern_now_complete """
+Every identifier TYPE checked so far has yielded at least one misattribution:
+arXiv ids (9 in Paper B), a DOI (Paper A [11]), a HAL id (Paper A [6]), and a bare
+URL (Paper B [11]). Only the two ISBNs came back clean.
+
+The defect is not specific to one citation database. It is consistent with entries
+written from memory and given an identifier afterwards.
+"""
+  resolved false
+}
+
+note WHAT_REMAINS_UNCHECKABLE {
+  detail """
+Three Paper A entries carry no resolvable identifier at all: [1], a 1957 Mathematics
+Magazine article; [27], an unversioned working draft; [30], a forum post. These
+cannot be checked mechanically and are recorded as unchecked rather than as clean.
+"""
+}
+
+// ---- Pass 80: the two deliverables reduced to one source ---------------------
+
+finding THE_TEX_AND_THE_TABLE_HAD_DRIFTED {
+  name     "the paste-ready LaTeX covered 11 defects; the table listed 20"
+  severity HIGH
+
+  detail """
+CORRECTED_BIBITEMS.tex was generated in pass 76 from a list of 11. The table grew to
+18 in pass 78 and 20 in pass 79, from a SECOND list maintained separately in a
+different file.
+
+So an author working from the .tex -- which is the file that exists precisely to be
+pasted -- would have silently skipped nine defects, including both misattributions
+found in pass 79 and every one of Paper A's six paraphrases.
+"""
+
+  why_it_happened """
+Two artefacts enumerated the same defects independently. Nothing connected them, so
+adding a finding to one left the other stale, and neither could report the gap
+because neither knew about the other.
+
+Same shape as the pass-71 checklist contradiction and the pass-72 stale row: a fact
+recorded in two places, updated in one.
+"""
+  resolved true
+}
+
+practice ONE_LIST_TWO_RENDERINGS {
+  what_was_done """
+research/bibliography_defects.py now holds the defect list as data and nothing else.
+Both generators import it:
+
+  build_bibliography_table.py   -> BIBLIOGRAPHY_FIXES.md   (what an author reads)
+  build_corrected_bibitems.py   -> CORRECTED_BIBITEMS.tex  (what an author pastes)
+
+Adding a defect in one place updates both. The .tex also prints its own entry count
+with a line saying that a disagreement with the table means a generator was not
+re-run -- so the failure is visible in the artefact rather than only in the process.
+"""
+
+  the_general_rule """
+Two documents describing the same facts will diverge. The question is only whether
+the divergence is detectable. Generating both from one source makes it impossible;
+printing the count in each makes it visible if the generation is skipped.
+"""
+}
+
+result BOTH_ARTEFACTS_NOW_AGREE {
+  table "8 entries for Paper A, 12 for Paper B -- 20 total"
+  latex "19 bibitems"
+  why_nineteen_not_twenty """
+Paper A [11] gets no replacement bibitem by design: the correct action is deletion,
+because it duplicates [10] and its DOI does not identify the work the author
+intended. The file says so in a comment instead of emitting a citation nobody should
+paste.
+"""
+  latex_check "0 problems -- no unescaped specials, no non-ASCII, balanced braces, paired quotes, no repeated keys"
+  status VERIFIED_SW
+}
+
+// ---- Pass 81: hunting the duplicated-fact mechanism on purpose ---------------
+
+measurement NUMERIC_DRIFT_SEARCH {
+  method """
+Extract every number together with the noun it qualifies -- "83 packs", "66,224
+codes" -- across the seven deliverable documents, and group by noun. A noun carrying
+two values is either a real distinction or a drift.
+"""
+  nouns_with_multiple_values 6
+  genuine_drifts 0
+
+  reading """
+All six are different facts sharing a word: 19,106 codes (oracle exactness) against
+258,524 (P3109) against 66,224 (ml_dtypes); "83 formats" against the "83-vs-5 format
+comparison". The numeric surface of the deliverables is consistent.
+"""
+}
+
+finding THE_SAME_FALSE_CLAIM_SURVIVED_IN_THE_LARGEST_DOCUMENT {
+  name     "\"there is no P3109/Public repository\" still stood in the correction package"
+  severity HIGH
+
+  detail """
+Pass 72 corrected this claim in ARXIV_ABSTRACTS_READY_TO_PASTE.md. It survived
+untouched in ARXIV_V2_CORRECTION_PACKAGE.md -- 1,217 lines, the largest document in
+the package -- in two places: the executive summary at line 48 and section 6.2,
+which states outright "Checked this pass: there is no P3109/Public repository".
+
+Found by searching for absence-shaped phrasings across all documents, not by
+reading. The numeric search that ran first found nothing, because this claim
+contains no number.
+"""
+
+  the_irony_worth_recording """
+Section 6.2 names graphcore-research/gfloat as "the best remaining lead". Following
+exactly that lead in pass 63 reached P3109/Public in two hops -- gfloat's README
+links to it directly. The document contained the route to its own refutation.
+"""
+
+  fix """
+Corrected in place with the superseded text struck through and quoted. The item is
+settled rather than open: the Interim Report is public and carries no version
+number, so cite it by retrieval date.
+
+This also disposes of section 8.6's "two different document series" explanation,
+which pass 72 had already flagged as an assumption written as a resolution.
+"""
+  resolved true
+}
+
+practice ABSENCE_CLAIMS_NEED_A_SEARCH_OF_THEIR_OWN {
+  detail """
+The numeric-drift detector found zero real problems. Searching for the phrasings of
+ABSENCE -- "not publicly verifiable", "does not exist", "no public", "the only",
+"the first", "uncited" -- found the live one immediately.
+
+That matches what passes 76 and 79 established from the other direction: every
+absence claim this campaign has made was wrong at least once, and every identifier
+type checked has yielded a misattribution. Absence is the claim most likely to be
+stale, because nothing about it changes when the world does -- there is no failing
+test, no mismatched number, nothing to notice.
+"""
+  tool "research/find_duplicated_facts.py, plus a grep over absence phrasings"
+}
+
+// ---- Pass 82: uniqueness claims, and the same mechanism a fourth time --------
+
+measurement UNIQUENESS_CLAIMS_IN_THE_DELIVERABLES {
+  searched "the only, the first, no other, nobody else, unprecedented, never been"
+  scope "the seven documents an author would actually read"
+
+  result """
+The deliverables are close to clean. The hits are:
+
+  VERIFICATION_DOSSIER "the only evidence these two formats have" -- true, and about
+      the corpus's own evidence for double_double/quad_double
+  RELATED_WORK "the only defensible claim" -- a judgement about numpy's tolerance,
+      and a defensible one
+  SUBMISSION_CHECKLIST "the first thing an auditor does" -- rhetorical
+
+So the campaign has not been making novelty claims in the text that goes to the
+author. That is worth stating, because it was the thing being checked for.
+"""
+}
+
+finding THE_WARNING_AGAINST_OVERCLAIMING_UNDERSTATED_ITS_OWN_COVERAGE {
+  name     "the note forbidding 'the first' and 'the only' listed two surveyed projects as unsurveyed"
+  severity MEDIUM
+
+  what_it_said """
+RELATED_WORK_READY_TO_PASTE.md, notes section:
+
+  "Not surveyed, and so not claimed: SoftPosit (hosted on GitLab, not fetched) and
+   the IEEE P3109 draft's own material (not publicly available). Do not generalise
+   the table into 'the first' or 'the only' -- FOUR comparables is a survey, not a
+   census."
+"""
+
+  what_was_true """
+SoftPosit was surveyed in pass 76. P3109's material was surveyed in pass 63 and is
+the LEAD ROW of the table the note annotates. Six comparables, not four.
+
+The paragraph warning against overclaiming was contradicting the table directly
+above it, and understating its own coverage while doing so.
+"""
+  resolved true
+}
+
+finding THE_SPEC_STILL_SAID_ONLY_NUMPY_SHIPS_TABLES {
+  name     "related_work_measured.t27 carried the pre-P3109 conclusion"
+  severity MEDIUM
+
+  detail """
+"Of four comparables, only numpy ships a table a third party can consume without
+running the project's code."
+
+Corrected in the .md deliverable in pass 63, when P3109's 504 CSV tables were found.
+Never corrected in the spec. Fourth instance of the same mechanism: one fact, two
+files, updated in one.
+"""
+
+  the_corrected_statement_is_stronger """
+Six comparables, TWO of which ship consumable tables. The largest exact table set in
+the field is published by the standards body that would be its natural source -- and
+its README forbids using it for conformance.
+
+That is a sharper description of the gap than "only numpy publishes vectors", so the
+correction improves the claim rather than weakening it.
+"""
+  resolved true
+}
+
+practice FOUR_INSTANCES_IS_A_SYSTEM {
+  detail """
+Passes 71, 72, 80, 81 and 82 each found the same thing: a fact recorded in two
+places and updated in one. The instances differ in surface -- a contradicted table
+row, a do-not-touch instruction, a paste file covering half the defects, an absence
+claim, a count inside a warning -- and are identical underneath.
+
+Two mitigations now exist. Generating both renderings from one source, which makes
+the drift impossible (pass 80). And searching for the CLASS rather than waiting to
+trip over an instance: numbers-with-nouns for drift, absence phrasings for stale
+negatives, uniqueness phrasings for overclaims.
+
+The second is what found this pass's two, and it took one grep each.
+"""
+}
+
+// ---- Pass 83: the class searches, turned on the specs ------------------------
+
+measurement SPEC_SWEEP_FOR_ABSENCE_AND_UNIQUENESS {
+  files "specs/numeric/*.t27"
+  claims_found 65
+  inside_a_marked_superseded_block 31
+  standing_as_current 34
+
+  the_discrimination_that_mattered """
+These specs deliberately keep refuted claims as history, marked SUPERSEDED_BY or
+inside a `correction` block. Flagging those would have buried the signal under the
+campaign's own honesty record, so a hit counts only when its enclosing block carries
+no supersession marker. Half the hits were history.
+"""
+
+  noise_reduction """
+The first sweep flagged 42. Most of the excess was "the first attempt", "the first
+classifier" -- narrative, not uniqueness claims. Excluding that shape brought it to
+34 and made the real entries readable.
+"""
+}
+
+result THE_SPECS_ABSENCE_CLAIMS_HOLD_UP {
+  checked """
+Sampled the unmarked hits, including the two most likely to have gone stale:
+
+  WHERE_IS_GF_ARITHMETIC_VERIFIED -- "there is no independent re-implementation
+      left" states its evidence: every wrapper is a one-line delegation to gf_ref.
+  CONFORMANCE_SCRIPTS_RUN -- "gen_all_formats.py was the ONLY conformance script
+      reading an uncommitted input", with hardcoded_tmp_inputs 0.
+"""
+
+  finding """
+No false absence claim in the specs. That is the opposite of what the same search
+found in research/*.md, where it turned up a live one immediately in pass 81.
+
+The difference is structural, and worth naming: a spec block states its evidence
+next to its claim, and the .md deliverables state conclusions. A claim written
+beside its measurement is harder to leave standing after the measurement changes.
+"""
+  status VERIFIED_SW
+}
+
+finding A_SCOPE_CLAIM_READ_BROADER_THAN_ITS_MEASUREMENT {
+  name     "\"all 13 scripts under conformance/\" excluded a subtree that held six broken files"
+  severity MEDIUM
+
+  detail """
+generator_runnability_sweep.t27's scope_limits said the pass covered "all 13 scripts
+under conformance/". It covered the top level. conformance/witness/ holds six decode
+references that were not among the 13, and pass 57 ran them and found all six broken
+-- they defaulted to a /home/user/workspace path and failed on any machine but one.
+
+Those are the artefacts honesty rule #10 points a sceptic at.
+"""
+
+  the_shape_of_this_error """
+The measurement was correct and the conclusion was correct. One preposition claimed
+more than either. "Under conformance/" reads as the subtree; "at the top level of
+conformance/" is what was done.
+
+Not an absence claim and not a uniqueness claim -- which is why neither search
+pattern found it. It surfaced from reading the block the search pointed at.
+"""
+  fix "scope corrected, and the excluded subtree named along with what was later found in it"
+  resolved true
+}
+
+// ---- Pass 84: scope claims, three URL refs, and the Russian manuscript -------
+
+finding A_TWO_SCOPE_CLAIMS_WERE_WRONG_IN_OPPOSITE_DIRECTIONS {
+  severity MEDIUM
+
+  overstated """
+campaign_self_reproduction.t27: "all 15 scripts in research/". The directory now
+holds 31 -- this campaign kept adding tools after the sweep. "All" was true on the
+day and false a week later, which is what "all" does to a directory that grows.
+Now dated, with the 16 unswept scripts named as unswept.
+"""
+
+  understated """
+script_tree_sweep.t27: "the 79 read-only ones executed". Passes 58 and 61 then ran
+the 200 write-capable and 12 exec-capable buckets. The scope claimed 79 when 291 of
+300 had been run.
+
+A scope can be wrong in the flattering direction too, and that is the harder one to
+notice: nobody re-reads a limitation to check it is not too modest.
+"""
+  resolved true
+}
+
+result B_THE_THREE_URL_REFERENCES {
+  paper_b_17 "ml_dtypes 0.5.4 -- confirmed, it is the latest release of jax-ml/ml_dtypes"
+  paper_b_15 "IEEE Std 754-2019 -- correct designation and year for the current revision"
+  paper_b_16 """
+OCP Microscaling Formats (MX) v1.0 -- NOT verified. The site returns 403 to any
+automated request; it gates spec downloads. Recorded as unverifiable rather than as
+clean.
+"""
+}
+
+measurement C_THE_RUSSIAN_MANUSCRIPT_AUDITED {
+  artefact "trinity-papers-ru/paper1-goldenfloat/main_ru.tex, 56 bibitems"
+  note "the VAK submission -- a third document, never audited before"
+
+  arxiv_entries_resolved 44
+  titles_agree 32
+  leads 12
+
+  inherited_defects """
+[7] through [10] carry exactly the Hunhold paraphrases already recorded against
+Paper A: "Takum arithmetic" for "Beating Posits at Their Own Game", "Integer
+representations of takums" for "Integer Representations in IEEE 754, Posit, and
+Takum Arithmetics", a VHDL codec title the real paper does not use.
+
+The defects propagate between the papers, which is what one would expect of
+bibliographies maintained by copying.
+"""
+
+  one_of_its_own """
+[24] cites "A 16-bit floating point format with 1/6/9 bit allocation for deep
+learning" at arXiv:2103.15940. That id resolves to "Representation range needs for
+16-bit neural network training", Popescu, Venigalla and Wu -- 12% token overlap, a
+different work in the same area.
+"""
+
+  the_rest """
+The remaining leads are abbreviations that keep the identifying name -- NanoZK,
+zkComposer, NativeTernary, SEAL, FLoPS. Weaker than a full title, but they point at
+the right work, unlike Paper B's [3].
+"""
+  status VERIFIED_SW
+}
+
+// ---- Pass 85: three documents in one source, and two harness failures --------
+
+result C_THE_THREE_BIBLIOGRAPHIES_COMPARED {
+  method "key every entry by arXiv id and compare how each document cites it"
+  shared_works 23
+  cited_identically 17
+  cited_differently 6
+
+  the_useful_direction """
+main_ru.tex has the CORRECT title where Paper B has a wrong or missing one:
+
+  arXiv:2601.19213  Paper B "M2XFP: A unified mixed-precision microscaling
+                            floating-point representation"        (invented)
+                    main_ru "M2XFP: a metadata-augmented microscaling data
+                            format for efficient low-bit quantization"  CORRECT
+
+  arXiv:2601.19026  Paper B (no title)
+                    main_ru "Is finer better? The limits of microscaling
+                            formats in large language models"           CORRECT
+
+So two of Paper B's defects already have their fix written, in the author's own
+Russian manuscript. It simply did not propagate.
+"""
+  status VERIFIED_SW
+}
+
+delivered A_THE_THIRD_DOCUMENT_JOINS_THE_SHARED_SOURCE {
+  detail """
+bibliography_defects.py now carries all three documents: 8 for Paper A, 12 for
+Paper B, 7 for main_ru. Both generators render all three.
+
+Four of main_ru's seven are inherited from Paper A verbatim -- the Hunhold
+paraphrases, the HAL misattribution, and the ARITH DOI that resolves to the
+solvers paper. One is its own: [24], an id resolving to "Representation range
+needs for 16-bit neural network training" under a title describing a different
+work.
+"""
+}
+
+correction TWO_HARNESS_FAILURES_IN_ONE_PASS {
+  the_first_would_have_shipped """
+Regenerating the .tex during arXiv throttling produced a file with FOUR bibitems
+instead of nineteen -- every unresolved id printed as "did not resolve" -- and it
+was written over the good file.
+
+Caught by checking the count afterwards. The generator now REFUSES to write when any
+id fails to resolve, exits 2, and says the likely cause. Writing nothing beats
+writing something worse than what is already there.
+"""
+
+  the_second_was_a_false_alarm """
+The LaTeX checker then flagged four correct \\bibitem lines for "unescaped _" --
+underscores inside the citation KEY, which is an argument and never typeset.
+
+Second time this checker's first answer was wrong, after the line-local quote test
+in pass 77. Both times it reported problems in a file that had none. A checker whose
+errors are all false positives trains you to ignore it, which is worse than having
+no checker.
+"""
+  now "24 bibitems, 0 problems, three documents"
+}
+
+// ---- Pass 86: the references nobody checked because they agreed --------------
+
+measurement THE_AGREED_POOL_CHECKED {
+  premise """
+Pass 85 examined the 6 works the three documents cite DIFFERENTLY, and left the 17
+they cite identically alone. Agreement was treated as a reason not to look.
+
+For bibliographies maintained by copying that is backwards: consistent copying
+propagates an error consistently, so a work cited the same way everywhere is the one
+nobody notices is wrong.
+"""
+
+  result { agreed_works 17  correct 13  wrong 4 }
+
+  the_four """
+Every one is wrong in BOTH documents that carry it, and all four were already in the
+defect list:
+
+  2404.18603  A[7], RU[7]   "Takum arithmetic"
+                            -> "Beating Posits at Their Own Game: Takum Arithmetic"
+  2408.10594  A[9], RU[9]   "A VHDL codec for takum arithmetic"
+                            -> "Design and Implementation of a Takum Arithmetic
+                                Hardware Codec"
+  2402.17764  A[22], RU[26] "The era of 1-bit LLMs: BitNet b1.58"
+                            -> "...All Large Language Models are in 1.58 Bits"
+  2511.01921  A[26], RU[30] "Fibbinary: quantization of neural networks using
+                             Fibonacci representations"
+                            -> "Fibbinary-Based Compression and Quantization for
+                                Efficient Neural Radio Receivers"
+"""
+
+  what_this_bounds """
+NO NEW defects. The agreed pool is 13/17 correct, and the four exceptions were
+already known.
+
+A negative result worth having: it bounds the problem. The bibliography defects are
+concentrated in the entries the documents disagree about, not spread through the
+ones they share.
+"""
+  status VERIFIED_SW
+}
+
+correction I_ALMOST_REPORTED_A_BIASED_SAMPLE_AS_A_RATE {
+  what_happened """
+arXiv was throttling, so the first attempt used a local cache -- the real titles
+already fetched for the generated .tex. Four of the 17 agreed works were in it, and
+all four were wrong. That reads as a 100% error rate in the agreed pool.
+
+It is nothing of the kind. Those four were IN the cache precisely because they were
+already identified as defective and their real titles fetched for the correction
+file. The sample was selected by the property being measured.
+"""
+
+  the_full_check """
+13 of 17 correct. The real rate is 24%, not 100%.
+"""
+
+  why_this_is_worth_recording """
+A cache assembled for one purpose is not a sample for another. The bias was
+invisible in the numbers -- four out of four looks like a strong signal -- and
+visible only in how the cache came to exist.
+
+Caught before it was written down. The guard that produced the delay is the same one
+that made the correct answer available: refusing a partial result forced the retry.
+"""
+}
+
+// ---- Pass 87: the Russian manuscript concedes prior art the English does not --
+
+finding THE_ENGLISH_PAPERS_DO_NOT_MENTION_DLFLOAT {
+  name     "GF16's layout is IBM DLFloat's, acknowledged in the Russian text and absent from both preprints"
+  severity HIGH
+
+  what_main_ru_says """
+Section "IEEE DLFloat и независимый формат 1/6/9 (E6M9)", verbatim in translation:
+
+  "The bitwise layout of GF16 -- sign, 6-bit exponent, 9-bit mantissa (E6M9,
+   BIAS = 31) -- IS NOT NEW AS A LAYOUT AND IS NOT CLAIMED TO BE. IBM DLFloat
+   (Agrawal et al., ARITH 2019, DOI 10.1109/ARITH.2019.00023) is a 16-bit
+   floating-point format with exactly 6 exponent and 9 mantissa bits, proposed for
+   deep learning training and inference; this is exactly GF16's field layout.
+   Popescu, Sentieys et al. (arXiv:2103.15940) independently identify the 1/6/9
+   split as a range-precision compromise for 16-bit training. So the choice of the
+   E6M9 LAYOUT has independent precedent, and GoldenFloat is honestly positioned as
+   ONE OF the formats using that layout, not as its originator. The
+   GoldenFloat-specific contribution is not the GF16 layout itself but the
+   derivation of the e:f split across the whole ladder from GF4 to GF256 from a
+   single closed rule."
+"""
+
+  what_the_preprints_say """
+Nothing. "DLFloat" and "Agrawal" each occur ZERO times in arXiv:2606.05017v3 and in
+arXiv:2606.09686v2.
+"""
+
+  why_this_matters """
+GF16 is the flagship rung -- the one with silicon, the one carrying the 35/35 FPGA
+conformance claim. A reader of either English paper cannot learn that its layout is
+identical to a 2019 IBM format.
+
+This is not a concealment. The author wrote the acknowledgement, in detail, with the
+DOI, and drew the right distinction: the layout is not the contribution, the closed
+rule generating the whole ladder is. It simply did not reach the English versions.
+"""
+
+  the_recommendation """
+Add it. It is an ADDITION THAT STRENGTHENS the paper -- a precise concession of
+prior art, in the author's own words, that sharpens what the contribution actually
+is. Paper A's abstract already says "We make no per-rung accuracy or superiority
+claim", and DLFloat is the most concrete thing that sentence could point at.
+
+The Russian paragraph can be translated almost directly.
+"""
+  resolved false
+  recorded_for "SUBMISSION_CHECKLIST.md"
+}
+
+measurement MAIN_RU_DOIS_RESOLVED {
+  dois_in_entries 7
+  titles_agree 6
+  leads 1
+  note "the single lead is the ARITH misattribution already recorded, inherited from Paper A [11]"
+
+  also_checked """
+Two Zenodo DOIs, the author's own artefacts, both resolve: "5500FP: A 24-Trit
+Balanced Ternary RISC Processor" and "Trinity B007: VSA Operations for Ternary
+Computing v5.0".
+
+One DOI initially looked dead -- DataCite returned "the resource you are looking for
+doesn't exist" for 10.1109/ARITH.2019.00023. IEEE DOIs live in Crossref, not
+DataCite. Queried there it resolves correctly to DLFloat. Querying the wrong
+registry and reporting the answer would have manufactured a dead citation.
+"""
+}
+
+// ---- Pass 88: a whole evidence standard exists only in Russian ---------------
+
+finding THE_TIER_E_METHODOLOGY_IS_ABSENT_FROM_BOTH_PREPRINTS {
+  name     "the four-link hardware evidence chain exists only in main_ru.tex"
+  severity HIGH
+
+  what_main_ru_defines """
+Section "Аппаратная верификация на FPGA AX7203 (уровень Tier-E)":
+
+  A separate hardware verification track on an ALINX AX7203 board (Xilinx Artix-7
+  XC7A200T-2FBG484I, IDCODE 0x13636093) under the open openXC7 flow (yosys +
+  nextpnr), with a criterion called Tier-E requiring ALL FOUR of:
+
+    1. a public openXC7 CI run reporting success, with the URL
+    2. the SHA-256 of the specific bitstream
+    3. a UART log of the form "HW RESULT: N/N bit-exact (fails=0)" at 160000 baud,
+       taken from the physical board
+    4. a matching IDCODE 0x13636093
+
+  and stating explicitly that a GREEN commit message, or simulation alone, does NOT
+  count as Tier-E. Every proof is published per-cell in issue #199, with a data
+  cut-off date of 2026-07-15.
+"""
+
+  presence_across_the_three """
+  term      Paper A   Paper B   main_ru
+  Tier-E        0         0         7
+  AX7203        0         0         2
+  IDCODE        0         0         3
+  openXC7       0         0         2
+  160000        0         0         2
+"""
+
+  this_is_not_a_contradiction """
+Worth stating carefully, because the first reading was wrong. Paper A's XC7A35T and
+main_ru's XC7A200T are not two accounts of one measurement: Paper A reports a
+synthesis and timing result -- a 35-of-35 codec testbench at 323 MHz -- and main_ru
+describes a separate PHYSICAL-BOARD track with UART evidence.
+
+Different experiments, different parts. What is missing from the preprints is not a
+corrected number but an entire methodology.
+"""
+
+  why_adding_it_strengthens_the_papers """
+Tier-E is a strict evidence standard that refuses to count a green CI badge or a
+passing simulation as hardware proof. That is precisely the discipline a sceptical
+reader wants attached to a hardware claim, and the papers currently assert their
+FPGA result without it.
+
+Second instance of the pass-87 pattern: the Russian manuscript carries substantive
+scientific material -- there a concession of prior art, here an evidence standard --
+that the English versions do not.
+"""
+  resolved false
+  recorded_for "SUBMISSION_CHECKLIST.md"
+}
+
+measurement RU_ONLY_ENTITIES {
+  entities_in_main_ru 125
+  absent_from_both_preprints 38
+
+  substantive_among_them """
+Beyond Tier-E and DLFloat: Popescu/Sentieys as independent precedent for the 1/6/9
+split, a GPT-2 quantization round-trip experiment reported in SQNR, and 2026 works
+cited only in Russian -- TOM (ROM-SRAM ternary ASIC), SEAL, zkComposer, KroQuant.
+
+The Russian related-work section is materially broader than either preprint's.
+"""
+
+  the_rest_is_venue_apparatus """
+Most of the 38 is what one expects of a different venue -- translated terminology
+and Russian-language formatting -- and has no business in an arXiv preprint. The
+tool prints context precisely so that distinction is made by reading rather than by
+count.
+"""
+}
+
+// ---- Pass 89: the FPGA part number, located precisely ------------------------
+
+finding THE_ACHIEVED_FPGA_RESULT_CARRIES_TWO_DIFFERENT_PARTS {
+  name     "Paper A says XC7A35T, main_ru says XC7A100T, for the same 35/35 at 323 MHz"
+  severity HIGH
+
+  the_two_statements """
+Paper A, abstract and body, twice:
+  "a GF16 FPGA codec passing a 35-of-35 testbench at 323 MHz on Artix-7
+   (Xilinx XC7A35T)"
+
+main_ru.tex, abstract and body, and again in the status table:
+  "кодек GF16 на FPGA, проходящий тестовое окружение 35 из 35 на частоте 323 МГц
+   на Artix-7 (Xilinx XC7A100T)"
+
+Same testbench count, same frequency, same rung. Different part.
+"""
+
+  paper_a_is_internally_consistent """
+Worth stating, because the first count looked like Paper A contradicting itself.
+It does not. Paper A uses XC7A100T only for the PLANNED matched-substrate experiment
+H4 in Appendix D -- "GF16 and posit16 codecs synthesised on the same Xilinx Artix-7
+(XC7A100T-FGG676, QMTech Wukong V1)" -- which is pre-registered, not achieved.
+
+Two parts for two purposes, correctly distinguished.
+"""
+
+  where_that_leaves_it """
+  claim                                Paper A            main_ru
+  achieved: GF16 codec 35/35 @ 323MHz  XC7A35T            XC7A100T
+  planned : matched-substrate H4       XC7A100T (QMTech)  --
+  Tier-E physical board track          --                 XC7A200T (AX7203)
+
+The two documents cannot both be right about the achieved result. And main_ru's
+choice lands on precisely the part Paper A reserves for the planned comparison,
+which is the shape a copy-edit produces.
+"""
+
+  what_this_replaces """
+The checklist carried "XC7A35T -- worth double-checking against the board the
+measurement was actually taken on" as a vague note in the blocked-on-toolchain
+section. It is now a located discrepancy between two documents, with the third part
+number explained.
+
+Which one is correct cannot be settled from here: it needs whoever ran the synthesis.
+"""
+  resolved false
+}
+
+correction MY_PASS_88_READING_WAS_HALF_RIGHT {
+  what_i_said """
+"Paper A's XC7A35T and main_ru's XC7A200T are not two accounts of one measurement --
+different experiments, different parts."
+"""
+
+  what_holds """
+True of XC7A200T. That is the Tier-E physical-board track, genuinely separate from
+Paper A's synthesis result.
+"""
+
+  what_i_missed """
+I searched main_ru for XC7A35T and XC7A200T and never searched for XC7A100T -- which
+is the part main_ru actually attributes the 323 MHz result to, five times.
+
+So the conclusion "no contradiction" was reached by not looking at the third
+possibility. Checking two candidates and concluding about a set of three.
+"""
+
+  how_it_surfaced """
+A background grep from the previous pass finished and reported that main_ru mentions
+"323" five times. That number had no business being interesting unless main_ru made
+the same claim -- which is what prompted the re-check.
+"""
+}
+
+// ---- Pass 90: the shared-number check, generalised and bounded ---------------
+
+measurement SHARED_NUMBERS_ACROSS_THREE_DOCUMENTS {
+  method """
+Pass 89's finding came from a shared number with a different neighbourhood: "323 MHz"
+appears in Paper A and main_ru, and each names a different Xilinx part. Generalised
+here -- match on the number, then compare the technical entities around it.
+"""
+
+  first_attempt_was_noise """
+Flagging whenever each document had SOME entity the other lacked gave 25 hits, all
+innocent: 392 candidate ratios, the 10^-499 exponent tables, IEEE 754. Different
+sentences mention different things; that is not disagreement.
+"""
+
+  tightened """
+A lead requires a CLASS CONFLICT -- both documents name a member of the same entity
+class, and name DIFFERENT members. Two XC7A parts for one result conflicts; one
+document mentioning MHz where the other does not is variation.
+
+11 flagged, down from 25.
+"""
+
+  result """
+The top hit is the known 323 MHz / part discrepancy, which is the method finding the
+case it was built from -- worth more than finding something new, because it says the
+search works.
+
+The other ten are noise: the GF-rung class matches GF10, GF12, GF16 and so on, so any
+table compared against prose flags. No new discrepancy.
+"""
+
+  the_number_most_worth_checking """
+83, the format count and Paper B's central figure, is stated identically in all
+three documents: "83 formats" twice in Paper A, four times in Paper B, "83 форматов"
+twice in main_ru, and "84" nowhere.
+"""
+  status VERIFIED_SW
+}
+
+result THE_PART_NUMBER_LOOKS_ISOLATED {
+  finding """
+Across every number the three documents share near a technical entity, exactly one
+carries a conflicting attribute: the FPGA part on the 323 MHz result.
+
+A bounded negative result. The documents disagree about one thing, not many, and
+that one thing is already recorded and located.
+"""
+
+  what_this_does_not_cover """
+Numbers stated WITHOUT a nearby technical entity are invisible to this check, as are
+claims that differ in wording rather than in a named attribute. It bounds one shape
+of inconsistency, not inconsistency.
+"""
+}
+
+// ---- Pass 91: Tier-E verified against its own evidence issue -----------------
+
+result TIER_E_HOLDS {
+  claim_under_test """
+main_ru.tex defines Tier-E as requiring ALL FOUR of a public openXC7 CI run with its
+URL, the SHA-256 of the specific bitstream, a UART log "HW RESULT: N/N bit-exact
+(fails=0)" at 160000 baud from the physical board, and a matching IDCODE
+0x13636093 -- and states that a GREEN commit message or a passing simulation does
+NOT count. Proofs are said to be published per-cell in gHashTag/trinity-fpga#199.
+
+That is falsifiable against a public artefact, and it was the strongest unverified
+statement in any of the three documents.
+"""
+
+  measurement {
+    comments_in_issue 217
+    carrying_ci_url 98
+    carrying_sha256 121
+    carrying_uart_log 98
+    carrying_idcode 151
+    carrying_ALL_FOUR 74
+    distinct_cells_with_a_complete_chain 34
+  }
+
+  the_cells """
+bcd 100/100, bfloat16 8/8, binary16 65536/65536, binary32 64/64, binary64 64/64,
+binary128 64/64, decimal32 64/64, decimal64 64/64, decimal128 64/64, fp8 256/256,
+fp8_e5m2 256/256, gf4 512/512, gf6 512/512, gf8 512/512, gf10 64/64, gf12 512/512,
+gf14 64/64, gf16 512/512, gf20 512/512, gf24 512/512, gf32 512/512, int4 16/16,
+int8 256/256, int16 64/64, int32 64/64, posit8 256/256, posit16 64/64,
+posit32 64/64, takum8 256/256, takum16 64/64, vax_d 64/64, vax_f 64/64,
+vax_g 64/64.
+
+binary16 is EXHAUSTIVE -- 65,536 of 65,536 codes bit-exact on the physical board.
+"""
+
+  reading """
+The standard is not aspirational. It is defined strictly, it rules out the two
+easiest ways to fake a hardware claim, and 34 format cells actually meet it with
+four independent links each.
+
+This strengthens the case for item 4c considerably: the English papers are missing
+not a proposed methodology but a met one.
+"""
+
+  what_this_does_and_does_not_check """
+It checks PRESENCE of the four links in a single comment, which is exactly what
+Tier-E's own definition requires -- a chain is only as good as its weakest link
+being present.
+
+It does NOT re-run the CI, re-hash the bitstream, or re-read the UART. Those need
+the board, and saying so matters: this verifies that the evidence was published, not
+that the silicon behaved.
+"""
+  status VERIFIED_SW
+}
+
+// ---- Pass 92: the two lines crossed ------------------------------------------
+
+result HOW_MANY_PACKS_HAVE_HARDWARE_EVIDENCE {
+  question "of the 83 conformance packs, how many carry a physical-board result?"
+  answer "45 of 83 -- 54%"
+
+  with_hardware """
+bcd 100/100, bfloat16 8/8, binary16 65536/65536, binary32/64/128 64/64,
+decimal32/64/128 64/64, double_double 64/64, fp4_e2m1 16/16, fp6_e2m3 64/64,
+fp6_e3m2 64/64, fp8_e5m2 256/256, gf4/6/8/12/16/20/24/32 up to 512/512,
+gf10 64/64, gf14 64/64, ibm_hfp32/64 64/64, int4 16/16, int8 256/256,
+int16/32 64/64, lns8 256/256, lns16 64/64, ms_mbf32/64 64/64, nf4 16/16,
+posit8 256/256, posit16/32 64/64, quad_double 64/64, takum8 256/256,
+takum16 64/64, takum32 65536/65536, vax_d/f/g 64/64.
+
+Two are exhaustive over the whole code space: binary16 and takum32, at
+65,536/65,536 each.
+"""
+
+  software_only """
+38 packs: afp, binary256, block_fp, cray_float, fp8_e4m3, gf48, gf64, gf96, gf128,
+gf256, gf512, gf1024, gf8_bfp, gf_lns_hybrid, gfternary, ibm_hfp128, int64, int128,
+lns32, lns64, minifloat, mxfp4, mxfp6, mxfp8, mxgf4, mxgf6, per_channel_scale,
+posit64, q_format, shared_exp, stochastic_rounding, takum64, tapered_fp, tf32,
+unum_i, unum_ii, vax_h, x87_fp80.
+"""
+
+  the_split_is_coherent """
+What is on hardware is what fits in the cell. The software-only list is the wide
+rungs (gf48 through gf1024), the wide integers (int64, int128), binary256, x87_fp80,
+takum64 -- and the parametric or structural entries that have no single fixed layout
+to synthesise: minifloat, q_format, block_fp, shared_exp, unum_i/ii, tapered_fp.
+
+That is a physical explanation, not a gap in rigour, and it is what makes the number
+worth publishing.
+"""
+
+  why_this_matters_to_the_papers """
+"83 formats, bit-exact" and "verified on silicon" are different claims about
+overlapping sets, and neither paper distinguishes them. A reader's first question
+about a hardware-backed format catalogue is which formats have hardware, and the
+answer is precise, checkable and favourable: more than half.
+"""
+  status VERIFIED_SW
+}
+
+correction PASS_91_UNDERCOUNTED_THE_TIER_E_CELLS {
+  what_i_reported "34 distinct cells with a complete four-link chain"
+  what_is_true "46 cells, of which 45 match a published pack id"
+
+  why """
+The pass-91 script took the FIRST format name matching in each comment. Comments
+covering several cells were counted once, and formats named only alongside others
+were missed entirely.
+
+Taking every match per comment, and widening the name pattern to the corpus's actual
+ids -- double_double, ms_mbf32, per_channel_scale and the rest -- gives 46.
+"""
+
+  the_shape_of_the_error """
+An undercount from a regex that stopped at the first hit. It made the verified claim
+weaker than the evidence supports, which is the direction that does not get noticed:
+nobody rechecks a number for being too modest.
+
+Third time this campaign has found exactly that -- after the pass-84 scope claim that
+said 79 scripts when 291 had run.
+"""
+}
+
+// ---- Pass 93: the apparent contradiction was my attribution ------------------
+
+finding I_CREDITED_A_FORMAT_WITH_EVIDENCE_THAT_SAID_THE_OPPOSITE {
+  name     "takum32 was counted as hardware-verified by a comment stating it is unroutable"
+  severity HIGH
+
+  what_happened """
+Pass 92 credited takum32 with a hardware result of 65,536/65,536. Reading the comment
+that produced it:
+
+  "### Tier-E proof: gf16 DECODE (GoldenFloat16 S1E6M9 -> FP32) ...
+   The achievable HW Tier-E ceiling on AX7203 therefore moves 71 -> 72
+   (takum32/64 STILL UNROUTABLE above; 8 structural impossible).
+   UART: HW RESULT: 65536/65536 bit-exact"
+
+The 65,536/65,536 is gf16's. "takum32" appears only in a clause saying it does NOT
+route. My mapper credited any format named anywhere in the comment.
+"""
+
+  the_mechanism """
+Attribution by proximity rather than by claim. A comment can name a format in order
+to say it FAILED, and a matcher that scans the whole body cannot tell the difference.
+"""
+
+  fix """
+A cell is credited only when the format is named in the comment's CLAIM region -- the
+heading line, or within a few lines of its own HW RESULT. Everything else is prose
+that may be saying the opposite. A negative-phrase filter was added as a second
+guard, and did not need to fire: the claim-region restriction alone removed takum32.
+"""
+  resolved true
+}
+
+correction THE_CORRECTED_COVERAGE {
+  was "45 of 83 packs (54%)"
+  now "44 of 83 packs (53%)"
+  removed "takum32 -- the evidence says it is unroutable, not verified"
+  note "small in magnitude, and the right kind of correction: it removes a format the
+        evidence explicitly excludes"
+}
+
+result THE_TWO_CAMPAIGN_RESULTS_WERE_NEVER_IN_TENSION {
+  the_apparent_conflict """
+Pass 45: takum32's pack, against libtakum, agrees bit-identically on 3 of 15 vectors
+and differs by exactly one ULP on the other 12 -- a ceiling on bit-exactness for
+logarithmic decode to float64.
+
+Pass 92 (as reported): takum32 exhaustively bit-exact on hardware, 65,536/65,536.
+
+Those cannot both be true of the same thing, which is why the check was worth running.
+"""
+
+  the_resolution """
+There is no takum32 hardware result at all. The board cannot route it. The
+65,536/65,536 belongs to gf16 decode, and the 1-ULP ceiling stands unchallenged.
+
+The contradiction was manufactured by my attribution error and dissolved with it.
+Checking two of one's own results against each other found a defect in the newer one
+-- which is the point of doing it.
+"""
+  status VERIFIED_SW
+}
+
+// ---- Pass 94: the fix validated, and a distinction the figure was hiding -----
+
+result THE_ATTRIBUTION_FIX_HOLDS_ACROSS_ALL_CELLS {
+  method """
+Pass 93 fixed the attribution and validated it on the single case that motivated it.
+A fix confirmed on its own motivating example is not confirmed, so this prints, for
+every credited cell, the heading of the comment that credited it.
+"""
+
+  result """
+All 45 credited cells are named in their OWN comment heading. None is credited from
+proximity to a HW RESULT line alone.
+
+The headings are unambiguous throughout: "### Tier-E proof: `binary128` (decode --
+IEEE 754 quad FP128)", "### Tier-E proof: `posit8` (decode -- Posit8 (es=0))". The
+format is the explicit subject, not a mention in passing.
+"""
+  status VERIFIED_SW
+}
+
+finding THE_COVERAGE_FIGURE_WAS_ABOUT_DECODE_ONLY {
+  name     "44 of 83 formats have hardware DECODE; arithmetic is verified on 12"
+  severity MEDIUM
+
+  the_split """
+Classifying all 74 four-link proof comments by the operation named in their heading:
+
+  decode      42
+  compute     30   (ADD, MUL, SUB)
+  unlabelled   2   (a gf16 ADD compute re-proof)
+
+The 44-of-83 figure counts DECODE cells. Compute is a separate and much smaller set:
+
+  12 formats -- gf4, gf6, gf8, gf10, gf12, gf14, gf16, gf20, gf24, gf32,
+  double_double, quad_double -- across ADD, MUL and SUB.
+"""
+
+  why_it_matters """
+"44 of the 83 formats carry a physical-board result" is true and can be read as
+covering arithmetic. It does not. Decoding a bit pattern on silicon and adding two
+values on silicon are different claims, and the second is made for the GoldenFloat
+ladder plus the two multi-limb expansions -- not for posit, takum, VAX, IBM HFP or
+the IEEE binaries, whose hardware evidence is decode.
+
+The distinction favours precision over impressiveness, which is the whole point of
+quoting the number at all.
+"""
+  fix "the checklist now states both figures and what each covers"
+  resolved true
+}
+
+// ---- Pass 95: Tier-E raised from published to checked ------------------------
+
+result THE_CI_HALF_OF_THE_CHAIN_IS_REAL {
+  what_was_established_before """
+Passes 91-94: 74 comments carry all four required links, 45 cells credited from their
+own headings. That checks the evidence was PUBLISHED, not that it is SOUND -- a URL
+can be pasted and a run can be red.
+"""
+
+  link_1_ci_runs {
+    comments_citing_a_run 74
+    distinct_runs 74
+    conclusion_success 74
+    conclusion_other 0
+  }
+  reading_1 """
+Every cited run resolves, and every one passed. 74 distinct runs, no reuse, no dead
+links, no red builds.
+"""
+
+  link_2_bitstream_hashes {
+    method "download the run's artifact, hash the .bit inside, compare to the cited SHA-256"
+    sampled 5
+    matched 5
+    mismatched 0
+  }
+  reading_2 """
+  e8m0        76204d1e…ae94   OK
+  mxfp8_e4m3  af06aeca…abd1   OK
+  gf32-mul    18a6324a…f2e7   OK
+  ms_mbf64    a1a5d3f5…9582   OK
+  fp6_e3m2    60aec572…afff   OK
+
+A spread sample across decode and compute, not the first few. The bitstream each
+comment names IS the bitstream its CI run produced.
+
+All 74 runs still have retained artifacts, so the remaining 69 are checkable by
+anyone; a sample was taken because each artifact is ~10 MB and checking all of them
+would move a gigabyte to establish what five establish.
+"""
+
+  what_remains_unverifiable_here """
+Links 3 and 4 -- the UART log and the IDCODE read from silicon -- were produced on
+the board and cannot be re-derived without it. That is a limit of this machine, not
+a weakness in the evidence.
+"""
+
+  the_standing """
+Tier-E is now checked, not merely published, on the half of its chain that a third
+party can check. Every CI run passes and the bitstream hashes re-derive.
+"""
+  status VERIFIED_SW
+}
+
+note ONE_COSMETIC_OBSERVATION {
+  detail """
+The gf4-sub and gf6-sub proofs both cite an artifact named "gf8-sub-bitstream". The
+SHA-256s differ, so the files are genuinely different -- the workflow's artifact name
+is simply not parameterised by width.
+
+Not a defect, and worth recording so the next reader does not spend time on it.
+"""
+}
+
+// ---- Pass 96: what the hardware compares against, and the one partial result --
+
+finding MY_UART_PATTERN_DID_NOT_REQUIRE_A_CLEAN_RESULT {
+  name     "the Tier-E counter accepted any N/M, not only N/N with fails=0"
+  severity MEDIUM
+
+  detail """
+The pattern was `HW RESULT:\\s*(\\d+)/(\\d+)\\s*bit-exact`, which matches a partial
+result as readily as a complete one. Re-checking every credited comment:
+
+  73 of 74 report N/N with fails=0
+   1 reports 472/576 -- lns16 decode
+"""
+
+  the_one_is_disclosed_not_hidden """
+The lns16 comment states it in full:
+
+  "HW RESULT: 472/576 bit-exact, 104 known-limitation(s), 0 hard-fail(s) [PASS]
+   The 104 known-limitations are all 1-ULP subnormal-band residuals (tagged
+   KNOWN_LIMITATION, documented in report App. A) -- NOT hard-fails. This is the
+   honest ceiling of the current correction path."
+
+So the project counts it as Tier-E on the grounds of zero hard-fails, discloses the
+104 residuals, tags them in the log, and documents them in an appendix. That is a
+defensible accounting choice, stated openly.
+
+What was wrong was my summary, which reported all 74 as though uniformly N/N.
+"""
+  fix "the record now states 73 complete and one partial, with the partial characterised"
+  resolved true
+}
+
+result THE_ONE_ULP_CEILING_NOW_HAS_A_HARDWARE_INSTANCE {
+  detail """
+The 104 residuals are 1-ULP, in the subnormal band, of a LOGARITHMIC format.
+
+That is the same boundary this campaign has met twice before from other directions:
+takum32's pack differs from libtakum by exactly one ULP on 12 of 15 vectors because a
+logarithmic decode needs exp() (pass 45), and numpy states 1-4 ULP tolerances on
+26,615 transcendental rows because correct rounding is not guaranteed by any common
+libm (pass 50).
+
+Software oracle, third-party library, and now silicon -- three independent routes to
+the same statement: bit-exactness is attainable over the decidable class, and
+logarithmic evaluation is not in it.
+"""
+  status VERIFIED_SW
+}
+
+open_question WHAT_THE_COMPUTE_TESTS_COMPARE_AGAINST {
+  asked """
+The corpus proves six arithmetic laws in software with gf_ref.py. The board reports
+N/N bit-exact for ADD, MUL and SUB. If the board is checked against gf_ref.py, the
+two share an oracle and confirm each other only about the RTL.
+"""
+
+  what_the_comments_say """
+"Real-silicon PASS (not SW-golden)" appears on every compute proof, which asserts the
+result came from silicon rather than a software comparison -- but does not name what
+the EXPECTED values were compared against. A bit-exact comparison needs a reference,
+and the comment does not say which.
+"""
+
+  not_answered_here """
+Settling it needs the conformance harness's source, not the issue thread. Recorded as
+open rather than guessed, because the answer decides whether the software and
+hardware results are two witnesses or one.
+"""
+  resolved false
+}
+
+// ---- Pass 96b: settled from source -- what the hardware is compared against ---
+
+result THE_COMPUTE_CORES_CARRY_NO_EXPECTED_VALUES {
+  detail """
+corona_compute_gf16_add_ax7203.v is a UART transponder and nothing more: the host
+sends `AA 55 fmt a_lo a_hi b_lo b_hi trig`, the board returns `A5 result[7:0]
+result[15:8] 00 00`. There is no ROM of expected values, no $readmemh, no self-check.
+
+So the comparison necessarily happens on the host, and the reference is whatever the
+host script uses. That makes the question answerable by reading one file.
+"""
+  status VERIFIED_SW
+}
+
+result FOR_ADD_THE_TWO_VERIFICATIONS_SHARE_AN_ORACLE {
+  detail """
+conformance/gf4_mul_conformance_ax7203.py line 13:
+
+    from gf_ref import FORMATS, gf_mul
+
+38 of the 147 conformance scripts import gf_ref. The corpus's software law-proofs --
+research/verify_wide_arithmetic.py, six laws over 16 widths, 8,865 pairs -- import
+the same module.
+
+Therefore the software and hardware results are NOT two witnesses to what the
+arithmetic should be. They are one definition, checked twice: once by reasoning about
+it, once by executing an RTL implementation of it on silicon. The hardware result is
+a statement about the RTL, which is worth having and is not the same claim.
+"""
+  status VERIFIED_SW
+}
+
+result WHAT_REAL_SILICON_PASS_NOT_SW_GOLDEN_ACTUALLY_MEANS {
+  detail """
+The phrase on every compute proof is precise once the harness is read. It asserts the
+RESULT came from silicon rather than from a software simulation of the RTL. It does
+not assert the EXPECTED values were non-software -- they cannot be, since the board
+returns a sum and someone must know what the sum should be.
+
+The oracle says so itself, in its own docstring:
+
+  "Статус: [смоделировано] -- это SW-оракул, НЕ железо. compute-HW галочка
+   закрывается только bit-exact прогоном на AX7203"
+
+So the project has not overstated this anywhere I can find. The care is in the source.
+"""
+  status VERIFIED_SW
+}
+
+result BUT_MUL_HAS_A_GENUINELY_INDEPENDENT_SECOND_ORACLE {
+  detail """
+formal/verify_mul_oracle.py runs three structurally distinct implementations against
+each other on every pair:
+
+  O1  a Python port of the RTL gf_mul_param.v, with reg_mask modelling fixed-width wrap
+  O2  ref_fpmul, embedded in formal/gf_mul_property.v -- exact integer product then a
+      single RNE, a different formulation from the DUT's GRS path
+  O3  gf_ref.gf_mul on fractions.Fraction
+
+Re-run here, independently:
+
+  gf6   4,096 pairs  EXHAUSTIVE   0 divergences
+  gf8  65,536 pairs  EXHAUSTIVE   0 divergences
+  gf12/16/20/24  300,000 each     0 divergences
+  ------------------------------------------------
+  1,269,632 pairs, three oracles, no disagreement
+
+Its stated purpose is to rule out bug-equals-bug before the sby/z3 proof runs, and it
+does. So for MUL the DEFINITION has independent support -- from a second software
+formulation, not from the board.
+"""
+  status VERIFIED_SW
+}
+
+conclusion WHAT_MAY_BE_SAID_ABOUT_SOFTWARE_AND_HARDWARE_TOGETHER {
+  precise """
+Hardware conformance confirms the RTL against the definition. It is never a second
+witness to the definition itself, because the expected values on the host always come
+from gf_ref.
+
+Independence of the definition is established separately, in software, and at present
+only for MUL -- where a structurally different oracle agrees over 1.27M pairs.
+"""
+  and_the_1_ulp_case_is_the_exception_that_proves_it """
+lns16's 104 residuals are exactly where this matters. A logarithmic decode is outside
+the decidable class, so no oracle -- shared or independent -- can settle it to the
+last bit; the board and the reference disagree by 1 ULP and both are defensible.
+"""
+}

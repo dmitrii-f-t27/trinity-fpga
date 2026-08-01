@@ -1,0 +1,148 @@
+# Trinity Numeric SSOT — takum oracle cross-validated against libtakum
+# Second reference: github.com/takum-arithmetic/libtakum (Hunhold, C99, the
+# format author's own reference implementation). ml_dtypes does not cover takum,
+# so without this the takum packs are single-source.
+# Executed 2026-07-31. Bridge: research/libtakum_bridge.c
+# Comparator: research/crossval_libtakum.py
+
+spec TakumLibtakumCrossValidation version 1.0.0
+
+// ============================================================================
+// RETRACTED 2026-07-31 (pass 34/35). The takum "negation defect" is NOT a defect.
+// conformance/takum_ref.py documents itself as a deliberate LINEAR structural
+// model with decode `value = (-1)^S * (1 + M_u/2^p) * 2^c` -- sign-and-magnitude
+// BY DESIGN -- because exact-Fraction arithmetic cannot represent logarithmic
+// takum values, which are irrational. conformance/tekum_ref.py carries the same
+// documented choice. See research/ARXIV_V2_CORRECTION_PACKAGE.md section 15.
+// The MEASUREMENTS below stand; the DEFECT INTERPRETATION does not.
+// ============================================================================
+
+
+description """
+The catalog's takum packs cannot be cross-validated against ml_dtypes, which does
+not implement takum. libtakum is the reference implementation written by the
+author of the format, and is therefore the strongest independent authority
+available for this family.
+
+Building it and comparing exhaustively produced the most consequential result of
+this verification campaign: for takum16 the two implementations agree PERFECTLY
+on the entire positive half of the code space and disagree on almost the entire
+negative half, with a structure that identifies the cause.
+
+This is what a second reference is for. No amount of self-consistency checking
+would have surfaced it.
+"""
+
+constants {
+  REFERENCE       "libtakum (C99), github.com/takum-arithmetic/libtakum"
+  REFERENCE_ROLE  "reference implementation by the format author"
+  TAKUM16_CODES   65536
+}
+
+crossvalidation TAKUM16_SWEEP {
+  method      "exhaustive; decode every code on both sides, compare binary64 bit patterns"
+  bridge      "research/libtakum_bridge.c"
+  comparator  "research/crossval_libtakum.py"
+
+  positive_half { range "raw < 32768"   codes 32768  agree 32768  verdict EXACT }
+  negative_half { range "raw >= 32768"  codes 32768  agree 2      verdict DIVERGENT }
+
+  status VERIFIED_SW
+}
+
+finding NEGATIVE_HALF_DECODE_SUSPECT {
+  name     "the takum oracle's negative-half decode disagrees with the author's reference"
+  severity HIGH
+
+  // The positive half matching bit-for-bit on all 32768 codes rules out a
+  // harness artefact, a precision issue and a variant mix-up. The divergence is
+  // structural and confined to the sign half.
+  evidence """
+raw = 32769  ->  oracle -1.8351858179575695e-77   libtakum -5.608679322432503e+76
+raw = 1      ->  both    1.8351858179575695e-77
+
+The oracle negates by mirroring the magnitude of the corresponding positive code,
+i.e. it treats the leading bit as sign-and-magnitude. libtakum yields what is
+effectively the reciprocal direction, which is what takum's encoding produces
+when the negative half is the complement of the logarithmic exponent rather than
+a mirrored magnitude.
+"""
+
+  likely_authority "libtakum"
+  // UPGRADED pass 15: see specs/numeric/negation_invariant.t27 -- the intrinsic
+  // two's-complement negation invariant fails for takum at all four widths while
+  // posit passes as control, and libtakum satisfies it on 65534 codes with 0
+  // failures. Confidence is now ESTABLISHED rather than probable.
+  confidence ESTABLISHED
+  reason """
+libtakum is written by the author of the format. Where an independent
+implementation and the originating reference disagree, the reference carries more
+weight -- but this is a judgement about likelihood, not a proof, and the oracle
+must not be changed on this spec alone.
+"""
+
+  impact """
+If confirmed, every takum pack derived from this oracle carries incorrect values
+across half of its code space. takum8/16/32/64 are four of the catalogued
+formats, so this reaches arXiv:2606.09686 directly.
+"""
+  resolved false
+}
+
+// takum8 behaves differently and must not be lumped in with the above.
+finding TAKUM8_THREE_WAY_DISAGREEMENT {
+  name     "three implementations of takum8 produce three different decode tables"
+  severity MEDIUM
+
+  agreement {
+    published_pack_vs_oracle    "3/256"
+    published_pack_vs_libtakum  "3/256"
+    oracle_vs_libtakum          "74/256"
+  }
+
+  sample_raw_1 {
+    published_pack 6.991989996645917e-56
+    oracle         3.454467422037778e-77
+    libtakum       1.131959884853339e-72
+  }
+
+  // The published pack states this itself, and it may fully explain the case.
+  below_standard_threshold true
+  pack_note "n<12 is below the nominal takum standard threshold (recorded, not a decoder error)"
+
+  interpretation """
+takum8 is below the width threshold the takum standard defines, so behaviour there
+may be legitimately implementation-defined and three different tables need not
+mean two of them are wrong. This is therefore reported as a disagreement to be
+adjudicated, NOT as a defect.
+
+Note the published pack is internally consistent: its max_finite 1.4302e+55 and
+its smallest positive code 6.99e-56 are reciprocals, as a tapered format requires.
+"""
+  resolved false
+}
+
+scope_limits {
+  covers      "decode direction, takum8 and takum16, exhaustive"
+  not_covered { "takum32 and takum64 (not enumerable)",
+                "encode direction and rounding",
+                "which implementation is correct -- that is adjudication, not measurement" }
+  superiority_claimed false
+}
+
+open_question WHICH_TAKUM_IS_CANONICAL {
+  question """
+Two questions for the author, and possibly for Hunhold:
+
+1. For takum16 and above, is the negative half the complement of the logarithmic
+   exponent (libtakum) or a mirrored magnitude (this oracle)? One of the two
+   decode tables is wrong across half the code space.
+
+2. For takum8, below the standard's width threshold, is any behaviour canonical at
+   all -- and if not, should the catalog mark sub-threshold takum widths as
+   implementation-defined rather than bit-exact?
+"""
+  do_not_guess true
+  owner        author
+  escalate_to  "Hunhold (takum author, libtakum maintainer)"
+}
