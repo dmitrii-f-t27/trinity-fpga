@@ -265,3 +265,75 @@ than instructions. A checklist that does not say how it could be wrong is asking
 be trusted more than it has earned.
 """
 }
+
+// ---- Pass 71: the checklist re-read against everything since ----------------
+
+finding THE_CHECKLIST_CONTRADICTED_ITSELF {
+  name     "section 4 listed the P3109 version as settled while section 2 listed it as open"
+  severity MEDIUM
+
+  detail """
+Section 4, "Deliberately NOT flagged", carried:
+
+  "P3109 v3.2.0, ml_dtypes 0.5.4 -- version strings are internally consistent."
+
+Section 2, four lines earlier, had been updated in pass 69 to say the Interim Report
+carries no version number at all, so neither v3.2.0 nor Paper A's v0.9.1 can be
+checked, and the companion papers disagree with each other.
+
+Both were in the same one-page document, which exists precisely so an author does
+not have to reconcile eleven files.
+"""
+
+  how_it_happened """
+Section 2 was edited when the finding arrived. Section 4 was written earlier and
+never revisited, because nothing in the workflow re-reads a document after amending
+part of it.
+
+That is the same failure mode as the pass-62 dossier: an entry that was true when
+written, left standing after the thing it described changed.
+"""
+
+  fix_applied """
+The stale line now names its own history rather than being deleted: ml_dtypes stays
+in section 4 with its reproduction figure, and a parenthetical records that P3109
+was listed there until pass 69 moved it. A checklist that quietly relocates an item
+from "settled" to "open" is harder to trust than one that says it did so.
+"""
+  resolved true
+}
+
+// ---- Three other drifts fixed in the same read -------------------------------
+note OTHER_STALENESS_FOUND {
+  detail """
+1. "Items 1-3 are corrections. Item 4 is an addition" -- true until pass 64 inserted
+   a new item 4 and pushed the addition to 5. The sentence had been silently
+   mislabelling which items are optional.
+
+2. The harness-false-alarm count still read "fourteen in 61 passes". Now stated as
+   roughly fifteen across seventy, with the four largest named -- a defaulted format
+   width that manufactured 57,330 phantom defects, an oracle loader that skipped two
+   formats, API throttling read as dead references, and a URL typo that made 238
+   files look unreadable. A reader calibrating trust should see the worst cases, not
+   a number.
+
+3. Nothing said the ARTEFACT had been repaired. Five merged PRs fixed defects a
+   reader following the papers' own pointer would have hit -- a generator that could
+   not run on a clean checkout, a regeneration that silently reverted the promotions,
+   six witness files that failed standalone, a CI warning about work already done,
+   and a module that could not be imported. Added as section 6.
+"""
+}
+
+practice RE_READ_THE_WHOLE_DOCUMENT_AFTER_AMENDING_PART {
+  detail """
+Passes 62 and 71 both found stale claims in this campaign's own deliverables, and
+both times the mechanism was identical: a section was amended, the rest was not
+re-read.
+
+Amending part of a document is when it is most likely to contradict itself, because
+the new text is written against current knowledge and the old text is not. The read
+costs minutes; the contradiction costs the reader's trust in everything else on the
+page.
+"""
+}

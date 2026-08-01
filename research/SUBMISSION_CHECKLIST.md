@@ -2,6 +2,8 @@
 
 > One page. Everything here is verified against the **currently published** text
 > (Paper A v3, Paper B v2, both updated 2026-06-22, re-fetched 2026-08-01).
+> Re-read end to end on 2026-08-01 (pass 71) against everything learned since it was
+> written; §4 had gone stale enough to contradict §2, and did.
 >
 > Evidence for every line is in `VERIFICATION_DOSSIER.md`; the verbatim replacement
 > text is in `ARXIV_ABSTRACTS_READY_TO_PASTE.md`, `ARXIV_BODY_FIXES_READY_TO_PASTE.md`
@@ -17,10 +19,10 @@
 | **1** | **B, abstract** | "a suite of **six** bit-exact conformance packs" → **83 packs (75 bit-exact, 8 structural)** | The single largest defect in either paper, and it is an *under*-claim. The abstract reports the central contribution at ~7 % of its actual coverage. The body already says 49/34. | one sentence |
 | **2** | **A, abstract** | delete or rewrite "**the fabricated TTSKY26b dies** carry the defective multiplier portfolio" | The only claim in either paper that measurement contradicts — the silicon track was cancelled, so there are no fabricated dies to carry anything. Present in v1, v2 and v3. | one clause |
 | **3** | **B, references** | fix **8 of 20** bibitems | Wrong titles, wrong authors, or both — including the companion-paper self-citation **[1]/[2]** and ref **[3]**, which is wholly misattributed (wrong authors, wrong title, wrong subject). One clicked link damages the whole bibliography. | verbatim replacements supplied |
-| **4** | **B, abstract** | say what the P3109 cross-walk maps — **layout**, not values | The abstract says it "maps each pack to its **corresponding** standards-track configured format". The working group's own Interim Report, §3.1, is normative: *"For signed formats, the exponent bias **shall be** B = 2^(K−P−1). For unsigned formats, the exponent bias **shall be** B = 2^(K−P)"*, and Annex A.5 states plainly *"This differs from IEEE-754"*. So every `binaryKpP` value is exactly **twice** its same-layout IEEE/OCP counterpart. Confirmed empirically at **all 252 configurations** of their published tables and across **258,524 finite codes** against four packs — one distinct ratio. Mapping layout is worth publishing; the sentence needs one word to say so. | one word |
+| **4** | **B, abstract** | say what the P3109 cross-walk maps — **layout**, not values | The abstract says it "maps each pack to its **corresponding** standards-track configured format". The working group's own Interim Report, §3.1, is normative: *"For signed formats, the exponent bias **shall be** B = 2^(K−P−1). For unsigned formats, the exponent bias **shall be** B = 2^(K−P)"*, and Annex A.5 states plainly *"This differs from IEEE-754"*. So every `binaryKpP` value is exactly **twice** its same-layout IEEE/OCP counterpart. Confirmed empirically at **all 252 configurations** of their published tables and across **258,524 finite codes** against four packs — one distinct ratio. The special-value codes differ too, by exactly the count P3109's *"single NaN, no negative zero"* predicts: 3, 9 and 2049 observed, 3, 9 and 2049 predicted. Mapping layout is worth publishing; the sentence needs one word to say so. | one word |
 | **5** | **B, related work** | add the four-paragraph subsection | Positions the corpus against *published vector sets*, measured from six projects — including the P3109 working group, which ships **504 exhaustive CSV tables (154 MB)** and whose README forbids using them for conformance. That is the real gap this work fills. | one subsection |
 
-**Items 1–3 are corrections. Item 4 is an addition** — skip it if the replacement
+**Items 1–4 are corrections. Item 5 is an addition** — skip it if the replacement
 needs to be minimal.
 
 ## 2. Answer these, or the numbers stay unverifiable
@@ -48,7 +50,11 @@ Checked and found correct, listed so nobody re-opens them:
 
 - The **83 vs 84** count. The v2 replacement corrected **both the title and the
   abstract**; `ERRATA_2026-06-14.md` is complete and honest. Nothing left to do.
-- **P3109 v3.2.0**, **ml_dtypes 0.5.4** — version strings are internally consistent.
+- **ml_dtypes 0.5.4** — the version string is correct and the cross-validation
+  reproduces against it exactly (66,224 codes, 0 divergences).
+  *(P3109's version was listed here as fine until pass 69 established it is not —
+  see §2. Left visible rather than deleted, because a checklist that quietly moves
+  an item from "settled" to "open" is harder to trust than one that says it did.)*
 - Paper A's **related-work positioning** — it already names posit, takum, OCP-MX and
   IEEE P3109 explicitly. An earlier draft of this package implied otherwise; that
   was wrong and is corrected.
@@ -73,14 +79,37 @@ dossier, but the three that would most change a reader's impression:
 
 ---
 
+## 6. The artefact itself has been repaired
+
+The papers point a reader at `github.com/gHashTag/t27`. Five defects that a reader
+following that pointer would have hit are fixed and merged (#1576, #1578, #1582,
+#1584, #1589):
+
+- the pack generator **could not run on a clean checkout** — its catalog came from an
+  uncommitted `/tmp` path, so the corpus could be read but not regenerated;
+- re-running that generator **silently reverted** the 2026-07-05 promotions,
+  rewriting the index from 75/0/8 back to 69/6/8;
+- the **six witness decode references failed standalone**, defaulting to a path under
+  `/home/user/workspace` — these are the files honesty rule #10 points a sceptic at,
+  and running one is the first thing an auditor does;
+- CI demanded an erratum the v2 replacement had already made, on every run;
+- `cocotb_ref_model.py` **could not be imported at all**.
+
+Regeneration now reproduces the committed corpus exactly — 83/83 digests unchanged —
+and a new gate locks the index against the packs it summarises.
+
+---
+
 ### One caution about this checklist
 
-Fourteen alarming measurements in 61 passes turned out to be defects in my own
-harness, not in the artefact, and were withdrawn before publication. One correction
-was *not* caught in time — a "fix" to `takum_ref.py` shipped as a PR and was
-retracted unmerged once the module's docstring turned out to document the behaviour
-as deliberate.
+Roughly fifteen alarming measurements across seventy passes turned out to be defects
+in my own harness rather than in the artefact, and were withdrawn before publication:
+a defaulted format width that manufactured 57,330 phantom defects, an oracle loader
+that silently skipped two formats, API throttling read as dead references, a URL
+typo that made 238 files look unreadable. One correction was *not* caught in time — a
+"fix" to `takum_ref.py` shipped as a PR and was retracted unmerged once the module's
+docstring turned out to document the behaviour as deliberate.
 
 So treat §1 as claims with evidence attached, not as instructions. Every line names
-where to check it. **The science holds** — the defects are in citations and in
-things left unsaid, not in the results.
+where to check it. **The science holds** — the defects are in citations and in things
+left unsaid, not in the results.
