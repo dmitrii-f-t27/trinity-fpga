@@ -220,3 +220,68 @@ open question it is, with the exact API call needed to settle it.
   recorded "research/ARXIV_V2_CORRECTION_PACKAGE.md section 16"
   resolved false
 }
+
+// ---- Pass 61: the EXEC and NET buckets — the tree is now fully swept ---------
+
+measurement EXEC_BUCKET_RUN {
+  scripts 12
+  exit_zero 3
+  failing 9
+
+  failure_causes """
+Eight of the nine are ModuleNotFoundError: numpy -- an absent dependency on this
+machine, not a defect in the code. One is real.
+"""
+
+  the_real_one """
+scripts/cocotb_ref_model.py raises NameError: name 'EvalContext' is not defined at
+IMPORT time. The class is annotated on parameters at lines 174 and 215 and defined
+at line 402; Python evaluates annotations at function-definition time unless the
+module opts out, so the tool cannot be invoked at all.
+
+Fixed with `from __future__ import annotations` in gHashTag/t27#1589. Afterwards
+the module loads and reaches its own argument parser.
+"""
+
+  a_detail_that_was_nearly_got_wrong """
+The first attempt inserted the __future__ import between the shebang and the
+docstring. That also makes the module load -- and silently demotes the docstring to
+an ordinary string expression, leaving __doc__ as None. A __future__ import may be
+preceded only by the docstring, comments and blank lines. Placed after the
+docstring instead, with ast.get_docstring confirming it survived.
+"""
+  status VERIFIED_SW
+}
+
+decision NET_SCRIPT_INSPECTED_NOT_RUN {
+  script "scripts/pslq_ramanujan_api.py"
+  would_call "https://api.ramanujanmachine.com/v1/pslq"
+
+  reasoning """
+Firing requests at a third party's API unattended, for the sake of completing a
+survey, is not a thing to do. Its URLs are recorded instead. This is the only file
+in the repository deliberately left unexecuted, and the reason is stated rather
+than left as a gap.
+"""
+}
+
+result THE_TREE_IS_NOW_FULLY_SWEPT {
+  totals """
+  READS  79 run (pass 57)
+  WRITE 200 run in a disposable copy (pass 58)
+  EXEC   12 run in a disposable copy (pass 61)
+  NET     1 inspected, deliberately not run
+  PARSE_FAIL 7 -- unparseable, nothing to run
+"""
+  defects_found """
+  the six witness decode refs failing standalone   -- t27#1581 / PR #1582  FIXED
+  cocotb_ref_model.py unimportable                 -- t27#1589             FIXED
+  32 scripts hardcoding another machine's home     -- reported, not fixed
+  5 crashes in exploratory discovery engines       -- named, not chased
+"""
+  reading """
+Two of the four are fixed and both were invisible to CI. The witness one matters
+because it sits on the corpus's honesty mechanism; the other because a tool nobody
+can import is a tool nobody has run.
+"""
+}
