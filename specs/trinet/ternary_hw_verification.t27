@@ -256,12 +256,132 @@ finding RECEIPT_IS_NOT_PROOF_OF_HARDWARE {
   consequence "settlement must not describe credited work as hardware compute on the strength of a receipt alone"
 }
 
-open_question DEVICE_BOUND_IDENTITY {
+// ---------------------------------------------------------------------------
+// Device-bound identity — asked, and answered
+// ---------------------------------------------------------------------------
+
+cell trinet_dna_probe {
+  rtl      "fpga/vivado/trinet_dna_probe_ax7203.v"
+  host     "conformance/trinet_dna_probe_host.py"
+  workflow ".github/workflows/ax7203-trinet-dna-probe.yml"
+  purpose  "read the 7-series factory device DNA through DNA_PORT and stream it over UART"
+}
+
+verification DNA_PORT_ON_OPENXC7 {
+  cell       trinet_dna_probe
+  ci_run     30705516611
+  status     "[measured on FPGA]"
+  board      ax7203
+  date       2026-08-01
+  synthesis  { dna_port_cells 1, estimated_lcs 137, routed true }
+  reads      8
+  reads_ok   8
+  bits_reported 57
+  dna_value  0x0000000000000000
+  verdict    "PARTIAL — the toolchain reaches the primitive; the primitive returns nothing"
+  detail """
+    yosys keeps DNA_PORT through synth_xilinx, nextpnr-xilinx places and routes
+    it, the bitstream builds, and the cell answers over UART with correct
+    framing and the right significant-bit count. DOUT is zero for all 57 bits
+    on every read.
+  """
+}
+
+finding DEVICE_DNA_READS_ZERO_ON_OPENXC7 {
+  severity HIGH
+  resolved false
+  statement "DNA_PORT routes under openXC7 on xc7a200t but returns an all-zero DNA on silicon"
+  inference """
+    All 57 bits reading zero points at the primitive not being configured by the
+    bitstream rather than at a wrong shift sequence: a sequence error would be
+    expected to produce rotated or offset bits, not a uniform zero. prjxray /
+    openXC7 evidently place the site without emitting whatever enables it.
+  """
+  not_established """
+    A sequence error cannot be fully excluded without building the same cell
+    with the vendor toolchain on the same board and comparing. That comparison
+    has NOT been run, so this finding is stated at that strength and no higher.
+  """
+  consequence """
+    Device-bound identity is not currently reachable through the open toolchain.
+    Node identity remains asserted, not proven, and must be described that way
+    wherever it is published.
+  """
+  guard_applied "trinet_node_v2 falls back to its parameter identity when the DNA is unavailable OR zero; without it every board on this flow would have claimed node id 0x00000000"
+  remaining_options {
+    "a vendor-toolchain build for this one primitive",
+    "an external secure element",
+    "accept that identity is asserted and say so"
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Keyed receipt
+// ---------------------------------------------------------------------------
+
+rule RECEIPT_TAG_KEYED {
+  name       "TRI-NET keyed receipt tag"
+  formula    "siphash_2_4(key, OP | NONCE[4] | W[8] | X[8] | Y | NODE_ID[4])"
+  rationale  "add/xor/rotate only — no multiplier, keeping the zero-multiplier discipline"
+  cost       "22 clocks per tag"
+  trust_tier VERIFIED_ARITHMETIC
+}
+
+verification RECEIPT_TAG_KEYED_TRIPLE {
+  rule   RECEIPT_TAG_KEYED
+  status VERIFIED_SW
+  implementations {
+    "fpga/openxc7-synth/trinet_siphash24.v  ([simulated] vs published vectors, two keys)",
+    "src/trinet/protocol.zig :: receiptTagKeyed  (std.hash.SipHash64)",
+    "conformance/trinet_mac32_conformance_ax7203.py :: siphash24"
+  }
+  published_vectors { len0 0x726FDB47DD0E0E31, len3 0x85676696D7FB7E2D, len26 0x17D835B85BBB15F3 }
+  note "len26 is the receipt preimage length, so the RTL testbench and the hosts assert the same value"
+}
+
+finding KEYED_TAG_MOVES_THE_BOUNDARY_BUT_NOT_FAR_ENOUGH {
+  severity MEDIUM
+  resolved false
+  statement """
+    A keyed tag can only be produced by a key holder, so it stops third parties
+    forging receipts on an operator's behalf, and with per-node keys it stops
+    one operator forging for another. The key lives in the bitstream and the
+    operator holds the bitstream, so it does not stop an operator forging their
+    own receipts.
+  """
+  closing_it_requires "a key that never leaves the device: eFUSE or BBRAM plus an encrypted bitstream"
+}
+
+// ---------------------------------------------------------------------------
+// Delivered throughput — the number that governs every performance claim
+// ---------------------------------------------------------------------------
+
+verification NODE_THROUGHPUT {
+  cell     trinet_mac32
+  status   "[measured on FPGA]"
+  board    ax7203
+  date     2026-08-01
+  method   "src/trinet/main.zig bench, 400 timed jobs after a 16-job warm-up, every receipt verified"
+  measured { jobs_per_second 202.6, ternary_macs_per_second 6482, receipts_verified "400/400" }
+  latency  { p50_ms 4.90, p99_ms 5.32 }
+  ceilings {
+    transport_jobs_per_second 410.3   // 160000 baud, 8N1, 39 bytes per job
+    compute_jobs_per_second 2300000   // DERIVED, ~30 cycles/job at ~69 MHz — not measured
+  }
+  ratio    { measured_over_transport_percent 49.4, compute_over_transport 5606 }
+  reading """
+    The cell is idle for all but a fraction of each job. Every throughput claim
+    about this node is a claim about the UART. The compute ceiling is DERIVED,
+    not measured; measuring it needs a transport that can saturate the cell.
+  """
+}
+
+open_question TERNARY_TOPS_PER_WATT {
   do_not_guess true
   owner        author
-  question     "can nextpnr-xilinx / openXC7 instantiate DNA_PORT on xc7a200t, and is the 57-bit device DNA usable as a receipt-binding secret"
-  why_first    "cheap to test, and it settles whether any device-bound identity is available at all"
-  not_assumed  "no claim is made here that device DNA is secret; readback and side channels are unexamined"
+  question     "what is the ternary TOPS/W of this cell on Artix-7"
+  blocked_on   "nothing in this programme has been on a bench supply; no power figure exists"
+  warning      "any efficiency comparison published before that measurement would be fabricated"
 }
 
 // ---------------------------------------------------------------------------
