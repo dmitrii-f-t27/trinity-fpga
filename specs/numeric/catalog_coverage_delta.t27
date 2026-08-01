@@ -2033,3 +2033,93 @@ hardware results are two witnesses or one.
 """
   resolved false
 }
+
+// ---- Pass 96b: settled from source -- what the hardware is compared against ---
+
+result THE_COMPUTE_CORES_CARRY_NO_EXPECTED_VALUES {
+  detail """
+corona_compute_gf16_add_ax7203.v is a UART transponder and nothing more: the host
+sends `AA 55 fmt a_lo a_hi b_lo b_hi trig`, the board returns `A5 result[7:0]
+result[15:8] 00 00`. There is no ROM of expected values, no $readmemh, no self-check.
+
+So the comparison necessarily happens on the host, and the reference is whatever the
+host script uses. That makes the question answerable by reading one file.
+"""
+  status VERIFIED_SW
+}
+
+result FOR_ADD_THE_TWO_VERIFICATIONS_SHARE_AN_ORACLE {
+  detail """
+conformance/gf4_mul_conformance_ax7203.py line 13:
+
+    from gf_ref import FORMATS, gf_mul
+
+38 of the 147 conformance scripts import gf_ref. The corpus's software law-proofs --
+research/verify_wide_arithmetic.py, six laws over 16 widths, 8,865 pairs -- import
+the same module.
+
+Therefore the software and hardware results are NOT two witnesses to what the
+arithmetic should be. They are one definition, checked twice: once by reasoning about
+it, once by executing an RTL implementation of it on silicon. The hardware result is
+a statement about the RTL, which is worth having and is not the same claim.
+"""
+  status VERIFIED_SW
+}
+
+result WHAT_REAL_SILICON_PASS_NOT_SW_GOLDEN_ACTUALLY_MEANS {
+  detail """
+The phrase on every compute proof is precise once the harness is read. It asserts the
+RESULT came from silicon rather than from a software simulation of the RTL. It does
+not assert the EXPECTED values were non-software -- they cannot be, since the board
+returns a sum and someone must know what the sum should be.
+
+The oracle says so itself, in its own docstring:
+
+  "Статус: [смоделировано] -- это SW-оракул, НЕ железо. compute-HW галочка
+   закрывается только bit-exact прогоном на AX7203"
+
+So the project has not overstated this anywhere I can find. The care is in the source.
+"""
+  status VERIFIED_SW
+}
+
+result BUT_MUL_HAS_A_GENUINELY_INDEPENDENT_SECOND_ORACLE {
+  detail """
+formal/verify_mul_oracle.py runs three structurally distinct implementations against
+each other on every pair:
+
+  O1  a Python port of the RTL gf_mul_param.v, with reg_mask modelling fixed-width wrap
+  O2  ref_fpmul, embedded in formal/gf_mul_property.v -- exact integer product then a
+      single RNE, a different formulation from the DUT's GRS path
+  O3  gf_ref.gf_mul on fractions.Fraction
+
+Re-run here, independently:
+
+  gf6   4,096 pairs  EXHAUSTIVE   0 divergences
+  gf8  65,536 pairs  EXHAUSTIVE   0 divergences
+  gf12/16/20/24  300,000 each     0 divergences
+  ------------------------------------------------
+  1,269,632 pairs, three oracles, no disagreement
+
+Its stated purpose is to rule out bug-equals-bug before the sby/z3 proof runs, and it
+does. So for MUL the DEFINITION has independent support -- from a second software
+formulation, not from the board.
+"""
+  status VERIFIED_SW
+}
+
+conclusion WHAT_MAY_BE_SAID_ABOUT_SOFTWARE_AND_HARDWARE_TOGETHER {
+  precise """
+Hardware conformance confirms the RTL against the definition. It is never a second
+witness to the definition itself, because the expected values on the host always come
+from gf_ref.
+
+Independence of the definition is established separately, in software, and at present
+only for MUL -- where a structurally different oracle agrees over 1.27M pairs.
+"""
+  and_the_1_ulp_case_is_the_exception_that_proves_it """
+lns16's 104 residuals are exactly where this matters. A logarithmic decode is outside
+the decidable class, so no oracle -- shared or independent -- can settle it to the
+last bit; the board and the reference disagree by 1 ULP and both are defensible.
+"""
+}
