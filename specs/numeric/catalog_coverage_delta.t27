@@ -1450,3 +1450,80 @@ DataCite. Queried there it resolves correctly to DLFloat. Querying the wrong
 registry and reporting the answer would have manufactured a dead citation.
 """
 }
+
+// ---- Pass 88: a whole evidence standard exists only in Russian ---------------
+
+finding THE_TIER_E_METHODOLOGY_IS_ABSENT_FROM_BOTH_PREPRINTS {
+  name     "the four-link hardware evidence chain exists only in main_ru.tex"
+  severity HIGH
+
+  what_main_ru_defines """
+Section "Аппаратная верификация на FPGA AX7203 (уровень Tier-E)":
+
+  A separate hardware verification track on an ALINX AX7203 board (Xilinx Artix-7
+  XC7A200T-2FBG484I, IDCODE 0x13636093) under the open openXC7 flow (yosys +
+  nextpnr), with a criterion called Tier-E requiring ALL FOUR of:
+
+    1. a public openXC7 CI run reporting success, with the URL
+    2. the SHA-256 of the specific bitstream
+    3. a UART log of the form "HW RESULT: N/N bit-exact (fails=0)" at 160000 baud,
+       taken from the physical board
+    4. a matching IDCODE 0x13636093
+
+  and stating explicitly that a GREEN commit message, or simulation alone, does NOT
+  count as Tier-E. Every proof is published per-cell in issue #199, with a data
+  cut-off date of 2026-07-15.
+"""
+
+  presence_across_the_three """
+  term      Paper A   Paper B   main_ru
+  Tier-E        0         0         7
+  AX7203        0         0         2
+  IDCODE        0         0         3
+  openXC7       0         0         2
+  160000        0         0         2
+"""
+
+  this_is_not_a_contradiction """
+Worth stating carefully, because the first reading was wrong. Paper A's XC7A35T and
+main_ru's XC7A200T are not two accounts of one measurement: Paper A reports a
+synthesis and timing result -- a 35-of-35 codec testbench at 323 MHz -- and main_ru
+describes a separate PHYSICAL-BOARD track with UART evidence.
+
+Different experiments, different parts. What is missing from the preprints is not a
+corrected number but an entire methodology.
+"""
+
+  why_adding_it_strengthens_the_papers """
+Tier-E is a strict evidence standard that refuses to count a green CI badge or a
+passing simulation as hardware proof. That is precisely the discipline a sceptical
+reader wants attached to a hardware claim, and the papers currently assert their
+FPGA result without it.
+
+Second instance of the pass-87 pattern: the Russian manuscript carries substantive
+scientific material -- there a concession of prior art, here an evidence standard --
+that the English versions do not.
+"""
+  resolved false
+  recorded_for "SUBMISSION_CHECKLIST.md"
+}
+
+measurement RU_ONLY_ENTITIES {
+  entities_in_main_ru 125
+  absent_from_both_preprints 38
+
+  substantive_among_them """
+Beyond Tier-E and DLFloat: Popescu/Sentieys as independent precedent for the 1/6/9
+split, a GPT-2 quantization round-trip experiment reported in SQNR, and 2026 works
+cited only in Russian -- TOM (ROM-SRAM ternary ASIC), SEAL, zkComposer, KroQuant.
+
+The Russian related-work section is materially broader than either preprint's.
+"""
+
+  the_rest_is_venue_apparatus """
+Most of the 38 is what one expects of a different venue -- translated terminology
+and Russian-language formatting -- and has no business in an arXiv preprint. The
+tool prints context precisely so that distinction is made by reading rather than by
+count.
+"""
+}
