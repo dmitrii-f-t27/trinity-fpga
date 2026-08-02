@@ -6233,3 +6233,14 @@ finding "two systematic defects in the aliased packs" {
   third_case "fp128_e15m112 matches binary128's field widths exactly and diverges on 235 vectors with no special operand in them -- 2 + x returns a word mixing the first exponent with the second's low bits. What it implements is an open question and the check does not pretend to answer it"
   unresolved "fp16_e6m9 and fp24_7m16 have no counterpart; 6+9 and 7+16 are not the field widths of any format here, so they stay unresolved rather than forced onto a near-neighbour"
 }
+
+finding "twelve packs carry no significand information beyond bit 23" {
+  method "OR every stored result in a pack, OR every operand, and see which bits never appear. Operands come from a generator and cover the word; arithmetic on full-width operands lands on full-width answers"
+  measured "binary64 div/quire/sqrt 29 dead result bits, fp128_e15m112 all five operations 89, gf32 div/quire/sqrt 2 -- and the dead run begins at bit 23 in all three formats"
+  arithmetic "29 = 52 - 23 and 89 = 112 - 23: the format's significand minus binary32's. The operands beside them set every bit"
+  signature "three independent formats agreeing on the same boundary is what makes it a signature rather than a coincidence"
+  identification_failed "binary64_div is not binary64 division (46 of 384) and not binary32 division widened to binary64 (0 of 384). fp128 results also have bits 95:23 zero in all 512 vectors and a low field copied from an operand, which no float addition produces"
+  stopped_here "the generator belongs to the silicon-sprint line; a guess dressed as a cause would be worse than the open question"
+  not_flagged "every _sqrt pack has its sign bit dead, which is the square root of a non-negative argument behaving correctly; gf4_sqrt's one dead bit is a 4-bit format sampled 64 times"
+  related "pass 189: these same packs have no oracle in the corpus for div, sqrt or quire, so nothing could have re-derived them and nothing did"
+}
