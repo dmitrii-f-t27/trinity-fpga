@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
 """Sweep every golden oracle for intrinsic structural invariants.
 
-Rationale: the strongest result of this campaign came from an invariant that
-needs no external reference (see specs/numeric/negation_invariant.t27). This
-script generalises that method across the whole oracle layer.
+Rationale, restated in pass 163. This file used to say that "the strongest result
+of this campaign came from an invariant that needs no external reference", citing
+specs/numeric/negation_invariant.t27. That spec opens by RETRACTING its own result:
+the takum "negation defect" is not a defect, because the oracle is a documented
+linear structural model. The finding did not survive; the METHOD did.
+
+So the honest rationale is the method itself: an invariant checkable from the
+encoding alone costs nothing to run and needs no second implementation, which
+matters for the many formats that have none. What this sweep has actually produced
+is a lesson about its own output -- it flagged 40 formats, and passes 159 to 161
+found that 31 of those were the checker measuring the wrong thing, while the 9 that
+survived were 8 formats behaving exactly as specified and 1 question about pack
+scope. A dependency-free check is cheap to run and expensive to read.
 
 Three properties are tested, each checkable from the encoding alone:
 

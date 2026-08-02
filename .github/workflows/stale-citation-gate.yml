@@ -1,0 +1,44 @@
+name: Stale citation gate
+
+# Pass 162 found a check reporting a defect, citing a spec as establishing it, and
+# concluding that three packs "must not be published" -- eleven passes after line 8 of
+# that same spec retracted the reading. The packs were held back on a basis their own
+# cited authority had withdrawn.
+#
+# That is the hardest of the three ways a check can be wrong. A check that cannot see,
+# or that measures the wrong thing, eventually produces numbers that look strange. A
+# stale citation looks like diligence.
+#
+# This gate fails only on a citation that cannot be resolved at all. A citation to a
+# retracted spec is REPORTED, not failed on, because citing one to say the finding was
+# withdrawn is exactly what a corrected check should do -- and telling the two apart
+# needs a reader.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'research/*.py'
+      - 'specs/**/*.t27'
+      - '.github/workflows/stale-citation-gate.yml'
+  pull_request:
+    paths:
+      - 'research/*.py'
+      - 'specs/**/*.t27'
+      - '.github/workflows/stale-citation-gate.yml'
+  workflow_dispatch:
+
+jobs:
+  stale-citations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: The scan must still see the retraction it was written for
+        run: |
+          python3 research/audit_stale_citations.py --self-check
+      - name: Every spec a check cites must resolve
+        run: |
+          python3 research/audit_stale_citations.py
