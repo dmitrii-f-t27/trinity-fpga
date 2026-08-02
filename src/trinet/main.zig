@@ -21,7 +21,13 @@ const agent_mod = @import("agent.zig");
 const net = @import("net.zig");
 
 const default_serial = "/dev/cu.usbserial-1110";
+// The historical rate. Measured 2026-08-02: the board's real rate at
+// BAUD_DIV=434 is ~164000, so this sits about 2.4% low and works on margin.
 const default_baud = 160000;
+
+// What the fleet build ships. BAUD_DIV=30 against a measured CFGMCLK of
+// ~71.176 MHz, and the rate at which batched throughput reached 6842.9 jobs/s.
+const fleet_baud = 2372533;
 
 /// Writer that goes to stderr through std.debug, which is the one output path
 /// that is stable across Zig releases.
@@ -225,7 +231,7 @@ const fleet_nodes = [_]FleetNode{
 /// board does not answer the report says so rather than quietly shrinking the
 /// fleet.
 fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
-    std.debug.print("TRI-NET fleet — {d} physical node(s)\n", .{ports.len});
+    std.debug.print("TRI-NET fleet — {d} port(s) at {d} baud\n", .{ ports.len, fleet_baud });
     line();
 
     var m = try mesh_mod.Mesh.init(gpa, .{});
@@ -238,7 +244,7 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
         // different order — then the coordinator verifies each board against
         // another's key, every honest receipt fails its tag check, and the
         // network slashes operators for a cabling accident.
-        var n = node_mod.Node.initFpga(0, "unidentified", p, default_baud) catch |e| {
+        var n = node_mod.Node.initFpga(0, "unidentified", p, fleet_baud) catch |e| {
             std.debug.print("{s}: did NOT open ({s}) — not counted\n", .{ p, @errorName(e) });
             continue;
         };
