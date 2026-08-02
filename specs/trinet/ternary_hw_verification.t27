@@ -492,6 +492,48 @@ verification NODE_THROUGHPUT_V2_BASELINE {
   note "lower than the v1 figure of 202.6 because the keyed response is four bytes longer, not because the cell became slower"
 }
 
+verification TRANSPORT_CEILING_RAISED {
+  cell     trinet_node_v2
+  ci_run   30729503657
+  status   "[measured on FPGA]"
+  board    ax7203
+  date     2026-08-02
+  evidence "#199 issuecomment-5154936873"
+  ladder {
+    baseline { baud_div 434, host_baud 164000,  mode "one job per round trip", jobs_per_second 191.1,  share_of_ceiling_percent 28 }
+    fast     { baud_div 30,  host_baud 2372533, mode "one job per round trip", jobs_per_second 843.9,  share_of_ceiling_percent 8.5 }
+    batched  { baud_div 30,  host_baud 2372533, mode "32 jobs per round trip", jobs_per_second 6842.9, share_of_ceiling_percent 69.2 }
+  }
+  receipts_verified "320/320 at every step"
+  gain     { over_baseline 35.8, compute_over_transport_before 6221, compute_over_transport_after 240 }
+  simulated_first "divisors 434, 120, 60, 30 — 6/6 keyed receipts each, before any of it reached silicon"
+}
+
+finding USB_ROUND_TRIP_IS_THE_SECOND_CEILING {
+  severity MEDIUM
+  resolved true
+  resolution "batch jobs per USB transaction"
+  statement """
+    Raising the line rate more than quadrupled throughput while the SHARE of the
+    transport ceiling fell from 28% to 8.5%, with p50 latency at 1.17 ms, which
+    is a USB frame interval. One job per USB transaction caps a serial node near
+    850 jobs/s however fast the wire is.
+  """
+  why_batching_is_safe "a request is 24 bytes and a response 19, so answer N is on the wire before request N+1 finishes arriving; a response wider than the request would need flow control"
+  natural_fit "a model layer is a run of jobs, one per output neuron, which is the shape the mesh already dispatches in"
+}
+
+finding TRANSPORT_CEILING_WAS_COMPUTED_AS_HALF_DUPLEX {
+  severity MEDIUM
+  resolved true
+  statement "the ceiling summed request and response bytes; UART is full duplex, so the limit is the busier direction"
+  how_it_surfaced """
+    Batched throughput came out at 125% of the ceiling. A measurement above a
+    ceiling does not mean the measurement is wrong, it means the ceiling is.
+  """
+  corrected "ceiling = baud / 10 / max(request_len, response_len); batched throughput is then 69.2% of the line rate, bound by the wire as expected"
+}
+
 open_question TERNARY_TOPS_PER_WATT {
   do_not_guess true
   owner        author
