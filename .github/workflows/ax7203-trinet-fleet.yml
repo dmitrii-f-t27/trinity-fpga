@@ -1,0 +1,111 @@
+name: AX7203 TRI-NET Fleet (three distinct nodes)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'fpga/vivado/trinet_node_v2_ax7203.v'
+      - 'fpga/openxc7-synth/trinet_siphash24.v'
+      - '.github/workflows/ax7203-trinet-fleet.yml'
+
+# Three bitstreams that differ only in NODE_ID and RECEIPT_KEY.
+#
+# Distinct ids are not cosmetic. The ledger credits work to the node it
+# dispatched to and refuses a receipt claiming any other identity, so two boards
+# sharing an id cannot both be paid — and with device DNA unavailable on this
+# flow (it reads zero), the id has to come from synthesis.
+#
+# Distinct keys matter more. A shared key would let any operator in the fleet
+# forge receipts for every other board, since each of them holds a bitstream
+# containing it. Per-node keys reduce a leaked key to a single node.
+#
+# The keys below are build-time defaults for a local fleet on one operator's
+# desk. A deployment with more than one operator must generate them per node and
+# not commit them.
+
+jobs:
+  fleet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: node0
+            node_id: "32'h5452494E"          # "TRIN"
+            key: "128'h0f0e0d0c0b0a09080706050403020100"
+          - name: node1
+            node_id: "32'h5452494F"
+            key: "128'h1f1e1d1c1b1a19181716151413121110"
+          - name: node2
+            node_id: "32'h54524950"
+            key: "128'h2f2e2d2c2b2a29282726252423222120"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker pull regymm/openxc7 (retry on transient 5xx)
+        run: |
+          for i in 1 2 3 4 5 6; do
+            docker pull regymm/openxc7:latest && break
+            echo "::warning::docker pull attempt $i failed, sleeping $((i*20))s"; sleep $((i*20))
+          done
+          docker image inspect regymm/openxc7:latest >/dev/null 2>&1 || { echo "::error::docker pull failed after 6 retries"; exit 1; }
+
+      - name: Yosys
+        run: |
+          mkdir -p build/${{ matrix.name }}
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
+            read_verilog fpga/openxc7-synth/trinet_siphash24.v fpga/vivado/trinet_node_v2_ax7203.v;
+            chparam -set FALLBACK_NODE_ID ${{ matrix.node_id }} -set RECEIPT_KEY ${{ matrix.key }} trinet_node_v2_ax7203;
+            synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7 -top trinet_node_v2_ax7203;
+            setundef -zero -params; write_json build/${{ matrix.name }}/node.json" 2>&1 | tee /tmp/yosys.log
+          grep -E "Estimated|ERROR" /tmp/yosys.log
+          if grep -qE '^ *[0-9]+ +DSP48' /tmp/yosys.log; then
+            echo "::error::DSP48 cells inferred"; exit 1
+          fi
+
+      - uses: actions/cache@v4
+        id: chipdb
+        with:
+          path: build/${{ matrix.name }}/chipdb/xc7a200tfbg484-2.bin
+          key: chipdb-xc7a200tfbg484-2-regymm-${{ github.run_id }}-${{ matrix.name }}
+          restore-keys: chipdb-xc7a200tfbg484-2-regymm-
+
+      - if: steps.chipdb.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p build/${{ matrix.name }}/chipdb
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 bash -c "cd /nextpnr-xilinx && python3 xilinx/python/bbaexport.py --device xc7a200tfbg484-2 --bba /work/build/${{ matrix.name }}/chipdb/xc7a200tfbg484-2.bba && bbasm -l /work/build/${{ matrix.name }}/chipdb/xc7a200tfbg484-2.bba /work/build/${{ matrix.name }}/chipdb/xc7a200tfbg484-2.bin"
+
+      - name: nextpnr (heap + sa seed search)
+        run: |
+          CLEAN="";
+          for placer in heap sa; do
+            for s in 1 2 3 4 5 6 7 8; do
+              rm -f build/${{ matrix.name }}/node.fasm
+              timeout 25m docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
+                --chipdb /work/build/${{ matrix.name }}/chipdb/xc7a200tfbg484-2.bin \
+                --xdc /work/specs/fpga/constraints/gf16_clean_ax7203.xdc \
+                --json /work/build/${{ matrix.name }}/node.json \
+                --write /work/build/${{ matrix.name }}/node_routed.json \
+                --fasm /work/build/${{ matrix.name }}/node.fasm \
+                --freq 50.0 --seed $s --placer $placer --router router1 --timing-allow-fail > /tmp/np_${placer}_$s.log 2>&1 || true
+              if grep -q "Failed to find a route" /tmp/np_${placer}_$s.log || [ ! -f build/${{ matrix.name }}/node.fasm ]; then continue; fi
+              CLEAN="$placer/$s"; break
+            done
+            [ -n "$CLEAN" ] && break
+          done
+          [ -z "$CLEAN" ] && { echo "::error::no clean seed across heap+sa x8"; exit 1; }
+          echo "routed with placer/seed = $CLEAN"
+
+      - name: fasm2bit
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 bash -c "
+            source /prjxray/env/bin/activate && fasm2frames --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --part xc7a200tfbg484-2 /work/build/${{ matrix.name }}/node.fasm /work/build/${{ matrix.name }}/node.frames && /prjxray/build/tools/xc7frames2bit --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.yaml --part_name xc7a200tfbg484-2 --frm_file /work/build/${{ matrix.name }}/node.frames --output_file /work/build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit"
+          sha256sum build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit | tee build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trinet-fleet-${{ matrix.name }}
+          path: |
+            build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit
+            build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit.sha256
