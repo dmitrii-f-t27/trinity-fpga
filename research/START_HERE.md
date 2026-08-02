@@ -1,5 +1,8 @@
 # Start here
 
+> **Acting on this rather than reading it?** `research/HANDOVER.md` is the one page: six changes to make before submission, five under-claims worth adding, one data fix that is ready, six questions only the author can answer, and five withdrawn figures not to quote.
+
+
 This directory holds work on the two GoldenFloat preprints —
 [arXiv:2606.05017](https://arxiv.org/abs/2606.05017) and
 [arXiv:2606.09686](https://arxiv.org/abs/2606.09686). It has grown across many
