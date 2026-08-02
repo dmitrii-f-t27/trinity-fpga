@@ -16,20 +16,30 @@ on:
 # sharing an id cannot both be paid — and with device DNA unavailable on this
 # flow (it reads zero), the id has to come from synthesis.
 #
-# Keys are NOT here, and must never be. They were, as three literal constants
-# 0x00..0x0f / 0x10..0x1f / 0x20..0x2f in a public repository — guessable even
-# had it been private. A tag anyone can compute is a checksum with extra steps,
-# so committing the key destroyed the only property keying the tag bought.
+# KEYS ARE NOT BUILT IN, AND THAT IS NOW THE DESIGN RATHER THAN A LIMITATION.
 #
-# CI therefore builds bitstreams WITHOUT usable keys. They are for routing,
-# resource and simulation checks. A bitstream to actually deploy must be built
-# with a key the operator generated and did not commit:
+# They used to be: three literal constants 0x00..0x0f / 0x10..0x1f / 0x20..0x2f,
+# committed to a public repository. Nulling them in source was recorded as the
+# fix, and it never reached the silicon — the fleet ran for a day signing with
+# keys any reader of the git log could compute.
 #
-#   yosys -p "... chparam -set RECEIPT_KEY 128'h<your key> ..."
+# The reason it never reached the silicon is the interesting part. Re-keying a
+# baked-in key means a place-and-route run the operator's machine cannot perform
+# (8 GB is not enough for an XC7A200T chipdb) plus a 13-minute flash, per board.
+# A key that costs an hour to rotate is a key nobody rotates.
 #
-# A shared key would let any operator in the fleet forge receipts for every
-# other board, since each holds a bitstream containing it; per-node keys confine
-# a leak to one node.
+# So the node now takes its key over the wire: op 0x02, 16 bytes in the operand
+# fields, accepted exactly once per configuration and refused thereafter. These
+# bitstreams are therefore complete and deployable, not "unkeyed reference
+# builds" — the operator runs `trinet setkey` after flashing, and rotation costs
+# a power cycle.
+#
+# Per-node keys, not one shared key: a shared key would let any operator in the
+# fleet forge receipts for every other board.
+#
+# A non-null RECEIPT_KEY parameter still bakes a key in and locks it at reset,
+# for anyone who does have a build machine and prefers the key never touch a
+# wire. CI must never pass one.
 #
 # USE_DNA is 0. DNA_PORT places and routes on this flow and returns zero for all
 # 57 bits — measured 2026-08-01 — so the node id has to come from synthesis

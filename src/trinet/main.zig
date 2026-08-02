@@ -7,7 +7,7 @@
 //!   trinet fleet <s0> [s1] [s2]  run the agent across several physical boards
 //!   trinet bench [serial] [n] [baud] [slot]  measure throughput and the transport gap
 //!   trinet serve <port> [serial] expose a node over TCP so others can use it
-//!   trinet census [serial] [baud] [runs] [jobs]  the distribution, not one good run\n//!   trinet keygen                print fresh per-node receipt keys (never commit them)\n//!   trinet join                  print what a new developer has to do
+//!   trinet census [serial] [baud] [runs] [jobs]  the distribution, not one good run\n//!   trinet setkey <s0> [s1] [s2] install those keys on the attached boards\n//!   trinet keygen                print fresh per-node receipt keys (never commit them)\n//!   trinet join                  print what a new developer has to do
 //!
 //! Author: Dmitrii Vasilev (@gHashTag)
 
@@ -98,11 +98,18 @@ pub fn main(init: std.process.Init.Minimal) !void {
         if (args.len > 4) try std.fmt.parseInt(usize, args[4], 10) else 100,
         if (args.len > 5) try std.fmt.parseInt(usize, args[5], 10) else 64,
     );
+    if (std.mem.eql(u8, cmd, "setkey")) {
+        if (args.len < 3) {
+            std.debug.print("usage: trinet setkey <serial0> [serial1] [serial2]\n", .{});
+            return error.NoPortsGiven;
+        }
+        return setkey(gpa, args[2..]);
+    }
     if (std.mem.eql(u8, cmd, "keygen")) return keygen();
     if (std.mem.eql(u8, cmd, "join")) return joinHelp();
 
     std.debug.print("unknown command '{s}'\n", .{cmd});
-    std.debug.print("try: selftest | probe | bench | census | fleet | demo | agent | serve | join\n", .{});
+    std.debug.print("try: selftest | probe | bench | census | fleet | keygen | setkey | demo | agent | serve | join\n", .{});
     return error.UnknownCommand;
 }
 
@@ -849,6 +856,107 @@ fn census(gpa: std.mem.Allocator, path: []const u8, baud: u32, runs: usize, per_
     }
     line();
     std.debug.print("Report the minimum, not the mean. A fleet is used at its worst run.\n", .{});
+}
+
+/// Install the fleet's keys on the attached boards.
+///
+/// The key is not baked into the bitstream any more. Re-keying used to mean a
+/// place-and-route run the operator's machine cannot perform plus a 13-minute
+/// flash per board, and a key that expensive to rotate is a key nobody rotates:
+/// the committed-key fix was applied to the source and never reached the
+/// silicon, and the fleet ran for a day signing with keys from the git history.
+/// Now it costs a power cycle and one 24-byte frame.
+fn setkey(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
+    std.debug.print("installing receipt keys on {d} board(s)\n", .{ports.len});
+    line();
+
+    const keys_loaded = loadFleetKeys(gpa) catch 0;
+    if (keys_loaded == 0) {
+        std.debug.print("No keys to install. Run `trinet keygen > {s}` first —\n", .{key_file_default});
+        std.debug.print("and do not commit that file.\n", .{});
+        return error.NoKeys;
+    }
+    std.debug.print("keys loaded for {d} node(s)\n", .{keys_loaded});
+    line();
+
+    var installed: usize = 0;
+    var locked: usize = 0;
+    for (ports) |p| {
+        const found = node_mod.Node.initFpgaAutoBaud(0, "unidentified", p) catch |e| {
+            std.debug.print("{s}: no answer at any candidate rate ({s})\n", .{ p, @errorName(e) });
+            continue;
+        };
+        var n = found.node;
+        defer n.deinit();
+
+        // Ask the board who it is before choosing which key it gets. Binding a
+        // key to argument order would hand node0's key to whichever board came
+        // up first, and every receipt afterwards would fail its check.
+        const who_job = protocol.Job.withNonce(1, @splat(0), @splat(0));
+        const claimed = n.execute(who_job) catch |e| {
+            std.debug.print("{s}: opened but did not answer ({s})\n", .{ p, @errorName(e) });
+            continue;
+        };
+
+        var spec: ?FleetNode = null;
+        for (fleet_nodes) |f| {
+            if (f.id == claimed.node_id) spec = f;
+        }
+        if (spec == null) {
+            std.debug.print("{s}: reports id {x:0>8}, not in the fleet table — skipped\n", .{ p, claimed.node_id });
+            continue;
+        }
+        const key = spec.?.key orelse {
+            std.debug.print("{s}: {s} has no key in {s} — skipped\n", .{ p, spec.?.name, key_file_default });
+            continue;
+        };
+
+        if (claimed.status == protocol.status_ok) {
+            std.debug.print("{s}: {s} already holds a key from this configuration.\n", .{ p, spec.?.name });
+            std.debug.print("    Power-cycle the board to install a different one.\n", .{});
+            locked += 1;
+            continue;
+        }
+
+        n.setKey(key) catch |e| {
+            if (e == error.KeyAlreadySet) {
+                std.debug.print("{s}: {s} refused a second key — the latch held, as designed\n", .{ p, spec.?.name });
+                locked += 1;
+            } else {
+                std.debug.print("{s}: {s} did NOT accept the key ({s})\n", .{ p, spec.?.name, @errorName(e) });
+            }
+            continue;
+        };
+
+        // Prove it took, with work rather than with the acknowledgement.
+        var ok: usize = 0;
+        for (0..32) |i| {
+            var wv: protocol.Trits = @splat(0);
+            var xv: protocol.Trits = @splat(0);
+            for (&wv, 0..) |*t, k| t.* = @intCast(@as(i32, @intCast((i + k) % 3)) - 1);
+            for (&xv, 0..) |*t, k| t.* = @intCast(@as(i32, @intCast((i + k + 1) % 3)) - 1);
+            const job = protocol.Job.withNonce(@intCast(100 + i), protocol.pack(wv), protocol.pack(xv));
+            const r = n.execute(job) catch continue;
+            if (protocol.verifyWithKey(job, r, key).accepted()) ok += 1;
+        }
+        const stale = protocol.publishedKeyUsed(
+            protocol.Job.withNonce(1, @splat(0), @splat(0)),
+            claimed,
+        ) != null;
+        std.debug.print("{s}: {s} keyed, {d}/32 receipts verify under the new key{s}\n", .{
+            p,                                                           spec.?.name, ok,
+            if (stale) "  (was on a PUBLISHED key before this)" else "",
+        });
+        if (ok == 32) installed += 1;
+    }
+
+    line();
+    std.debug.print("{d} board(s) keyed, {d} already locked\n", .{ installed, locked });
+    if (locked > 0) {
+        std.debug.print("A locked board is not a fault: the key is write-once per\n", .{});
+        std.debug.print("configuration on purpose, so nobody reaching the wire can replace\n", .{});
+        std.debug.print("the operator's key after the fact.\n", .{});
+    }
 }
 
 fn keygen() !void {

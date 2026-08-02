@@ -36,7 +36,18 @@ pub const preimage_len = 26;
 pub const magic_req = [2]u8{ 0xAA, 0x55 };
 pub const magic_resp: u8 = 0xA5;
 pub const op_mac32: u8 = 0x01;
+/// Install the node's receipt key. The 16 key bytes travel in the W and X
+/// operand fields, so the request stays 24 bytes and the frame parser in the
+/// RTL is untouched. Accepted once per configuration.
+pub const op_setkey: u8 = 0x02;
+
 pub const status_ok: u8 = 0x01;
+/// The key in this request is now the node's key.
+pub const status_key_set: u8 = 0x02;
+/// A key was already installed; this request changed nothing.
+pub const status_key_locked: u8 = 0x03;
+/// The node holds no key. `y` is a real dot product; the tag means nothing.
+pub const status_no_key: u8 = 0x04;
 
 /// Default synthesised identity, the ASCII bytes "TRIN" read little-endian.
 pub const default_node_id: u32 = 0x5452_494E;
@@ -113,7 +124,31 @@ pub const Job = struct {
         std.mem.writeInt(u32, &nb, n, .little);
         return .{ .nonce = nb, .w = w, .x = x };
     }
+
+    /// The request that installs a key: the 16 bytes ride in the operand
+    /// fields, first eight in W and last eight in X, in wire order.
+    pub fn setKey(n: u32, key: [16]u8) Job {
+        var nb: [4]u8 = undefined;
+        std.mem.writeInt(u32, &nb, n, .little);
+        var w: Packed = undefined;
+        var x: Packed = undefined;
+        @memcpy(&w, key[0..8]);
+        @memcpy(&x, key[8..16]);
+        return .{ .op = op_setkey, .nonce = nb, .w = w, .x = x };
+    }
 };
+
+/// The tag a node returns when it accepts a key, signed with the key it just
+/// accepted.
+///
+/// That signature is the whole point of checking the acknowledgement: a node
+/// that merely echoed the request could produce the status byte, but only one
+/// that actually installed the key can produce this. `y` is zero by protocol —
+/// the operand fields hold key bytes, and running a dot product over them would
+/// put a meaningless number in a receipt for somebody to later read as work.
+pub fn setKeyAckTag(job: Job, node_id: u32, key: [16]u8) u64 {
+    return receiptTagKeyed(job, 0, node_id, key);
+}
 
 /// How a receipt's tag was produced. The two are not interchangeable, and the
 /// verifier must know which law to apply — a keyed tag checked as a CRC would
@@ -339,6 +374,13 @@ pub fn verifyWithKey(job: Job, r: Receipt, key: ?[16]u8) Verdict {
     // same uninformative reason -- which reads as evidence and is not.
     if (r.kind == .siphash24 and key == null) return .unverifiable;
 
+    // A node that has not been given a key yet is not misbehaving, and must not
+    // be charged for saying so. Same for one that declined a second key: both
+    // are the node reporting its own state correctly.
+    switch (r.status) {
+        status_no_key, status_key_set, status_key_locked => return .unverifiable,
+        else => {},
+    }
     if (r.status != status_ok) return .bad_status;
 
     if (!std.mem.eql(u8, &r.nonce, &job.nonce)) {
@@ -642,4 +684,78 @@ test "a keyless verifier still judges CRC receipts, which need no key" {
         .tag = receiptTag(job, y, default_node_id),
     };
     try std.testing.expectEqual(Verdict.ok, verifyWithKey(job, good, null));
+}
+
+test "a set-key request carries the key in the operand fields, in wire order" {
+    var key: [16]u8 = undefined;
+    for (&key, 0..) |*b, i| b.* = @intCast(i);
+    const job = Job.setKey(7, key);
+
+    try std.testing.expectEqual(op_setkey, job.op);
+    try std.testing.expectEqual(@as(u32, 7), job.nonceValue());
+    // First eight bytes in W, last eight in X — this is the layout the RTL's
+    // frame parser produces, and getting it backwards would key the board with
+    // a permutation of the intended key while everything still looked fine.
+    try std.testing.expectEqualSlices(u8, key[0..8], &job.w);
+    try std.testing.expectEqualSlices(u8, key[8..16], &job.x);
+
+    // The request length is unchanged, which is the point of reusing the
+    // operand fields: the frame parser and its alignment guard stay valid.
+    const wire = encodeRequest(job);
+    try std.testing.expectEqual(request_len, wire.len);
+    try std.testing.expectEqual(op_setkey, wire[2]);
+}
+
+test "the set-key acknowledgement is signed with the key just installed" {
+    var key: [16]u8 = undefined;
+    for (&key, 0..) |*b, i| b.* = @intCast(0x30 +% i);
+    var other: [16]u8 = undefined;
+    for (&other, 0..) |*b, i| b.* = @intCast(0x90 +% i);
+
+    const job = Job.setKey(2, key);
+    const ack = setKeyAckTag(job, default_node_id, key);
+
+    // Signed with the NEW key, not the old one — that is what makes the ack
+    // evidence of acceptance rather than an echo a bystander could fake.
+    try std.testing.expect(ack != setKeyAckTag(job, default_node_id, other));
+    // y is zero by protocol: the operand fields hold key bytes, not trits.
+    try std.testing.expectEqual(receiptTagKeyed(job, 0, default_node_id, key), ack);
+}
+
+test "key-state statuses are never an accusation" {
+    const job = Job.withNonce(11, @splat(0x55), @splat(0x55));
+    const y = dot(job.w, job.x);
+    var key: [16]u8 = undefined;
+    for (&key, 0..) |*b, i| b.* = @intCast(0x21 +% i);
+
+    // An unkeyed board reports a real dot product and a meaningless tag. It is
+    // not misbehaving, and charging it stake for saying so is how an operator
+    // gets punished for a board that simply has not been provisioned yet.
+    for ([_]u8{ status_no_key, status_key_set, status_key_locked }) |st| {
+        const r: Receipt = .{
+            .kind = .siphash24,
+            .y = y,
+            .status = st,
+            .nonce = job.nonce,
+            .node_id = default_node_id,
+            .tag = receiptTagKeyed(job, y, default_node_id, key),
+        };
+        const v = verifyWithKey(job, r, key);
+        try std.testing.expectEqual(Verdict.unverifiable, v);
+        try std.testing.expect(!v.accepted());
+        try std.testing.expect(!v.indictsTheNode());
+    }
+
+    // A status nobody defined is still a fault worth charging for: it means the
+    // node is saying something the protocol has no reading for.
+    const weird: Receipt = .{
+        .kind = .siphash24,
+        .y = y,
+        .status = 0x7F,
+        .nonce = job.nonce,
+        .node_id = default_node_id,
+        .tag = receiptTagKeyed(job, y, default_node_id, key),
+    };
+    try std.testing.expectEqual(Verdict.bad_status, verifyWithKey(job, weird, key));
+    try std.testing.expect(verifyWithKey(job, weird, key).indictsTheNode());
 }

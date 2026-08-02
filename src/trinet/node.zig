@@ -22,6 +22,10 @@ pub const Error = error{
     Unreachable,
     MalformedResponse,
     Timeout,
+    /// The board already holds a key and will not take another until it is
+    /// reconfigured. Not a failure of the caller — it is the write-once latch
+    /// doing its job, and the only fix is a power cycle or a re-flash.
+    KeyAlreadySet,
 };
 
 /// How an emulated node behaves. Everything except `.honest` is an attack that
@@ -287,6 +291,33 @@ pub const Node = struct {
             return Error.Timeout;
         };
         return protocol.decodeResponseV2(&raw) orelse Error.MalformedResponse;
+    }
+
+    /// Install this node's receipt key over the wire.
+    ///
+    /// Returns true only if the node's acknowledgement is signed with the key
+    /// that was just sent. Checking the signature rather than the status byte
+    /// is deliberate: a node that merely echoed the request could produce the
+    /// status, but only one that actually installed the key can produce a tag
+    /// that verifies under it.
+    ///
+    /// `error.KeyAlreadySet` means the board is holding a key from an earlier
+    /// load and will not take another until it is reconfigured. That is the
+    /// property the design rests on, so it is reported as a distinct outcome
+    /// rather than a generic failure.
+    pub fn setKey(self: *Node, key: [16]u8) Error!void {
+        const port = switch (self.backend) {
+            .fpga => |*p| p,
+            else => return Error.Unreachable,
+        };
+        const job = protocol.Job.setKey(self.highest_nonce_issued + 1, key);
+        const r = try self.executeSerial(port, job);
+
+        if (r.status == protocol.status_key_locked) return Error.KeyAlreadySet;
+        if (r.status != protocol.status_key_set) return Error.MalformedResponse;
+        if (r.tag != protocol.setKeyAckTag(job, r.node_id, key)) return Error.MalformedResponse;
+
+        self.key = key;
     }
 
     /// Send several jobs before reading any answer.
