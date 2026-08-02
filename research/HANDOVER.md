@@ -82,7 +82,11 @@ decision about what a claim means.
    of 8 — takum32 exhausted all eight and never did — and the bitstream exists.
    CI run `30764181024`, SHA-256 `f305dc65d3edc8b827fefd0adde1bb5e9818f7d65cd32f34bd74dc17d2c7143c`.
    **Two of the four Tier-E links are in hand; the other two need only the
-   board.**
+   board.** The host that drives them exists as of pass 180 —
+   `conformance/posit8_es2_decode_conformance_ax7203.py`, which sweeps all 256
+   codes and self-tests without a board. There was none before: `conformance/`
+   had posit16, posit32 and posit64 hosts and no posit8, and the existing proof
+   never named the script that produced it.
 2. **`bcd`: should invalid nibbles decode?** 156 of 256 codes are invalid packed BCD
    (both nibbles must be 0–9, so 100 are valid). The oracle decodes them anyway as
    `sum(nibble·10ⁱ)`, and silicon agrees. The pack declares bit-exact BCD.
