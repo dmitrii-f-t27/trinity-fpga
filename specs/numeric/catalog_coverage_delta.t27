@@ -6264,3 +6264,22 @@ finding "gf16's div and sqrt packs use binary16's field layout" {
   incomplete "full binary16 division still does not reproduce the pack, 157 of 512, so the layout is not the only difference"
   status "more specific than pass 190's bit-23 signature and still not a full identification. Stated as what is shown, not as a cause"
 }
+
+resolution "GoldenFloat has an independent second decoder, and it was already here" {
+  found "conformance/gf16_plus_ref.py declares the same seventeen widths as gf_ref and decodes them independently. It is not in generate_vectors.MODULES, has never generated a vector, and nothing had ever compared the two"
+  how_found "a check written for a different purpose: pass 192 audited for hardcoded attribute names and noticed three *_ref.py modules no sweep reaches"
+  result "9041 distinct codes across all seventeen widths, 0 disagreements"
+  scope "decode only -- gf16_plus_ref has no add or mul, so this says nothing about whether the arithmetic is right"
+  significance "honesty rule 10 wants a second implementation sharing no code with the first. For the formats the first paper is about there was never a candidate, and there was one in the repository the whole time"
+  not_a_template "takum_ref and takum_log_ref also share format names and are DIFFERENT families: 3 of 256 codes agree at takum8, 1 of 4096 at takum16. Passes 144 to 146 compared against the wrong one because the 2pi landmark agreed for both. Shared names are not evidence of a shared format; identical decodes over the whole space are"
+}
+
+finding "three modules named *_ref.py are outside every sweep" {
+  gf_mx_ref "no FORMATS, no decode, no encode -- a constants file wearing the suffix, not an oracle"
+  gf16_plus_ref "has decode, encode and FORMATS; no add or mul, and not in MODULES, so it generates nothing"
+  takum_log_ref "has decode and FORMATS but no encode, and is not in MODULES either"
+  consequence "of eighteen *_ref.py files only fifteen are declared in MODULES; nothing reported the other three"
+  new_check "research/audit_hardcoded_lookups.py finds getattr literals that resolve on SOME oracles and not all -- the shape of the pass-191 bug, which evades the obvious check because a name resolving nowhere is a crash and a name resolving almost everywhere is silence"
+  second_instance "cross_validate_oracles.py has the same partial-resolution pattern for format_add"
+  own_control_failed_honestly "the first control asserted decode resolves on every module. It does not, and the failure is how gf_mx_ref was identified. corpus_modules now separates oracles from non-oracles and reports the difference"
+}
