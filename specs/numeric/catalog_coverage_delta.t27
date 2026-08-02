@@ -5858,3 +5858,49 @@ The third is the hardest to notice, because the check runs, reports confidently,
 cites a source. The source has to be opened.
 """
 }
+
+
+// ============================================================================
+// Pass 165 -- the "one genuine gap" was not one, and the erratum's number is now
+// checked rather than cited.
+// ============================================================================
+
+correction NO_GAP_AFTER_ALL {
+  retracts "pass 164: formats_catalog.t27 exists nowhere in the tree or on any branch"
+
+  where_it_is "gHashTag/t27, specs/numeric/formats_catalog.t27, 32,652 bytes"
+  why_it_was_missed """
+Two probes, both blind in a different way. `gh api repos/gHashTag/t27/contents/specs`
+lists only the top level of that directory, so a file one level down does not appear.
+`gh search code --filename` depends on GitHub's index and can return nothing for a file
+that is plainly there.
+
+All eight citing documents say where it is, in words, and say it the same way: repo
+gHashTag/t27, master branch, specs/numeric/. They were right and the scan was wrong.
+
+That is the third time in three passes that a NOT FOUND was the search rather than the
+tree -- pass 164 reported gf8.t27, goldenfloat_family.t27 and mac.t27 missing when all
+three sit in t27/specs/ inside this repository. A search path is a claim about where
+things can be, and it needs the same scepticism as any other claim.
+"""
+  fixed "research/audit_stale_citations.py now asks t27 directly, and says 'could not be checked' when it cannot ask, rather than concluding absence"
+}
+
+verification ERRATUM_CATALOG_COUNT_CONFIRMED {
+  claim "research/ERRATUM_arXiv_2606.09686_catalog_count.md: the catalogue holds 83 formats across 13 families, not 84"
+  method "read the SSOT and count, rather than repeat what it is said to contain"
+
+  measured {
+    catalog_records     83
+    distinct_ids        83
+    duplicate_ids       0
+    distinct_clusters   13
+  }
+  clusters "CompressionTrick, ExtendedFloat, GoldenFloat, HistoricalVendor, Ieee754Binary, Ieee754Decimal, IntegerFixed, Lns, Microscaling, MlLowPrecision, PositUnumIII, QuantTuned, Theoretical"
+
+  reading """
+The erratum states 83 records with no duplicate ids and an unchanged family count of 13.
+All four figures hold against the file itself. The number the paper must be corrected to
+is now verified rather than asserted, and the correction from 84 to 83 stands.
+"""
+}

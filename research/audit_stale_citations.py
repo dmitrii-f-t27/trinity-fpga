@@ -53,7 +53,36 @@ def find_spec(name: str):
                 if os.sep + ".git" + os.sep not in h]
         if hits:
             return hits[0]
+    return in_sibling_repo(name)
+
+
+def in_sibling_repo(name: str):
+    """Resolve against gHashTag/t27, which several documents cite by name.
+
+    Pass 164 reported formats_catalog.t27 as existing "nowhere in the tree or on any
+    branch" and called it the one genuine gap. It is in t27 at
+    specs/numeric/formats_catalog.t27, 32,652 bytes, exactly where all eight citing
+    documents say it is. The earlier probes missed it because `contents/specs` lists
+    only the top level of that directory and `gh search code` depends on indexing.
+
+    That was the third time in three passes that a "missing" result was the search and
+    not the tree. So this asks the repository directly, and when it cannot ask -- no
+    network, no gh, no auth -- it says so instead of concluding absence.
+    """
+    import subprocess
+    for path in (f"specs/numeric/{name}", f"specs/{name}", f"conformance/{name}"):
+        try:
+            r = subprocess.run(
+                ["gh", "api", f"repos/gHashTag/t27/contents/{path}", "--jq", ".name"],
+                capture_output=True, text=True, timeout=60)
+        except Exception:
+            return UNCHECKABLE
+        if r.returncode == 0 and r.stdout.strip():
+            return f"gHashTag/t27:{path}"
     return None
+
+
+UNCHECKABLE = object()
 
 
 def self_check() -> int:
@@ -95,10 +124,17 @@ def main() -> int:
             cited.setdefault(name, set()).add(os.path.basename(f))
 
     marked, missing, clean = [], [], 0
+    elsewhere, unreachable = [], []
     for name, users in sorted(cited.items()):
         path = find_spec(name)
+        if path is UNCHECKABLE:
+            unreachable.append((name, users))
+            continue
         if path is None:
             missing.append((name, users))
+            continue
+        if isinstance(path, str) and path.startswith("gHashTag/t27:"):
+            elsewhere.append((name, path, users))
             continue
         text = open(path, encoding="utf-8", errors="replace").read()
         marks = sorted({m.group(1).upper() for m in MARKER.finditer(text)})
@@ -111,7 +147,14 @@ def main() -> int:
           f"{len(checks)} files (checks, author documents and specs)")
     print(f"  cite a spec with no retraction marker : {clean}")
     print(f"  cite a spec that carries one          : {len(marked)}")
-    print(f"  cite a spec that cannot be found      : {len(missing)}\n")
+    print(f"  cite a spec that lives in gHashTag/t27: {len(elsewhere)}")
+    print(f"  cite a spec that cannot be found      : {len(missing)}")
+    if unreachable:
+        print(f"  could NOT be checked (no network/gh)  : {len(unreachable)}")
+    print()
+    for name, path, users in elsewhere:
+        print(f"  ELSEWHERE  {name}  ->  {path}")
+        print(f"             cited by {', '.join(sorted(users))}")
 
     for name, users in missing:
         print(f"  NOT FOUND  {name}")
