@@ -6143,3 +6143,29 @@ correction "three defects in decimal_ref.py, and the packs regenerated" {
   regression "the three are asserted inside _selftest as hand-checkable arithmetic; reverting the range fix alone produces 4 failures"
   regression_nearly_unreachable "first written as a second if __name__ == __main__ block, which never ran because an earlier one exits first -- the same class of defect this campaign keeps finding, in the fix for it"
 }
+
+correction "x87 is IEEE 754 double-extended, and the corpus treated it as legacy" {
+  defect "legacy_ref.decode read x87's all-ones exponent as an ordinary exponent: +Inf decoded as 2^16384, a 4933-digit integer, and every NaN decoded as a number"
+  cause "one true sentence carried one format too far -- _sat_raw's comment says legacy formats have no Inf, which holds for VAX, IBM HFP, MBF and Cray"
+  written_in_three_places "legacy_ref._sat_raw's comment, legacy_ref.decode, and generate_vectors.real_specials"
+  corpus_disagreed_with_itself "conformance/x87_fp80_decode_conformance_ax7203.py maps exp == 0x7FFF to a quiet NaN, which is right; only the oracle behind the arithmetic packs did not"
+  self_concealing "edge codes are built through the oracle, so a format whose specials are unimplemented cannot contribute a special edge: 0 of 3795 x87 vectors touched an all-ones exponent, and coverage looked complete"
+  dependent_defect_1 "quiet_nan was (exp_max << mant_bits) | 1 -- integer bit clear, which is a pseudo-NaN, an invalid operand every x87 since the 80387 refuses"
+  dependent_defect_2 "format_add and format_mul collapsed every Special to a quiet NaN; the branch existed but nothing could reach it, so Inf + 1 = Inf was never wrong out loud"
+  fixed "decode yields Special for the all-ones exponent, is_canonical marks unnormals and pseudo-infinities, quiet_nan sets the integer bit, and IEEE propagation applies for kind == x87 only"
+  packs "x87_fp80 and x87_48bit regenerated: 631 -> 772 and 634 -> 775 vectors, 141 of each now touch an all-ones exponent"
+}
+
+correction "four MX formats declared a NaN they do not have" {
+  defect "generate_vectors.real_specials added quiet_nan for every non-int mxfp format; the fp8 branch immediately above has the guard and the mxfp branch did not"
+  spec "OCP Microscaling v1.0 gives FP4 E2M1 and FP6 E2M3/E3M2 no Inf and no NaN, and mxfp_ref agrees: has_inf False, nan_at_max_only False"
+  published "the legend in every mxfp4/mxfp6/mxgf4/mxgf6 pack named a quiet_nan code -- 0x7 decodes to 6, 0x19 to 4.5, 0x5 to 2.5. Ordinary finite numbers labelled NaN in pack metadata"
+  correct_case "mxfp8_e4m3 has nan_at_max_only and its 0x7F really is NaN; the guard keeps it"
+  found_by "research/audit_special_coverage.py, written for the x87 class and finding these on its first run"
+}
+
+finding "a pack format divergence I introduced in pass 185" {
+  defect "generate_vectors writes json.dump(doc, f) with no indent; pass 185 rewrote the nine decimal packs with indent=1, making them the only indented files in a directory of 200+"
+  consequence "a plain re-run of the generator would have shown all nine as changed, with 34137 lines of diff and no content difference"
+  fixed "rewritten in the generator's own format; content byte-identical"
+}
