@@ -1,0 +1,42 @@
+name: Format table gate
+
+# A format table is a Python tuple, so nothing checks that its fields fit the word.
+# Pass 147 found two rows that did not: gf4 as (4, 2, 2, 1), where 1+E+M = 5 for a
+# 4-bit format and the exponent field overlapped the sign bit, and gf24 as
+# (24, 7, 17, 63), where 1+E+M = 25. Both were wrong against the GF reference model
+# and against the RTL's own gf_adder_param parameters, which agree with each other.
+#
+# The two invariants are properties of a sign-exponent-mantissa layout as such, so
+# they need no knowledge of any format's intent. --self-check replays both historical
+# rows and requires them to fail, so a green run means the gate can still see.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'conformance/compute_conformance_template.py'
+      - 'conformance/gf_ref.py'
+      - 'research/audit_format_tables.py'
+      - '.github/workflows/format-table-gate.yml'
+  pull_request:
+    paths:
+      - 'conformance/compute_conformance_template.py'
+      - 'conformance/gf_ref.py'
+      - 'research/audit_format_tables.py'
+      - '.github/workflows/format-table-gate.yml'
+  workflow_dispatch:
+
+jobs:
+  format-tables:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: The gate must still catch the rows it was written for
+        run: |
+          python3 research/audit_format_tables.py --self-check
+      - name: Every format table must describe a layout that can exist
+        run: |
+          python3 research/audit_format_tables.py

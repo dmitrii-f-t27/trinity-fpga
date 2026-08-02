@@ -14,9 +14,25 @@ Operations: add, mul, div, sqrt, quire
 """
 import argparse, sys, struct, random
 
-# Format definitions: (total_bits, nbytes, exponent_bits, mantissa_bits, bias)
+# Format definitions: (total_bits, exponent_bits, mantissa_bits, bias)
+#
+# The header used to name FIVE fields for a FOUR-field tuple -- "nbytes" was listed
+# second, where the exponent width actually sits, and the unpacking below has always
+# read four. Two rows were wrong against both conformance/gf_ref.py and the RTL, which
+# agree with each other:
+#
+#   gf4  was (4, 2, 2, 1). 1+E+M = 5 for a 4-bit format, and sign_bit = 3 while the
+#        exponent field works out to [3:2] -- it overlapped the sign bit. gf_ref and
+#        gf_adder_param #(.EXP_BITS(1), .MANT_BITS(2)) both say E=1, M=2, bias=0.
+#   gf24 was (24, 7, 17, 63) with a comment claiming the catalog uses E=7. 1+E+M = 25
+#        for a 24-bit format, and three independent sources say E=9, M=14, bias=255:
+#        gf_ref.py, gf_adder_param #(.EXP_BITS(9), .MANT_BITS(14)), and the
+#        [1|9|14] bias=255 row in research/lut_comparison.md.
+#
+# research/audit_format_tables.py now checks 1+E+M == width and field disjointness
+# across every format table in the corpus, so a row like these fails before it ships.
 FORMATS = {
-    "gf4":  (4,  2, 2, 1),
+    "gf4":  (4,  1, 2, 0),
     "gf6":  (6,  2, 3, 1),
     "gf8":  (8,  3, 4, 3),
     "gf10": (10, 3, 6, 3),
@@ -24,7 +40,7 @@ FORMATS = {
     "gf14": (14, 5, 8, 15),
     "gf16": (16, 6, 9, 31),  # FIXED: E=6, M=9, BIAS=31 (matches gf_ref.py + RTL)
     "gf20": (20, 7, 12, 63),
-    "gf24": (24, 7, 17, 63),  # Note: gf24 in catalog uses E=7, not E=9
+    "gf24": (24, 9, 14, 255),
     "gf32": (32, 12, 19, 2047),  # Note: gf32 in catalog uses E=12
     "bf16": (16, 8, 7, 127),
 }
