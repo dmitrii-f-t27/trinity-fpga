@@ -359,6 +359,42 @@ verification TRINET_NODE_V2_HW {
   """
 }
 
+verification FLEET_BUILD_DISTINCT_NODES {
+  ci_run   30727629606
+  status   "[measured on FPGA]"
+  date     2026-08-02
+  method   "one cell, three builds, FALLBACK_NODE_ID and RECEIPT_KEY overridden with yosys chparam"
+  bitstreams {
+    node0 { id 0x5452494E, sha256 "4ea6de334b957a3c33552383b18eda3ccdf6b16a2d1f38f46b6355cd3139c025" }
+    node1 { id 0x5452494F, sha256 "d0b1d9ee81c5a1a684aecad5171ded25b6cb5221af92b1ecd9aee5de2c71146b" }
+    node2 { id 0x54524950, sha256 "8d0e40abbd6b9d9175e91a3631dcd39571574aa7d85337d3d55b7cc038664699" }
+  }
+  hardware_check """
+    node1's bitstream flashed to the attached AX7203. It reports 0x5452494f,
+    not node0's 0x5452494e, so the identity override reached synthesis; and it
+    rejects node0's key on every job while passing 64/64 on its own, so the key
+    override took independently of the identity.
+  """
+  what_this_does_not_establish "three boards. Only one AX7203 enumerates; this establishes that the build path yields three mutually non-forgeable nodes, not that three exist."
+}
+
+finding FLEET_IDENTITY_BY_POSITION {
+  severity HIGH
+  resolved true
+  resolution "the coordinator probes each board and reads its node id, then looks up the matching key"
+  statement """
+    The fleet command originally bound identity to the position of the serial
+    port on the command line. Ports do not enumerate in a guaranteed order.
+  """
+  cost_if_unfixed """
+    The coordinator verifies each board against another board's key, every
+    honest receipt fails its tag check, and the ledger slashes honest operators
+    for a cabling accident — an integrity failure that reads exactly like
+    detected fraud.
+  """
+  found_by "flashing node1's bitstream to the only attached board, which under positional mapping would have been verified as node0 and rejected wholesale"
+}
+
 verification RECEIPT_TAG_KEYED_TRIPLE {
   rule   RECEIPT_TAG_KEYED
   status VERIFIED_SW
