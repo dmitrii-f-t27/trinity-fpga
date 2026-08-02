@@ -150,6 +150,18 @@ pub fn setKeyAckTag(job: Job, node_id: u32, key: [16]u8) u64 {
     return receiptTagKeyed(job, 0, node_id, key);
 }
 
+/// Whether this status means the node completed the work, regardless of whether
+/// it could sign the result.
+///
+/// A freshly flashed node answers `status_no_key` until its key is installed,
+/// and its arithmetic is perfectly real in the meantime. Anything that measures
+/// the dot product — baud negotiation, a census, a probe's arithmetic column —
+/// must accept that, or a correctly working unkeyed board looks broken at every
+/// candidate rate and the operator concludes the flash failed.
+pub fn statusMeansComputed(status: u8) bool {
+    return status == status_ok or status == status_no_key;
+}
+
 /// How a receipt's tag was produced. The two are not interchangeable, and the
 /// verifier must know which law to apply — a keyed tag checked as a CRC would
 /// pass nothing, and a CRC checked as keyed would pass everything.
@@ -758,4 +770,16 @@ test "key-state statuses are never an accusation" {
     };
     try std.testing.expectEqual(Verdict.bad_status, verifyWithKey(job, weird, key));
     try std.testing.expect(verifyWithKey(job, weird, key).indictsTheNode());
+}
+
+test "an unkeyed node has still done the work" {
+    // The distinction the baud negotiator and the census depend on: computed is
+    // not the same question as signed.
+    try std.testing.expect(statusMeansComputed(status_ok));
+    try std.testing.expect(statusMeansComputed(status_no_key));
+    // A key-load acknowledgement carries no dot product at all, and a locked
+    // reply carries nothing new — neither is a measurement.
+    try std.testing.expect(!statusMeansComputed(status_key_set));
+    try std.testing.expect(!statusMeansComputed(status_key_locked));
+    try std.testing.expect(!statusMeansComputed(0x7F));
 }

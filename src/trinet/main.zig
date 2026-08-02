@@ -216,7 +216,7 @@ fn probe(gpa: std.mem.Allocator, path: []const u8, baud: u32) !void {
         // The arithmetic and the authenticity are separate questions, and
         // conflating them is how "96 on silicon" came to mean "a serial port
         // opened". A board can compute perfectly and prove nothing.
-        if (r.status == protocol.status_ok and
+        if (protocol.statusMeansComputed(r.status) and
             std.mem.eql(u8, &r.nonce, &job.nonce) and
             r.y == protocol.dot(job.w, job.x)) arith += 1;
         const v = protocol.verify(job, r);
@@ -820,7 +820,7 @@ fn census(gpa: std.mem.Allocator, path: []const u8, baud: u32, runs: usize, per_
             const job = protocol.Job.withNonce(@intCast(run * per_run + i + 1), protocol.pack(wv), protocol.pack(xv));
             const r = n.execute(job) catch continue;
             if (protocol.publishedKeyUsed(job, r) != null) stale += 1;
-            if (r.status == protocol.status_ok and
+            if (protocol.statusMeansComputed(r.status) and
                 std.mem.eql(u8, &r.nonce, &job.nonce) and
                 r.y == protocol.dot(job.w, job.x)) correct += 1;
         }

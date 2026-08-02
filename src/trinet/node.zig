@@ -169,7 +169,7 @@ pub const Node = struct {
                 const w: u8 = if (k % 2 == 0) 0x55 else 0xA9;
                 const job = protocol.Job.withNonce(@intCast(k + 1), @splat(w), @splat(0x55));
                 const r = n.execute(job) catch continue;
-                if (r.status == protocol.status_ok and
+                if (protocol.statusMeansComputed(r.status) and
                     std.mem.eql(u8, &r.nonce, &job.nonce) and
                     r.y == protocol.dot(job.w, job.x)) score += 1;
             }
