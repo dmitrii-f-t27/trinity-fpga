@@ -14,12 +14,14 @@ format at all, and no amount of comparing decoded values will notice.
 
     python3 research/audit_expansion_canonicality.py [--verbose] [--self-check]
 
-Exit 0 when every operand and every result in the packs is a valid expansion.
+Exit 0 when every RESULT in the packs is a valid expansion. Non-canonical *operands* are
+deliberate as of pass 188 -- see below -- and are counted as coverage, not as defects.
 
 WHAT THIS FOUND, AND WHAT IT DID NOT
 ------------------------------------
-It found nothing wrong: 0 of 9,276 operands and 0 of 4,638 results are non-canonical.
-That is a real answer and it deserves its reason, because the reason is an accident.
+When first written it found nothing wrong: 0 of 9,276 operands and 0 of 4,638 results were
+non-canonical. That was a real answer and it deserved its reason, because the reason was
+an accident.
 
 For formats wider than 64 bits, `generate_vectors.gen_pairs` draws operands with
 `_rand_value_raw`, which encodes a random *value* rather than drawing random *bits*. Its
@@ -27,11 +29,17 @@ docstring gives the motive plainly -- raw-random operands would demand `pow2(hug
 hang. Every operand therefore arrives through `encode`, and `encode` emits renormalized
 expansions, so canonicality is guaranteed by a decision made for speed.
 
-The flip side is the part worth writing down: **no vector in the corpus exercises a
-non-canonical expansion**. A hardware unit or a library handed an unrenormalized pair --
-which is exactly what a caller who built one by hand would produce -- can diverge from
-this oracle without a single vector disagreeing. The property holds; the domain is
-untested; the two are not the same claim.
+The flip side was the part worth writing down: no vector in the corpus exercised a
+non-canonical expansion, so an implementation handed an unrenormalized pair could diverge
+from this oracle without a single vector disagreeing.
+
+Pass 188 closed that. generate_vectors.structural_raws now contributes overlapping
+expansions -- 0.5 + 0.5 and friends -- as operands, so the packs carry them on purpose.
+This check therefore changed meaning: a non-canonical OPERAND is now coverage and a
+non-canonical RESULT is still a defect, because whatever the input, the arithmetic must
+renormalize what it returns. Leaving the old invariant in place would have turned a
+deliberate improvement into a red check, which is the stale-guard failure this campaign
+keeps finding.
 
 The first version of this file reported 80% of operands as non-canonical. Its limb order
 was inverted: `encode(1.0)` yields limbs `[0x3ff0000000000000, 0x0]`, so limb 0 -- the one
@@ -151,17 +159,23 @@ def main() -> int:
         print(f"  {name:<26}{n:>9}{o:>11}{r:>12}{s:>9}")
     print(f"  {'TOTAL':<26}{'':>9}{nc_ops:>11}{nc_res:>12}{spec:>9}")
     print(f"\n  {tot_ops} operands and {tot_res} results checked")
+    print(f"  {nc_ops} non-canonical operands: deliberate coverage since pass 188")
+    print(f"  {nc_res} non-canonical results: any is a defect")
 
     print("""
-A clean result here is not coverage. Operands for formats wider than 64 bits are drawn by
-encoding a random VALUE, not by drawing random BITS -- generate_vectors._rand_value_raw,
-chosen so wide formats do not have to compute pow2(huge). Everything therefore arrives
-through encode(), and encode() renormalizes, so no vector can be non-canonical and none
-ever exercises what happens when one is.
+Operands wider than gen_pairs' raw-random cut still come from encode(), which
+renormalizes; the non-canonical ones above are there because structural_raws puts them
+there deliberately. That is the difference between a property holding and a property being
+tested, and the two were confused here until pass 188.
 
-An implementation handed an unrenormalized pair -- what a caller who assembled one by hand
-would produce -- can diverge from this oracle with every vector still agreeing.""")
-    return 1 if (nc_ops or nc_res) else 0
+A non-canonical RESULT would mean the arithmetic returns something that is not a member of
+the format whatever it was handed, which no input excuses.""")
+    if nc_ops == 0:
+        print("\nNOTE: zero non-canonical operands. Since pass 188 that means")
+        print("structural_raws has stopped contributing them, not that the corpus is")
+        print("clean -- the coverage it was added for is gone.")
+        return 1
+    return 1 if nc_res else 0
 
 
 def self_check() -> int:

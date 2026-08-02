@@ -48,7 +48,22 @@ class LegacyFormat:
     @property
     def pos_zero(self): return 0
     @property
-    def neg_zero(self): return 1 << self.sign_shift
+    def neg_zero(self):
+        # VAX has no negative zero, and neither does its PDP-11 ancestor. The VAX
+        # Architecture Reference Manual defines sign 1 with a zero exponent as the
+        # *reserved operand*: it does not name a number, it faults. Exponent 0 with sign 0
+        # is true zero whatever the fraction holds.
+        #
+        # Handing that pattern out as "neg_zero" put it in the published legend of 15
+        # packs and, worse, made it the ANSWER to 467 vectors -- the corpus asserted that
+        # certain VAX additions produce a value real VAX hardware traps on.
+        #
+        # AttributeError rather than a raise, so `getattr(fmt, "neg_zero", None)` -- how
+        # generate_vectors.real_specials probes -- gets its default and simply omits it.
+        if self.kind == 'vax':
+            raise AttributeError(f"{self.name} has no negative zero: sign 1 with a "
+                                 f"zero exponent is the reserved operand")
+        return 1 << self.sign_shift
     @property
     def quiet_nan(self):
         # VAX, IBM HFP, MBF and Cray have no NaN at all, so a reserved pattern is as good
@@ -199,6 +214,17 @@ def decode(fmt: LegacyFormat, raw: int):
         return -value if sign else value
 
     raise ValueError(fmt.kind)
+
+
+def _signed_zero(fmt: LegacyFormat, sign: int) -> int:
+    """A zero of the given sign, or the only zero the format has.
+
+    VAX and PDP-11 have exactly one. Returning `neg_zero` for them produced the reserved
+    operand as an arithmetic result, which is a fault on hardware and was the answer to
+    467 vectors."""
+    if fmt.kind == 'vax' or not sign:
+        return fmt.pos_zero
+    return fmt.neg_zero
 
 
 def is_canonical(fmt: LegacyFormat, raw: int) -> bool:
@@ -372,7 +398,7 @@ def format_add(fmt: LegacyFormat, a_raw: int, b_raw: int) -> int:
     sa = (a_raw >> fmt.sign_shift) & 1
     sb = (b_raw >> fmt.sign_shift) & 1
     if a == 0 and b == 0:
-        return fmt.neg_zero if (sa == 1 and sb == 1) else fmt.pos_zero
+        return _signed_zero(fmt, 1 if (sa == 1 and sb == 1) else 0)
     return encode(fmt, a + b)
 
 
@@ -387,7 +413,7 @@ def format_mul(fmt: LegacyFormat, a_raw: int, b_raw: int) -> int:
     sb = (b_raw >> fmt.sign_shift) & 1
     rsign = sa ^ sb
     if a == 0 or b == 0:
-        return fmt.neg_zero if rsign else fmt.pos_zero
+        return _signed_zero(fmt, rsign)
     return encode(fmt, a * b)
 
 
@@ -459,7 +485,8 @@ def _selftest():
             print("  " + f)
         return 1
     print("SELF-TEST: PASS (legacy: known-ibm/zero/unity/1+1/x+0"
-          " + pass-186 x87 specials/canonicality)")
+          " + pass-186 x87 specials/canonicality"
+          " + pass-188 no VAX negative zero)")
     return 0
 
 
@@ -496,6 +523,25 @@ def _regressions_186(check):
         check(format_mul(f, inf, one) == inf, f"186: {fname} Inf * 1 = Inf")
         check(format_mul(f, ninf, one) == ninf, f"186: {fname} -Inf * 1 = -Inf")
         check(format_mul(f, inf, 0) == nan, f"186: {fname} Inf * 0 = NaN")
+
+    # pass 188: no VAX format may hand out a negative zero, as an operand or an answer.
+    for fname in ("vax_f", "vax_d", "vax_g", "vax_h", "pdp11_float"):
+        f = FORMATS[fname]
+        try:
+            f.neg_zero
+            ok = False
+        except AttributeError:
+            ok = True
+        check(ok, f"188: {fname} has no negative zero")
+        neg_one = encode(f, -1)
+        check(format_add(f, neg_one, encode(f, 1)) == f.pos_zero,
+              f"188: {fname} (-1) + 1 is the one zero it has")
+        check(format_mul(f, neg_one, f.pos_zero) == f.pos_zero,
+              f"188: {fname} (-1) * 0 does not produce a reserved operand")
+    for fname in ("ibm_hfp32", "ms_mbf32", "cray_float", "x87_fp80"):
+        f = FORMATS[fname]
+        check(f.neg_zero == 1 << f.sign_shift,
+              f"188: {fname} keeps its negative zero")
 
     # VAX reserved operand: sign 1 with exponent 0 traps rather than naming a value.
     vf = FORMATS["vax_f"]
