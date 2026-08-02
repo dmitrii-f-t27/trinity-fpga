@@ -22,6 +22,10 @@ on:
 # The keys below are build-time defaults for a local fleet on one operator's
 # desk. A deployment with more than one operator must generate them per node and
 # not commit them.
+#
+# BAUD_DIV is 30 (~2372 kbaud), the rate the transport measurements settled on.
+# Building the fleet at the old 434 would ship a network that is 4x slower than
+# the hardware has already been shown to manage.
 
 jobs:
   fleet:
@@ -56,7 +60,7 @@ jobs:
           mkdir -p build/${{ matrix.name }}
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
             read_verilog fpga/openxc7-synth/trinet_siphash24.v fpga/vivado/trinet_node_v2_ax7203.v;
-            chparam -set FALLBACK_NODE_ID ${{ matrix.node_id }} -set RECEIPT_KEY ${{ matrix.key }} trinet_node_v2_ax7203;
+            chparam -set FALLBACK_NODE_ID ${{ matrix.node_id }} -set RECEIPT_KEY ${{ matrix.key }} -set BAUD_DIV_P 30 trinet_node_v2_ax7203;
             synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7 -top trinet_node_v2_ax7203;
             setundef -zero -params; write_json build/${{ matrix.name }}/node.json" 2>&1 | tee /tmp/yosys.log
           grep -E "Estimated|ERROR" /tmp/yosys.log
