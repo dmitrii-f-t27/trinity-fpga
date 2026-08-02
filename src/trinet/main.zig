@@ -5,7 +5,7 @@
 //!   trinet demo [serial]         stand up a mesh, run the agent, print the books
 //!   trinet agent "<task>"        run one agent task on a mesh
 //!   trinet fleet <s0> [s1] [s2]  run the agent across several physical boards
-//!   trinet bench [serial] [n]    measure delivered throughput and the transport gap
+//!   trinet bench [serial] [n] [baud] [slot]  measure throughput and the transport gap
 //!   trinet serve <port> [serial] expose a node over TCP so others can use it
 //!   trinet join                  print what a new developer has to do
 //!
@@ -66,6 +66,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         gpa,
         if (args.len > 2) args[2] else default_serial,
         if (args.len > 3) try std.fmt.parseInt(usize, args[3], 10) else 500,
+        if (args.len > 4) try std.fmt.parseInt(u32, args[4], 10) else default_baud,
+        if (args.len > 5) try std.fmt.parseInt(usize, args[5], 10) else 0,
     );
     if (std.mem.eql(u8, cmd, "fleet")) {
         if (args.len < 3) {
@@ -306,13 +308,15 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
 /// nodes spend all their time waiting on a serial line is a serial line with a
 /// compute network attached to it, and the honest way to find that out is to
 /// measure both ends and print the gap.
-fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize) !void {
-    std.debug.print("benchmarking the node on {s}, {d} jobs\n", .{ path, n });
+fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slot: usize) !void {
+    const spec = fleet_nodes[@min(node_slot, fleet_nodes.len - 1)];
+    std.debug.print("benchmarking {s} on {s} at {d} baud, {d} jobs\n", .{ spec.name, path, baud, n });
     line();
 
     var buf: [256]u8 = undefined;
     const zpath = try std.fmt.bufPrintZ(&buf, "{s}", .{path});
-    var node = try node_mod.Node.initFpga(protocol.default_node_id, "ax7203", zpath, default_baud);
+    var node = try node_mod.Node.initFpga(spec.id, spec.name, zpath, baud);
+    node.key = spec.key;
     defer node.deinit();
 
     const latencies = try gpa.alloc(u64, n);
@@ -345,7 +349,7 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize) !void {
             continue;
         };
         latencies[i] = monoNanos() - start;
-        if (protocol.verify(job, r).accepted()) verified += 1;
+        if (protocol.verifyWithKey(job, r, node.key).accepted()) verified += 1;
     }
 
     const elapsed_ns = monoNanos() - t0;
@@ -358,8 +362,8 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize) !void {
     const p99 = latencies[(n * 99) / 100];
 
     // Transport ceiling: 8N1 costs ten bit-times per byte.
-    const bytes_per_job: f64 = @floatFromInt(protocol.request_len + protocol.response_len);
-    const transport_jobs_per_s = @as(f64, default_baud) / 10.0 / bytes_per_job;
+    const bytes_per_job: f64 = @floatFromInt(protocol.request_len + protocol.response_len_v2);
+    const transport_jobs_per_s = @as(f64, @floatFromInt(baud)) / 10.0 / bytes_per_job;
 
     // Compute ceiling: the dot product is combinational, and the receipt engine
     // walks 26 preimage bytes at one byte per clock, so a job costs roughly 30
@@ -378,7 +382,7 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize) !void {
     });
     line();
     std.debug.print("transport ceiling   : {d:.1} jobs/s  (UART {d} baud, {d} bytes/job)\n", .{
-        transport_jobs_per_s, default_baud, protocol.request_len + protocol.response_len,
+        transport_jobs_per_s, baud, protocol.request_len + protocol.response_len_v2,
     });
     std.debug.print("compute ceiling     : {d:.0} jobs/s  (~{d:.0} cycles/job at 71.18 MHz CFGMCLK)\n", .{
         compute_jobs_per_s, cycles_per_job,
