@@ -81,6 +81,10 @@ pub const Node = struct {
     name: []const u8,
     backend: Backend,
     stats: Stats = .{},
+    /// Highest nonce ever dispatched to this node. A response carrying a nonce
+    /// at or below it is one we really did ask for, so the stream is out of
+    /// step; a nonce above it was never issued and is fabrication.
+    highest_nonce_issued: u32 = 0,
     /// Set when this node runs the v2 cell, whose receipts carry a keyed tag
     /// and a 19-byte response instead of a CRC and 15. The key is what the
     /// coordinator needs to verify them; the node holds its own copy in its
@@ -147,6 +151,11 @@ pub const Node = struct {
     }
 
     fn executeSerial(self: *Node, port: *serial.Port, job: protocol.Job) Error!protocol.Receipt {
+        // Deliberately NOT flushing here. Draining before each request was
+        // tried against a marginal board and measured worse on every count —
+        // more unreachable, more misclassified — because it can discard a
+        // response that is still arriving. The desync is real; the fix belongs
+        // in how a stale nonce is judged, not in throwing bytes away.
         const req = protocol.encodeRequest(job);
         port.writeAll(&req) catch {
             self.stats.unreachable_count += 1;

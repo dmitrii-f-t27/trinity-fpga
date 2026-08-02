@@ -58,6 +58,9 @@ pub const Stats = struct {
     accepted: u64 = 0,
     rejected: u64 = 0,
     unreachable_jobs: u64 = 0,
+    /// Damaged frames. Separated from rejections because one is a statement
+    /// about the operator's wiring and the other about their honesty.
+    corrupt_jobs: u64 = 0,
     on_silicon: u64 = 0,
     in_software: u64 = 0,
 
@@ -148,13 +151,28 @@ pub const Mesh = struct {
             };
         };
 
-        const verdict = protocol.verifyWithKey(job, receipt, n.key);
+        if (job.nonceValue() > n.highest_nonce_issued) n.highest_nonce_issued = job.nonceValue();
+
+        var verdict = protocol.verifyWithKey(job, receipt, n.key);
+
+        // A nonce mismatch means either a replay attack or a stream that lost a
+        // response and is now one behind. They are indistinguishable from a
+        // single exchange, and one of them costs an honest operator their
+        // stake — so use what the coordinator knows and the node does not: a
+        // nonce we already issued is desync, a nonce we never issued is
+        // fabrication.
+        if (verdict == .nonce_mismatch) {
+            const returned = std.mem.readInt(u32, &receipt.nonce, .little);
+            if (returned <= n.highest_nonce_issued) verdict = .corrupt;
+        }
         const settlement = try self.ledger.settle(n.id, job, receipt, verdict);
 
         if (settlement.outcome == .credited) {
             self.stats.accepted += 1;
             n.stats.accepted += 1;
             if (n.isPhysical()) self.stats.on_silicon += 1 else self.stats.in_software += 1;
+        } else if (settlement.outcome == .corrupt_not_charged) {
+            self.stats.corrupt_jobs += 1;
         } else {
             self.stats.rejected += 1;
             n.stats.rejected += 1;
@@ -260,8 +278,8 @@ pub const Mesh = struct {
             );
         }
         try writer.print(
-            "jobs: {d} dispatched, {d} accepted, {d} rejected, {d} unreachable\n",
-            .{ self.stats.dispatched, self.stats.accepted, self.stats.rejected, self.stats.unreachable_jobs },
+            "jobs: {d} dispatched, {d} accepted, {d} rejected as dishonest, {d} damaged in transit, {d} unreachable\n",
+            .{ self.stats.dispatched, self.stats.accepted, self.stats.rejected, self.stats.corrupt_jobs, self.stats.unreachable_jobs },
         );
         try writer.print(
             "compute location: {d} on silicon, {d} in software ({d:.1}% hardware)\n",
@@ -476,9 +494,9 @@ test "keyed nodes are verified with their own key, not each other's" {
     const job = testJob(99);
     const honest = protocol.executeKeyed(job, 0xA000, key_a);
     try std.testing.expectEqual(protocol.Verdict.ok, protocol.verifyWithKey(job, honest, key_a));
-    try std.testing.expectEqual(protocol.Verdict.bad_tag, protocol.verifyWithKey(job, honest, key_b));
+    try std.testing.expectEqual(protocol.Verdict.corrupt, protocol.verifyWithKey(job, honest, key_b));
     // And a keyed receipt with no key at all must never be waved through.
-    try std.testing.expectEqual(protocol.Verdict.bad_tag, protocol.verifyWithKey(job, honest, null));
+    try std.testing.expectEqual(protocol.Verdict.corrupt, protocol.verifyWithKey(job, honest, null));
 }
 
 test "a mesh with no eligible node fails loudly instead of silently faking work" {

@@ -99,11 +99,15 @@ pub const Port = struct {
         }
     }
 
+    /// Discard anything buffered on the receive side.
+    ///
+    /// Through the TIOCFLUSH ioctl, not by reading until empty: with VMIN 0 and
+    /// VTIME set, a read on an empty buffer blocks for the whole timeout, so a
+    /// drain loop costs two seconds every time it is called on a healthy link.
+    /// `std.c` does not surface tcflush on Darwin, hence the raw ioctl.
     pub fn flushInput(self: *Port) void {
-        var scratch: [256]u8 = undefined;
-        while (true) {
-            const n = c.read(self.fd, &scratch, scratch.len);
-            if (n <= 0) break;
-        }
+        const TIOCFLUSH: c_int = @bitCast(@as(u32, 0x8004_7410)); // _IOW('t', 16, int)
+        var what: c_int = 1; // FREAD
+        _ = c.ioctl(self.fd, TIOCFLUSH, &what);
     }
 };

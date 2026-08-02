@@ -239,11 +239,26 @@ pub const Verdict = enum {
     ok,
     bad_status,
     nonce_mismatch,
+    /// A wrong answer carrying a tag that is VALID for it. Only a key holder
+    /// can produce that, so the node computed nothing and signed the guess.
     wrong_result,
-    bad_tag,
+    /// The response is not self-consistent: the tag matches neither the correct
+    /// answer nor the one returned. A node with the key cannot produce this on
+    /// purpose, so it is a damaged frame rather than a lie.
+    corrupt,
 
     pub fn accepted(self: Verdict) bool {
         return self == .ok;
+    }
+
+    /// Whether this verdict is evidence of dishonesty, as opposed to a link
+    /// that dropped bits. The distinction decides whether an operator loses
+    /// stake, so it must not be guessed at.
+    pub fn indictsTheNode(self: Verdict) bool {
+        return switch (self) {
+            .ok, .corrupt => false,
+            .bad_status, .nonce_mismatch, .wrong_result => true,
+        };
     }
 
     pub fn reason(self: Verdict) []const u8 {
@@ -251,8 +266,8 @@ pub const Verdict = enum {
             .ok => "ok",
             .bad_status => "node reported a non-ok status",
             .nonce_mismatch => "nonce does not match the job (replay or crossed response)",
-            .wrong_result => "dot product disagrees with the golden oracle",
-            .bad_tag => "receipt tag does not bind this job, result and node",
+            .wrong_result => "wrong answer, correctly tagged — the node had the key and signed a guess",
+            .corrupt => "response is not self-consistent — a damaged frame, not a lie",
         };
     }
 };
@@ -274,16 +289,38 @@ pub fn verify(job: Job, r: Receipt) Verdict {
 /// point of keying the tag.
 pub fn verifyWithKey(job: Job, r: Receipt, key: ?[16]u8) Verdict {
     if (r.status != status_ok) return .bad_status;
-    if (!std.mem.eql(u8, &r.nonce, &job.nonce)) return .nonce_mismatch;
-    if (r.y != dot(job.w, job.x)) return .wrong_result;
-    switch (r.kind) {
-        .crc32 => if (r.tag != receiptTag(job, r.y, r.node_id)) return .bad_tag,
-        .siphash24 => {
-            const k = key orelse return .bad_tag;
-            if (r.tag != receiptTagKeyed(job, r.y, r.node_id, k)) return .bad_tag;
-        },
+
+    if (!std.mem.eql(u8, &r.nonce, &job.nonce)) {
+        // A replayed receipt is tagged over the OLD job, so it fits nothing we
+        // can reconstruct. A request whose nonce was damaged in transit makes
+        // the node tag over the nonce it actually received, with our operands
+        // — reconstructable exactly. Checking that separates a replay attack
+        // from a corrupted request, and only one of them should cost stake.
+        const as_received: Job = .{ .op = job.op, .nonce = r.nonce, .w = job.w, .x = job.x };
+        const fits_damaged_request = switch (r.kind) {
+            .crc32 => r.tag == receiptTag(as_received, r.y, r.node_id),
+            .siphash24 => if (key) |k| r.tag == receiptTagKeyed(as_received, r.y, r.node_id, k) else false,
+        };
+        return if (fits_damaged_request) .corrupt else .nonce_mismatch;
     }
-    return .ok;
+
+    // Does the tag match the answer the node actually returned? Only something
+    // holding the key can make that true, so it separates a lie from a damaged
+    // frame — and that separation decides whether an operator loses stake.
+    const tag_fits_response = switch (r.kind) {
+        .crc32 => r.tag == receiptTag(job, r.y, r.node_id),
+        .siphash24 => if (key) |k| r.tag == receiptTagKeyed(job, r.y, r.node_id, k) else false,
+    };
+
+    if (r.y != dot(job.w, job.x)) {
+        // Wrong answer. Correctly tagged means the node had the key and signed
+        // a guess; incorrectly tagged means bits were lost on the way.
+        return if (tag_fits_response) .wrong_result else .corrupt;
+    }
+    // Right answer with a tag that does not fit it can only be corruption: a
+    // node that computed correctly has no reason to mis-tag, and an attacker
+    // gains nothing by breaking a receipt that was going to be accepted.
+    return if (tag_fits_response) .ok else .corrupt;
 }
 
 /// Honest local execution of a job — what an emulated node runs, and what a
@@ -357,21 +394,44 @@ test "verifier accepts honest work and rejects each tampering" {
     const good = execute(job, default_node_id);
     try std.testing.expectEqual(Verdict.ok, verify(job, good));
 
-    var forged_result = good;
-    forged_result.y +%= 1;
-    try std.testing.expectEqual(Verdict.wrong_result, verify(job, forged_result));
+    // A node that skips the work still holds the key, so it signs its guess:
+    // wrong answer, tag VALID for that answer. That is dishonesty.
+    var lied = good;
+    lied.y +%= 1;
+    lied.tag = receiptTag(job, lied.y, lied.node_id);
+    try std.testing.expectEqual(Verdict.wrong_result, verify(job, lied));
+    try std.testing.expect(Verdict.wrong_result.indictsTheNode());
 
-    var forged_tag = good;
-    forged_tag.tag ^= 1;
-    try std.testing.expectEqual(Verdict.bad_tag, verify(job, forged_tag));
+    // The same wrong answer with the ORIGINAL tag is what a damaged frame
+    // looks like — nothing holding the key would produce that pair.
+    var damaged_result = good;
+    damaged_result.y +%= 1;
+    try std.testing.expectEqual(Verdict.corrupt, verify(job, damaged_result));
 
+    // A flipped tag bit over a correct answer is what a damaged frame looks
+    // like, and it must not be charged as dishonesty.
+    var damaged_tag = good;
+    damaged_tag.tag ^= 1;
+    try std.testing.expectEqual(Verdict.corrupt, verify(job, damaged_tag));
+    try std.testing.expect(!Verdict.corrupt.indictsTheNode());
+
+    // A replay carries a tag over the OLD job, which fits nothing we can
+    // reconstruct — that is an attack.
     var replayed = good;
     replayed.nonce = .{ 1, 2, 3, 4 };
     try std.testing.expectEqual(Verdict.nonce_mismatch, verify(job, replayed));
+    try std.testing.expect(Verdict.nonce_mismatch.indictsTheNode());
+
+    // A request whose nonce was damaged in transit makes the node tag over the
+    // nonce it actually received, with our operands. That is reconstructable,
+    // and it must not be charged as a replay.
+    const seen: Job = .{ .op = job.op, .nonce = .{ 9, 9, 9, 9 }, .w = job.w, .x = job.x };
+    const honest_on_damaged = execute(seen, default_node_id);
+    try std.testing.expectEqual(Verdict.corrupt, verify(job, honest_on_damaged));
 
     var impersonated = good;
     impersonated.node_id +%= 7;
-    try std.testing.expectEqual(Verdict.bad_tag, verify(job, impersonated));
+    try std.testing.expectEqual(Verdict.corrupt, verify(job, impersonated));
 
     var bad_status = good;
     bad_status.status = 0x00;

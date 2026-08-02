@@ -82,6 +82,9 @@ pub const Account = struct {
     accepted: u64 = 0,
     rejected: u64 = 0,
     consecutive_rejections: u32 = 0,
+    /// Damaged responses. Tracked separately from rejections because it is a
+    /// link-quality signal about the operator's wiring, not about their honesty.
+    corrupted: u64 = 0,
     status: Status = .active,
 
     pub fn reputation(self: Account) f64 {
@@ -95,6 +98,9 @@ pub const Outcome = enum {
     credited,
     /// Result or tag did not verify.
     rejected_and_slashed,
+    /// The response was damaged in transit. Not credited, and NOT slashed:
+    /// stake is the price of dishonesty, not of a marginal cable.
+    corrupt_not_charged,
     /// The receipt claimed an identity other than the node we dispatched to.
     identity_mismatch,
     /// Node is suspended and should not have been dispatched to.
@@ -125,6 +131,7 @@ pub const Ledger = struct {
     spent_nonces: std.AutoHashMapUnmanaged(u64, void) = .empty,
     total_credited_mtri: u64 = 0,
     total_slashed_mtri: u64 = 0,
+    total_corrupted: u64 = 0,
     jobs_on_silicon: u64 = 0,
 
     pub fn init(gpa: std.mem.Allocator, policy: Policy) Error!Ledger {
@@ -191,6 +198,21 @@ pub const Ledger = struct {
                 .outcome = .identity_mismatch,
                 .slash_delta_mtri = slash,
                 .detail = "receipt claims an identity we did not dispatch to",
+            };
+        }
+
+        // A damaged frame is not evidence about the operator. Measured on real
+        // hardware: at ~2.4 Mbaud one of three boards returned a few percent of
+        // responses corrupted, and the ledger slashed it for a cable. Charging
+        // stake for that drives honest operators off a network faster than any
+        // fraud does.
+        if (verdict == .corrupt) {
+            acct.corrupted += 1;
+            self.total_corrupted += 1;
+            return .{
+                .node_id = dispatched_to,
+                .outcome = .corrupt_not_charged,
+                .detail = verdict.reason(),
             };
         }
 
@@ -269,6 +291,45 @@ fn makeJob(n: u32) protocol.Job {
     var wv: protocol.Trits = @splat(0);
     for (&wv, 0..) |*t, i| t.* = if ((i + n) % 3 == 0) 1 else if ((i + n) % 3 == 1) -1 else 0;
     return protocol.Job.withNonce(n, protocol.pack(wv), protocol.pack(wv));
+}
+
+test "a damaged frame costs the operator nothing, a lie costs them stake" {
+    var l = try Ledger.init(std.testing.allocator, .{});
+    defer l.deinit();
+    try l.register(0x8008, "honest-but-badly-cabled", true, 5000);
+
+    // Measured on hardware: at ~2.4 Mbaud one of three boards returned a few
+    // percent of its responses damaged, and the ledger charged it as fraud.
+    // An honest operator losing stake to a marginal cable drives people off a
+    // network faster than any cheat does.
+    const j = makeJob(1);
+    var damaged = protocol.execute(j, 0x8008);
+    damaged.tag ^= 0x40; // one flipped bit on the wire
+
+    const s1 = try l.settle(0x8008, j, damaged, protocol.verify(j, damaged));
+    try std.testing.expectEqual(Outcome.corrupt_not_charged, s1.outcome);
+    try std.testing.expectEqual(@as(u64, 5000), l.get(0x8008).?.stake_mtri);
+    try std.testing.expectEqual(@as(u64, 0), l.get(0x8008).?.slashed_mtri);
+    try std.testing.expectEqual(@as(u64, 1), l.get(0x8008).?.corrupted);
+    // Not credited either — a damaged receipt is not evidence of work.
+    try std.testing.expectEqual(@as(u64, 0), l.get(0x8008).?.credit_mtri);
+    // And it is not counted against the node's reputation.
+    try std.testing.expectEqual(@as(u64, 0), l.get(0x8008).?.rejected);
+
+    // A node that signs a wrong answer had the key and used it. That is a lie.
+    const j2 = makeJob(2);
+    const wrong_y = protocol.dot(j2.w, j2.x) +% 1;
+    const lied: protocol.Receipt = .{
+        .y = wrong_y,
+        .status = protocol.status_ok,
+        .nonce = j2.nonce,
+        .node_id = 0x8008,
+        .tag = protocol.receiptTag(j2, wrong_y, 0x8008),
+        .kind = .crc32,
+    };
+    const s2 = try l.settle(0x8008, j2, lied, protocol.verify(j2, lied));
+    try std.testing.expectEqual(Outcome.rejected_and_slashed, s2.outcome);
+    try std.testing.expect(l.get(0x8008).?.slashed_mtri > 0);
 }
 
 test "a policy where cheating pays is refused" {
