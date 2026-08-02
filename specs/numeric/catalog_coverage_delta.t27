@@ -1768,7 +1768,7 @@ that the silicon behaved.
 
 result HOW_MANY_PACKS_HAVE_HARDWARE_EVIDENCE {
   question "of the 83 conformance packs, how many carry a physical-board result?"
-  answer "45 of 83 -- 54%"
+  answer "46 of 83 -- 55%"
 
   with_hardware """
 bcd 100/100, bfloat16 8/8, binary16 65536/65536, binary32/64/128 64/64,
@@ -1777,7 +1777,7 @@ fp6_e3m2 64/64, fp8_e5m2 256/256, gf4/6/8/12/16/20/24/32 up to 512/512,
 gf10 64/64, gf14 64/64, ibm_hfp32/64 64/64, int4 16/16, int8 256/256,
 int16/32 64/64, lns8 256/256, lns16 64/64, ms_mbf32/64 64/64, nf4 16/16,
 posit8 256/256, posit16/32 64/64, quad_double 64/64, takum8 256/256,
-takum16 64/64, takum32 65536/65536, vax_d/f/g 64/64.
+takum16 64/64, tf32 64/64, mxfp8 1056/1056, vax_d/f/g 64/64.
 
 CORRECTED 2026-08-02 (pass 148). This sentence used to read "Two are exhaustive
 over the whole code space: binary16 and takum32, at 65,536/65,536 each." It was
@@ -1803,10 +1803,10 @@ disagreement in either direction.
 """
 
   software_only """
-38 packs: afp, binary256, block_fp, cray_float, fp8_e4m3, gf48, gf64, gf96, gf128,
+37 packs: afp, binary256, block_fp, cray_float, fp8_e4m3, gf48, gf64, gf96, gf128,
 gf256, gf512, gf1024, gf8_bfp, gf_lns_hybrid, gfternary, ibm_hfp128, int64, int128,
-lns32, lns64, minifloat, mxfp4, mxfp6, mxfp8, mxgf4, mxgf6, per_channel_scale,
-posit64, q_format, shared_exp, stochastic_rounding, takum64, tapered_fp, tf32,
+lns32, lns64, minifloat, mxfp4, mxfp6, mxgf4, mxgf6, per_channel_scale,
+posit64, q_format, shared_exp, stochastic_rounding, takum32, takum64, tapered_fp,
 unum_i, unum_ii, vax_h, x87_fp80.
 """
 
@@ -5407,4 +5407,54 @@ All six now read with zero diagnostics.
 Four left, each needing its own reading rather than a shared fix.
 """
   status VERIFIED_SW
+}
+
+
+// ============================================================================
+// Pass 151 -- takum32 was listed as carrying hardware evidence. The evidence issue
+// says the opposite, in its own words.
+// ============================================================================
+
+correction TAKUM32_HAS_NO_HARDWARE_EVIDENCE {
+  was "the with_hardware list carried 'takum32 65536/65536'"
+
+  // Two things are wrong with that entry, and the second is why the first survived.
+  finding_1 """
+No comment in issue #199 carries a complete four-link chain for takum32. Thirteen
+mention it; none qualifies. The issue states the verdict itself:
+
+  takum64/32 synthesize on Artix-7 200T (XC7A200T) but do NOT route.
+  Per rule #1 (Tier E only with full 4/4 chain) and anti-fake-pass, takum is NOT Tier E.
+  Honest achievable HW ceiling on AX7203 = 71/83.
+
+Both CI runs finished with conclusion=failure at the 4-hour per-seed timeout, all
+eight seeds unrouted. There is no bitstream, so there can be no flash and no UART log.
+"""
+
+  finding_2 """
+The number 65536/65536 belongs to gf16. The only comment mentioning takum32 that also
+contains a HW RESULT line reads 'HW RESULT: 65536/65536 bit-exact (fails=0) -- all
+65536 gf16 codes'. The figure was transcribed onto the wrong row.
+
+That also explains pass 148's finding. takum32 was named as one of two formats
+'exhaustive over the whole code space' at 65,536 codes -- which is 0.00153% of a
+32-bit space. It was never a takum32 measurement at all.
+"""
+
+  // Two rows move the other way, and were found by the same sweep.
+  also_corrected """
+tf32 and mxfp8 each carry a complete four-link Tier-E chain in the issue and were
+listed as software-only. mxfp8's proof reads HW RESULT: 1056/1056 bit-exact.
+
+Net effect on the split: 45 with hardware becomes 46, and 38 software-only becomes 37.
+takum32 moves out, tf32 and mxfp8 move in, and 46 + 37 is still 83.
+"""
+
+  method "research/measure_tier_e_cells.py, then reading the disagreements by hand"
+  reading """
+This is the most serious defect this campaign has found in a published claim. Every
+other correction moved a number; this one attributes a hardware result to a format
+whose own evidence issue records that it does not route on the part. A reviewer who
+opened #199 would have found the verdict before finding the claim.
+"""
 }
