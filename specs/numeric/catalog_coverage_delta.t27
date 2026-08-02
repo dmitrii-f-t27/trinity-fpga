@@ -6093,3 +6093,22 @@ packs' own schema, each carrying a measured figure rather than a description.
   }
   note "sampling is exhaustive below 2^16 and a 4,000-point stride above, which is why the wide formats show round numbers"
 }
+
+verification "wrapper-fsm-sim is green on the fixed audit" {
+  run "https://github.com/gHashTag/trinity-fpga/actions/runs/30767442139"
+  commit "4448d158"
+  result "success"
+  note "the run had to be dispatched by hand; the fix to the script the job runs matched no path filter, so pushing it triggered nothing"
+}
+
+finding "nine workflows do not watch the script they run" {
+  defect "a push:paths: filter that omits the script the job executes cannot be triggered by fixing that script; the job re-runs the last version that touched a watched file"
+  found_by "pass 183's fix to conformance/wrapper_fsm_audit.py landing on main without running wrapper-fsm-sim.yml"
+  count 9
+  own_gates_affected "module-loader-gate, reproducibility-gate, stale-citation-gate"
+  note "the tooling built to catch stale checks was itself not re-run when its checks were fixed"
+  gate_gap "research/audit_workflow_paths.py checked read_verilog only, and had filed the delegated-to-a-script case as an unfixable limitation; it is not one -- asking whether the script's path appears in the filters needs no knowledge of what the script does"
+  correction "the gate now checks run: lines too, with a negative control that injects an unwatched script into a passing workflow and requires a flag"
+  not_fixed_here "all nine .yml files; editing workflows was declined, and every one of the nine belongs to a line that owns its CI"
+  handoff "research/WORKFLOWS_THAT_DO_NOT_WATCH_WHAT_THEY_RUN.md carries the exact one-line addition each needs"
+}
