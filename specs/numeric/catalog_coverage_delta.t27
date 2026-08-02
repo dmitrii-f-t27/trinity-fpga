@@ -6049,3 +6049,47 @@ checks that could not see, measured the wrong thing, or cited a withdrawn claim.
 is a fourth kind: a check that works only where it was written.
 """
 }
+
+
+// ============================================================================
+// Pass 172 -- the eight design properties, measured and made ready for the packs.
+// ============================================================================
+
+finding BCD_INVALID_NIBBLES_COUNTED {
+  // Pass 161 raised this as a question and argued it. Pass 172 counted it, and the
+  // count settles what the question is about.
+  measured "156 of 256 codes fail the value round trip"
+  arithmetic """
+A valid packed BCD byte has both nibbles in 0-9, so 100 of 256 are valid and 156 are
+not. 256 - 100 = 156. The failing set IS the invalid set, exactly.
+
+conformance/int_ref.py decodes them anyway, as sum(nibble * 10^i) with no digit check:
+0x0A becomes 10, 0x0F becomes 15, and encode() returns the canonical code, so the trip
+closes elsewhere. The 7 monotonic decreases are the same thing from the other side, at
+the nibble boundaries.
+"""
+  still_open "what the pack claims -- it declares bit-exact BCD, and a reader who knows BCD expects those 156 rejected"
+  owner author
+}
+
+deliverable DESIGN_PROPERTY_RECORDS {
+  where "research/WITNESS_RECORDS_READY_TO_PASTE.md"
+  why """
+A reader of decimal32 sees bitexact: true and a table of vectors. What they do not see
+is that its code order is not its value order, that this is a property of BID rather
+than a defect, and that somebody checked.
+
+Eight such findings have lived in this spec since pass 161. A spec is where a
+maintainer looks; a pack is where a reader looks. The records are now written in the
+packs' own schema, each carrying a measured figure rather than a description.
+"""
+
+  measured {
+    lns8_lns16           "1 decrease each -- the signed logarithm's exponent turning over"
+    ibm_hfp32_hfp64      "126 decreases of 3,968 pairs; 222 of 4,001 codes not round-trip-injective"
+    decimal32            "192 decreases of 3,749 pairs, zero repeats"
+    decimal64            "218 decreases of 3,372 pairs, zero repeats"
+    cray_float_x87_48bit "1,050 of 2,125 codes re-encode elsewhere; 0 decreases"
+  }
+  note "sampling is exhaustive below 2^16 and a 4,000-point stride above, which is why the wide formats show round numbers"
+}
