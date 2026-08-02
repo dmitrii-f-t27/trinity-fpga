@@ -41,10 +41,12 @@ def main() -> int:
     ap.add_argument("--ref", default=os.path.join(SCRATCH, "spx8.tsv"))
     args = ap.parse_args()
 
-    for p in (args.rtl, args.ref):
+    from artefacts import require
+    for p, name in ((args.rtl, "rtl_p8.txt"), (args.ref, "spx8.tsv")):
         if not os.path.exists(p):
-            print(f"missing: {p}")
-            print("Nothing is assumed when an input is absent.")
+            # require() prints the command that produces it; a bare "missing" leaves a
+            # stranger no way forward.
+            require(name)
             return 2
 
     rtl = {}
