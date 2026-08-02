@@ -81,7 +81,7 @@ three boards, whose settlement layer is not yet trustworthy on hardware".
 | Keyed receipt rejects a wrong key | every job, measured both directions |
 | Logic cost | 1313 LC, **0 DSP48** (yosys 0.63, `-flatten -abc9 -nocarry -nodsp -arch xc7`) |
 | Portability | synthesises clean on **10 FPGA families**, 819 flip-flops on 9 of them |
-| Software stack | 180 tests |
+| Software stack | **54 tests** (`zig test src/trinet/agent.zig`, which nests protocol/node/ledger/mesh/model/net) |
 | CFGMCLK, measured per chip | 71.18 / 70.46 / **67.47** MHz — a **5.5% per-chip spread** |
 
 Throughput is deliberately absent from that table. Every figure this project
