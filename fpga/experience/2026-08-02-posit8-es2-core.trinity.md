@@ -93,6 +93,41 @@ Re-synthesis costs 58 LUTs. Take it.
 What still needs the board: a CI run URL, the bitstream SHA-256, a UART log and the
 IDCODE. Simulation and synthesis are neither of the four.
 
+## It routes — bitstream built 2026-08-03
+
+The one thing synthesis could not answer: whether the es=2 cell places and routes on
+this part. It does.
+
+| | |
+|---|---|
+| CI run | https://github.com/gHashTag/trinity-fpga/actions/runs/30764181024 |
+| conclusion | **success** |
+| seed | **2** of a possible 8 |
+| artifact | `corona-decode-bitstream-corona_decode_posit8_es2_ax7203` |
+| bitstream | 9,730,797 bytes |
+| **SHA-256** | `f305dc65d3edc8b827fefd0adde1bb5e9818f7d65cd32f34bd74dc17d2c7143c` |
+
+Seed 2 matters. `takum64/32` exhausted all eight seeds and never routed, which is why
+that family is not Tier-E; this cell found a clean route on the second attempt, so it is
+not marginal.
+
+**Two of the four Tier-E links are now in hand** — a public CI run with its URL, and the
+SHA-256 of the specific bitstream. The remaining two need the board and nothing else: a
+UART log reading `HW RESULT: N/N bit-exact (fails=0)` at 160000 baud, and a matching
+IDCODE `0x13636093`.
+
+Flash it with the bitstream above. **Which host drives it is not recorded anywhere**,
+and that is worth knowing before someone goes looking: `conformance/` holds
+`posit16_`, `posit32_` and `posit64_decode_conformance_ax7203.py` but **no posit8 one**,
+and the existing posit8 proof in issue #199 reports its UART result without naming the
+script that produced it.
+
+What is certain is that the harness is byte-for-byte identical between the two cells —
+same STARTUPE2 clock, same 160000-baud framing, same five-byte response — so whatever
+drove the es=0 proof drives this one unchanged. Only the expected values differ, and
+those come from the posit8 pack, which `research/crossval_softposit.py` has already
+verified against SoftPosit on all 255 comparable codes.
+
 ## The board cell, 2026-08-03
 
 `corona_decode_posit8_es2_ax7203.v` is a clone of the existing wrapper with one line
