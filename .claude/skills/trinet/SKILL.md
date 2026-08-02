@@ -83,6 +83,53 @@ textbook ±2-3%, because the receiver re-syncs on every start bit. That is what
 makes small divisors reachable: quantisation is 1/BAUD_DIV, so 120 → 593 kbaud
 is comfortable, 60 → 1186 kbaud is in budget, 30 → 2372 kbaud is at the edge.
 
+## Running a fleet — what three boards teach that one cannot
+
+- **CFGMCLK differs per chip.** It is an internal RC oscillator: 71.176 MHz on
+  one board, 72.065 on another, a 1.25% spread. One host baud cannot be exactly
+  right for all of them, so open every port at the **midpoint** of the members'
+  measured rates. At an aggressive divisor the spread eats the margin that
+  quantisation has already narrowed.
+- **A fleet runs at the rate every member sustains**, not the fastest any member
+  reaches. At BAUD_DIV=30 one board was clean at 600/600 while another returned
+  18% of its responses damaged — same design, same host, different cable.
+- **Every AL321 in this set reports the same USB serial.** openocd cannot tell
+  them apart and silently picks the first, so use
+  `ax7203_al321_multi.cfg` and pass `adapter usb location`. Sweep to find the
+  live ones; the locations move when hubs change.
+- **Parallel flashing works.** Three boards on three programmers flash
+  simultaneously in the same 778 s a single one takes.
+- **A freshly plugged board can read 0xffff... for a few seconds** before
+  settling. One bad IDCODE is not evidence a programmer is dead — all three read
+  as unconnected on the first sweep and valid on the second, untouched.
+- **`virtex2 read_stat 0` answers whether a board is configured.** `0x401079fc`
+  is DONE=1. A board that reads that and still says nothing on UART has a wiring
+  problem, not a bitstream problem — that distinction saves a 13-minute reflash.
+
+## A ledger must tell damage from dishonesty
+
+Running two real boards surfaced what no emulated adversary could: one returned
+a few percent of responses damaged, and the ledger slashed it as a cheat.
+
+**The keyed tag separates them.** A node that skips the work still holds the key
+and signs its guess — wrong answer, tag *valid for that answer*. Corruption
+cannot make that pair, because the tag then fits neither the correct answer nor
+the returned one. So:
+
+| observation | verdict |
+|---|---|
+| wrong answer, tag fits it | **lie** — slash |
+| wrong answer, tag fits nothing | damage — no credit, no charge |
+| right answer, tag does not fit | damage |
+| nonce mismatch, tag reconstructs with our operands | damaged request |
+| nonce mismatch, nonce previously issued | lost-response desync |
+| nonce never issued | **fabrication** — slash |
+
+Two mitigations were tried and **removed after measurement**: draining the
+receive buffer before each request measured worse on every count, and the drain
+itself stalled two seconds per call because a read on an empty buffer waits out
+VTIME. Flushing a serial port is an ioctl, not a read loop.
+
 ## The receipt, and exactly how far it reaches
 
 | tag | resists | does not resist |
