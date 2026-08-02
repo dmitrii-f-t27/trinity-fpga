@@ -544,6 +544,8 @@ verification TWO_NODE_MESH_ON_SILICON {
   boards   2
   method   "src/trinet/main.zig fleet, agent inference distributed across two physical AX7203"
   measured { jobs 96, on_silicon 96, software 0, hardware_share_percent 100 }
+  repeatability "three consecutive runs, 96/96 accepted each, 0 rejected, 0 damaged, 0 slashed, both nodes credited equally"
+  line_rate "BAUD_DIV=60, host at the fleet midpoint 1193675"
   integrity "mesh result equals local recomputation"
   note "the first distributed claim in this programme that is not one board plus software"
 }
@@ -573,7 +575,9 @@ finding ONE_BOARD_MARGINAL_AT_THE_FAST_RATE {
   """
   isolates_to "the physical link of that board, not the cell or the toolchain"
   action_taken "fleet rebuilt at BAUD_DIV=60"
-  not_established "whether halving the rate is sufficient for that board — that is the next measurement, not an assumption"
+  measured_after "299/300 at the fleet midpoint rate — 18% down to 0.33%, improved but not eliminated"
+  residual "that board remains the fleet's weakest link; the ledger no longer charges it for that"
+  aside "at BAUD_DIV=60 the board performs BETTER at the fleet midpoint (299/300) than at its own swept rate (295/300), which says the sweep's centre for it was imprecise — its working window touched the edge of the swept range"
 }
 
 open_question THIRD_BOARD_UART_SILENT {
