@@ -138,6 +138,16 @@ Recorded so nobody re-derives them:
 
   The lesson is the entry itself. "Unavailable" was recorded from one failed compile
   without asking why it failed. Four passes of formats went un-witnessed behind it.
+
+  **Pass 185 closed it.** Three defects, all in `decimal_ref.py`, none in the science:
+  the exponent scan could not reach full precision; `encode` compared the exponent
+  against a *mask* rather than the encodable range, so an overflow encoded as a small
+  finite number; and `decode` did not enforce IEEE 754-2008 3.5.2 canonicality, reading
+  485,760 non-canonical case-B codes per sign as numbers instead of zero. The three
+  decimal packs are regenerated and now agree with gcc's Intel BID on **all 6,795
+  vectors**. What remains is 1,056 cohort differences and 45 NaN sign/payload
+  differences, both conventions rather than errors -- and both still unstated in the
+  papers.
 - **`takum64` cannot be cross-validated on arm64**, for the reason in question 3.
 - **The reference counts 28 / 33 / 56** need the three published manuscripts.
 - **`posit64`** is out of SoftPosit's `positX` reach — 32-bit container.

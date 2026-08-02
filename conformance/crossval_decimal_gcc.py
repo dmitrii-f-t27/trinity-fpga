@@ -103,6 +103,14 @@ def classify(ref, fmt, ours_hex: str, gcc_hex: str) -> str:
     except Exception:
         return "value"
     if isinstance(a, ref.Special) or isinstance(b, ref.Special):
+        # NaN sign and payload propagation is implementation-defined in IEEE 754 for
+        # every operation here, so a disagreement about them is not a disagreement about
+        # the result. Kept as its own column rather than folded into "cohort": the two
+        # are different conventions and merging them would hide how many of each there
+        # are. decimal_ref.py returns a canonical quiet NaN; gcc's BID carries the
+        # operand's sign and payload through.
+        if getattr(a, "kind", None) == "nan" and getattr(b, "kind", None) == "nan":
+            return "nan"
         return "cohort" if str(a) == str(b) else "value"
     return "cohort" if a == b else "value"
 
@@ -126,19 +134,21 @@ def run_pack(exe: str, path: str, verbose: bool, ref=None) -> tuple:
         return len(vectors), len(vectors), [("<witness produced "
                                              f"{len(got)} of {len(vectors)} lines>",)]
     fmt = ref.FORMATS[f"decimal{width}"]
-    cohort = value = 0
+    cohort = value = nan = 0
     for v, g in zip(vectors, got):
         if norm(v["expected"]) == norm(g):
             continue
         kind = classify(ref, fmt, norm(v["expected"]), norm(g))
         if kind == "cohort":
             cohort += 1
+        elif kind == "nan":
+            nan += 1
         else:
             value += 1
             if verbose and value <= 3:
                 print(f"      {norm(v['a'])} {op} {norm(v['b'])}: "
                       f"ours {norm(v['expected'])} gcc {norm(g)}")
-    return len(vectors), cohort, value
+    return len(vectors), cohort, nan, value
 
 
 def self_check(exe: str) -> int:
@@ -160,7 +170,7 @@ def self_check(exe: str) -> int:
     d = json.loads(raw)
     vectors = d["vectors"] if "vectors" in d else d["cases"]
 
-    base_n, base_c, base_v = run_pack(exe, path, False, ref)
+    base_n, base_c, base_nan, base_v = run_pack(exe, path, False, ref)
 
     # Flip a bit in a vector the two currently AGREE on, so the injected defect is the
     # only new disagreement and the delta is unambiguous.
@@ -180,15 +190,16 @@ def self_check(exe: str) -> int:
     tmp = path + ".selfcheck"
     try:
         open(tmp, "w", encoding="utf-8").write(json.dumps(d))
-        _, c2, v2 = run_pack(exe, tmp, False, ref)
+        _, c2, nan2, v2 = run_pack(exe, tmp, False, ref)
     finally:
         os.remove(tmp)
         open(path, "w", encoding="utf-8").write(raw)
 
-    delta = (c2 + v2) - (base_c + base_v)
+    delta = (c2 + nan2 + v2) - (base_c + base_nan + base_v)
     ok = delta == 1
     print(f"  vector {idx}: {orig} -> {vectors[idx]['expected']} (one bit)")
-    print(f"  disagreements {base_c + base_v} -> {c2 + v2}, delta {delta}")
+    print(f"  disagreements {base_c + base_nan + base_v} -> "
+          f"{c2 + nan2 + v2}, delta {delta}")
     print(f"  the comparison sees the injected defect -> {ok}"
           f"  {'ok' if ok else 'IT SEES NOTHING'}")
     print(f"  vector file restored byte-identical -> "
@@ -218,24 +229,28 @@ def main() -> int:
 
     print(f"witness: {cc} + Intel BID, encoding confirmed BID\n")
     ref = load_oracle()
-    total = coh = val = 0
+    total = coh = nans = val = 0
     rows = []
     for path in sorted(glob.glob(os.path.join(VEC, "decimal*_*.json"))):
-        n, c, x = run_pack(exe, path, verbose, ref)
+        n, c, nn, x = run_pack(exe, path, verbose, ref)
         total += n
         coh += c
+        nans += nn
         val += x
-        rows.append((os.path.basename(path), n, c, x))
-    print(f"  {'pack':<26}{'n':>6}{'cohort':>9}{'VALUE':>8}")
-    for name, n, c, x in rows:
-        print(f"  {name:<26}{n:>6}{c:>9}{x:>8}")
-    print(f"  {'TOTAL':<26}{total:>6}{coh:>9}{val:>8}")
+        rows.append((os.path.basename(path), n, c, nn, x))
+    print(f"  {'pack':<26}{'n':>6}{'cohort':>9}{'NaN':>6}{'VALUE':>8}")
+    for name, n, c, nn, x in rows:
+        print(f"  {name:<26}{n:>6}{c:>9}{nn:>6}{x:>8}")
+    print(f"  {'TOTAL':<26}{total:>6}{coh:>9}{nans:>6}{val:>8}")
 
     print(f"""
 cohort  same value, different member of its cohort. IEEE 754-2008 5.4.2 fixes a preferred
         exponent per operation; decimal_ref.py keeps the operand's instead. A convention
         the packs do not state, not an error -- but any standard-conforming decimal
         implementation will fail a bit-exact check against them for this reason alone.
+
+NaN     both are NaN, differing in sign or payload. Implementation-defined in IEEE 754
+        for every operation here; ours is a canonical quiet NaN, gcc propagates.
 
 VALUE   the two disagree about the number. {val} of {total}. Verified against exact
         rational arithmetic rather than by trusting gcc: in every case sampled, gcc is
