@@ -772,3 +772,98 @@ lesson TEST_THAT_DEPENDS_ON_A_DEFAULT {
   fix  "pass the canonical SipHash-2-4 reference key explicitly; regenerate goldens from the independent Python implementation, never from the RTL"
   now  "6/6"
 }
+
+// ---------------------------------------------------------------------------
+// The fleet, measured properly. 2026-08-02, second pass.
+// ---------------------------------------------------------------------------
+
+claim THREE_BOARD_STATISTICAL_BASE {
+  statement """
+    100 independent runs of 64 ternary dot products per board, port reopened
+    every run so a cell left desynchronised by the previous run is included
+    rather than excluded.
+  """
+  measured {
+    node0_correct 6400  node0_attempted 6400  node0_perfect_runs 100
+    node1_correct 6400  node1_attempted 6400  node1_perfect_runs 100
+    node2_correct 6308  node2_attempted 6400  node2_perfect_runs 42
+    node2_min_per_run 60
+    node2_p50_per_run 63
+  }
+  report_the_minimum "a fleet is used at its worst run, not its mean"
+  trust_tier MEASURED_ON_FPGA
+}
+
+correction THIRD_BOARD_WAS_NEVER_BROKEN {
+  previously "node1 configured but UART silent -- physical wiring fault, operator's to fix"
+  actually """
+    It answers at 1124474 baud. The fleet was hardcoded to 1186267, a 5.2%
+    error against a UART tolerance near 3%. Swept, it verifies 32/32 at once
+    and 6400/6400 over 100 runs -- the equal of the best board here.
+  """
+  why_it_persisted "the diagnosis was repeated for a day without being retested"
+  rule "a board that does not answer has not been tested until it has been swept"
+}
+
+correction CFGMCLK_SPREAD_IS_FIVE_PERCENT {
+  previously "71.176 and 72.065 MHz -- a 1.25% per-chip spread"
+  actually    "71.18, 70.46 and 67.47 MHz across three dies -- a 5.5% spread"
+  why "the 1.25% figure was two samples published as a fleet property"
+  consequence """
+    No single host baud rate serves this fleet. Line rate must be negotiated
+    per board; Node.initFpgaAutoBaud scores six probes per candidate, because
+    on a lossy board one probe is one coin flip and latched two different
+    rates on consecutive runs from the same wire.
+  """
+  trust_tier MEASURED_ON_FPGA
+}
+
+defect SECURITY_FIX_NEVER_REACHED_THE_SILICON {
+  statement """
+    W01 nulled the committed receipt keys in the source. The boards were never
+    re-flashed, so the fleet ran for a day emitting receipts that verify
+    perfectly under keys published in this repository -- node0 64/64 under
+    0x00..0x0f, node2 63/64 under 0x20..0x2f.
+  """
+  why_invisible """
+    A compromised key and a good key are indistinguishable to any test that
+    only asks whether the tag matches. The whole suite stayed green.
+  """
+  guards {
+    "protocol.publishedKeyUsed() flags any receipt signed with a known-published key",
+    "conformance/key_default_check.py: null defaults in RTL, explicit keys in testbenches",
+    "the fleet drops the key of a stale board: no credit, and no slash either -- those boards are honest"
+  }
+  rule "fixed means the artifact changed, not the source"
+  blocks "every claim about receipt authenticity until all three boards are re-flashed"
+}
+
+defect THROUGHPUT_COUNTED_FAILURES {
+  statement "jobs_per_s divided by jobs attempted, not jobs verified"
+  how_found """
+    5409 jobs/s measured against a transport ceiling of 4942, with 0/64
+    verified. A board answering nothing returns instantly, so total failure
+    read as the fastest run ever recorded.
+  """
+  consequence "every jobs/s figure published before 2026-08-02 is withdrawn, not restated"
+  fix "count verified work only; take percentiles over successful jobs only; print IMPOSSIBLE above the ceiling"
+}
+
+defect HOST_CHOSE_THE_WIRE_FORMAT_FROM_ITS_OWN_CONFIG {
+  statement """
+    Response width was inferred from `key != null`. The width belongs to the
+    flashed bitstream; the key belongs to the host's config file. A keyless
+    host read 15 bytes of a 19-byte response and offset every later read by
+    four, so a healthy board reported MalformedResponse forever.
+  """
+  fix "ask the wire on the first exchange and latch it"
+}
+
+law UNVERIFIABLE_IS_NOT_AN_ACCUSATION {
+  found_when "the fleet slashed an honest board 400 mTRI over a missing key-file entry"
+  statement """
+    Holding the wrong key is a statement about the receipt. Holding no key is a
+    statement about the verifier. Only the first may cost stake.
+  """
+  encoding "Verdict.unverifiable -- not accepted, and indictsTheNode() is false"
+}
