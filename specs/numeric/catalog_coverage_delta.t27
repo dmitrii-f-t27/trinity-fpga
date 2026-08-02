@@ -5904,3 +5904,54 @@ All four figures hold against the file itself. The number the paper must be corr
 is now verified rather than asserted, and the correction from 84 to 83 stands.
 """
 }
+
+
+// ============================================================================
+// Pass 166 -- the author documents' headline numbers, re-measured rather than read.
+// ============================================================================
+
+verification AUTHOR_FACING_NUMBERS {
+  method "re-derive each figure from its artefact; never compare a document against another document"
+
+  hold {
+    published_packs        "83, counted from t27 conformance/vectors"
+    catalog_records        "83, counted from formats_catalog.t27, no duplicate ids"
+    families               "13 distinct clusters, from the same file"
+    tier_e_four_link       "75 of 226 issue comments"
+    tier_e_cells           "72 format-operation pairs over 49 base formats"
+    packs_with_board       "46 of 83, after resolving bf16 -> bf16_golden and mxfp8_e4m3 -> mxfp8 by pack metadata"
+    ml_dtypes              "66,224 codes compared, 0 divergences"
+    p3109_configurations   "252, being 119 signed and 133 unsigned"
+    p3109_finite_codes     "258,524, summing 504 + 492 + 130,556 + 126,972 across the four layouts"
+  }
+
+  // One near-miss worth recording, because conflating them would have been easy.
+  distinction """
+crossval_p3109.py prints finite-mismatch=252 per file, and the checklist says '252
+configurations'. They are different quantities that happen to share a number: the
+configurations figure comes from p3109_bias_law.py, which reads 119 signed and 133
+unsigned tables. Checking the first against the second would have looked like
+confirmation and confirmed nothing.
+"""
+
+  corrected SPECIAL_VALUE_ENUMERATION_WAS_SHORT_BY_ONE {
+    said     "3, 9 and 2049 observed, 3, 9 and 2049 predicted"
+    measured "3, 9, 257 and 2049 -- four distinct counts, one per layout"
+    missing  "257, from Binary16p8"
+    reading """
+257 fits the same rule the sentence invokes: 2^8 NaN payloads plus one negative zero,
+under P3109's 'single NaN, no negative zero'. So the claim was right in kind and short
+by one in its enumeration -- the weakest kind of defect, and still worth fixing, because
+a reader who counts the four layouts and finds three numbers will wonder what happened
+to the fourth.
+"""
+  }
+
+  reading """
+Nine of the ten checkable headline figures hold exactly against live artefacts. The
+tenth was an incomplete list rather than a wrong number. That is a better result than
+the last five passes would suggest, and the reason is the direction of the check: every
+figure was re-derived from the thing it describes, not compared against another document
+repeating it.
+"""
+}
