@@ -81,6 +81,17 @@ pub const Node = struct {
     name: []const u8,
     backend: Backend,
     stats: Stats = .{},
+    /// Set when this node runs the v2 cell, whose receipts carry a keyed tag
+    /// and a 19-byte response instead of a CRC and 15. The key is what the
+    /// coordinator needs to verify them; the node holds its own copy in its
+    /// bitstream.
+    key: ?[16]u8 = null,
+
+    pub fn withKey(self: Node, k: [16]u8) Node {
+        var n = self;
+        n.key = k;
+        return n;
+    }
 
     pub fn initEmulated(id: u32, name: []const u8, behaviour: Behaviour) Node {
         return .{
@@ -141,6 +152,17 @@ pub const Node = struct {
             self.stats.unreachable_count += 1;
             return Error.Unreachable;
         };
+        // The response width is set by which cell is flashed, so it follows the
+        // key: a keyed node answers 19 bytes, an unkeyed one 15. Reading the
+        // wrong width would desynchronise the stream for every later job.
+        if (self.key != null) {
+            var raw: [protocol.response_len_v2]u8 = undefined;
+            port.readExact(&raw) catch {
+                self.stats.unreachable_count += 1;
+                return Error.Timeout;
+            };
+            return protocol.decodeResponseV2(&raw) orelse Error.MalformedResponse;
+        }
         var raw: [protocol.response_len]u8 = undefined;
         port.readExact(&raw) catch {
             self.stats.unreachable_count += 1;
@@ -167,6 +189,7 @@ pub const Node = struct {
         switch (emu.behaviour) {
             .honest => {
                 emu.last_nonce = job.nonce;
+                if (self.key) |k| return protocol.executeKeyed(job, claimed, k);
                 return protocol.execute(job, claimed);
             },
             .lazy => {
@@ -178,7 +201,8 @@ pub const Node = struct {
                     .status = protocol.status_ok,
                     .nonce = job.nonce,
                     .node_id = claimed,
-                    .crc = protocol.receiptTag(job, guess, claimed),
+                    .tag = protocol.receiptTag(job, guess, claimed),
+                    .kind = .crc32,
                 };
             },
             .replay => {
@@ -229,7 +253,7 @@ test "the free rider is caught even though its tag is well formed" {
         const r = try node.execute(job);
         // The tag itself is correct for the value returned — a tag-only check
         // would accept every one of these.
-        try std.testing.expectEqual(r.crc, protocol.receiptTag(job, r.y, r.node_id));
+        try std.testing.expectEqual(@as(u64, protocol.receiptTag(job, r.y, r.node_id)), r.tag);
         switch (protocol.verify(job, r)) {
             .ok => slipped += 1, // only when the guess happens to be right
             .wrong_result => caught += 1,

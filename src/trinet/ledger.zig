@@ -331,7 +331,8 @@ test "a free rider is suspended before it can earn more than it loses" {
             .status = protocol.status_ok,
             .nonce = j.nonce,
             .node_id = 0x2002,
-            .crc = protocol.receiptTag(j, protocol.dot(j.w, j.x) +% 1, 0x2002),
+            .tag = protocol.receiptTag(j, protocol.dot(j.w, j.x) +% 1, 0x2002),
+            .kind = .crc32,
         };
         const s = try l.settle(0x2002, j, wrong, protocol.verify(j, wrong));
         credited += s.credit_delta_mtri;

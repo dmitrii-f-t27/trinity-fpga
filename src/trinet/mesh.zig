@@ -148,7 +148,7 @@ pub const Mesh = struct {
             };
         };
 
-        const verdict = protocol.verify(job, receipt);
+        const verdict = protocol.verifyWithKey(job, receipt, n.key);
         const settlement = try self.ledger.settle(n.id, job, receipt, verdict);
 
         if (settlement.outcome == .credited) {
@@ -446,6 +446,39 @@ test "a node on the other end of a socket earns credit like any other" {
 
     listener.close();
     th.detach();
+}
+
+test "keyed nodes are verified with their own key, not each other's" {
+    var m = try Mesh.init(std.testing.allocator, .{});
+    defer m.deinit();
+
+    const key_a: [16]u8 = @splat(0xA1);
+    const key_b: [16]u8 = @splat(0xB2);
+
+    // A fleet gives each node its own key so a leak is confined to one board.
+    // The coordinator therefore has to verify each node against its own key,
+    // and getting that wrong is silent: node B's honest receipt would look
+    // forged under node A's key.
+    try m.join(Node.initEmulated(0xA000, "keyed-a", .honest).withKey(key_a), "alice", 5000);
+    try m.join(Node.initEmulated(0xB000, "keyed-b", .honest).withKey(key_b), "bob", 5000);
+    try m.join(Node.initEmulated(0xC000, "unkeyed", .honest), "carol", 5000);
+
+    for (0..60) |i| {
+        const o = try m.dispatch(testJob(@intCast(i)));
+        try std.testing.expectEqual(ledger_mod.Outcome.credited, o.settlement.outcome);
+    }
+    for ([_]u32{ 0xA000, 0xB000, 0xC000 }) |id| {
+        try std.testing.expectEqual(@as(u64, 20), m.ledger.get(id).?.accepted);
+    }
+
+    // Cross-checking is what would go unnoticed: an honest keyed receipt fails
+    // under the wrong key, exactly as a forgery would.
+    const job = testJob(99);
+    const honest = protocol.executeKeyed(job, 0xA000, key_a);
+    try std.testing.expectEqual(protocol.Verdict.ok, protocol.verifyWithKey(job, honest, key_a));
+    try std.testing.expectEqual(protocol.Verdict.bad_tag, protocol.verifyWithKey(job, honest, key_b));
+    // And a keyed receipt with no key at all must never be waved through.
+    try std.testing.expectEqual(protocol.Verdict.bad_tag, protocol.verifyWithKey(job, honest, null));
 }
 
 test "a mesh with no eligible node fails loudly instead of silently faking work" {

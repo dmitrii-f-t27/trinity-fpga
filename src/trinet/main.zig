@@ -4,6 +4,7 @@
 //!   trinet probe [serial]        talk to a physical node and verify its receipts
 //!   trinet demo [serial]         stand up a mesh, run the agent, print the books
 //!   trinet agent "<task>"        run one agent task on a mesh
+//!   trinet fleet <s0> [s1] [s2]  run the agent across several physical boards
 //!   trinet bench [serial] [n]    measure delivered throughput and the transport gap
 //!   trinet serve <port> [serial] expose a node over TCP so others can use it
 //!   trinet join                  print what a new developer has to do
@@ -66,11 +67,18 @@ pub fn main(init: std.process.Init.Minimal) !void {
         if (args.len > 2) args[2] else default_serial,
         if (args.len > 3) try std.fmt.parseInt(usize, args[3], 10) else 500,
     );
+    if (std.mem.eql(u8, cmd, "fleet")) {
+        if (args.len < 3) {
+            std.debug.print("usage: trinet fleet <serial0> [serial1] [serial2]\n", .{});
+            return error.NoPortsGiven;
+        }
+        return fleet(gpa, args[2..]);
+    }
     if (std.mem.eql(u8, cmd, "serve")) return serve(gpa, args);
     if (std.mem.eql(u8, cmd, "join")) return joinHelp();
 
     std.debug.print("unknown command '{s}'\n", .{cmd});
-    std.debug.print("try: selftest | probe | bench | demo | agent | serve | join\n", .{});
+    std.debug.print("try: selftest | probe | bench | fleet | demo | agent | serve | join\n", .{});
     return error.UnknownCommand;
 }
 
@@ -192,6 +200,79 @@ fn probe(gpa: std.mem.Allocator, path: []const u8) !void {
         std.debug.print("RESULT: this is a hardware-measured ternary compute node.\n", .{});
     } else {
         std.debug.print("RESULT: not a verified hardware node. Do not report this as silicon.\n", .{});
+    }
+}
+
+// ---------------------------------------------------------------------------
+
+/// The fleet the `ax7203-trinet-fleet` workflow builds: three bitstreams that
+/// differ only in identity and key. Kept here so the coordinator and the
+/// synthesis matrix cannot drift apart silently — a mismatch would present as
+/// every receipt from that board failing its tag check, which reads exactly
+/// like a forgery.
+const FleetNode = struct { name: []const u8, id: u32, key: [16]u8 };
+
+const fleet_nodes = [_]FleetNode{
+    .{ .name = "node0", .id = 0x5452494E, .key = .{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f } },
+    .{ .name = "node1", .id = 0x5452494F, .key = .{ 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f } },
+    .{ .name = "node2", .id = 0x54524950, .key = .{ 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f } },
+};
+
+/// Stand up a mesh of physical boards, one serial port each, and run the agent
+/// across it. Every node is real; nothing is filled in with software, and if a
+/// board does not answer the report says so rather than quietly shrinking the
+/// fleet.
+fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
+    std.debug.print("TRI-NET fleet — {d} physical node(s)\n", .{ports.len});
+    line();
+
+    var m = try mesh_mod.Mesh.init(gpa, .{});
+    defer m.deinit();
+
+    var attached: usize = 0;
+    for (ports, 0..) |p, i| {
+        if (i >= fleet_nodes.len) {
+            std.debug.print("node {d}: no identity defined for this slot — extend fleet_nodes\n", .{i});
+            break;
+        }
+        const spec = fleet_nodes[i];
+        if (node_mod.Node.initFpga(spec.id, spec.name, p, default_baud)) |n| {
+            try m.join(n.withKey(spec.key), "operator", 100000);
+            attached += 1;
+            std.debug.print("node {d}: {s} on {s}, id {x:0>8}\n", .{ i, spec.name, p, spec.id });
+        } else |e| {
+            std.debug.print("node {d}: {s} on {s} did NOT open ({s}) — not counted\n", .{ i, spec.name, p, @errorName(e) });
+        }
+    }
+
+    if (attached == 0) {
+        std.debug.print("\nno board answered. Nothing below would be a hardware result.\n", .{});
+        return error.NoBoardsAttached;
+    }
+    std.debug.print("\n{d} of {d} requested boards attached\n\n", .{ attached, ports.len });
+
+    const model = try model_mod.Model.synthetic(gpa, 3, 32, 0x1614);
+    var agent = try agent_mod.Agent.init(gpa, "igla-coder", model);
+    defer agent.deinit(gpa);
+
+    const o = try agent.run(&m, "synthesise the ternary mac and flash it to the fleet");
+    std.debug.print("agent action : {s}\n", .{o.decision.action.label()});
+    std.debug.print("compute      : {d} jobs, {d} on silicon ({d:.1}% hardware)\n", .{
+        o.proof.jobs, o.proof.on_silicon, o.proof.siliconShare() * 100,
+    });
+    std.debug.print("integrity    : mesh result {s} local recomputation, {d} rows rejected\n\n", .{
+        if (o.matches_local) "equals" else "DIFFERS FROM", o.proof.rows_rejected,
+    });
+
+    line();
+    try m.report(out);
+    line();
+    if (attached == ports.len and attached > 1) {
+        std.debug.print("Every job above ran on a physical board. This is the first\n", .{});
+        std.debug.print("distributed claim in this project that is not one board plus software.\n", .{});
+    } else {
+        std.debug.print("Fewer boards answered than were asked for; the silicon share above\n", .{});
+        std.debug.print("is what actually happened, not what was intended.\n", .{});
     }
 }
 

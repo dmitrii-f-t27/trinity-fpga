@@ -29,6 +29,8 @@ pub const n_trits = 32;
 pub const n_bytes = n_trits / 4; // two bits per trit
 pub const request_len = 24;
 pub const response_len = 15;
+/// v2 carries a 64-bit keyed tag instead of a 32-bit CRC.
+pub const response_len_v2 = 19;
 pub const preimage_len = 26;
 
 pub const magic_req = [2]u8{ 0xAA, 0x55 };
@@ -113,12 +115,19 @@ pub const Job = struct {
     }
 };
 
+/// How a receipt's tag was produced. The two are not interchangeable, and the
+/// verifier must know which law to apply — a keyed tag checked as a CRC would
+/// pass nothing, and a CRC checked as keyed would pass everything.
+pub const TagKind = enum { crc32, siphash24 };
+
 pub const Receipt = struct {
     y: i8,
     status: u8,
     nonce: [4]u8,
     node_id: u32,
-    crc: u32,
+    /// CRC-32 occupies the low 32 bits; SipHash-2-4 uses all 64.
+    tag: u64,
+    kind: TagKind = .crc32,
 };
 
 /// The exact 26 bytes the RTL feeds through its CRC engine.
@@ -174,7 +183,7 @@ pub fn encodeResponse(r: Receipt) [response_len]u8 {
     buf[2] = r.status;
     @memcpy(buf[3..7], &r.nonce);
     std.mem.writeInt(u32, buf[7..11], r.node_id, .little);
-    std.mem.writeInt(u32, buf[11..15], r.crc, .little);
+    std.mem.writeInt(u32, buf[11..15], @truncate(r.tag), .little);
     return buf;
 }
 
@@ -185,7 +194,44 @@ pub fn decodeResponse(raw: []const u8) ?Receipt {
         .status = raw[2],
         .nonce = raw[3..7].*,
         .node_id = std.mem.readInt(u32, raw[7..11], .little),
-        .crc = std.mem.readInt(u32, raw[11..15], .little),
+        .tag = std.mem.readInt(u32, raw[11..15], .little),
+        .kind = .crc32,
+    };
+}
+
+pub fn decodeResponseV2(raw: []const u8) ?Receipt {
+    if (raw.len < response_len_v2 or raw[0] != magic_resp) return null;
+    return .{
+        .y = @bitCast(raw[1]),
+        .status = raw[2],
+        .nonce = raw[3..7].*,
+        .node_id = std.mem.readInt(u32, raw[7..11], .little),
+        .tag = std.mem.readInt(u64, raw[11..19], .little),
+        .kind = .siphash24,
+    };
+}
+
+pub fn encodeResponseV2(r: Receipt) [response_len_v2]u8 {
+    var buf: [response_len_v2]u8 = undefined;
+    buf[0] = magic_resp;
+    buf[1] = @bitCast(r.y);
+    buf[2] = r.status;
+    @memcpy(buf[3..7], &r.nonce);
+    std.mem.writeInt(u32, buf[7..11], r.node_id, .little);
+    std.mem.writeInt(u64, buf[11..19], r.tag, .little);
+    return buf;
+}
+
+/// Honest local execution producing a keyed receipt.
+pub fn executeKeyed(job: Job, node_id: u32, key: [16]u8) Receipt {
+    const y = dot(job.w, job.x);
+    return .{
+        .y = y,
+        .status = status_ok,
+        .nonce = job.nonce,
+        .node_id = node_id,
+        .tag = receiptTagKeyed(job, y, node_id, key),
+        .kind = .siphash24,
     };
 }
 
@@ -217,10 +263,26 @@ pub const Verdict = enum {
 /// of work is small. For work units where recomputation is not cheap, this is
 /// where a sampling or quorum policy belongs instead — see `mesh.zig`.
 pub fn verify(job: Job, r: Receipt) Verdict {
+    return verifyWithKey(job, r, null);
+}
+
+/// The same check, with the key a keyed receipt needs.
+///
+/// Passing the wrong kind of key is a caller error worth failing loudly on: a
+/// keyed receipt verified without a key would be accepted on a CRC that was
+/// never computed, which is the one mistake that would silently undo the whole
+/// point of keying the tag.
+pub fn verifyWithKey(job: Job, r: Receipt, key: ?[16]u8) Verdict {
     if (r.status != status_ok) return .bad_status;
     if (!std.mem.eql(u8, &r.nonce, &job.nonce)) return .nonce_mismatch;
     if (r.y != dot(job.w, job.x)) return .wrong_result;
-    if (r.crc != receiptTag(job, r.y, r.node_id)) return .bad_tag;
+    switch (r.kind) {
+        .crc32 => if (r.tag != receiptTag(job, r.y, r.node_id)) return .bad_tag,
+        .siphash24 => {
+            const k = key orelse return .bad_tag;
+            if (r.tag != receiptTagKeyed(job, r.y, r.node_id, k)) return .bad_tag;
+        },
+    }
     return .ok;
 }
 
@@ -233,7 +295,8 @@ pub fn execute(job: Job, node_id: u32) Receipt {
         .status = status_ok,
         .nonce = job.nonce,
         .node_id = node_id,
-        .crc = receiptTag(job, y, node_id),
+        .tag = receiptTag(job, y, node_id),
+        .kind = .crc32,
     };
 }
 
@@ -299,7 +362,7 @@ test "verifier accepts honest work and rejects each tampering" {
     try std.testing.expectEqual(Verdict.wrong_result, verify(job, forged_result));
 
     var forged_tag = good;
-    forged_tag.crc ^= 1;
+    forged_tag.tag ^= 1;
     try std.testing.expectEqual(Verdict.bad_tag, verify(job, forged_tag));
 
     var replayed = good;
@@ -356,7 +419,7 @@ test "wire encoding round trip" {
     const back = decodeResponse(&wire).?;
     try std.testing.expectEqual(r.y, back.y);
     try std.testing.expectEqual(r.node_id, back.node_id);
-    try std.testing.expectEqual(r.crc, back.crc);
+    try std.testing.expectEqual(r.tag, back.tag);
     try std.testing.expectEqual(Verdict.ok, verify(job, back));
 }
 
