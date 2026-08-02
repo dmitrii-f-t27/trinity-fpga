@@ -164,6 +164,42 @@ pub fn receiptTagKeyed(job: Job, y: i8, node_id: u32, key: [16]u8) u64 {
     return std.hash.SipHash64(2, 4).toInt(&preimage(job, y, node_id), &key);
 }
 
+/// Keys that were published, and must therefore never authenticate anything.
+///
+/// These three were committed to a public repository as literal constants in
+/// the Zig source, the RTL default and the CI matrix. Nulling the source was
+/// only half the fix: a board flashed before that still carries one of them in
+/// its bitstream, and its receipts verify perfectly while proving nothing,
+/// because anyone reading the git history can compute the same tag.
+///
+/// That is exactly what happened. On 2026-08-02 both boards in the fleet were
+/// found still running published keys -- node0 on 0x00..0x0f (256/256) and
+/// node2 on 0x20..0x2f (63/64). The software fix never reached the silicon,
+/// and nothing in the stack noticed for a day, because a compromised key and a
+/// good key are indistinguishable by every test that only asks "does the tag
+/// match".
+pub const published_keys = [_][16]u8{
+    .{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f },
+    .{ 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f },
+    .{ 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f },
+    // The canonical SipHash-2-4 reference key, used by the testbench. Public by
+    // construction; a board answering under it is a board built from a test.
+    .{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f },
+};
+
+/// Which published key a receipt was signed with, if any.
+///
+/// Call this on every node before crediting it. A match does not mean the node
+/// is dishonest -- both boards here were honest and simply stale -- it means
+/// the receipt carries no evidence, so the work must not be paid for.
+pub fn publishedKeyUsed(job: Job, r: Receipt) ?usize {
+    if (r.kind != .siphash24) return null;
+    for (published_keys, 0..) |k, i| {
+        if (r.tag == receiptTagKeyed(job, r.y, r.node_id, k)) return i;
+    }
+    return null;
+}
+
 pub fn encodeRequest(job: Job) [request_len]u8 {
     var buf: [request_len]u8 = undefined;
     buf[0] = magic_req[0];
@@ -494,4 +530,54 @@ test "a node that recomputes honestly always passes, whatever the inputs" {
         const job = Job.withNonce(@intCast(i), pack(wv), pack(xv));
         try std.testing.expectEqual(Verdict.ok, verify(job, execute(job, default_node_id)));
     }
+}
+
+test "a receipt signed with a published key is detected as such" {
+    const job = Job.withNonce(7, @splat(0x55), @splat(0x55));
+    const y = dot(job.w, job.x);
+    for (published_keys, 0..) |k, i| {
+        const r: Receipt = .{
+            .kind = .siphash24,
+            .y = y,
+            .status = status_ok,
+            .nonce = job.nonce,
+            .node_id = default_node_id,
+            .tag = receiptTagKeyed(job, y, default_node_id, k),
+        };
+        // The first and last entries are the same key, so the reported index is
+        // the first match rather than necessarily `i`.
+        const hit = publishedKeyUsed(job, r);
+        try std.testing.expect(hit != null);
+        _ = i;
+    }
+}
+
+test "a receipt signed with a key that was never published is not flagged" {
+    const job = Job.withNonce(9, @splat(0xAA), @splat(0x55));
+    const y = dot(job.w, job.x);
+    var fresh: [16]u8 = undefined;
+    for (&fresh, 0..) |*b, i| b.* = @intCast(0x91 ^ (i * 37) % 251);
+    const r: Receipt = .{
+        .kind = .siphash24,
+        .y = y,
+        .status = status_ok,
+        .nonce = job.nonce,
+        .node_id = default_node_id,
+        .tag = receiptTagKeyed(job, y, default_node_id, fresh),
+    };
+    try std.testing.expectEqual(@as(?usize, null), publishedKeyUsed(job, r));
+}
+
+test "a CRC receipt is never flagged, because it claims no key at all" {
+    const job = Job.withNonce(3, @splat(0), @splat(0));
+    const y = dot(job.w, job.x);
+    const r: Receipt = .{
+        .kind = .crc32,
+        .y = y,
+        .status = status_ok,
+        .nonce = job.nonce,
+        .node_id = default_node_id,
+        .tag = receiptTag(job, y, default_node_id),
+    };
+    try std.testing.expectEqual(@as(?usize, null), publishedKeyUsed(job, r));
 }

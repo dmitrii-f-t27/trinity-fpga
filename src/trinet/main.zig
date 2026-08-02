@@ -1,7 +1,7 @@
 //! `trinet` — command line for the ternary internet.
 //!
 //!   trinet selftest              exercise the whole stack and report honestly
-//!   trinet probe [serial]        talk to a physical node and verify its receipts
+//!   trinet probe [serial] [baud] talk to a physical node and verify its receipts
 //!   trinet demo [serial]         stand up a mesh, run the agent, print the books
 //!   trinet agent "<task>"        run one agent task on a mesh
 //!   trinet fleet <s0> [s1] [s2]  run the agent across several physical boards
@@ -73,7 +73,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
     const cmd = if (args.len > 1) args[1] else "selftest";
 
     if (std.mem.eql(u8, cmd, "selftest")) return selftest(gpa);
-    if (std.mem.eql(u8, cmd, "probe")) return probe(gpa, if (args.len > 2) args[2] else default_serial);
+    if (std.mem.eql(u8, cmd, "probe")) return probe(gpa, if (args.len > 2) args[2] else default_serial, if (args.len > 3) try std.fmt.parseInt(u32, args[3], 10) else default_baud);
     if (std.mem.eql(u8, cmd, "demo")) return demo(gpa, if (args.len > 2) args[2] else null);
     if (std.mem.eql(u8, cmd, "agent")) return runAgent(gpa, if (args.len > 2) args[2] else "fix the failing ternary build", if (args.len > 3) args[3] else null);
     if (std.mem.eql(u8, cmd, "bench")) return bench(
@@ -149,15 +149,15 @@ fn selftest(gpa: std.mem.Allocator) !void {
 
 // ---------------------------------------------------------------------------
 
-fn probe(gpa: std.mem.Allocator, path: []const u8) !void {
+fn probe(gpa: std.mem.Allocator, path: []const u8, baud: u32) !void {
     _ = gpa;
-    std.debug.print("probing physical node on {s} at {d} baud\n", .{ path, default_baud });
+    std.debug.print("probing physical node on {s} at {d} baud\n", .{ path, baud });
     line();
 
     var buf: [256]u8 = undefined;
     const zpath = try std.fmt.bufPrintZ(&buf, "{s}", .{path});
 
-    var n = node_mod.Node.initFpga(protocol.default_node_id, "ax7203", zpath, default_baud) catch |e| {
+    var n = node_mod.Node.initFpga(protocol.default_node_id, "ax7203", zpath, baud) catch |e| {
         std.debug.print("could not open the port: {s}\n", .{@errorName(e)});
         std.debug.print("the board may not be attached, or a bitstream that speaks this\n", .{});
         std.debug.print("protocol may not be loaded. Nothing here is a hardware result.\n", .{});
@@ -167,6 +167,8 @@ fn probe(gpa: std.mem.Allocator, path: []const u8) !void {
 
     var ok: usize = 0;
     var fail: usize = 0;
+    var stale_key: usize = 0;
+    var arith: usize = 0;
     var first_node_id: ?u32 = null;
     var reasons: [8][]const u8 = undefined;
     var n_reasons: usize = 0;
@@ -196,6 +198,13 @@ fn probe(gpa: std.mem.Allocator, path: []const u8) !void {
             continue;
         };
         if (first_node_id == null) first_node_id = r.node_id;
+        if (protocol.publishedKeyUsed(job, r) != null) stale_key += 1;
+        // The arithmetic and the authenticity are separate questions, and
+        // conflating them is how "96 on silicon" came to mean "a serial port
+        // opened". A board can compute perfectly and prove nothing.
+        if (r.status == protocol.status_ok and
+            std.mem.eql(u8, &r.nonce, &job.nonce) and
+            r.y == protocol.dot(job.w, job.x)) arith += 1;
         const v = protocol.verify(job, r);
         if (v.accepted()) ok += 1 else {
             fail += 1;
@@ -206,15 +215,30 @@ fn probe(gpa: std.mem.Allocator, path: []const u8) !void {
         }
     }
 
-    std.debug.print("receipts verified: {d}/64\n", .{ok});
+    std.debug.print("dot products correct : {d}/64   (checked against the oracle)\n", .{arith});
+    std.debug.print("receipts authenticated: {d}/64  (checked against a key only we should hold)\n", .{ok});
     if (first_node_id) |id| std.debug.print("node id reported : {x:0>8}\n", .{id});
     if (fail > 0) {
         std.debug.print("failures:\n", .{});
         for (reasons[0..n_reasons]) |r| std.debug.print("  {s}\n", .{r});
     }
     line();
-    if (ok == 64) {
+    if (stale_key > 0) {
+        std.debug.print("PUBLISHED KEY: {d}/64 receipts verified under a key from published_keys.\n", .{stale_key});
+        std.debug.print("This board is honest and its arithmetic is fine, but its receipts are\n", .{});
+        std.debug.print("evidence of nothing — anyone can compute the same tag from the git\n", .{});
+        std.debug.print("history. Re-flash it with a key from `trinet keygen` before crediting\n", .{});
+        std.debug.print("any work to it.\n", .{});
+        line();
+    }
+    if (arith == 64 and stale_key == 0 and ok == 64) {
         std.debug.print("RESULT: this is a hardware-measured ternary compute node.\n", .{});
+    } else if (stale_key > 0) {
+        std.debug.print("RESULT: a working node with worthless receipts. Do not pay it.\n", .{});
+        std.debug.print("        Its arithmetic is right {d}/64 times; that part is real.\n", .{arith});
+    } else if (arith == 64) {
+        std.debug.print("RESULT: the arithmetic is verified on silicon. The receipts are not,\n", .{});
+        std.debug.print("        so nothing here establishes which board produced it.\n", .{});
     } else {
         std.debug.print("RESULT: not a verified hardware node. Do not report this as silicon.\n", .{});
     }
@@ -434,8 +458,14 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
             latencies[i] = 0;
             continue;
         };
-        latencies[i] = monoNanos() - start;
-        if (protocol.verifyWithKey(job, r, node.key).accepted()) verified += 1;
+        const took = monoNanos() - start;
+        if (protocol.verifyWithKey(job, r, node.key).accepted()) {
+            // Only a verified job has a latency worth reporting. A failure
+            // returns fast — that is what failing looks like — and letting it
+            // into the percentiles reports the speed of giving up.
+            latencies[verified] = took;
+            verified += 1;
+        }
     }
 
     const elapsed_ns = monoNanos() - t0;
@@ -468,12 +498,21 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
     const batched_s = @as(f64, @floatFromInt(batched_ns)) / 1e9;
     const batched_jps = if (batched_s > 0) @as(f64, @floatFromInt(batched_ok)) / batched_s else 0;
     const elapsed_s = @as(f64, @floatFromInt(elapsed_ns)) / 1e9;
-    const jobs_per_s = @as(f64, @floatFromInt(n)) / elapsed_s;
+
+    // Throughput counts VERIFIED jobs, not attempted ones. Dividing by `n` was
+    // wrong and hid itself well: a board answering nothing returns instantly,
+    // so a total failure read as the fastest run ever recorded. It was caught
+    // by the ceiling — 5409 jobs/s against a transport limit of 4942, with
+    // 0/64 verified. A rate that counts failures measures how fast you can
+    // fail. Every jobs/s figure this project published before 2026-08-02 was
+    // computed the broken way and is being restated.
+    const jobs_per_s = if (elapsed_s > 0) @as(f64, @floatFromInt(verified)) / elapsed_s else 0;
     const macs_per_s = jobs_per_s * @as(f64, @floatFromInt(protocol.n_trits));
 
-    std.sort.pdq(u64, latencies, {}, std.sort.asc(u64));
-    const p50 = latencies[n / 2];
-    const p99 = latencies[(n * 99) / 100];
+    const lat = latencies[0..verified];
+    std.sort.pdq(u64, lat, {}, std.sort.asc(u64));
+    const p50 = if (lat.len > 0) lat[lat.len / 2] else 0;
+    const p99 = if (lat.len > 0) lat[(lat.len * 99) / 100] else 0;
 
     // Transport ceiling: 8N1 costs ten bit-times per byte, and UART is full
     // duplex — the request goes out on TX while the response comes back on RX,
@@ -507,6 +546,21 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
     });
     std.debug.print("measured / transport: {d:.1}%\n", .{jobs_per_s / transport_jobs_per_s * 100});
     std.debug.print("compute / transport : {d:.0}x\n", .{compute_jobs_per_s / transport_jobs_per_s});
+
+    // A rate above the line rate is not a fast node. It is a broken bench, and
+    // saying so here is cheaper than finding it in review.
+    if (jobs_per_s > transport_jobs_per_s) {
+        line();
+        std.debug.print("IMPOSSIBLE: {d:.1} jobs/s exceeds the {d:.1} jobs/s the UART can carry.\n", .{ jobs_per_s, transport_jobs_per_s });
+        std.debug.print("The measurement is wrong, not the node. Do not publish this number.\n", .{});
+    }
+    if (verified == 0) {
+        line();
+        std.debug.print("NO JOB VERIFIED. The throughput and latency above describe failures.\n", .{});
+        std.debug.print("Check the baud (`python3 conformance/trinet_discover.py` reports the\n", .{});
+        std.debug.print("rate each board actually answers at) and check that a receipt key for\n", .{});
+        std.debug.print("this node is loaded.\n", .{});
+    }
     line();
     std.debug.print("batched x{d}       : {d}/{d} verified, {d:.1} jobs/s ({d:.1}x the one-at-a-time rate)\n", .{
         batch, batched_ok, n, batched_jps, if (jobs_per_s > 0) batched_jps / jobs_per_s else 0,

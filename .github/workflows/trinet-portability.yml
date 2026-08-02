@@ -1,0 +1,106 @@
+name: TRI-NET portability and receipt keys
+
+# Three properties that were each broken once and said nothing:
+#
+#   1. A receipt key that looks real gets committed (W01).
+#   2. A testbench that relies on a module default stops testing when the
+#      default is corrected — the W01 fix disabled its own regression test and
+#      the suite stayed green.
+#   3. The board wrapper and the portable core drift apart, so the portability
+#      claim quietly stops being true while both files still build.
+#
+# All three are cheap to check and expensive to discover late.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'fpga/portable/**'
+      - 'fpga/vivado/trinet_node_v2_ax7203.v'
+      - 'fpga/openxc7-synth/trinet_siphash24.v'
+      - 'formal/trinet_node_v2_tb.v'
+      - 'conformance/key_default_check.py'
+      - '.github/workflows/trinet-portability.yml'
+  pull_request:
+    paths:
+      - 'fpga/portable/**'
+      - 'fpga/vivado/trinet_node_v2_ax7203.v'
+      - 'fpga/openxc7-synth/trinet_siphash24.v'
+      - 'formal/trinet_node_v2_tb.v'
+      - 'conformance/key_default_check.py'
+  schedule:
+    - cron: '41 5 * * *'
+
+jobs:
+  receipt-keys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+
+      - name: Null defaults, explicit test keys
+        run: python3 conformance/key_default_check.py
+
+      # A guard is only worth having if it fails when it should.
+      - name: The guard must reject a plausible-looking default
+        run: |
+          cp fpga/portable/trinet_node_core.v /tmp/core.bak
+          sed -i "s|parameter \[127:0\] RECEIPT_KEY = 128'h0|parameter [127:0] RECEIPT_KEY = 128'h0f0e0d0c0b0a09080706050403020100|" \
+            fpga/portable/trinet_node_core.v
+          if python3 conformance/key_default_check.py > /tmp/r1.log 2>&1; then
+            cp /tmp/core.bak fpga/portable/trinet_node_core.v
+            echo "::error::the key guard accepted a non-null default — it is not guarding"
+            cat /tmp/r1.log; exit 1
+          fi
+          grep -q "RULE 1" /tmp/r1.log || {
+            cp /tmp/core.bak fpga/portable/trinet_node_core.v
+            echo "::error::the guard failed, but not on rule 1"; cat /tmp/r1.log; exit 1; }
+          cp /tmp/core.bak fpga/portable/trinet_node_core.v
+
+      - name: The guard must reject a testbench that relies on the default
+        run: |
+          cp formal/trinet_node_v2_tb.v /tmp/tb.bak
+          sed -i 's|, \.RECEIPT_KEY(TB_TEST_KEY)||' formal/trinet_node_v2_tb.v
+          if python3 conformance/key_default_check.py > /tmp/r2.log 2>&1; then
+            cp /tmp/tb.bak formal/trinet_node_v2_tb.v
+            echo "::error::the key guard accepted a testbench with no key of its own"
+            cat /tmp/r2.log; exit 1
+          fi
+          grep -q "RULE 2" /tmp/r2.log || {
+            cp /tmp/tb.bak formal/trinet_node_v2_tb.v
+            echo "::error::the guard failed, but not on rule 2"; cat /tmp/r2.log; exit 1; }
+          cp /tmp/tb.bak formal/trinet_node_v2_tb.v
+
+  equivalence:
+    # The AX7203 wrapper must still behave exactly like the node it wraps.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y iverilog
+      - name: Keyed receipts, board wrapper over portable core
+        run: |
+          iverilog -g2012 -o /tmp/v2.vvp \
+            formal/trinet_node_v2_tb.v \
+            fpga/vivado/trinet_node_v2_ax7203.v \
+            fpga/portable/trinet_node_core.v \
+            fpga/openxc7-synth/trinet_siphash24.v
+          vvp /tmp/v2.vvp | tee /tmp/v2.log
+          grep -q "TB PASS" /tmp/v2.log || { echo "::error::keyed receipt mismatch"; exit 1; }
+
+  portability:
+    # Asserts the invariant, not a number: every synthesiser must recover the
+    # same amount of sequential state, and none may infer a multiplier. The LUT
+    # count is allowed to vary — that is the mapper's business.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: sudo apt-get update && sudo apt-get install -y yosys
+
+      - name: Synthesise the node for every family this yosys offers
+        run: python3 conformance/portability_check.py
