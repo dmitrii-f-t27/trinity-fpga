@@ -43,11 +43,14 @@ pub const Port = struct {
         tio.lflag = .{};
         tio.cflag = .{ .CSIZE = .CS8, .CREAD = true, .CLOCAL = true };
 
-        // Blocking read with a 2 s inter-byte timeout: VMIN 0, VTIME in
-        // tenths of a second. A node that has stopped answering must surface
-        // as a timeout, not as a hang.
+        // VMIN 0, VTIME in tenths of a second. Two seconds was the original
+        // value and it was sized from nothing: a single job's round trip is
+        // about 1.2 ms, so 200 ms is still two orders of magnitude of slack
+        // while costing a tenth as much on every failure. It mattered — a
+        // batch that lost one response paid seconds waiting for it, and that
+        // dominated the whole agent run.
         tio.cc[@intFromEnum(c.V.MIN)] = 0;
-        tio.cc[@intFromEnum(c.V.TIME)] = 20;
+        tio.cc[@intFromEnum(c.V.TIME)] = 2;
 
         if (c.tcsetattr(fd, .NOW, &tio) != 0) return Error.ConfigureFailed;
 

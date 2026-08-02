@@ -85,6 +85,15 @@ pub const Node = struct {
     /// at or below it is one we really did ask for, so the stream is out of
     /// step; a nonce above it was never issued and is fabrication.
     highest_nonce_issued: u32 = 0,
+    /// How many jobs this node is currently trusted with per round trip.
+    ///
+    /// A fleet is only as fast as its worst link if every node is handed the
+    /// same batch. Measured: one board sustains 32 per trip at 3785 jobs/s
+    /// while another loses most of a batch and manages 50. Batching is an
+    /// optimisation for a healthy link and a liability on a lossy one, so it
+    /// is earned rather than assumed — halved on a short batch, grown back on
+    /// a clean one.
+    batch_limit: usize = 32,
     /// Set when this node runs the v2 cell, whose receipts carry a keyed tag
     /// and a 19-byte response instead of a CRC and 15. The key is what the
     /// coordinator needs to verify them; the node holds its own copy in its
@@ -107,7 +116,23 @@ pub const Node = struct {
 
     pub fn initFpga(id: u32, name: []const u8, path: [:0]const u8, baud: u32) !Node {
         var port = try serial.Port.open(path, baud);
+
+        // Resynchronise the CELL, not just the host buffer.
+        //
+        // The frame parser lives in the FPGA and holds state across host
+        // processes: a batch cut short by a lost response leaves it partway
+        // through a request, so the next run's first bytes finish somebody
+        // else's frame and every job after that is shifted. Flushing the host
+        // buffer does nothing about it — measured as runs that started clean at
+        // 3002 jobs/s and degraded to 52 over three invocations.
+        //
+        // A full request's worth of padding completes whatever fragment is in
+        // flight and returns the parser to its magic-hunt state. The worst it
+        // costs is one spurious all-zero job, whose answer is then discarded.
+        const resync: [protocol.request_len]u8 = @splat(0x00);
+        port.writeAll(&resync) catch {};
         port.flushInput();
+
         return .{ .id = id, .name = name, .backend = .{ .fpga = port } };
     }
 
@@ -208,14 +233,30 @@ pub const Node = struct {
                     };
                 }
                 const width: usize = if (self.key != null) protocol.response_len_v2 else protocol.response_len;
+                const asked = jobs.len;
                 var got: usize = 0;
                 var buf: [protocol.response_len_v2]u8 = undefined;
                 while (got < jobs.len) : (got += 1) {
-                    port.readExact(buf[0..width]) catch return Error.Timeout;
+                    // Stop at the first gap rather than erroring out. A batch
+                    // that lost a response has lost every later one too, and
+                    // the caller retries the remainder one at a time — waiting
+                    // for answers that are not coming just adds a timeout per
+                    // missing job.
+                    port.readExact(buf[0..width]) catch break;
                     out[got] = (if (self.key != null)
                         protocol.decodeResponseV2(buf[0..width])
                     else
-                        protocol.decodeResponse(buf[0..width])) orelse return Error.MalformedResponse;
+                        protocol.decodeResponse(buf[0..width])) orelse break;
+                }
+
+                // Additive increase, multiplicative decrease — the same shape
+                // congestion control uses, and for the same reason: back off
+                // fast from a link that is dropping, probe back up slowly when
+                // it is not.
+                if (got < asked) {
+                    self.batch_limit = @max(1, self.batch_limit / 2);
+                } else if (self.batch_limit < 32) {
+                    self.batch_limit += 1;
                 }
                 return got;
             },

@@ -22,6 +22,11 @@ const ledger_mod = @import("ledger.zig");
 pub const Node = node_mod.Node;
 pub const Ledger = ledger_mod.Ledger;
 
+/// Jobs handed to one node per round trip. 32 is a model layer's width here, so
+/// a layer is naturally one batch, and it is what the throughput measurement
+/// was taken at.
+pub const max_batch = 32;
+
 pub const Error = error{
     NoEligibleNode,
     OutOfMemory,
@@ -252,19 +257,105 @@ pub const Mesh = struct {
     ) Error!void {
         std.debug.assert(out.len >= rows.len);
         var fails: usize = 0;
-        for (rows, 0..) |w, i| {
-            const job = protocol.Job.withNonce(self.freshNonce(), w, x);
-            const outcome = try self.dispatch(job);
-            if (outcome.settlement.outcome == .credited) {
-                out[i] = outcome.y;
-            } else {
-                // A rejected row is not silently accepted. The coordinator
-                // falls back to its own recomputation so the layer still has a
-                // correct value, and the node still does not get paid.
-                out[i] = protocol.dot(w, x);
-                fails += 1;
+
+        // Deal the rows out to eligible nodes first, then hand each node its
+        // whole share in one go. One job per round trip costs a USB frame
+        // interval, which held a layer to ~190 jobs/s while the same board
+        // sustains 6842 batched — the work was already paid for and the
+        // coordinator was not collecting it.
+        //
+        // Dispatch, judgement and settlement stay three separate steps:
+        // executeBatch returns untrusted claims, every one of them is judged
+        // against an independent recomputation, and only then is anything
+        // credited.
+        var eligible: [max_batch]usize = undefined;
+        var n_eligible: usize = 0;
+        for (self.nodes.items, 0..) |*n, idx| {
+            if (n_eligible >= eligible.len) break;
+            if (self.ledger.isEligible(n.id)) {
+                eligible[n_eligible] = idx;
+                n_eligible += 1;
             }
         }
+        if (n_eligible == 0) return Error.NoEligibleNode;
+
+        var jobs: [max_batch]protocol.Job = undefined;
+        var receipts: [max_batch]protocol.Receipt = undefined;
+        var row_of: [max_batch]usize = undefined;
+
+        // Share the layer out rather than filling one node's batch before
+        // starting the next. Dealing in fixed blocks of max_batch sent a
+        // 32-row layer entirely to the first node, which is both unbalanced
+        // and would have hidden a misbehaving node that never received work.
+        const share = @max(1, @min(max_batch, (rows.len + n_eligible - 1) / n_eligible));
+
+        var next_row: usize = 0;
+        var turn: usize = 0;
+        while (next_row < rows.len) : (turn += 1) {
+            const node_idx = eligible[turn % n_eligible];
+            const n = &self.nodes.items[node_idx];
+            // Never hand a node more than it has been earning.
+            const take = @min(@min(share, n.batch_limit), rows.len - next_row);
+
+            for (0..take) |k| {
+                const row = next_row + k;
+                const nonce = self.freshNonce();
+                if (nonce > n.highest_nonce_issued) n.highest_nonce_issued = nonce;
+                jobs[k] = protocol.Job.withNonce(nonce, rows[row], x);
+                row_of[k] = row;
+            }
+
+            const got = n.executeBatch(jobs[0..take], receipts[0..take]) catch 0;
+            self.stats.dispatched += take;
+
+            for (0..take) |k| {
+                const row = row_of[k];
+                var credited = false;
+                if (k < got) {
+                    var verdict = protocol.verifyWithKey(jobs[k], receipts[k], n.key);
+                    if (verdict == .nonce_mismatch) {
+                        const returned = std.mem.readInt(u32, &receipts[k].nonce, .little);
+                        if (returned <= n.highest_nonce_issued) verdict = .corrupt;
+                    }
+                    const settlement = try self.ledger.settle(n.id, jobs[k], receipts[k], verdict);
+                    switch (settlement.outcome) {
+                        .credited => {
+                            out[row] = receipts[k].y;
+                            credited = true;
+                            self.stats.accepted += 1;
+                            n.stats.accepted += 1;
+                            if (n.isPhysical()) self.stats.on_silicon += 1 else self.stats.in_software += 1;
+                        },
+                        .corrupt_not_charged => self.stats.corrupt_jobs += 1,
+                        else => {
+                            self.stats.rejected += 1;
+                            n.stats.rejected += 1;
+                        },
+                    }
+                } else {
+                    // The batch came back short. Batching multiplies the cost
+                    // of a marginal link — one lost byte and every later
+                    // response in the run is gone — so the jobs the batch did
+                    // not cover are retried one at a time rather than written
+                    // off. An optimisation must not cost availability.
+                    if (self.dispatchTo(n, jobs[k])) |single| {
+                        if (single.settlement.outcome == .credited) {
+                            out[row] = single.y;
+                            credited = true;
+                        }
+                    } else |_| {}
+                }
+                if (!credited) {
+                    // A row that was not credited is not silently accepted. The
+                    // coordinator recomputes it so the layer still carries the
+                    // right value, and the node still is not paid for it.
+                    out[row] = protocol.dot(rows[row], x);
+                    fails += 1;
+                }
+            }
+            next_row += take;
+        }
+
         if (failures) |f| f.* = fails;
     }
 
@@ -497,6 +588,42 @@ test "keyed nodes are verified with their own key, not each other's" {
     try std.testing.expectEqual(protocol.Verdict.corrupt, protocol.verifyWithKey(job, honest, key_b));
     // And a keyed receipt with no key at all must never be waved through.
     try std.testing.expectEqual(protocol.Verdict.corrupt, protocol.verifyWithKey(job, honest, null));
+}
+
+test "a layer is shared across nodes, not dumped on the first one" {
+    var m = try Mesh.init(std.testing.allocator, .{});
+    defer m.deinit();
+    try m.join(Node.initEmulated(1, "a", .honest), "alice", 9000);
+    try m.join(Node.initEmulated(2, "b", .honest), "bob", 9000);
+    try m.join(Node.initEmulated(3, "c", .honest), "carol", 9000);
+
+    // Batching in fixed blocks sent a whole 32-row layer to the first node,
+    // which is unbalanced and — worse — would hide a misbehaving node that
+    // never received any work to misbehave on.
+    var rows: [30]protocol.Packed = undefined;
+    var prng: std.Random.DefaultPrng = .init(0x5A5A);
+    const rand = prng.random();
+    for (&rows) |*r| {
+        var tv: protocol.Trits = @splat(0);
+        for (&tv) |*t| t.* = rand.intRangeAtMost(i8, -1, 1);
+        r.* = protocol.pack(tv);
+    }
+    var xv: protocol.Trits = @splat(0);
+    for (&xv) |*t| t.* = rand.intRangeAtMost(i8, -1, 1);
+    const x = protocol.pack(xv);
+
+    var out: [30]i8 = undefined;
+    var fails: usize = 0;
+    try m.matvec(&rows, x, &out, &fails);
+    try std.testing.expectEqual(@as(usize, 0), fails);
+    for (rows, out) |r, y| try std.testing.expectEqual(protocol.dot(r, x), y);
+
+    // Every node did some of it, and no node did all of it.
+    for ([_]u32{ 1, 2, 3 }) |id| {
+        const acc = m.ledger.get(id).?.accepted;
+        try std.testing.expect(acc > 0);
+        try std.testing.expect(acc < rows.len);
+    }
 }
 
 test "a mesh with no eligible node fails loudly instead of silently faking work" {

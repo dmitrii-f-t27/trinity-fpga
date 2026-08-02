@@ -292,8 +292,13 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
     var agent = try agent_mod.Agent.init(gpa, "igla-coder", model);
     defer agent.deinit(gpa);
 
+    const t_agent = monoNanos();
     const o = try agent.run(&m, "synthesise the ternary mac and flash it to the fleet");
+    const agent_ms = @as(f64, @floatFromInt(monoNanos() - t_agent)) / 1e6;
     std.debug.print("agent action : {s}\n", .{o.decision.action.label()});
+    std.debug.print("elapsed      : {d:.1} ms for {d} jobs = {d:.0} jobs/s\n", .{
+        agent_ms, o.proof.jobs, @as(f64, @floatFromInt(o.proof.jobs)) / (agent_ms / 1000.0),
+    });
     std.debug.print("compute      : {d} jobs, {d} on silicon ({d:.1}% hardware)\n", .{
         o.proof.jobs, o.proof.on_silicon, o.proof.siliconShare() * 100,
     });
