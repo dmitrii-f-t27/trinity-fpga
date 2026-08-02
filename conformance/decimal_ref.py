@@ -120,6 +120,29 @@ def _bid_decode(fmt: DecimalFormat, code: int):
     return ("finite", sign, C, E)
 
 
+def is_canonical(fmt: DecimalFormat, code: int) -> bool:
+    """Does this encoding spell a value, or is it one of the words that decode to zero?
+
+    Needed because making _bid_decode obey 3.5.2 silently killed a guard in a consumer.
+    research/verify_decimal_monotonic.py skipped non-canonical codes with
+    `if C > fmt.max_coeff: continue` -- reading the coefficient the decoder returned. Once
+    the decoder started returning 0 for exactly those codes, the condition could never be
+    true again, and 174 of them swept through as genuine zeros and were reported as
+    monotonicity violations.
+
+    The guard was right and its evidence disappeared. Callers that need to tell "zero
+    because non-canonical" from "zero because the value is zero" must ask here rather than
+    infer it from a decode that has, correctly, stopped saying.
+    """
+    code &= fmt.mask
+    if (code >> (fmt.sign_shift - 2)) & 0x3 != 0b11:
+        return True                        # case A cannot overflow max_coeff
+    if (code >> (fmt.sign_shift - 4)) & 0xF == 0b1111:
+        return True                        # infinity or NaN: no coefficient to judge
+    C = (0b100 << (fmt.coeff_bits_big - 3)) | (code & ((1 << (fmt.coeff_bits_big - 3)) - 1))
+    return C <= fmt.max_coeff
+
+
 def _bid_encode_fields(fmt: DecimalFormat, sign: int, C: int, E: int) -> int:
     """Pack finite (sign, C, E_field) -> BID code (case A or B)."""
     small_cap = 1 << fmt.coeff_bits_small
@@ -429,6 +452,11 @@ def _regressions_185(check) -> int:
     check(decode(d32, _bid_encode_fields(d32, 0, d32.max_coeff, d32.bias))
           == d32.max_coeff,
           "185: the largest canonical coefficient still decodes")
+
+    check(not is_canonical(d32, 0x6A1F9D7E),
+          "185: is_canonical rejects the case-B code that decodes to zero")
+    check(is_canonical(d32, encode(d32, Fraction(0))),
+          "185: is_canonical accepts a genuine zero")
 
     # 4. The range constant matches the standard's quantum range for all three widths.
     for name, lo, hi in (("decimal32", -101, 90), ("decimal64", -398, 369),
