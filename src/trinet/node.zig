@@ -128,6 +128,64 @@ pub const Node = struct {
         };
     }
 
+    /// Rates to try when a board's own is unknown.
+    ///
+    /// CFGMCLK is an internal RC oscillator with no trim, so its frequency is a
+    /// property of the individual die. Measured across this fleet: 71.18, 70.46
+    /// and 67.47 MHz -- a 5.5% spread, not the 1.25% two boards had suggested.
+    /// A UART tolerates roughly 3%, so no single host rate reaches all three,
+    /// and the board furthest from the fleet constant was written off as a
+    /// wiring fault for a day. It was answering the whole time, 5% down the
+    /// dial.
+    pub const candidate_bauds = [_]u32{ 1186267, 1174399, 1124474, 1150000, 1210000, 2372533, 164000, 160000 };
+
+    /// Open a board without being told its line rate, by asking it.
+    ///
+    /// Costs one exchange per candidate on a miss. That is cheaper than the
+    /// alternative, which is a fleet whose membership depends on how close each
+    /// die's oscillator happened to land to a constant someone hardcoded.
+    pub fn initFpgaAutoBaud(id: u32, name: []const u8, path: [:0]const u8) !struct { node: Node, baud: u32 } {
+        const trials = 6;
+        var last_err: anyerror = error.Timeout;
+        var best_baud: ?u32 = null;
+        var best_score: usize = 0;
+
+        for (candidate_bauds) |b| {
+            var n = initFpga(id, name, path, b) catch |e| {
+                last_err = e;
+                continue;
+            };
+            // Several probes, not one. A board with a lossy link answers a
+            // single probe at more than one rate, and the first that happens to
+            // work is not the best -- measured: the marginal board latched
+            // 1124474 on one run and 1186267 on the next, from the same wire,
+            // because one job is one coin flip.
+            var score: usize = 0;
+            for (0..trials) |k| {
+                const w: u8 = if (k % 2 == 0) 0x55 else 0xA9;
+                const job = protocol.Job.withNonce(@intCast(k + 1), @splat(w), @splat(0x55));
+                const r = n.execute(job) catch continue;
+                if (r.status == protocol.status_ok and
+                    std.mem.eql(u8, &r.nonce, &job.nonce) and
+                    r.y == protocol.dot(job.w, job.x)) score += 1;
+            }
+            n.deinit();
+            if (score > best_score) {
+                best_score = score;
+                best_baud = b;
+            }
+            // Nothing beats a clean sweep, so stop paying for more candidates.
+            if (score == trials) break;
+        }
+
+        if (best_baud) |b| {
+            var n = try initFpga(id, name, path, b);
+            n.stats = .{};
+            return .{ .node = n, .baud = b };
+        }
+        return last_err;
+    }
+
     pub fn initFpga(id: u32, name: []const u8, path: [:0]const u8, baud: u32) !Node {
         var port = try serial.Port.open(path, baud);
 

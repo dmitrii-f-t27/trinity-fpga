@@ -7,7 +7,7 @@
 //!   trinet fleet <s0> [s1] [s2]  run the agent across several physical boards
 //!   trinet bench [serial] [n] [baud] [slot]  measure throughput and the transport gap
 //!   trinet serve <port> [serial] expose a node over TCP so others can use it
-//!   trinet keygen                print fresh per-node receipt keys (never commit them)\n//!   trinet join                  print what a new developer has to do
+//!   trinet census [serial] [baud] [runs] [jobs]  the distribution, not one good run\n//!   trinet keygen                print fresh per-node receipt keys (never commit them)\n//!   trinet join                  print what a new developer has to do
 //!
 //! Author: Dmitrii Vasilev (@gHashTag)
 
@@ -91,11 +91,18 @@ pub fn main(init: std.process.Init.Minimal) !void {
         return fleet(gpa, args[2..]);
     }
     if (std.mem.eql(u8, cmd, "serve")) return serve(gpa, args);
+    if (std.mem.eql(u8, cmd, "census")) return census(
+        gpa,
+        if (args.len > 2) args[2] else default_serial,
+        if (args.len > 3) try std.fmt.parseInt(u32, args[3], 10) else default_baud,
+        if (args.len > 4) try std.fmt.parseInt(usize, args[4], 10) else 100,
+        if (args.len > 5) try std.fmt.parseInt(usize, args[5], 10) else 64,
+    );
     if (std.mem.eql(u8, cmd, "keygen")) return keygen();
     if (std.mem.eql(u8, cmd, "join")) return joinHelp();
 
     std.debug.print("unknown command '{s}'\n", .{cmd});
-    std.debug.print("try: selftest | probe | bench | fleet | demo | agent | serve | join\n", .{});
+    std.debug.print("try: selftest | probe | bench | census | fleet | demo | agent | serve | join\n", .{});
     return error.UnknownCommand;
 }
 
@@ -317,7 +324,7 @@ fn loadFleetKeys(gpa: std.mem.Allocator) !usize {
 /// board does not answer the report says so rather than quietly shrinking the
 /// fleet.
 fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
-    std.debug.print("TRI-NET fleet — {d} port(s) at {d} baud\n", .{ ports.len, fleet_baud });
+    std.debug.print("TRI-NET fleet — {d} port(s), line rate negotiated per board\n", .{ports.len});
     const keys_loaded = loadFleetKeys(gpa) catch 0;
     if (keys_loaded == 0) {
         std.debug.print("NO RECEIPT KEYS LOADED (set {s} or create {s} with `trinet keygen`).\n", .{ key_file_env, key_file_default });
@@ -332,16 +339,24 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
     defer m.deinit();
 
     var attached: usize = 0;
+    var stale_boards: usize = 0;
     for (ports) |p| {
         // Ask the board who it is rather than inferring it from argument order.
         // Binding identity to position looks fine until the ports come up in a
         // different order — then the coordinator verifies each board against
         // another's key, every honest receipt fails its tag check, and the
         // network slashes operators for a cabling accident.
-        var n = node_mod.Node.initFpga(0, "unidentified", p, fleet_baud) catch |e| {
-            std.debug.print("{s}: did NOT open ({s}) — not counted\n", .{ p, @errorName(e) });
+        // Ask the board its line rate too, rather than assuming one constant
+        // serves the fleet. It does not: CFGMCLK is an untrimmed RC oscillator
+        // and this fleet's three dies run at 71.18, 70.46 and 67.47 MHz. A UART
+        // tolerates about 3%, so the 5.5% spread means no single host rate can
+        // reach all three -- and the outlier was recorded as a wiring fault for
+        // a day while it was answering perfectly 5% down the dial.
+        const found = node_mod.Node.initFpgaAutoBaud(0, "unidentified", p) catch |e| {
+            std.debug.print("{s}: did NOT answer at any candidate rate ({s}) — not counted\n", .{ p, @errorName(e) });
             continue;
         };
+        var n = found.node;
         n.key = @splat(0); // any key; identification only reads the id field
         const probe_job = protocol.Job.withNonce(1, @splat(0), @splat(0));
         const claimed = n.execute(probe_job) catch |e| {
@@ -363,10 +378,21 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
         n.id = spec.?.id;
         n.name = spec.?.name;
         n.key = spec.?.key;
+
+        // A board flashed with a key from the git history is honest and useless
+        // at the same time: its arithmetic is real and its receipts prove
+        // nothing, because anyone can compute the same tag. Dropping the key
+        // here makes every one of its receipts `unverifiable`, which credits
+        // nothing and — just as importantly — slashes nothing.
+        if (protocol.publishedKeyUsed(probe_job, claimed) != null) {
+            n.key = null;
+            stale_boards += 1;
+            std.debug.print("{s}: PUBLISHED KEY — receipts carry no evidence. Re-flash with `trinet keygen`.\n", .{p});
+        }
         try m.join(n, "operator", 100000);
         attached += 1;
-        std.debug.print("{s}: identified as {s}, id {x:0>8}{s}\n", .{
-            p, spec.?.name, spec.?.id,
+        std.debug.print("{s}: identified as {s}, id {x:0>8} at {d} baud{s}\n", .{
+            p, spec.?.name, spec.?.id, found.baud,
             if (spec.?.key == null) "  (no key — receipts unverifiable)" else "",
         });
     }
@@ -375,14 +401,33 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
         std.debug.print("\nno board answered. Nothing below would be a hardware result.\n", .{});
         return error.NoBoardsAttached;
     }
-    std.debug.print("\n{d} of {d} requested boards attached\n\n", .{ attached, ports.len });
+    std.debug.print("\n{d} of {d} requested boards attached\n", .{ attached, ports.len });
+    if (stale_boards > 0) {
+        std.debug.print("{d} of them still carry a published key, so no work below can be\n", .{stale_boards});
+        std.debug.print("credited to them. The dot products are still a hardware measurement.\n", .{});
+    }
+    std.debug.print("\n", .{});
 
     const model = try model_mod.Model.synthetic(gpa, 3, 32, 0x1614);
     var agent = try agent_mod.Agent.init(gpa, "igla-coder", model);
     defer agent.deinit(gpa);
 
     const t_agent = monoNanos();
-    const o = try agent.run(&m, "synthesise the ternary mac and flash it to the fleet");
+    const o = agent.run(&m, "synthesise the ternary mac and flash it to the fleet") catch |e| {
+        if (e == error.NoEligibleNode and stale_boards == attached) {
+            line();
+            std.debug.print("Every attached board carries a published key, so the ledger has no\n", .{});
+            std.debug.print("node it is allowed to pay and refuses to dispatch. That is the\n", .{});
+            std.debug.print("correct behaviour and not a fault in the fleet: {d} boards answered,\n", .{attached});
+            std.debug.print("their arithmetic is measurable with `trinet census <port> 0`, and\n", .{});
+            std.debug.print("none of it can be settled until they are re-flashed.\n", .{});
+            line();
+            std.debug.print("Fix: `trinet keygen > trinet-keys.txt`, rebuild each bitstream with\n", .{});
+            std.debug.print("its own key via chparam, flash, and run this again.\n", .{});
+            return;
+        }
+        return e;
+    };
     const agent_ms = @as(f64, @floatFromInt(monoNanos() - t_agent)) / 1e6;
     std.debug.print("agent action : {s}\n", .{o.decision.action.label()});
     std.debug.print("elapsed      : {d:.1} ms for {d} jobs = {d:.0} jobs/s\n", .{
@@ -709,6 +754,103 @@ fn serve(gpa: std.mem.Allocator, args: []const [:0]const u8) !void {
 /// Print fresh per-node keys for the operator to save and build into their own
 /// bitstreams. Deliberately prints rather than writes: a key that a tool
 /// silently drops in the working tree is a key that gets committed.
+/// Run the same measurement many times, each with a fresh port, and report the
+/// whole distribution.
+///
+/// Three consecutive good runs of one configuration is not a statistical base,
+/// and a reviewer will say so. What matters is the shape: the worst run, the
+/// spread, and how often a run is perfect. A mean alone hides a board that is
+/// fine 90% of the time and useless the rest, which is exactly the failure this
+/// fleet actually has.
+///
+/// Every run opens and closes the port. The FPGA's frame parser survives the
+/// host process, so a run that inherits a desynchronised cell is a different
+/// experiment from one that does not -- and including both is the honest
+/// choice, because a user gets whichever they get.
+fn census(gpa: std.mem.Allocator, path: []const u8, baud: u32, runs: usize, per_run: usize) !void {
+    std.debug.print("census: {d} independent runs of {d} jobs on {s} at {d} baud\n", .{ runs, per_run, path, baud });
+    line();
+
+    var buf: [256]u8 = undefined;
+    const zpath = try std.fmt.bufPrintZ(&buf, "{s}", .{path});
+
+    const scores = try gpa.alloc(usize, runs);
+    defer gpa.free(scores);
+    var stale_runs: usize = 0;
+    var open_failures: usize = 0;
+
+    var prng: std.Random.DefaultPrng = .init(0x5EED);
+    const rand = prng.random();
+
+    var negotiated: u32 = baud;
+    for (0..runs) |run| {
+        var n: node_mod.Node = blk: {
+            if (negotiated == 0) {
+                const found = node_mod.Node.initFpgaAutoBaud(protocol.default_node_id, "ax7203", zpath) catch {
+                    scores[run] = 0;
+                    open_failures += 1;
+                    continue;
+                };
+                negotiated = found.baud;
+                std.debug.print("negotiated line rate: {d} baud\n", .{negotiated});
+                break :blk found.node;
+            }
+            break :blk node_mod.Node.initFpga(protocol.default_node_id, "ax7203", zpath, negotiated) catch {
+                scores[run] = 0;
+                open_failures += 1;
+                continue;
+            };
+        };
+        defer n.deinit();
+
+        var correct: usize = 0;
+        var stale: usize = 0;
+        for (0..per_run) |i| {
+            var wv: protocol.Trits = @splat(0);
+            var xv: protocol.Trits = @splat(0);
+            for (&wv) |*t| t.* = rand.intRangeAtMost(i8, -1, 1);
+            for (&xv) |*t| t.* = rand.intRangeAtMost(i8, -1, 1);
+            const job = protocol.Job.withNonce(@intCast(run * per_run + i + 1), protocol.pack(wv), protocol.pack(xv));
+            const r = n.execute(job) catch continue;
+            if (protocol.publishedKeyUsed(job, r) != null) stale += 1;
+            if (r.status == protocol.status_ok and
+                std.mem.eql(u8, &r.nonce, &job.nonce) and
+                r.y == protocol.dot(job.w, job.x)) correct += 1;
+        }
+        scores[run] = correct;
+        if (stale > 0) stale_runs += 1;
+    }
+
+    var total: usize = 0;
+    var perfect: usize = 0;
+    for (scores) |c| {
+        total += c;
+        if (c == per_run) perfect += 1;
+    }
+    std.sort.pdq(usize, scores, {}, std.sort.asc(usize));
+
+    const attempted = runs * per_run;
+    const mean = @as(f64, @floatFromInt(total)) / @as(f64, @floatFromInt(runs));
+    std.debug.print("jobs attempted      : {d}\n", .{attempted});
+    std.debug.print("dot products correct: {d} ({d:.3}%)\n", .{ total, @as(f64, @floatFromInt(total)) / @as(f64, @floatFromInt(attempted)) * 100 });
+    std.debug.print("perfect runs        : {d}/{d}\n", .{ perfect, runs });
+    std.debug.print("per-run correct     : min {d}, p50 {d}, p95 {d}, max {d}, mean {d:.2}\n", .{
+        scores[0], scores[runs / 2], scores[(runs * 95) / 100], scores[runs - 1], mean,
+    });
+    if (open_failures > 0) std.debug.print("runs that could not open the port: {d}\n", .{open_failures});
+    line();
+    if (stale_runs > 0) {
+        std.debug.print("{d}/{d} runs carried receipts signed with a PUBLISHED key.\n", .{ stale_runs, runs });
+        std.debug.print("The arithmetic above is a real hardware measurement. The receipts\n", .{});
+        std.debug.print("are not evidence of anything and this run must not be cited as\n", .{});
+        std.debug.print("verified work.\n", .{});
+    } else {
+        std.debug.print("no published key seen. Receipts from this fleet can be cited.\n", .{});
+    }
+    line();
+    std.debug.print("Report the minimum, not the mean. A fleet is used at its worst run.\n", .{});
+}
+
 fn keygen() !void {
     var seed: u64 = undefined;
     var ts: std.c.timespec = undefined;

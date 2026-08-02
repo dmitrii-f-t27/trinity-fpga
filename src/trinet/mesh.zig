@@ -597,8 +597,13 @@ test "keyed nodes are verified with their own key, not each other's" {
     const honest = protocol.executeKeyed(job, 0xA000, key_a);
     try std.testing.expectEqual(protocol.Verdict.ok, protocol.verifyWithKey(job, honest, key_a));
     try std.testing.expectEqual(protocol.Verdict.corrupt, protocol.verifyWithKey(job, honest, key_b));
-    // And a keyed receipt with no key at all must never be waved through.
-    try std.testing.expectEqual(protocol.Verdict.corrupt, protocol.verifyWithKey(job, honest, null));
+    // And a keyed receipt with no key at all must never be waved through —
+    // but must not be held against the node either. Holding the wrong key is a
+    // statement about the receipt; holding no key is a statement about us.
+    const no_key = protocol.verifyWithKey(job, honest, null);
+    try std.testing.expectEqual(protocol.Verdict.unverifiable, no_key);
+    try std.testing.expect(!no_key.accepted());
+    try std.testing.expect(!no_key.indictsTheNode());
 }
 
 test "a layer is shared across nodes, not dumped on the first one" {
