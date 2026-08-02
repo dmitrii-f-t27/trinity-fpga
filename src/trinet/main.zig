@@ -363,8 +363,10 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize) !void {
 
     // Compute ceiling: the dot product is combinational, and the receipt engine
     // walks 26 preimage bytes at one byte per clock, so a job costs roughly 30
-    // cycles of the measured ~69 MHz configuration oscillator.
-    const cfgmclk_hz: f64 = 69.0e6;
+    // cycles of the configuration oscillator. CFGMCLK measured 2026-08-02 at
+    // ~71.18 MHz by bracketing the host baud against a fixed-divisor bitstream
+    // — the 69-70 MHz this project had recorded was low by 2-3%.
+    const cfgmclk_hz: f64 = 71.18e6;
     const cycles_per_job: f64 = 30.0;
     const compute_jobs_per_s = cfgmclk_hz / cycles_per_job;
 
@@ -378,7 +380,7 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize) !void {
     std.debug.print("transport ceiling   : {d:.1} jobs/s  (UART {d} baud, {d} bytes/job)\n", .{
         transport_jobs_per_s, default_baud, protocol.request_len + protocol.response_len,
     });
-    std.debug.print("compute ceiling     : {d:.0} jobs/s  (~{d:.0} cycles/job at ~69 MHz CFGMCLK)\n", .{
+    std.debug.print("compute ceiling     : {d:.0} jobs/s  (~{d:.0} cycles/job at 71.18 MHz CFGMCLK)\n", .{
         compute_jobs_per_s, cycles_per_job,
     });
     std.debug.print("measured / transport: {d:.1}%\n", .{jobs_per_s / transport_jobs_per_s * 100});

@@ -56,6 +56,16 @@ ternary MACs/s), p50 4.90 ms, against a transport ceiling of 410 jobs/s and a
 is a claim about the serial line. **No power figure exists** — nothing here has
 been on a bench supply, so any TOPS/W comparison would be fabricated.
 
+**CFGMCLK is ~71.18 MHz, not the 69-70 MHz recorded elsewhere.** Measured
+2026-08-02 with `conformance/trinet_baud_sweep.py`, which sweeps the HOST rate
+against a fixed-divisor bitstream and brackets where the link holds — no
+re-synthesis needed. Window 156800..171200 baud at BAUD_DIV=434, centre 164000.
+**So the canonical 160000 baud sits ~2.4% below the board's real rate** and
+works on margin, not by being correct. Tolerance is ±4.4%, wider than the
+textbook ±2-3%, because the receiver re-syncs on every start bit. That is what
+makes small divisors reachable: quantisation is 1/BAUD_DIV, so 120 → 593 kbaud
+is comfortable, 60 → 1186 kbaud is in budget, 30 → 2372 kbaud is at the edge.
+
 ## The receipt, and exactly how far it reaches
 
 | tag | resists | does not resist |
