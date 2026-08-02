@@ -284,7 +284,7 @@ reasons, reached the same boundary:
 | route | result |
 |---|---|
 | `takum32` vs **`libtakum`** | **12 of 15** vectors differ by exactly one ULP, **none by more** |
-| **numpy 2.4.4** validation sets | **26,615** rows, 20 transcendental operations, tolerance 1–4 ULP, **0 rows claim exactness** |
+| **numpy 2.4.4** validation sets | **26,615** rows, 20 transcendental operations — **version-pinned**: on numpy **2.0.2** the same files hold **26,610** rows, five fewer. The shape is stable across the two versions (20 operation files, tolerances exactly 1–4 ULP, verified by reading them); the row count is not, so quote it with its version as this line does, tolerance 1–4 ULP, **0 rows claim exactness** |
 | **silicon** — `lns16` on AX7203 | `472/576 bit-exact, 104 known-limitation(s), 0 hard-fail(s)`, all 104 one-ULP subnormal residuals |
 
 Software reference, third-party implementation and hardware agree on where the line

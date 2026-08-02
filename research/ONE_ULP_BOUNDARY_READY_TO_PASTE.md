@@ -16,7 +16,7 @@ because it converts a limitation into a stated boundary with measurements behind
 | route | what was measured | result |
 |---|---|---|
 | **third-party library** | the corpus's `takum32` pack against `libtakum` | **12 of 15** vectors differ by exactly one ULP — none by more. **See the caution below before using this row.** |
-| **the field's own practice** | numpy 2.4.4, `_core/tests/data/umath-validation-set-*.csv` | **26,615** rows, 20 operations, tolerances 1–4 ULP; **0 rows claim zero error** |
+| **the field's own practice** | numpy 2.4.4, `_core/tests/data/umath-validation-set-*.csv` | **26,615** rows, 20 operations, tolerances 1–4 ULP — **version-pinned**: on numpy **2.0.2** the same files hold **26,610** rows, five fewer. The shape is stable across the two versions (20 operation files, tolerances exactly 1–4 ULP, verified by reading them); the row count is not, so quote it with its version as this line does; **0 rows claim zero error** |
 | **silicon** | `lns16` decode on an AX7203, `--extended` conformance | `472/576 bit-exact, 104 known-limitation(s), 0 hard-fail(s)` — all 104 are 1-ULP subnormal-band residuals |
 
 numpy's tolerance histogram, since the shape matters: 1 ULP on 12,001 rows, 2 on 8,455,

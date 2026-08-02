@@ -5955,3 +5955,46 @@ figure was re-derived from the thing it describes, not compared against another 
 repeating it.
 """
 }
+
+
+// ============================================================================
+// Pass 168 -- the numpy figure, read from numpy rather than quoted.
+// ============================================================================
+
+verification NUMPY_ULP_TOLERANCES {
+  claim "numpy 2.4.4 validation sets: 26,615 rows, 20 transcendental operations, tolerances 1-4 ULP"
+  source "numpy's own _core/tests/data/umath-validation-set-*.csv, read directly"
+  available_here "numpy 2.0.2"
+
+  stable_across_versions {
+    operation_files 20      // exactly, one per transcendental
+    ulp_tolerances  "the distinct values in the tolerance column are 1, 2, 3 and 4 -- no others"
+  }
+
+  not_stable {
+    rows_on_2_0_2  26610
+    rows_claimed   26615    // on 2.4.4, which the document names
+    difference     5
+  }
+
+  // The count was accounted for completely before calling it a difference, because
+  // three of four apparent mismatches in pass 167 were the scan and not the artefact.
+  accounting """
+  26,692 raw lines = 62 comment lines + 20 header rows + 26,610 data rows + 0 blank.
+
+Nothing is unaccounted for, so the five-row difference is between numpy versions and
+not between the reader and the file.
+"""
+
+  reading """
+The shape of the claim holds and the number moves. Twenty operation files and
+tolerances of exactly 1 to 4 ULP are what the argument rests on -- that a widely used
+library documents multi-ULP tolerances for transcendentals -- and both are version-
+independent across the two versions in evidence.
+
+The row count is not, so it must be quoted with its version. The documents already name
+numpy 2.4.4, which was right; they now also carry the 2.0.2 figure, so a reader who
+reproduces on a different version sees why the number differs instead of doubting the
+claim.
+"""
+}
