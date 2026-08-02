@@ -6169,3 +6169,22 @@ finding "a pack format divergence I introduced in pass 185" {
   consequence "a plain re-run of the generator would have shown all nine as changed, with 34137 lines of diff and no content difference"
   fixed "rewritten in the generator's own format; content byte-identical"
 }
+
+verification "the expansion packs are valid expansions, and nothing tests what happens when one is not" {
+  formats "double_double, quad_double"
+  property "nonoverlapping expansion (Shewchuk) / renormalized (Hida-Li-Bailey QD): each limb must be the correctly-rounded binary64 of the exact sum of itself and every limb below it"
+  measured "0 of 9276 operands and 0 of 4638 results are non-canonical"
+  why_it_holds "for widths above 64 bits generate_vectors.gen_pairs draws operands with _rand_value_raw, which encodes a random VALUE rather than drawing random BITS -- a choice made so wide formats need not compute pow2(huge). Everything arrives through encode(), and encode() renormalizes"
+  what_is_untested "no vector in the corpus exercises a non-canonical expansion, so an implementation handed an unrenormalized pair can diverge from this oracle with every vector still agreeing"
+  own_error "the first version of the check reported 80% non-canonical; its limb order was inverted. encode(1.0) yields [0x3ff0000000000000, 0x0], so limb 0 is the MOST significant, which _decode_expansion's docstring words the other way round. The check now validates itself against encode() before reporting"
+  negative_control "0.5 + 0.5 decodes to exactly 1 and is rejected as an expansion -- value and membership are different questions"
+}
+
+resolution "the six unprobed gf formats are settled without decoding them" {
+  was "audit_special_coverage reported gf64, gf96, gf128, gf256, gf512, gf1024 as NOT PROBED: decode of an all-ones pattern is a number near 2^(2^48)"
+  is "no specials, established from the single gate that decides it"
+  gate "gf_ref.decode has exactly one Special branch, `if exp == fmt.exp_max and fmt.has_inf`, and has_inf is a property returning self.name == 'gf16'"
+  demonstrated_on "gf16 (flag set) yields +Inf at the all-ones exponent; gf32 (flag clear) yields a finite 617-digit number. Both share the function"
+  honesty "this is an inference from a shared code path, not a measurement of the six formats, and the report labels it so. Formats with no such single gate stay NOT PROBED"
+  coverage "84 formats: 78 probed, 6 resolved structurally, 0 unresolved"
+}
