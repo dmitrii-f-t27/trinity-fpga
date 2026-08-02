@@ -29,9 +29,26 @@ from trinet_mac32_conformance_ax7203 import (  # noqa: E402
     OP_MAC32, generate_vectors, golden_dot, build_request,
 )
 
-# Rates worth trying: the historical default, the corrected divisor-434 rate,
-# and the three fast divisors built for the baud ladder.
-CANDIDATE_RATES = [2372533, 1186267, 593133, 164000, 160000]
+# Rates worth trying.
+#
+# This list used to hold only the rates a shared divisor implies, which quietly
+# assumed every board runs the same clock. They do not: CFGMCLK is an untrimmed
+# RC oscillator and this fleet's three dies measure 71.18, 70.46 and 67.47 MHz —
+# 5.5% apart, against a UART tolerance near 3%. So at BAUD_DIV=60 the fleet
+# speaks 1186267, 1174399 and 1124474 baud, and the board at the bottom of that
+# spread answered none of the rates listed here.
+#
+# It was written off as a wiring fault for a day because of this list. Keep the
+# per-die rates in it, and re-measure with trinet_baud_sweep.py after any
+# re-flash rather than assuming these carry over.
+CANDIDATE_RATES = [
+    2372533,   # BAUD_DIV=30
+    1186267,   # BAUD_DIV=60, fastest die
+    1174399,   # BAUD_DIV=60, middle die
+    1124474,   # BAUD_DIV=60, slowest die
+    593133,    # BAUD_DIV=120
+    164000, 160000,   # BAUD_DIV=434, historical
+]
 
 # Identities the fleet build assigns, so a board can name itself.
 KNOWN_IDS = {
