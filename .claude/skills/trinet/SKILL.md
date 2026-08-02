@@ -50,11 +50,28 @@ settle it and has not been run. **Do not re-run this probe expecting a different
 answer** — and never let a zero DNA become a node id, or every board on this
 flow claims `0x00000000`.
 
-**Throughput is a UART property, by ~5600x.** Measured 202.6 jobs/s (6482
-ternary MACs/s), p50 4.90 ms, against a transport ceiling of 410 jobs/s and a
-*derived* compute ceiling of 2.3M jobs/s. Any performance claim about this node
-is a claim about the serial line. **No power figure exists** — nothing here has
-been on a bench supply, so any TOPS/W comparison would be fabricated.
+**Throughput: 6842.9 jobs/s batched, after 36x of work.** The ladder, each step
+of which moved the bottleneck somewhere new:
+
+| mode | jobs/s | share of ceiling |
+|---|---|---|
+| BAUD_DIV=434, one job per round trip | 191.1 | 28% |
+| BAUD_DIV=30, one job per round trip | 843.9 | 8.5% |
+| BAUD_DIV=30, **batched x32** | **6842.9** | 69.2% |
+
+**Raising the line rate alone is not enough** — at BAUD_DIV=30 the share of the
+ceiling *fell* and p50 latency sat at 1.17 ms, a USB frame interval. One job per
+USB transaction caps a serial node near 850 jobs/s however fast the wire is. Use
+`Node.executeBatch`; a model layer is already a run of jobs.
+
+**The ceiling is full duplex.** Request goes out on TX while the response comes
+back on RX, so it is `baud / 10 / max(req, resp)`, not their sum. Summing them
+produced a batched figure of 125% of the ceiling — a measurement above a ceiling
+means the ceiling is wrong, not the measurement.
+
+compute/transport is now 240x, down from 6221x. **No power figure exists** —
+nothing here has been on a bench supply, so any TOPS/W comparison would be
+fabricated.
 
 **CFGMCLK is ~71.18 MHz, not the 69-70 MHz recorded elsewhere.** Measured
 2026-08-02 with `conformance/trinet_baud_sweep.py`, which sweeps the HOST rate
