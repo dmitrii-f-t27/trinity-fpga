@@ -700,3 +700,75 @@ scope_limits {
     fpga/CATALOG_MATRIX_83.md and applying its Tier-E evidence standard.
   """
 }
+
+// ---------------------------------------------------------------------------
+// Portability of the node cell across FPGA families
+// Added 2026-08-02, answering the option-C falsifier.
+// ---------------------------------------------------------------------------
+
+claim NODE_CELL_IS_VENDOR_NEUTRAL {
+  statement """
+    The TRI-NET node contains exactly two Xilinx-specific primitives, and both
+    are board concerns rather than node concerns: STARTUPE2 supplying CFGMCLK,
+    and DNA_PORT supplying a device identity. With those lifted into a board
+    wrapper, the remaining cell (fpga/portable/trinet_node_core.v) synthesises
+    with zero errors on ten FPGA families from eight vendors.
+  """
+  measured {
+    families_attempted   12
+    families_synthesised 10
+    synthesis_errors     0
+    inferred_multipliers 0
+    flip_flops_xilinx    819
+    flip_flops_ice40     819
+    flip_flops_ecp5      819
+    flip_flops_nexus     819
+    flip_flops_gowin     819
+    flip_flops_gatemate  819
+    flip_flops_anlogic   819
+    flip_flops_efinix    819
+    flip_flops_nanoxplore 819
+    flip_flops_intel_alm 831
+    luts_min             939
+    luts_max             1737
+  }
+  why """
+    Ten independent synthesisers recovered the same sequential state to the
+    register. That is what a design expressed in ordinary RTL looks like; a
+    design tuned to a vendor carry chain would not survive the transfer. The
+    1.85x spread in LUT count is LUT width and carry architecture, not a
+    portability failure.
+  """
+  tool       "yosys 0.63, synth_<family>"
+  evidence   "docs/TRI_NET_PORTABILITY.md"
+  trust_tier VERIFIED_SW
+}
+
+limit PORTABILITY_IS_SOURCE_NOT_PRODUCT {
+  statement """
+    Synthesis is not place-and-route. Only the xc7 path has produced a bitstream
+    and only the xc7 path has run on silicon. No non-Xilinx mapping has met
+    timing, because no non-Xilinx P&R tool was available on this workstation
+    (nextpnr-himbaechel only; no nextpnr-ice40, nextpnr-ecp5, icepack, ecppack).
+  """
+  do_not_claim "portable to ten families"
+  may_claim    "synthesises clean on ten families; proven on silicon on one"
+  guard        "conformance/portability_check.py asserts the invariant, not the numbers"
+}
+
+lesson TEST_THAT_DEPENDS_ON_A_DEFAULT {
+  found_when """
+    Splitting the board file required re-running formal/trinet_node_v2_tb.v,
+    which failed 0/6 -- and failed identically on the unsplit design, which is
+    what proved the split behaviour-preserving.
+  """
+  root_cause """
+    The testbench passed no key and relied on the module default. When W01
+    replaced the compromised default with a null one, the golden tags stopped
+    matching anything the RTL could produce. The security fix broke the test
+    that guarded the security property, and nothing said so.
+  """
+  rule "a test that depends on a default is a test that stops testing the moment the default is corrected"
+  fix  "pass the canonical SipHash-2-4 reference key explicitly; regenerate goldens from the independent Python implementation, never from the RTL"
+  now  "6/6"
+}

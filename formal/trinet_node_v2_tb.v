@@ -49,7 +49,20 @@ module trinet_node_v2_tb;
     wire uart_tx;
     wire [3:0] led;
 
-    trinet_node_v2_ax7203 #(.USE_DNA(1), .BAUD_DIV_P(BAUD_DIV)) dut (
+    // TEST VECTOR KEY — the canonical SipHash-2-4 reference key from the
+    // Aumasson-Bernstein paper. It is public by construction and must never be
+    // used to deploy a node; `trinet keygen` exists for that.
+    //
+    // It is passed explicitly on purpose. This testbench previously relied on
+    // the module's default key, and when the compromised default was replaced
+    // with a null one (W01) the golden tags below silently stopped matching
+    // anything the RTL produced. A test that depends on a default is a test
+    // that stops testing the moment the default is corrected.
+    localparam [127:0] TB_TEST_KEY = 128'h0f0e0d0c0b0a09080706050403020100;
+
+    trinet_node_v2_ax7203 #(
+        .USE_DNA(1), .BAUD_DIV_P(BAUD_DIV), .RECEIPT_KEY(TB_TEST_KEY)
+    ) dut (
         .rst_n(rst_n), .uart_rx(uart_rx), .uart_tx(uart_tx), .led(led));
 
     localparam integer NVEC = 6;
