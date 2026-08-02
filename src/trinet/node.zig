@@ -171,6 +171,55 @@ pub const Node = struct {
         return protocol.decodeResponse(&raw) orelse Error.MalformedResponse;
     }
 
+    /// Send several jobs before reading any answer.
+    ///
+    /// One job per round trip costs a USB frame interval — measured at ~1.17 ms
+    /// on this board, which caps a serial node near 850 jobs/s no matter how
+    /// fast the line is. Writing a run of requests and then reading the run of
+    /// responses amortises that latency, and a model layer is naturally a run:
+    /// one job per output neuron.
+    ///
+    /// Safe against the cell overrunning its own transmitter because a request
+    /// is 24 bytes and a response 19, so answer N is on the wire before request
+    /// N+1 has finished arriving. A wider response than the request would need
+    /// flow control instead.
+    pub fn executeBatch(
+        self: *Node,
+        jobs: []const protocol.Job,
+        out: []protocol.Receipt,
+    ) Error!usize {
+        std.debug.assert(out.len >= jobs.len);
+        switch (self.backend) {
+            .fpga => |*port| {
+                self.stats.dispatched += jobs.len;
+                for (jobs) |j| {
+                    port.writeAll(&protocol.encodeRequest(j)) catch {
+                        self.stats.unreachable_count += 1;
+                        return Error.Unreachable;
+                    };
+                }
+                const width: usize = if (self.key != null) protocol.response_len_v2 else protocol.response_len;
+                var got: usize = 0;
+                var buf: [protocol.response_len_v2]u8 = undefined;
+                while (got < jobs.len) : (got += 1) {
+                    port.readExact(buf[0..width]) catch return Error.Timeout;
+                    out[got] = (if (self.key != null)
+                        protocol.decodeResponseV2(buf[0..width])
+                    else
+                        protocol.decodeResponse(buf[0..width])) orelse return Error.MalformedResponse;
+                }
+                return got;
+            },
+            // Batching buys nothing without a round trip to amortise, so the
+            // other backends fall back rather than growing a second code path
+            // that could drift from the first.
+            else => {
+                for (jobs, 0..) |j, i| out[i] = try self.execute(j);
+                return jobs.len;
+            },
+        }
+    }
+
     fn executeRemote(self: *Node, ep: RemoteEndpoint, job: protocol.Job) Error!protocol.Receipt {
         var stream = net.connect(ep.ip, ep.port) catch {
             self.stats.unreachable_count += 1;

@@ -353,6 +353,34 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
     }
 
     const elapsed_ns = monoNanos() - t0;
+
+    // Same work again, batched, to separate the line rate from the round trip.
+    const batch = 32;
+    const jobs = try gpa.alloc(protocol.Job, batch);
+    defer gpa.free(jobs);
+    const receipts = try gpa.alloc(protocol.Receipt, batch);
+    defer gpa.free(receipts);
+
+    var batched_ok: usize = 0;
+    const bt0 = monoNanos();
+    var done: usize = 0;
+    while (done < n) : (done += batch) {
+        const take = @min(batch, n - done);
+        for (jobs[0..take], 0..) |*j, k| {
+            var wv: protocol.Trits = @splat(0);
+            var xv: protocol.Trits = @splat(0);
+            for (&wv) |*t| t.* = rand.intRangeAtMost(i8, -1, 1);
+            for (&xv) |*t| t.* = rand.intRangeAtMost(i8, -1, 1);
+            j.* = protocol.Job.withNonce(@intCast(5000 + done + k), protocol.pack(wv), protocol.pack(xv));
+        }
+        const got = node.executeBatch(jobs[0..take], receipts[0..take]) catch break;
+        for (jobs[0..got], receipts[0..got]) |j, r| {
+            if (protocol.verifyWithKey(j, r, node.key).accepted()) batched_ok += 1;
+        }
+    }
+    const batched_ns = monoNanos() - bt0;
+    const batched_s = @as(f64, @floatFromInt(batched_ns)) / 1e9;
+    const batched_jps = if (batched_s > 0) @as(f64, @floatFromInt(batched_ok)) / batched_s else 0;
     const elapsed_s = @as(f64, @floatFromInt(elapsed_ns)) / 1e9;
     const jobs_per_s = @as(f64, @floatFromInt(n)) / elapsed_s;
     const macs_per_s = jobs_per_s * @as(f64, @floatFromInt(protocol.n_trits));
@@ -361,8 +389,12 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
     const p50 = latencies[n / 2];
     const p99 = latencies[(n * 99) / 100];
 
-    // Transport ceiling: 8N1 costs ten bit-times per byte.
-    const bytes_per_job: f64 = @floatFromInt(protocol.request_len + protocol.response_len_v2);
+    // Transport ceiling: 8N1 costs ten bit-times per byte, and UART is full
+    // duplex — the request goes out on TX while the response comes back on RX,
+    // so the limit is the busier direction, not their sum. Adding them was
+    // wrong and showed itself immediately: batched throughput came out at 125%
+    // of a ceiling that cannot be exceeded.
+    const bytes_per_job: f64 = @floatFromInt(@max(protocol.request_len, protocol.response_len_v2));
     const transport_jobs_per_s = @as(f64, @floatFromInt(baud)) / 10.0 / bytes_per_job;
 
     // Compute ceiling: the dot product is combinational, and the receipt engine
@@ -381,14 +413,19 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
         @as(f64, @floatFromInt(p50)) / 1e6, @as(f64, @floatFromInt(p99)) / 1e6,
     });
     line();
-    std.debug.print("transport ceiling   : {d:.1} jobs/s  (UART {d} baud, {d} bytes/job)\n", .{
-        transport_jobs_per_s, baud, protocol.request_len + protocol.response_len_v2,
+    std.debug.print("transport ceiling   : {d:.1} jobs/s  (UART {d} baud, {d} bytes on the busier direction)\n", .{
+        transport_jobs_per_s, baud, @max(protocol.request_len, protocol.response_len_v2),
     });
     std.debug.print("compute ceiling     : {d:.0} jobs/s  (~{d:.0} cycles/job at 71.18 MHz CFGMCLK)\n", .{
         compute_jobs_per_s, cycles_per_job,
     });
     std.debug.print("measured / transport: {d:.1}%\n", .{jobs_per_s / transport_jobs_per_s * 100});
     std.debug.print("compute / transport : {d:.0}x\n", .{compute_jobs_per_s / transport_jobs_per_s});
+    line();
+    std.debug.print("batched x{d}       : {d}/{d} verified, {d:.1} jobs/s ({d:.1}x the one-at-a-time rate)\n", .{
+        batch, batched_ok, n, batched_jps, if (jobs_per_s > 0) batched_jps / jobs_per_s else 0,
+    });
+    std.debug.print("batched / transport : {d:.1}%\n", .{batched_jps / transport_jobs_per_s * 100});
     line();
     std.debug.print("The silicon is idle for all but a fraction of each job. Any\n", .{});
     std.debug.print("throughput claim about this node is a claim about the UART.\n", .{});
