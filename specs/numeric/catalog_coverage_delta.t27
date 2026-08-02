@@ -6112,3 +6112,21 @@ finding "nine workflows do not watch the script they run" {
   not_fixed_here "all nine .yml files; editing workflows was declined, and every one of the nine belongs to a line that owns its CI"
   handoff "research/WORKFLOWS_THAT_DO_NOT_WATCH_WHAT_THEY_RUN.md carries the exact one-line addition each needs"
 }
+
+correction "the decimal packs were never blocked" {
+  was "HANDOVER.md 6: decimal32/64/128 have no second witness; a GCC toolchain, decNumber or Intel DFP would close it -- all unavailable"
+  is "gcc-14 is installed and implements _Decimal32/64/128 over Intel BID, emitting BID not DPD"
+  why_it_looked_unavailable "gcc's bundled fixed headers are stale against the macOS 26 SDK, so a bare compile dies on sys/cdefs.h and reads as no decimal support; -isysroot $(xcrun --show-sdk-path) is the whole fix"
+  encoding_confirmed "_Decimal32 1.0 -> 0x3200000a: sign 0, biased exponent 0x64, coefficient 10 -- BID, not declets"
+}
+
+finding "decimal_ref.py loses significant digits" {
+  witness "gcc-14 + Intel BID, sharing no code with decimal_ref.py"
+  vectors 6942
+  cohort_only 2176
+  value_differs 412
+  verified_independently "exact rational arithmetic, not gcc's word: ours returns 4 significant digits where decimal32 holds 7, and gcc is nearer the exact product in every case sampled"
+  cause "_encode_round scans exponents in a +/-3 window around log10(value); the exponent that puts every significant digit into the integer coefficient is up to 34 steps away for decimal128"
+  cohort_note "the 2176 are the IEEE 754-2008 5.4.2 preferred-exponent rule, which the packs do not follow and do not state; any conforming implementation fails a bit-exact check against them for that reason alone"
+  not_fixed_here "fixing _encode_round regenerates published pack data and needs its own pass"
+}

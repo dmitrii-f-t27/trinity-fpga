@@ -123,10 +123,21 @@ longer does.
 
 Recorded so nobody re-derives them:
 
-- **`decimal32/64/128` have no independent witness here.** libmpdec ships with CPython
-  and implements decimal *values*, not the IEEE interchange encoding; writing the BID
-  decoder ourselves would be single-source wearing a witness's clothes. A GCC toolchain,
-  the decNumber source, or Intel DFP would close it.
+- ~~**`decimal32/64/128` have no independent witness here.**~~ **CLOSED, and it was never
+  true.** libmpdec does implement values rather than the interchange encoding, and that
+  part stands. The conclusion did not: the missing toolchain was on this machine the whole
+  time. Homebrew `gcc-14` implements `_Decimal32/64/128` over Intel's BID library, emits
+  BID rather than DPD, and needs one flag nobody tried -- `-isysroot $(xcrun
+  --show-sdk-path)`, without which it dies on a stale `sys/cdefs.h` and looks unsupported.
+
+  `conformance/crossval_decimal_gcc.py` runs it against all 6,942 vectors. 2,176 differ by
+  cohort member only (the IEEE 5.4.2 preferred-exponent rule, which `decimal_ref.py` does
+  not follow and the packs do not state), and **412 differ in value** -- our oracle keeps
+  fewer significant digits than the format holds. Cause located: `_encode_round` scans a
+  +/-3 exponent window, and full precision can need one up to 34 steps out.
+
+  The lesson is the entry itself. "Unavailable" was recorded from one failed compile
+  without asking why it failed. Four passes of formats went un-witnessed behind it.
 - **`takum64` cannot be cross-validated on arm64**, for the reason in question 3.
 - **The reference counts 28 / 33 / 56** need the three published manuscripts.
 - **`posit64`** is out of SoftPosit's `positX` reach — 32-bit container.
