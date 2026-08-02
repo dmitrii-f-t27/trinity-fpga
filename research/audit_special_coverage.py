@@ -91,6 +91,47 @@ def decodes_special(mod, fmt, raw):
         return False
 
 
+def resolve_structurally(mod, fmt, family, G):
+    """Settle a format whose decode cannot be called, without calling it.
+
+    Only sound when the oracle gates its entire special branch on one flag, and only
+    honest when that gate is demonstrated rather than assumed. gf_ref does:
+
+        if exp == fmt.exp_max and fmt.has_inf:      # gf_ref.py, the only Special branch
+        ...
+        def has_inf(self): return self.name == "gf16"
+
+    So the demonstration runs on decodable siblings that share the function -- gf16 with
+    the flag set must yield a Special at the all-ones exponent, gf32 with it clear must
+    yield a finite number -- and the verdict then transfers to gf64 and wider, which
+    differ from gf32 only in width. gf48 already decodes that pattern to a 39,457-digit
+    integer; gf128 would be near 2^(2^48).
+
+    This is an inference from a shared code path, not a measurement of these formats, and
+    the report says so. Returns None when no such single gate exists, which leaves the
+    format genuinely NOT PROBED rather than quietly resolved.
+    """
+    if family != "gf":
+        return None
+    Special = getattr(mod, "Special", None)
+    if Special is None or getattr(fmt, "has_inf", False):
+        return None
+    witnesses = {}
+    for probe, expect_special in (("gf16", True), ("gf32", False)):
+        wf = mod.FORMATS.get(probe)
+        if wf is None:
+            return None
+        mask = (1 << wf.width) - 1
+        raw = (wf.exp_max << wf.mant_bits) & mask
+        try:
+            witnesses[probe] = isinstance(mod.decode(wf, raw), Special)
+        except Exception:
+            return None
+        if witnesses[probe] is not expect_special:
+            return None                       # the gate does not behave as documented
+    return "no specials: has_inf is False and it is the only gate, shown on gf16/gf32"
+
+
 def probe_raws(fmt, width, mask):
     """Bit patterns worth asking about, without enumerating the space."""
     out = {0, mask, 1 << (width - 1)}
@@ -110,7 +151,7 @@ def main() -> int:
     sys.path.insert(0, CONF)
     G = load("generate_vectors")
 
-    rows, gaps, stale, unprobed = [], [], [], []
+    rows, gaps, stale, unprobed, resolved = [], [], [], [], []
     for mod_name, _add, _mul, family in G.MODULES:
         try:
             mod = importlib.import_module(mod_name)
@@ -121,7 +162,11 @@ def main() -> int:
             width = G.get_width(fmt)
             mask = G.get_mask(fmt)
             if not decode_is_bounded(fmt):
-                unprobed.append((fname, family))
+                verdict = resolve_structurally(mod, fmt, family, G)
+                if verdict is None:
+                    unprobed.append((fname, family))
+                else:
+                    resolved.append((fname, family, verdict))
                 continue
             declared = {a for a, _ in G.real_specials(fmt, family, width)
                         if "zero" not in a}
@@ -147,8 +192,16 @@ def main() -> int:
           f"{sum(1 for r in rows if r[2])}")
     print(f"  DECLARED but decode returns finite : {len(gaps)}")
     print(f"  decode yields a Special nothing declared : {len(stale)}")
-    print(f"  NOT PROBED (decode unbounded)        : {len(unprobed)}"
+    print(f"  resolved structurally (decode unbounded) : {len(resolved)}"
+          f"{'  -- ' + ', '.join(f for f, _, _ in resolved[:6]) if resolved else ''}")
+    print(f"  NOT PROBED and unresolved            : {len(unprobed)}"
           f"{'  -- ' + ', '.join(f for f, _ in unprobed[:6]) if unprobed else ''}\n")
+    if resolved:
+        print("RESOLVED WITHOUT DECODING -- inferred from a single documented gate,")
+        print("demonstrated on decodable siblings, not measured on these formats:")
+        for fname, family, why in resolved:
+            print(f"  {fname:<16} ({family})  {why}")
+        print()
 
     if gaps:
         print("DECLARED BUT NOT DECODED -- the packs hold arithmetic on a number that")
@@ -176,10 +229,11 @@ complete because edge codes are built through that same decode. A format whose d
 yields a special nothing declared has the pattern reachable by hand and unreachable by the
 generator, so no vector ever lands on it.
 
-{len(unprobed)} formats are NOT PROBED, not passing: their exponent range makes decode of
-an all-ones pattern a number near 2^(2^48), which is why real_specials decides membership
-structurally in the first place. Counting them as clean would be the exact substitution
-this file exists to catch.
+{len(unprobed)} formats remain NOT PROBED -- not passing. Where a format's whole special
+branch hangs on one documented flag, the verdict is inferred from that gate and the gate
+is demonstrated on a sibling that can be decoded; those are listed separately above and
+are an inference, not a measurement. Anything without such a gate stays unresolved, because
+counting it clean is the exact substitution this file exists to catch.
 
 The probe is bounded at {PROBE_LIMIT} patterns per format and looks only where a format
 would put "not a finite number" -- the all-ones exponent, the ends of the code space, and
