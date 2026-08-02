@@ -5723,3 +5723,83 @@ without an independent witness until one of them is to hand.
   already_checked "RTL headers and pack notes both say BID for all three widths -- no variant split"
   owner author
 }
+
+
+// ============================================================================
+// Pass 161 -- the nine intrinsic-invariant leads, opened one at a time.
+// ============================================================================
+
+triage INTRINSIC_INVARIANT_LEADS {
+  context """
+verify_intrinsic_invariants.py flagged 40 formats. Passes 159 and 160 removed four
+classes of false signal -- signed zero, repeated values read as disorder, the documented
+zero band, and 'no negation' reported against unsigned formats -- leaving 9. This is
+what each of the 9 turned out to be. Eight are the format behaving as specified. One is
+a question about what a pack claims.
+"""
+
+  by_design {
+    lns8_lns16 """
+The stored logarithm is SIGNED, so code order over the positive half runs through
+positive and negative exponents alike. lns8 code 56 decodes to 2^7 = 128 and code 72 to
+2^-7 = 0.0078125; lns16 goes 2^63 -> 2^-63 at the same boundary. Exactly one decrease
+each, and it is the sign of the exponent field turning over.
+
+A separate artefact was removed while looking: the check compares only codes decoding to
+an exact Fraction, and LNS returns Special('irrational') for nearly all of them, so the
+designated zero code appeared adjacent to 128.0 when every code between had been
+filtered out. Zero is a designated code, not a point on the magnitude ladder, and is now
+excluded from the comparison.
+"""
+
+    ibm_hfp32_ibm_hfp64 """
+Unnormalised hexadecimal float. raw 33285940 carries exponent 1 with fraction 0xFBE734,
+the next sampled code carries exponent 2 with fraction 0x04185A, and the value falls
+from 1.36e-76 to 3.54e-77. A larger exponent with a much smaller fraction gives a
+smaller value, because IBM HFP does not require a leading one. Code order is not value
+order, by construction. 126 decreases at each width, all of this shape.
+"""
+
+    decimal32_decimal64 """
+BID interleaves the exponent and the coefficient across the combination field, so code
+order is not value order. 192 decreases at 32 bits and 218 at 64, and zero repeats --
+the opposite shape from the formats whose flag was a zero band, and a real property of
+the encoding.
+"""
+
+    cray_float_x87_48bit """
+Round-trip only, and the codes are unnormalised representations. Opened one of each: the
+decoded value is a tiny nonzero rational with a denominator of about 4,940 digits --
+far below float64 range -- and encode() returns the normalised code for the same value,
+which is a different code. That is what an unnormalised representation is for, and no
+value-based round trip can distinguish the two.
+"""
+  }
+
+  // The one that is not a design property.
+  question_for_the_author BCD_ACCEPTS_INVALID_NIBBLES {
+    measured """
+conformance/int_ref.py decodes packed BCD as sum(nibble * 10^i) over the nibbles, with
+no check that a nibble is a decimal digit. So 0x0A decodes to 10, 0x0F to 15, and 0x10
+to 10 -- which is where the monotonic flag comes from, and it is a real decrease.
+
+Standard packed BCD treats 0xA through 0xF as INVALID. The corpus is internally
+consistent about this: int_ref.py records that it matches
+bcd_decode_conformance_ax7203.py and fpga/openxc7-synth/bcd_decode.v, so oracle, golden
+and silicon all agree. The question is not consistency.
+"""
+    question """
+The pack declares bit-exact BCD. A reader who knows BCD will expect codes 0x0A..0x0F to
+be rejected, and here they decode to 10..15. Either the pack should say it implements an
+extension that accepts all 256 codes, or those codes should decode to a special rather
+than a value.
+
+This is a claim-scope question, not a defect: nothing in the corpus disagrees with
+anything else. It needs whoever decided what bcd means here.
+"""
+    do_not_guess true
+    owner author
+  }
+
+  result "9 leads: 8 are the format behaving as specified, 1 is a question about pack scope"
+}

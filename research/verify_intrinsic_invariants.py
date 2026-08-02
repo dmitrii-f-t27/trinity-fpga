@@ -129,6 +129,17 @@ def check_monotonic(mod, fmt, width):
         v = finite(mod, fmt, raw)
         if v is None:
             continue
+        if v == 0:
+            # Zero is a designated code, not a point on the magnitude ladder, and in
+            # several formats it does not sit at the start of one. lns8 reserves code
+            # 64 for zero because a logarithm has no representation for it, and the
+            # only reason that code appeared adjacent to 128.0 is that every code
+            # between them decodes to Special('irrational') and was filtered out.
+            #
+            # Comparing a designated zero against a positive value in code order
+            # measures the filter, not the format. It was lns8's and lns16's entire
+            # monotonic flag: exactly one "decrease", and it was the zero code.
+            continue
         if prev is not None:
             tested += 1
             if v < prev:
