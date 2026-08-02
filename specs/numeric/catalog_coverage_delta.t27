@@ -1731,8 +1731,27 @@ int16/32 64/64, lns8 256/256, lns16 64/64, ms_mbf32/64 64/64, nf4 16/16,
 posit8 256/256, posit16/32 64/64, quad_double 64/64, takum8 256/256,
 takum16 64/64, takum32 65536/65536, vax_d/f/g 64/64.
 
-Two are exhaustive over the whole code space: binary16 and takum32, at
-65,536/65,536 each.
+CORRECTED 2026-08-02 (pass 148). This sentence used to read "Two are exhaustive
+over the whole code space: binary16 and takum32, at 65,536/65,536 each." It was
+wrong in both directions, and the arithmetic settles both without a board.
+
+Twelve cells are exhaustive -- their count equals 2^width:
+
+  binary16 65,536 = 2^16     fp8      256 = 2^8     lns8    256 = 2^8
+  fp4_e2m1     16 = 2^4      fp8_e5m2 256 = 2^8     nf4      16 = 2^4
+  fp6_e2m3     64 = 2^6      int4      16 = 2^4     posit8  256 = 2^8
+  fp6_e3m2     64 = 2^6      int8     256 = 2^8     takum8  256 = 2^8
+
+takum32 is NOT among them. It is a 32-bit format, so exhaustive means
+4,294,967,296 codes; the cell records 65,536, which is 0.00153% of the code
+space. Where that figure came from is not decided here -- it may be a
+65,536-code sample of takum32, or a number that belongs to takum16 -- but it
+is a sample either way and must not be called exhaustive.
+
+Naming two where twelve qualify is the same error as the largest defect found
+in either paper: an abstract reporting six packs where the body had 83.
+research/audit_exhaustive_claims.py checks count == 2^width and fails on a
+disagreement in either direction.
 """
 
   software_only """

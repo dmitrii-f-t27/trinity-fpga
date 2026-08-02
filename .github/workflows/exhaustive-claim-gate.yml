@@ -1,0 +1,42 @@
+name: Exhaustive claim gate
+
+# "Exhaustive over the whole code space" is arithmetic, so it can be checked rather
+# than trusted. Pass 148 found the catalog spec naming takum32 as exhaustive at
+# 65,536 codes -- 0.00153% of a 32-bit code space -- while eleven other cells that
+# genuinely are exhaustive went unnamed.
+#
+# Both directions fail this gate. An over-claim is what a reviewer catches; an
+# under-claim gives away credit already earned, which is exactly the shape of the
+# largest defect found in either paper.
+#
+# --self-check requires the rule to still reject takum32 at 65,536 and accept
+# binary16 at the same count, so a green run means the gate can still see.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'specs/numeric/catalog_coverage_delta.t27'
+      - 'research/audit_exhaustive_claims.py'
+      - '.github/workflows/exhaustive-claim-gate.yml'
+  pull_request:
+    paths:
+      - 'specs/numeric/catalog_coverage_delta.t27'
+      - 'research/audit_exhaustive_claims.py'
+      - '.github/workflows/exhaustive-claim-gate.yml'
+  workflow_dispatch:
+
+jobs:
+  exhaustive-claims:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: The gate must still reject the claim it was written for
+        run: |
+          python3 research/audit_exhaustive_claims.py --self-check
+      - name: Every exhaustiveness claim must equal 2^width
+        run: |
+          python3 research/audit_exhaustive_claims.py
