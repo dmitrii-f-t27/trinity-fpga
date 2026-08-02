@@ -138,9 +138,14 @@ jobs:
             source /prjxray/env/bin/activate && fasm2frames --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 --part xc7a200tfbg484-2 /work/build/${{ matrix.name }}/node.fasm /work/build/${{ matrix.name }}/node.frames && /prjxray/build/tools/xc7frames2bit --part_file /nextpnr-xilinx/xilinx/external/prjxray-db/artix7/xc7a200tfbg484-2/part.yaml --part_name xc7a200tfbg484-2 --frm_file /work/build/${{ matrix.name }}/node.frames --output_file /work/build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit"
           sha256sum build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit | tee build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit.sha256
 
+      # Not "-UNKEYED" any more. That label was right when a bitstream without a
+      # baked key was a crippled build good only for routing checks. The node
+      # now takes its key over the wire, so these are complete and deployable —
+      # flash, then `trinet setkey`. Calling them unkeyed would invite somebody
+      # to go looking for a "real" build that no longer exists.
       - uses: actions/upload-artifact@v4
         with:
-          name: trinet-fleet-${{ matrix.name }}-UNKEYED
+          name: trinet-fleet-${{ matrix.name }}
           path: |
             build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit
             build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit.sha256
