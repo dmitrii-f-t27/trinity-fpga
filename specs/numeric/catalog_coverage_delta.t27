@@ -5803,3 +5803,58 @@ anything else. It needs whoever decided what bcd means here.
 
   result "9 leads: 8 are the format behaving as specified, 1 is a question about pack scope"
 }
+
+
+// ============================================================================
+// Pass 162 -- a retracted finding was still being enforced, and it cost three packs.
+// ============================================================================
+
+correction AUDIT_ENFORCED_A_WITHDRAWN_CLAIM {
+  where "research/audit_generated_packs.py"
+
+  what_it_did """
+It reported 'TAKUM-CLASS SIGNATURE in 3 pack(s): tekum16, tekum32, tekum8', said the
+finding 'matches the defect established in specs/numeric/negation_invariant.t27', and
+concluded that those packs 'must not be published until the oracle question is settled
+with the format author'. It exited non-zero on that basis.
+"""
+
+  what_the_cited_spec_says """
+Line 8 of specs/numeric/negation_invariant.t27, dated 2026-07-31:
+
+  RETRACTED 2026-07-31 (pass 34/35). The takum "negation defect" is NOT a defect.
+  ... conformance/tekum_ref.py carries the same documented choice.
+
+The spec names tekum_ref.py explicitly, and explains why: exact-Fraction arithmetic
+cannot represent logarithmic values, so the oracle implements a linear structural model
+and states that in its own header. XOR negation is sign-and-magnitude BY DESIGN.
+"""
+
+  cost """
+Three packs were held back from publication for eleven passes on a basis their own
+cited authority had withdrawn. That is different in kind from the false signals passes
+159 to 161 removed: those produced noise in a report, this produced an action.
+"""
+
+  fixed """
+The signature is now reported rather than failed on, with the retraction quoted beside
+it. The audit exits 0.
+
+What remains genuinely open is a different question and belongs elsewhere: which takum
+variant the project means. That is recorded in specs/numeric/takum_variant_split.t27,
+owned by the author, and is not something a pack audit decides.
+"""
+
+  // Worth stating because it is the third distinct failure mode in four passes.
+  the_class """
+A check can be wrong in three ways, and this campaign has now found all three:
+
+  it cannot see       -- pass 157: eight loaders silently omitted an oracle
+  it measures wrongly -- passes 156, 158-161: comparisons in the wrong domain,
+                         a rational carrier for signed zero, strict-versus-weak order
+  it is out of date   -- this one: enforcing a claim that was withdrawn
+
+The third is the hardest to notice, because the check runs, reports confidently, and
+cites a source. The source has to be opened.
+"""
+}
