@@ -444,6 +444,54 @@ verification NODE_THROUGHPUT {
   """
 }
 
+// ---------------------------------------------------------------------------
+// The configuration oscillator, measured rather than assumed
+// ---------------------------------------------------------------------------
+
+verification CFGMCLK_FREQUENCY {
+  status   "[measured on FPGA]"
+  board    ax7203
+  date     2026-08-02
+  executable "conformance/trinet_baud_sweep.py"
+  method """
+    No re-synthesis. The board's divisor is fixed in the bitstream, so it
+    transmits at CFGMCLK/BAUD_DIV whatever the host asks. Sweeping the HOST
+    rate and recording where the link still works brackets that number: the
+    link holds while the host is close and fails outside, so the centre of the
+    working window is the board's real rate.
+  """
+  measured { window_lo_baud 156800, window_hi_baud 171200, centre_baud 164000, baud_div 434 }
+  result   { cfgmclk_mhz 71.176, tolerance_percent 4.4 }
+  supersedes "the ~69-70 MHz recorded in earlier notes, which was low by 2-3%"
+}
+
+finding CANONICAL_BAUD_IS_OFF_CENTRE {
+  severity LOW
+  resolved false
+  statement """
+    Every conformance host in this repository uses 160000 baud. The board's
+    real rate at BAUD_DIV=434 is ~164000, so the canonical rate sits about 2.4%
+    low. It works on the measured +/-4.4% margin, not by being correct.
+  """
+  why_the_margin_is_wide """
+    The RX FSM re-syncs on every start bit rather than free-running across the
+    frame, so error does not accumulate past one character. That is why the
+    tolerance exceeds the textbook +/-2-3% for a free-running receiver.
+  """
+  consequence "harmless today; it halves the headroom available for any future rate change, and should be corrected if a divisor with real quantisation is adopted"
+}
+
+verification NODE_THROUGHPUT_V2_BASELINE {
+  cell     trinet_node_v2
+  status   "[measured on FPGA]"
+  date     2026-08-02
+  method   "src/trinet/main.zig bench, 300 timed jobs, every receipt verified against the node's own key"
+  measured { jobs_per_second 191.1, receipts_verified "300/300", host_baud 164000, bytes_per_job 43 }
+  latency  { p50_ms 5.20, p99_ms 5.40 }
+  ratio    { measured_over_transport_percent 50.1, compute_over_transport 6221 }
+  note "lower than the v1 figure of 202.6 because the keyed response is four bytes longer, not because the cell became slower"
+}
+
 open_question TERNARY_TOPS_PER_WATT {
   do_not_guess true
   owner        author
