@@ -25,9 +25,17 @@ const default_serial = "/dev/cu.usbserial-1110";
 // BAUD_DIV=434 is ~164000, so this sits about 2.4% low and works on margin.
 const default_baud = 160000;
 
-// What the fleet build ships. BAUD_DIV=30 against a measured CFGMCLK of
-// ~71.176 MHz, and the rate at which batched throughput reached 6842.9 jobs/s.
-const fleet_baud = 2372533;
+// What the fleet build ships: BAUD_DIV=60.
+//
+// Not one board's rate but the midpoint of the fleet's. CFGMCLK is an internal
+// RC oscillator and it differs per chip — measured 71.176 MHz on one board and
+// 72.065 on another, a 1.25% spread. One host rate has to serve both, so it
+// sits between them rather than on either, which halves the worst-case error.
+//
+// BAUD_DIV=30 was tried first and one board returned 18% of its responses
+// damaged while another was clean on the same design and host. A fleet runs at
+// the rate every member sustains, not the fastest any member reaches.
+const fleet_baud = 1193675;
 
 /// Writer that goes to stderr through std.debug, which is the one output path
 /// that is stable across Zig releases.

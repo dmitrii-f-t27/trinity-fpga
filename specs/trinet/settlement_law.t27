@@ -115,6 +115,62 @@ attacks {
 }
 
 // ---------------------------------------------------------------------------
+// Damage is not dishonesty — found by running real boards
+// ---------------------------------------------------------------------------
+
+finding LEDGER_CHARGED_AN_HONEST_BOARD {
+  severity HIGH
+  resolved true
+  found_on "hardware, 2026-08-02, two AX7203 boards"
+  statement """
+    One board returned a few percent of its responses damaged on a marginal
+    link, and the ledger slashed its stake as though it had lied. An honest
+    operator losing stake to a cable drives people off a network faster than
+    any cheat does.
+  """
+  why_software_testing_missed_it "every emulated adversary lies deliberately and none of them corrupts a frame; the failure needs a physical link to appear"
+}
+
+rule DAMAGE_VS_LIE {
+  name    "separating a damaged frame from a dishonest one"
+  formula "wrong answer AND tag valid for THAT answer => lie; anything else => damage"
+  why """
+    A node that skips the work still holds the key, so it signs its guess:
+    the tag fits the wrong answer it returned. Corruption cannot produce that
+    pair, because the tag then fits neither the correct answer nor the returned
+    one. The keyed tag therefore does a second job it was not introduced for.
+  """
+  companion """
+    The same logic separates a replay from a damaged request. A replay is
+    tagged over an old job and reconstructs from nothing we hold; a request
+    whose nonce was corrupted makes the node tag over the nonce it received
+    with our operands, which reconstructs exactly. The coordinator also treats
+    a nonce it previously issued as a lost-response desync rather than a replay.
+  """
+  trust_tier VERIFIED_SW
+  enforced_at "src/trinet/protocol.zig :: verifyWithKey, src/trinet/ledger.zig :: settle"
+}
+
+lemma DAMAGED_FRAMES_ARE_NEITHER_PAID_NOR_CHARGED {
+  exact true
+  outcome "corrupt_not_charged: no credit, no slash, no mark against reputation, counted separately as a link-quality signal"
+  rationale "a damaged receipt is not evidence of work and not evidence of fraud; treating it as either is a mistake in a different direction"
+}
+
+finding MITIGATIONS_TRIED_AND_REMOVED {
+  severity LOW
+  resolved true
+  statement "two software mitigations were measured and removed rather than kept on faith"
+  detail """
+    Draining the receive buffer before each request measured worse on every
+    count, because it can discard a response still arriving. And the drain
+    itself stalled two seconds per call, since a read on an empty buffer waits
+    out VTIME — flushing a serial port is an ioctl, not a read loop.
+  """
+  lesson "a mitigation that is not measured after it is applied is a guess wearing a fix's clothes"
+}
+
+// ---------------------------------------------------------------------------
 // Separation of concerns, stated as law
 // ---------------------------------------------------------------------------
 

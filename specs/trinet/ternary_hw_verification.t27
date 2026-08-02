@@ -534,6 +534,61 @@ finding TRANSPORT_CEILING_WAS_COMPUTED_AS_HALF_DUPLEX {
   corrected "ceiling = baud / 10 / max(request_len, response_len); batched throughput is then 69.2% of the line rate, bound by the wire as expected"
 }
 
+// ---------------------------------------------------------------------------
+// Three boards — what a fleet shows that one board cannot
+// ---------------------------------------------------------------------------
+
+verification TWO_NODE_MESH_ON_SILICON {
+  status   "[measured on FPGA]"
+  date     2026-08-02
+  boards   2
+  method   "src/trinet/main.zig fleet, agent inference distributed across two physical AX7203"
+  measured { jobs 96, on_silicon 96, software 0, hardware_share_percent 100 }
+  integrity "mesh result equals local recomputation"
+  note "the first distributed claim in this programme that is not one board plus software"
+}
+
+finding CFGMCLK_DIFFERS_PER_CHIP {
+  severity MEDIUM
+  resolved true
+  resolution "the fleet opens every port at the midpoint of its members' measured rates"
+  measured { board_a_mhz 71.176, board_b_mhz 72.065, spread_percent 1.25 }
+  statement """
+    CFGMCLK is an internal RC oscillator, so its frequency is a property of the
+    individual chip. One host baud cannot be exactly right for a fleet, and at
+    an aggressive divisor the per-chip spread eats the margin that divisor
+    quantisation has already narrowed.
+  """
+  consequence "a fleet runs at the rate every member sustains, not the fastest any member reaches"
+}
+
+finding ONE_BOARD_MARGINAL_AT_THE_FAST_RATE {
+  severity MEDIUM
+  resolved false
+  measured """
+    At BAUD_DIV=30 (~2372 kbaud): one board 600/600 clean, another 36 failures
+    in 200 — 18% — as a mix of corrupted operands, nonce mismatches and short
+    responses. Same design, same host, same rate; different board, hub and
+    cable.
+  """
+  isolates_to "the physical link of that board, not the cell or the toolchain"
+  action_taken "fleet rebuilt at BAUD_DIV=60"
+  not_established "whether halving the rate is sufficient for that board — that is the next measurement, not an assumption"
+}
+
+open_question THIRD_BOARD_UART_SILENT {
+  do_not_guess true
+  owner        operator
+  question     "why does the third board answer nothing on UART while its FPGA is configured"
+  established """
+    Its JTAG reads IDCODE 0x13636093 and its status register reads 0x401079fc,
+    the same value a working board reports, so the bitstream loaded and the
+    device entered user mode. The two other boards answer with the same design.
+  """
+  isolates_to "the UART path on that board — a jumper, the CP2102N wiring, or a fault. Not the bitstream, not the toolchain, not the flash."
+  next_step "physical inspection of that board's UART selection; nothing in software will change this"
+}
+
 open_question TERNARY_TOPS_PER_WATT {
   do_not_guess true
   owner        author
