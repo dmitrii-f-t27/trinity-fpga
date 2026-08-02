@@ -162,10 +162,29 @@ def check_sign(mod, fmt, width):
 
 
 def check_roundtrip(mod, fmt, width):
+    """decode(raw) -> encode(value) -> raw, with signed zero counted separately.
+
+    Pass 159 opened the flags this raised. For binary16, bfloat16, fp8_e5m2, fp6_e2m3
+    and gf16 the answer was the same every time: exactly ONE code out of the whole
+    space fails, and it is the negative-zero code. The oracles carry values as
+    `Fraction`, which cannot distinguish -0 from +0, so encode() returns the positive
+    zero code and the round trip closes on the wrong one.
+
+    That is a property of the carrier, not of the format -- the corpus already knows
+    it, and crossval_ml_dtypes.py prints "[2 zero-sign not carried by oracle]" for the
+    same reason. Reporting it as VIOLATED put 21 of 35 narrow formats on a flag list
+    for a defect none of them has.
+
+    It also explains why the flag tracked width. Exhaustive enumeration always reaches
+    the negative-zero code; the stride sample used above 16 bits usually steps over it.
+
+    So signed zero is counted apart, and anything else is a real round-trip failure.
+    """
     if not hasattr(mod, "encode"):
         return None, 0
     codes, _ = codes_for(width)
-    bad = tested = 0
+    neg_zero_code = 1 << (width - 1)
+    bad = tested = signed_zero = 0
     for raw in codes:
         v = finite(mod, fmt, raw)
         if v is None:
@@ -175,11 +194,15 @@ def check_roundtrip(mod, fmt, width):
         except Exception:
             continue
         tested += 1
-        if back != raw:
-            bad += 1
+        if back == raw:
+            continue
+        if raw == neg_zero_code and v == 0:
+            signed_zero += 1          # the carrier, not the format
+            continue
+        bad += 1
     if tested == 0:
         return None, 0
-    return bad == 0, tested
+    return (bad == 0, tested) if not signed_zero else (bad == 0, tested)
 
 
 def main() -> int:
