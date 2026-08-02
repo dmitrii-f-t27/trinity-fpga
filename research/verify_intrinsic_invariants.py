@@ -103,7 +103,19 @@ def codes_for(width):
 
 
 def check_monotonic(mod, fmt, width):
-    """Strictly increasing over the positive half (codes below the MSB)."""
+    """Non-decreasing over the positive half, with repeats reported apart.
+
+    Strict increase is the wrong test. Pass 160 opened the flags it raised: vax_f had
+    15 "violations" and ms_mbf32 had 46, and NONE was a decrease. Every one was a pair
+    of codes decoding to the same value, and that value was zero -- both formats define
+    exponent field 0 as zero regardless of the mantissa bits, so a whole band decodes
+    to 0.0 by definition.
+
+    Repeating a value is redundancy; decreasing is disorder. They are different
+    properties, and merging them flagged two formats for a documented zero band.
+    decimal32 shows the opposite shape -- 192 genuine decreases and zero repeats -- and
+    that is a real property of BID code order.
+    """
     span = 1 << width
     half = span >> 1
     if half <= 1:
@@ -111,6 +123,7 @@ def check_monotonic(mod, fmt, width):
     step = 1 if half <= MAX_ENUM else max(1, half // SAMPLE)
     prev = None
     bad = 0
+    repeats = 0
     tested = 0
     for raw in range(0, half, step):
         v = finite(mod, fmt, raw)
@@ -118,8 +131,10 @@ def check_monotonic(mod, fmt, width):
             continue
         if prev is not None:
             tested += 1
-            if v <= prev:
+            if v < prev:
                 bad += 1
+            elif v == prev:
+                repeats += 1
         prev = v
     if tested == 0:
         return None, 0
@@ -183,8 +198,7 @@ def check_roundtrip(mod, fmt, width):
     if not hasattr(mod, "encode"):
         return None, 0
     codes, _ = codes_for(width)
-    neg_zero_code = 1 << (width - 1)
-    bad = tested = signed_zero = 0
+    bad = tested = zero_band = 0
     for raw in codes:
         v = finite(mod, fmt, raw)
         if v is None:
@@ -196,13 +210,23 @@ def check_roundtrip(mod, fmt, width):
         tested += 1
         if back == raw:
             continue
-        if raw == neg_zero_code and v == 0:
-            signed_zero += 1          # the carrier, not the format
+        if v == 0:
+            # A code whose VALUE is zero cannot be recovered from that value when the
+            # format has more than one zero code, and several here do by definition.
+            # vax_f, ms_mbf32/64 and pdp11_float all specify that exponent field 0
+            # means zero regardless of the mantissa bits, so a whole band decodes to
+            # 0.0; encode(0) returns the one canonical code and the trip closes
+            # elsewhere. The negative-zero code of every sign-magnitude format is the
+            # same thing at width one.
+            #
+            # That is redundancy in the encoding -- a design property, not a round-trip
+            # defect.
+            zero_band += 1
             continue
         bad += 1
     if tested == 0:
         return None, 0
-    return (bad == 0, tested) if not signed_zero else (bad == 0, tested)
+    return bad == 0, tested
 
 
 def main() -> int:
@@ -233,7 +257,12 @@ def main() -> int:
         s = "-" if sign is None else sign
         r = "-" if rt is None else ("OK" if rt else "VIOLATED")
         print(f"{name:<14}{width:>5}  {m:<11}{s:<11}{r}", flush=True)
-        if mono is False or sign == "neither" or rt is False:
+        # "neither" means no negation convention holds. For a SIGNED format that is a
+        # lead; for an unsigned one it is the correct answer. uint4/8/16/32 have no
+        # sign bit to flip, nf4 indexes a 16-entry quantile table, and bcd encodes
+        # decimal digits. Flagging them said only that the check does not apply.
+        unsigned = name.startswith("uint") or name in ("nf4", "bcd")
+        if mono is False or (sign == "neither" and not unsigned) or rt is False:
             flagged.append(name)
 
     print()
