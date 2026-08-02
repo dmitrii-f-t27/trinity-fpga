@@ -72,7 +72,13 @@ def main() -> int:
             if fields[0] != "finite":
                 continue
             _, _, C, E = fields
-            if C > fmt.max_coeff:           # non-canonical: no value is defined
+            # Ask the oracle, do not infer from C. This guard used to read
+            # `C > fmt.max_coeff`, which worked only while the decoder handed back the
+            # oversized coefficient. Pass 185 made _bid_decode obey IEEE 754-2008 3.5.2
+            # and return zero for exactly these codes, so the condition became
+            # unsatisfiable and 174 of them swept through as genuine zeros -- reported
+            # here as monotonicity violations that were nothing of the sort.
+            if not mod.is_canonical(fmt, raw):   # non-canonical: no value is defined
                 continue
             val = Fraction(C) * Fraction(10) ** (E - fmt.bias)
             n += 1

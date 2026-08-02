@@ -6130,3 +6130,16 @@ finding "decimal_ref.py loses significant digits" {
   cohort_note "the 2176 are the IEEE 754-2008 5.4.2 preferred-exponent rule, which the packs do not follow and do not state; any conforming implementation fails a bit-exact check against them for that reason alone"
   not_fixed_here "fixing _encode_round regenerates published pack data and needs its own pass"
 }
+
+correction "three defects in decimal_ref.py, and the packs regenerated" {
+  witness "gcc-14 + Intel BID, sharing no code with the oracle"
+  defect_1 "_encode_round scanned biased exponents in a +/-3 window around log10(value); the exponent holding a format's full precision is up to 34 steps away, so results came back truncated -- 4 significant digits where decimal32 holds 7"
+  defect_2 "encode() compared the exponent against fmt.exp_max, which is the mask (1<<exp_bits)-1 and not the range; BID spends the 11 prefix on case B and the specials, so the real maximum is 3*2^(exp_bits-2)-1 = 191/767/12287. A biased exponent of 215 passed the check and E & 255 folded its top bits into the 11 pattern: 1607e57 squared, which overflows decimal32, encoded as 0.0887 instead of infinity"
+  defect_3 "_bid_decode did not apply IEEE 754-2008 3.5.2: a case-B coefficient above max_coeff is non-canonical and its value is zero. decimal32 case B reaches 10,485,759 against a maximum of 9,999,999, so 485,760 codes per sign decoded as numbers that are not there"
+  before "412 of 6942 pack vectors disagreed with the witness in value"
+  after "0 of 6795"
+  vector_count_change "decimal32 packs 774 -> 725; edge codes are produced by the encoder, the fixed encoder emits different (correct) codes for the same edge values, one duplicate collapsed, 25 -> 24 edges, and edge x edge is 625 -> 576. The whole 49 is accounted for"
+  remaining "1056 cohort (IEEE 5.4.2 preferred exponent) and 45 NaN sign/payload (implementation-defined); neither is an error and neither is stated in the papers"
+  regression "the three are asserted inside _selftest as hand-checkable arithmetic; reverting the range fix alone produces 4 failures"
+  regression_nearly_unreachable "first written as a second if __name__ == __main__ block, which never ran because an earlier one exits first -- the same class of defect this campaign keeps finding, in the fix for it"
+}
