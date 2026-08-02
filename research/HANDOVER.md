@@ -78,7 +78,11 @@ decision about what a claim means.
    `corona_decode_posit8_es2_ax7203.v`, synthesises at **187 LUTs against the
    existing cell's 130**, with an identical 139 flip-flops because the UART
    harness is byte-for-byte the same. There is no area argument for the second
-   option, and everything short of place-and-route is done.
+   option. **Place-and-route succeeded on 2026-08-03**: the cell routes on seed 2
+   of 8 — takum32 exhausted all eight and never did — and the bitstream exists.
+   CI run `30764181024`, SHA-256 `f305dc65d3edc8b827fefd0adde1bb5e9818f7d65cd32f34bd74dc17d2c7143c`.
+   **Two of the four Tier-E links are in hand; the other two need only the
+   board.**
 2. **`bcd`: should invalid nibbles decode?** 156 of 256 codes are invalid packed BCD
    (both nibbles must be 0–9, so 100 are valid). The oracle decodes them anyway as
    `sum(nibble·10ⁱ)`, and silicon agrees. The pack declares bit-exact BCD.
