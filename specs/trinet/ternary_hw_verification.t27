@@ -600,6 +600,62 @@ open_question THIRD_BOARD_UART_SILENT {
   next_step "physical inspection of that board's UART selection; nothing in software will change this"
 }
 
+// ---------------------------------------------------------------------------
+// Batching the agent's layer — and four defects it exposed
+// ---------------------------------------------------------------------------
+
+verification AGENT_LAYER_BATCHED {
+  status   "[measured on FPGA]"
+  date     2026-08-02
+  method   "src/trinet/main.zig fleet, 96-job agent run, one board with a clean link"
+  measured { jobs_per_second 3786, elapsed_ms 25.4, accepted "96/96", damaged 0 }
+  repeatability "three runs identical"
+  gain     { over_single_dispatch 20, over_session_baseline 3786 }
+  note "a model layer is one job per output neuron, so it was already the right shape; the coordinator simply was not collecting throughput the transport work had already bought"
+}
+
+finding BATCHING_EXPOSED_FOUR_DEFECTS {
+  severity MEDIUM
+  resolved true
+  defects {
+    fixed_block_dealing """
+      Dealing rows in blocks of max_batch sent a whole 32-row layer to the
+      first node. Unbalanced, and it would have hidden a misbehaving node that
+      never received work to misbehave on. Now shared by node count, with a
+      test that every node gets some and none gets all.
+    """
+    batching_amplifies_loss """
+      One lost byte and every later response in the run is gone. Jobs a batch
+      did not cover are retried individually; an optimisation must not cost
+      availability.
+    """
+    timeout_sized_from_nothing """
+      The serial read timeout was 2 s against a 1.2 ms round trip. Every lost
+      response in a batch paid it in full, accounting for 12 of the 12.1 s an
+      agent run took. Now 200 ms.
+    """
+    cell_state_survives_the_host """
+      The frame parser lives in the FPGA. A batch cut short leaves it partway
+      through a request, so the next host process finishes somebody else's
+      frame and every job after is shifted — measured as 3002 -> 150 -> 52
+      jobs/s across three invocations of the same command. Opening a port now
+      writes a request's worth of padding to return the parser to its
+      magic-hunt state. Flushing the host buffer does nothing: the state is on
+      the other side of the wire.
+    """
+  }
+  lesson "every one of these was found by measuring after the change, not by reasoning before it"
+}
+
+rule BATCH_SIZE_IS_EARNED {
+  name    "per-node adaptive batching"
+  formula "short batch => halve; full clean batch => grow by one; floor 1, ceiling 32"
+  why     "a fleet handed one uniform batch runs at the speed of its worst link"
+  measured { clean_node_jobs_per_second 3786, marginal_node_jobs_per_second 76 }
+  shape   "additive increase, multiplicative decrease — congestion control's shape, for congestion control's reason"
+  trust_tier VERIFIED_SW
+}
+
 open_question TERNARY_TOPS_PER_WATT {
   do_not_guess true
   owner        author
