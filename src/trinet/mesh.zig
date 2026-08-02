@@ -69,6 +69,13 @@ pub const Stats = struct {
     on_silicon: u64 = 0,
     in_software: u64 = 0,
 
+    /// Share of jobs dispatched to a SERIAL-ATTACHED node.
+    ///
+    /// This is a transport-type label, not a measurement of where arithmetic
+    /// happened. Node.isPhysical() reports whether the backend is a serial
+    /// port, decided when the port opened; nothing in the job path carries
+    /// evidence of hardware origin, and software on the other end of that port
+    /// would be indistinguishable. Do not report it as "on silicon".
     pub fn siliconShare(self: Stats) f64 {
         const total = self.on_silicon + self.in_software;
         if (total == 0) return 0;
@@ -373,8 +380,12 @@ pub const Mesh = struct {
             .{ self.stats.dispatched, self.stats.accepted, self.stats.rejected, self.stats.corrupt_jobs, self.stats.unreachable_jobs },
         );
         try writer.print(
-            "compute location: {d} on silicon, {d} in software ({d:.1}% hardware)\n",
+            "dispatch: {d} to serial-attached nodes, {d} to software nodes ({d:.1}%)\n",
             .{ self.stats.on_silicon, self.stats.in_software, self.stats.siliconShare() * 100 },
+        );
+        try writer.print(
+            "  (transport type, NOT evidence of where the arithmetic ran — see docs §5)\n",
+            .{},
         );
         try writer.print(
             "credit issued: {d} mTRI, slashed: {d} mTRI\n",

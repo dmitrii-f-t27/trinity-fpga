@@ -37,9 +37,15 @@
 module trinet_node_v2_ax7203 #(
     parameter integer USE_DNA = 1,
     parameter [31:0]  FALLBACK_NODE_ID = 32'h5452_494E,   // "TRIN"
-    // Per-node secret. A deployment must override this; the default exists so
-    // the cell builds and simulates, not so it ships.
-    parameter [127:0] RECEIPT_KEY = 128'h0f0e0d0c0b0a09080706050403020100,
+    // Per-node secret, and the default is DELIBERATELY the all-zero key.
+    //
+    // A real key was here, committed to a public repository and sequential
+    // besides. A tag whose key anyone can read is a checksum with extra steps,
+    // so the committed key destroyed the only property keying the tag bought.
+    // An obviously-null default fails loudly instead of looking secure: any
+    // deployment must override it with a key the operator generated and did
+    // not commit.
+    parameter [127:0] RECEIPT_KEY = 128'h0,
     // CFGMCLK divided by this is the line rate. Measured 2026-08-02 by
     // sweeping the host rate and bracketing where the link holds: CFGMCLK is
     // ~71.18 MHz, not the 69-70 MHz this project had recorded, and the link

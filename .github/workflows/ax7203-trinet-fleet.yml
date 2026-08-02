@@ -15,13 +15,20 @@ on:
 # sharing an id cannot both be paid — and with device DNA unavailable on this
 # flow (it reads zero), the id has to come from synthesis.
 #
-# Distinct keys matter more. A shared key would let any operator in the fleet
-# forge receipts for every other board, since each of them holds a bitstream
-# containing it. Per-node keys reduce a leaked key to a single node.
+# Keys are NOT here, and must never be. They were, as three literal constants
+# 0x00..0x0f / 0x10..0x1f / 0x20..0x2f in a public repository — guessable even
+# had it been private. A tag anyone can compute is a checksum with extra steps,
+# so committing the key destroyed the only property keying the tag bought.
 #
-# The keys below are build-time defaults for a local fleet on one operator's
-# desk. A deployment with more than one operator must generate them per node and
-# not commit them.
+# CI therefore builds bitstreams WITHOUT usable keys. They are for routing,
+# resource and simulation checks. A bitstream to actually deploy must be built
+# with a key the operator generated and did not commit:
+#
+#   yosys -p "... chparam -set RECEIPT_KEY 128'h<your key> ..."
+#
+# A shared key would let any operator in the fleet forge receipts for every
+# other board, since each holds a bitstream containing it; per-node keys confine
+# a leak to one node.
 #
 # BAUD_DIV is 60 (~1186 kbaud). 30 was tried first and one of the three boards
 # returned 18% of its responses damaged at that rate while another was clean on
@@ -40,13 +47,10 @@ jobs:
         include:
           - name: node0
             node_id: "32'h5452494E"          # "TRIN"
-            key: "128'h0f0e0d0c0b0a09080706050403020100"
           - name: node1
             node_id: "32'h5452494F"
-            key: "128'h1f1e1d1c1b1a19181716151413121110"
           - name: node2
             node_id: "32'h54524950"
-            key: "128'h2f2e2d2c2b2a29282726252423222120"
     steps:
       - uses: actions/checkout@v4
 
@@ -63,7 +67,7 @@ jobs:
           mkdir -p build/${{ matrix.name }}
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
             read_verilog fpga/openxc7-synth/trinet_siphash24.v fpga/vivado/trinet_node_v2_ax7203.v;
-            chparam -set FALLBACK_NODE_ID ${{ matrix.node_id }} -set RECEIPT_KEY ${{ matrix.key }} -set BAUD_DIV_P 60 trinet_node_v2_ax7203;
+            chparam -set FALLBACK_NODE_ID ${{ matrix.node_id }} -set BAUD_DIV_P 60 trinet_node_v2_ax7203;
             synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7 -top trinet_node_v2_ax7203;
             setundef -zero -params; write_json build/${{ matrix.name }}/node.json" 2>&1 | tee /tmp/yosys.log
           grep -E "Estimated|ERROR" /tmp/yosys.log
@@ -112,7 +116,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: trinet-fleet-${{ matrix.name }}
+          name: trinet-fleet-${{ matrix.name }}-UNKEYED
           path: |
             build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit
             build/${{ matrix.name }}/trinet_${{ matrix.name }}.bit.sha256

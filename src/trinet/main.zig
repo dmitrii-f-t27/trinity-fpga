@@ -7,7 +7,7 @@
 //!   trinet fleet <s0> [s1] [s2]  run the agent across several physical boards
 //!   trinet bench [serial] [n] [baud] [slot]  measure throughput and the transport gap
 //!   trinet serve <port> [serial] expose a node over TCP so others can use it
-//!   trinet join                  print what a new developer has to do
+//!   trinet keygen                print fresh per-node receipt keys (never commit them)\n//!   trinet join                  print what a new developer has to do
 //!
 //! Author: Dmitrii Vasilev (@gHashTag)
 
@@ -91,6 +91,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
         return fleet(gpa, args[2..]);
     }
     if (std.mem.eql(u8, cmd, "serve")) return serve(gpa, args);
+    if (std.mem.eql(u8, cmd, "keygen")) return keygen();
     if (std.mem.eql(u8, cmd, "join")) return joinHelp();
 
     std.debug.print("unknown command '{s}'\n", .{cmd});
@@ -221,18 +222,71 @@ fn probe(gpa: std.mem.Allocator, path: []const u8) !void {
 
 // ---------------------------------------------------------------------------
 
-/// The fleet the `ax7203-trinet-fleet` workflow builds: three bitstreams that
-/// differ only in identity and key. Kept here so the coordinator and the
-/// synthesis matrix cannot drift apart silently — a mismatch would present as
-/// every receipt from that board failing its tag check, which reads exactly
-/// like a forgery.
-const FleetNode = struct { name: []const u8, id: u32, key: [16]u8 };
+/// Node identities are public. Keys are not, and must not be in this file.
+///
+/// They were, and they were 0x00..0x0f, 0x10..0x1f, 0x20..0x2f — committed to a
+/// public repository and guessable even if it had been private. That destroyed
+/// the only property the keyed tag bought: a tag anyone can compute is a
+/// checksum with extra steps.
+///
+/// Keys now come from a file the operator generates and does not commit
+/// (`trinet keygen` writes one). A node whose key is unknown is still usable —
+/// it is registered without one and its receipts are treated as unverifiable
+/// rather than as valid.
+const FleetNode = struct { name: []const u8, id: u32, key: ?[16]u8 = null };
 
-const fleet_nodes = [_]FleetNode{
-    .{ .name = "node0", .id = 0x5452494E, .key = .{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f } },
-    .{ .name = "node1", .id = 0x5452494F, .key = .{ 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f } },
-    .{ .name = "node2", .id = 0x54524950, .key = .{ 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f } },
+var fleet_nodes = [_]FleetNode{
+    .{ .name = "node0", .id = 0x5452494E },
+    .{ .name = "node1", .id = 0x5452494F },
+    .{ .name = "node2", .id = 0x54524950 },
 };
+
+const key_file_env = "TRINET_KEYS";
+const key_file_default = "trinet-keys.txt";
+
+/// Load per-node keys from `<name> <32 hex chars>` lines.
+///
+/// Missing file is not an error: the fleet still runs, and every receipt is
+/// reported as unverifiable so nobody mistakes an unchecked run for a checked
+/// one.
+fn loadFleetKeys(gpa: std.mem.Allocator) !usize {
+    // std.posix.getenv moved in 0.16; libc's is stable and this is already a
+    // libc-linked binary.
+    const env_c = std.c.getenv(key_file_env);
+    const path: []const u8 = if (env_c) |e| std.mem.span(e) else key_file_default;
+    // Straight onto libc, like the serial layer: std.fs moved in 0.16 and a
+    // key loader is not the place to chase it.
+    var zpath: [512]u8 = undefined;
+    const zp = std.fmt.bufPrintZ(&zpath, "{s}", .{path}) catch return 0;
+    const fd = std.c.open(zp, .{ .ACCMODE = .RDONLY }, @as(std.c.mode_t, 0));
+    if (fd < 0) return 0;
+    defer _ = std.c.close(fd);
+
+    const buf = try gpa.alloc(u8, 64 * 1024);
+    defer gpa.free(buf);
+    const nread = std.c.read(fd, buf.ptr, buf.len);
+    if (nread <= 0) return 0;
+    const text = buf[0..@intCast(nread)];
+
+    var loaded: usize = 0;
+    var lines = std.mem.tokenizeAny(u8, text, "\r\n");
+    while (lines.next()) |entry| {
+        if (entry.len == 0 or entry[0] == '#') continue;
+        var it = std.mem.tokenizeAny(u8, entry, " \t");
+        const name = it.next() orelse continue;
+        const hex = it.next() orelse continue;
+        if (hex.len != 32) continue;
+        for (&fleet_nodes) |*n| {
+            if (std.mem.eql(u8, n.name, name)) {
+                var k: [16]u8 = undefined;
+                _ = std.fmt.hexToBytes(&k, hex) catch continue;
+                n.key = k;
+                loaded += 1;
+            }
+        }
+    }
+    return loaded;
+}
 
 /// Stand up a mesh of physical boards, one serial port each, and run the agent
 /// across it. Every node is real; nothing is filled in with software, and if a
@@ -240,6 +294,14 @@ const fleet_nodes = [_]FleetNode{
 /// fleet.
 fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
     std.debug.print("TRI-NET fleet — {d} port(s) at {d} baud\n", .{ ports.len, fleet_baud });
+    const keys_loaded = loadFleetKeys(gpa) catch 0;
+    if (keys_loaded == 0) {
+        std.debug.print("NO RECEIPT KEYS LOADED (set {s} or create {s} with `trinet keygen`).\n", .{ key_file_env, key_file_default });
+        std.debug.print("Receipts below are UNVERIFIABLE — results are checked against the\n", .{});
+        std.debug.print("oracle, but nothing establishes who produced them.\n", .{});
+    } else {
+        std.debug.print("receipt keys loaded for {d} node(s)\n", .{keys_loaded});
+    }
     line();
 
     var m = try mesh_mod.Mesh.init(gpa, .{});
@@ -279,7 +341,10 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
         n.key = spec.?.key;
         try m.join(n, "operator", 100000);
         attached += 1;
-        std.debug.print("{s}: identified as {s}, id {x:0>8}\n", .{ p, spec.?.name, spec.?.id });
+        std.debug.print("{s}: identified as {s}, id {x:0>8}{s}\n", .{
+            p, spec.?.name, spec.?.id,
+            if (spec.?.key == null) "  (no key — receipts unverifiable)" else "",
+        });
     }
 
     if (attached == 0) {
@@ -299,7 +364,7 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
     std.debug.print("elapsed      : {d:.1} ms for {d} jobs = {d:.0} jobs/s\n", .{
         agent_ms, o.proof.jobs, @as(f64, @floatFromInt(o.proof.jobs)) / (agent_ms / 1000.0),
     });
-    std.debug.print("compute      : {d} jobs, {d} on silicon ({d:.1}% hardware)\n", .{
+    std.debug.print("compute      : {d} jobs, {d} dispatched to serial-attached nodes ({d:.1}%)\n", .{
         o.proof.jobs, o.proof.on_silicon, o.proof.siliconShare() * 100,
     });
     std.debug.print("integrity    : mesh result {s} local recomputation, {d} rows rejected\n\n", .{
@@ -310,8 +375,10 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
     try m.report(out);
     line();
     if (attached == ports.len and attached > 1) {
-        std.debug.print("Every job above ran on a physical board. This is the first\n", .{});
-        std.debug.print("distributed claim in this project that is not one board plus software.\n", .{});
+        std.debug.print("Every job above was dispatched to a serial-attached board and its\n", .{});
+        std.debug.print("answer independently recomputed. That the arithmetic happened in\n", .{});
+        std.debug.print("those boards' LUTs is believed, not demonstrated: nothing in a\n", .{});
+        std.debug.print("receipt distinguishes a board from software on the same port.\n", .{});
     } else {
         std.debug.print("Fewer boards answered than were asked for; the silicon share above\n", .{});
         std.debug.print("is what actually happened, not what was intended.\n", .{});
@@ -583,6 +650,32 @@ fn serve(gpa: std.mem.Allocator, args: []const [:0]const u8) !void {
             conn.writeAll(&protocol.encodeResponse(receipt)) catch break;
         }
     }
+}
+
+/// Print fresh per-node keys for the operator to save and build into their own
+/// bitstreams. Deliberately prints rather than writes: a key that a tool
+/// silently drops in the working tree is a key that gets committed.
+fn keygen() !void {
+    var seed: u64 = undefined;
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(.MONOTONIC, &ts);
+    seed = @as(u64, @bitCast(@as(i64, ts.nsec))) ^ (@as(u64, @bitCast(@as(i64, ts.sec))) << 20);
+    var prng: std.Random.DefaultPrng = .init(seed);
+    const rand = prng.random();
+
+    std.debug.print("# TRI-NET receipt keys — save as trinet-keys.txt, NEVER commit\n", .{});
+    std.debug.print("# Build each node's bitstream with its own key:\n", .{});
+    std.debug.print("#   yosys -p \"... chparam -set RECEIPT_KEY 128'h<key> ...\"\n", .{});
+    for (fleet_nodes) |n| {
+        var k: [16]u8 = undefined;
+        rand.bytes(&k);
+        std.debug.print("{s} ", .{n.name});
+        for (k) |b| std.debug.print("{x:0>2}", .{b});
+        std.debug.print("\n", .{});
+    }
+    std.debug.print("\nNOTE: this PRNG is seeded from the clock and is fine for a desk\n", .{});
+    std.debug.print("fleet, not for anything whose compromise would matter. For that,\n", .{});
+    std.debug.print("use `openssl rand -hex 16` per node.\n", .{});
 }
 
 fn joinHelp() !void {

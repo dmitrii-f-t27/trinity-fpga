@@ -43,6 +43,15 @@ pub const Policy = struct {
     audit_rate_percent: u8 = 100,
     /// Consecutive rejections before a node is suspended from dispatch.
     rejection_tolerance: u32 = 3,
+    /// Consecutive damaged responses before a node stops receiving work.
+    ///
+    /// Not a punishment — no stake is taken — but "look damaged" must not be a
+    /// free way to hold a dispatch slot forever. A damaged receipt earns
+    /// nothing, so an adversary gains no credit by it; what it could gain is
+    /// occupying capacity and degrading the network at zero cost. A node that
+    /// cannot deliver is dropped whether it is broken or pretending, because
+    /// from the outside those are the same thing.
+    corruption_tolerance: u32 = 24,
 
     /// p * s > r, with p expressed in percent.
     pub fn isSound(self: Policy) bool {
@@ -66,6 +75,9 @@ pub const Status = enum {
     probation,
     /// Stake exhausted or tolerance exceeded. Receives no further work.
     suspended,
+    /// Delivering nothing usable. No stake taken and no dishonesty implied —
+    /// it simply stops receiving work until an operator fixes the link.
+    unreliable,
 };
 
 pub const Account = struct {
@@ -85,6 +97,7 @@ pub const Account = struct {
     /// Damaged responses. Tracked separately from rejections because it is a
     /// link-quality signal about the operator's wiring, not about their honesty.
     corrupted: u64 = 0,
+    consecutive_corruptions: u32 = 0,
     status: Status = .active,
 
     pub fn reputation(self: Account) f64 {
@@ -163,7 +176,7 @@ pub const Ledger = struct {
 
     pub fn isEligible(self: *Ledger, node_id: u32) bool {
         const a = self.accounts.get(node_id) orelse return false;
-        return a.status != .suspended;
+        return a.status == .active or a.status == .probation;
     }
 
     /// Settle one dispatched job.
@@ -181,8 +194,8 @@ pub const Ledger = struct {
     ) Error!Settlement {
         const acct = self.accounts.getPtr(dispatched_to) orelse return Error.UnknownNode;
 
-        if (acct.status == .suspended) {
-            return .{ .node_id = dispatched_to, .outcome = .not_eligible, .detail = "node is suspended" };
+        if (acct.status == .suspended or acct.status == .unreliable) {
+            return .{ .node_id = dispatched_to, .outcome = .not_eligible, .detail = @tagName(acct.status) };
         }
 
         if (receipt.node_id != dispatched_to) {
@@ -208,7 +221,11 @@ pub const Ledger = struct {
         // fraud does.
         if (verdict == .corrupt) {
             acct.corrupted += 1;
+            acct.consecutive_corruptions += 1;
             self.total_corrupted += 1;
+            if (acct.consecutive_corruptions >= self.policy.corruption_tolerance) {
+                acct.status = .unreliable;
+            }
             return .{
                 .node_id = dispatched_to,
                 .outcome = .corrupt_not_charged,
@@ -248,6 +265,7 @@ pub const Ledger = struct {
         acct.credit_mtri += reward;
         acct.accepted += 1;
         acct.consecutive_rejections = 0;
+        acct.consecutive_corruptions = 0;
         if (acct.status == .probation) acct.status = .active;
         self.total_credited_mtri += reward;
         if (acct.physical) self.jobs_on_silicon += 1;

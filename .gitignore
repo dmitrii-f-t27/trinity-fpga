@@ -405,3 +405,7 @@ deploy/railway-update-service
 .zig-cache-new/
 apps/queen/Trinity.app/
 .zig-cache-new/
+
+# Receipt keys — per-node secrets, never committed
+trinet-keys.txt
+*.trinet-keys
