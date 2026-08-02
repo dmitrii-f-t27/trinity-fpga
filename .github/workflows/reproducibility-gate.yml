@@ -1,0 +1,43 @@
+name: Reproducibility gate
+
+# Pass 169 found six checks hardcoding a path containing a session identifier. Every
+# result they produced was reproducible only from inside the session that wrote them --
+# and a full clean-tree sweep found nothing, because the path still existed on the
+# machine doing the sweeping.
+#
+# A defect that only appears somewhere else is invisible from here. So this gate does
+# not look for it: it REPRODUCES THE CONDITION, pointing $TRINITY_ARTEFACTS at an empty
+# directory and requiring every artefact-dependent check to exit 2 and print how to
+# obtain what it is missing.
+#
+# Exit 0 without an input is the failure. Such a check reports a result it did not
+# compute, and its output is indistinguishable from a real one.
+#
+# CI has no artefacts, so this is the one gate that runs in its natural state here.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'research/*.py'
+      - '.github/workflows/reproducibility-gate.yml'
+  pull_request:
+    paths:
+      - 'research/*.py'
+      - '.github/workflows/reproducibility-gate.yml'
+  workflow_dispatch:
+
+jobs:
+  reproducibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: The gate must reject a check that passes without its input
+        run: |
+          python3 research/audit_reproducibility.py --self-check
+      - name: Every artefact-dependent check must exit 2 and say how to proceed
+        run: |
+          python3 research/audit_reproducibility.py
