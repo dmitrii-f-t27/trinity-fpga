@@ -35,7 +35,15 @@ def make_codes():
         for m in [0x8000000000000000,0xC000000000000000,0xFFFFFFFFFFFFFFFF]:
             v = (e<<64)|m
             codes.add(v); codes.add(v|0x80000000000000000000)
-    codes.add(0x7FFF8000000000000000)  # pseudo-INF
+    # +Inf, not pseudo-INF: the integer bit (0x8000...) is SET. Pseudo-infinity is the
+    # same exponent with it CLEAR, and is an invalid operand rather than a value. Both
+    # belong in the sweep, so both are here now.
+    codes.add(0x7FFF8000000000000000)  # +Inf
+    codes.add(0xFFFF8000000000000000)  # -Inf
+    codes.add(0x7FFFC000000000000000)  # quiet NaN
+    codes.add(0x7FFF0000000000000000)  # pseudo-infinity (integer bit clear: invalid)
+    codes.add(0x7FFF0000000000000001)  # pseudo-NaN     (integer bit clear: invalid)
+    codes.add(0x0000800000000000)      # unnormal-adjacent low pattern
     rng = random.Random(80)
     for _ in range(2000): codes.add(rng.randrange(1<<80))
     return sorted(codes)

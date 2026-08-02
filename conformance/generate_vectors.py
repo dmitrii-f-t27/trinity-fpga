@@ -157,8 +157,15 @@ def real_specials(fmt, family, width):
         if getattr(fmt, "has_inf", False) or getattr(fmt, "nan_at_max_only", False):
             add("quiet_nan")
     elif family == "mxfp":
+        # Same guard the fp8 branch above already has, and it was missing here.
+        # OCP Microscaling v1.0 gives FP4 E2M1 and FP6 E2M3/E3M2 no Inf and no NaN, and
+        # mxfp_ref agrees: has_inf False and nan_at_max_only False for all four. The
+        # unconditional add put a "quiet_nan" in the published legend of every one --
+        # mxfp4's pointed at 0x7, which decodes to 6; mxfp6's and mxgf6's at 4.5;
+        # mxgf4's at 2.5. Ordinary finite numbers, labelled NaN in pack metadata.
         if getattr(fmt, "kind", "") != "int":
-            add("quiet_nan")
+            if getattr(fmt, "has_inf", False) or getattr(fmt, "nan_at_max_only", False):
+                add("quiet_nan")
             if getattr(fmt, "has_inf", False):
                 add("pos_inf")
                 add("neg_inf")
@@ -167,7 +174,24 @@ def real_specials(fmt, family, width):
         add("pos_inf")
         add("neg_inf")
         add("quiet_nan")
-    # legacy / int / nf4 / gfternary: decode never yields a Special
+    elif family == "legacy":
+        # x87 is IEEE 754 double-extended and has infinities and NaNs like any other IEEE
+        # format. The rest of the legacy family genuinely does not, and legacy_ref raises
+        # AttributeError if asked, so `add` sees no attribute and adds nothing.
+        #
+        # Until pass 186 this branch did not exist and the comment below read "legacy ...
+        # decode never yields a Special" -- true of VAX, IBM HFP, MBF and Cray, carried
+        # one format too far. It was the third place the same over-general sentence had
+        # been written down, after legacy_ref._sat_raw's comment and its decode.
+        #
+        # It also made the gap self-concealing: edge codes are built through the oracle,
+        # so a format whose specials are unimplemented cannot contribute a special edge,
+        # and 0 of 3,795 x87 vectors touched an all-ones exponent. Nothing looked missing.
+        if getattr(fmt, "kind", "") == "x87":
+            add("pos_inf")
+            add("neg_inf")
+            add("quiet_nan")
+    # int / nf4 / gfternary: decode never yields a Special
     return out
 
 
