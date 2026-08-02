@@ -282,6 +282,15 @@ pub const Verdict = enum {
     /// answer nor the one returned. A node with the key cannot produce this on
     /// purpose, so it is a damaged frame rather than a lie.
     corrupt,
+    /// The receipt is keyed and the verifier holds no key for this node, so
+    /// nothing about it can be concluded — including that it is wrong.
+    ///
+    /// This exists because the fleet slashed an honest board 400 mTRI over a
+    /// missing entry in the host's key file. Without the key every keyed
+    /// receipt looks equally unlike the expected tag, and a verifier that
+    /// cannot check must not accuse. It is not `corrupt` either: corrupt is a
+    /// claim about the link, and this is a statement about the verifier.
+    unverifiable,
 
     pub fn accepted(self: Verdict) bool {
         return self == .ok;
@@ -292,7 +301,7 @@ pub const Verdict = enum {
     /// stake, so it must not be guessed at.
     pub fn indictsTheNode(self: Verdict) bool {
         return switch (self) {
-            .ok, .corrupt => false,
+            .ok, .corrupt, .unverifiable => false,
             .bad_status, .nonce_mismatch, .wrong_result => true,
         };
     }
@@ -304,6 +313,7 @@ pub const Verdict = enum {
             .nonce_mismatch => "nonce does not match the job (replay or crossed response)",
             .wrong_result => "wrong answer, correctly tagged — the node had the key and signed a guess",
             .corrupt => "response is not self-consistent — a damaged frame, not a lie",
+            .unverifiable => "keyed receipt, and no key for this node — nothing can be concluded",
         };
     }
 };
@@ -324,6 +334,11 @@ pub fn verify(job: Job, r: Receipt) Verdict {
 /// never computed, which is the one mistake that would silently undo the whole
 /// point of keying the tag.
 pub fn verifyWithKey(job: Job, r: Receipt, key: ?[16]u8) Verdict {
+    // Answer the verifier's own competence first. Every branch below compares
+    // the tag against something, and with no key every comparison fails for the
+    // same uninformative reason -- which reads as evidence and is not.
+    if (r.kind == .siphash24 and key == null) return .unverifiable;
+
     if (r.status != status_ok) return .bad_status;
 
     if (!std.mem.eql(u8, &r.nonce, &job.nonce)) {
@@ -580,4 +595,51 @@ test "a CRC receipt is never flagged, because it claims no key at all" {
         .tag = receiptTag(job, y, default_node_id),
     };
     try std.testing.expectEqual(@as(?usize, null), publishedKeyUsed(job, r));
+}
+
+test "a keyed receipt with no key is unverifiable, and never an accusation" {
+    const job = Job.withNonce(5, @splat(0x55), @splat(0xAA));
+    const y = dot(job.w, job.x);
+    var k: [16]u8 = undefined;
+    for (&k, 0..) |*b, i| b.* = @intCast(0x40 + i);
+
+    // A perfectly honest keyed receipt.
+    const honest: Receipt = .{
+        .kind = .siphash24,
+        .y = y,
+        .status = status_ok,
+        .nonce = job.nonce,
+        .node_id = default_node_id,
+        .tag = receiptTagKeyed(job, y, default_node_id, k),
+    };
+    try std.testing.expectEqual(Verdict.ok, verifyWithKey(job, honest, k));
+    try std.testing.expectEqual(Verdict.unverifiable, verifyWithKey(job, honest, null));
+    try std.testing.expect(!verifyWithKey(job, honest, null).indictsTheNode());
+
+    // A node that lied. Still not chargeable by a verifier holding no key.
+    const liar: Receipt = .{
+        .kind = .siphash24,
+        .y = y +% 1,
+        .status = status_ok,
+        .nonce = job.nonce,
+        .node_id = default_node_id,
+        .tag = receiptTagKeyed(job, y +% 1, default_node_id, k),
+    };
+    try std.testing.expectEqual(Verdict.wrong_result, verifyWithKey(job, liar, k));
+    try std.testing.expectEqual(Verdict.unverifiable, verifyWithKey(job, liar, null));
+    try std.testing.expect(!verifyWithKey(job, liar, null).indictsTheNode());
+}
+
+test "a keyless verifier still judges CRC receipts, which need no key" {
+    const job = Job.withNonce(6, @splat(0x55), @splat(0x55));
+    const y = dot(job.w, job.x);
+    const good: Receipt = .{
+        .kind = .crc32,
+        .y = y,
+        .status = status_ok,
+        .nonce = job.nonce,
+        .node_id = default_node_id,
+        .tag = receiptTag(job, y, default_node_id),
+    };
+    try std.testing.expectEqual(Verdict.ok, verifyWithKey(job, good, null));
 }
