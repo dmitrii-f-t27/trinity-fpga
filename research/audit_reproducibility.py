@@ -47,8 +47,10 @@ USES_HELPER = re.compile(r"from\s+artefacts\s+import|import\s+artefacts\b")
 SESSION_PATH = re.compile(r"/private/tmp/claude-\d+/")
 
 # What a missing-input message must contain to be useful to a stranger.
-HELPFUL = re.compile(r"gh api|iverilog|build |see research/|--artefacts|TRINITY_ARTEFACTS",
-                     re.I)
+HELPFUL = re.compile(
+    r"gh api|iverilog|build |see research/|--artefacts|TRINITY_ARTEFACTS|"
+    r"pip install",                       # a missing DEPENDENCY is also a missing
+    re.I)                                 # input, and needs the same courtesy
 
 
 def dependents() -> list[str]:

@@ -70,6 +70,7 @@ def in_sibling_repo(name: str):
     network, no gh, no auth -- it says so instead of concluding absence.
     """
     import subprocess
+    saw_error = False
     for path in (f"specs/numeric/{name}", f"specs/{name}", f"conformance/{name}"):
         try:
             r = subprocess.run(
@@ -79,7 +80,14 @@ def in_sibling_repo(name: str):
             return UNCHECKABLE
         if r.returncode == 0 and r.stdout.strip():
             return f"gHashTag/t27:{path}"
-    return None
+        # A 404 means the path is not there. Anything else -- no auth, rate limit, no
+        # network -- means the question was not answered, and CI hits exactly that.
+        # Reporting an unanswered question as absence is how pass 165's "one genuine
+        # gap" happened, and it must not happen again in a gate.
+        err = (r.stderr or "") + (r.stdout or "")
+        if "404" not in err and "Not Found" not in err:
+            saw_error = True
+    return UNCHECKABLE if saw_error else None
 
 
 UNCHECKABLE = object()
