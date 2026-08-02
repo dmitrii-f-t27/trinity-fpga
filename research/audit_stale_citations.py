@@ -37,11 +37,23 @@ MARKER = re.compile(r"^\s*//\s*(RETRACTED|SUPERSEDED|WITHDRAWN|CORRECTED)\b.*$",
 
 
 def find_spec(name: str):
+    """Anywhere in the tree, not just under specs/.
+
+    The first version looked only in specs/**, and reported gf8.t27,
+    goldenfloat_family.t27 and mac.t27 as missing. They are in t27/specs/ -- a vendored
+    copy of the sibling repository -- and were never missing at all. Three of four
+    "NOT FOUND" results were the search path, not the tree.
+    """
     direct = os.path.join(ROOT, "specs", "numeric", name)
     if os.path.exists(direct):
         return direct
-    hits = glob.glob(os.path.join(ROOT, "specs", "**", name), recursive=True)
-    return hits[0] if hits else None
+    for pattern in (os.path.join(ROOT, "specs", "**", name),
+                    os.path.join(ROOT, "**", name)):
+        hits = [h for h in glob.glob(pattern, recursive=True)
+                if os.sep + ".git" + os.sep not in h]
+        if hits:
+            return hits[0]
+    return None
 
 
 def self_check() -> int:
@@ -66,11 +78,20 @@ def main() -> int:
     if "--self-check" in sys.argv:
         return self_check()
 
-    checks = sorted(glob.glob(os.path.join(ROOT, "research", "*.py")))
+    # Pass 164 widened this. Reading only research/*.py saw 2 retracted specs and 4
+    # citations. The tree has 4, and the costly ones were elsewhere: specs cite each
+    # other 11 times, and research/*.md -- the documents an author reads -- cite them
+    # 5 times. One of those told the author to quote a withdrawn figure.
+    checks = sorted(glob.glob(os.path.join(ROOT, "research", "*.py"))
+                    + glob.glob(os.path.join(ROOT, "research", "*.md"))
+                    + glob.glob(os.path.join(ROOT, "specs", "**", "*.t27"),
+                                recursive=True))
     cited: dict[str, set[str]] = {}
     for f in checks:
         text = open(f, encoding="utf-8", errors="replace").read()
         for name in set(CITE.findall(text)):
+            if name == os.path.basename(f):        # a spec naming itself
+                continue
             cited.setdefault(name, set()).add(os.path.basename(f))
 
     marked, missing, clean = [], [], 0
@@ -87,7 +108,7 @@ def main() -> int:
             clean += 1
 
     print(f"COVERAGE: {len(cited)} distinct .t27 specs cited by "
-          f"{len(checks)} checks")
+          f"{len(checks)} files (checks, author documents and specs)")
     print(f"  cite a spec with no retraction marker : {clean}")
     print(f"  cite a spec that carries one          : {len(marked)}")
     print(f"  cite a spec that cannot be found      : {len(missing)}\n")
