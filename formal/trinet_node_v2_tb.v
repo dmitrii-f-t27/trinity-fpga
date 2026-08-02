@@ -36,7 +36,10 @@ endmodule
 
 module trinet_node_v2_tb;
 
-    localparam integer BAUD_DIV   = 434;
+`ifndef TB_BAUD_DIV
+  `define TB_BAUD_DIV 434
+`endif
+    localparam integer BAUD_DIV   = `TB_BAUD_DIV;
     localparam real    CLK_PERIOD = 14.4;
     localparam real    BIT_TIME   = BAUD_DIV * CLK_PERIOD;
     localparam [31:0]  EXPECT_ID  = 32'h12345678;   // low 32 bits of SIM_DNA_VALUE
@@ -46,7 +49,7 @@ module trinet_node_v2_tb;
     wire uart_tx;
     wire [3:0] led;
 
-    trinet_node_v2_ax7203 #(.USE_DNA(1)) dut (
+    trinet_node_v2_ax7203 #(.USE_DNA(1), .BAUD_DIV_P(BAUD_DIV)) dut (
         .rst_n(rst_n), .uart_rx(uart_rx), .uart_tx(uart_tx), .led(led));
 
     localparam integer NVEC = 6;

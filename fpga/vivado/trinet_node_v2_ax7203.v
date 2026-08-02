@@ -39,7 +39,14 @@ module trinet_node_v2_ax7203 #(
     parameter [31:0]  FALLBACK_NODE_ID = 32'h5452_494E,   // "TRIN"
     // Per-node secret. A deployment must override this; the default exists so
     // the cell builds and simulates, not so it ships.
-    parameter [127:0] RECEIPT_KEY = 128'h0f0e0d0c0b0a09080706050403020100
+    parameter [127:0] RECEIPT_KEY = 128'h0f0e0d0c0b0a09080706050403020100,
+    // CFGMCLK divided by this is the line rate. Measured 2026-08-02 by
+    // sweeping the host rate and bracketing where the link holds: CFGMCLK is
+    // ~71.18 MHz, not the 69-70 MHz this project had recorded, and the link
+    // tolerates about +/-4.4% because the receiver re-syncs on every start
+    // bit. 434 gives ~164 kbaud; the long-standing 160000 host rate sits ~2.4%
+    // low and works on that margin rather than by being correct.
+    parameter integer BAUD_DIV_P = 434
 ) (
     input  wire rst_n,
     input  wire uart_rx,
@@ -54,7 +61,7 @@ module trinet_node_v2_ax7203 #(
         .USRCCLKO(1'b0), .USRCCLKTS(1'b0), .USRDONEO(1'b0), .USRDONETS(1'b0));
 
     wire rst = ~rst_n | ~eos;
-    localparam [8:0] BAUD_DIV = 9'd434;
+    localparam [9:0] BAUD_DIV = BAUD_DIV_P[9:0];
 
     reg [26:0] heartbeat;
     always @(posedge mclk or posedge rst)
@@ -133,8 +140,8 @@ module trinet_node_v2_ax7203 #(
                       end
                 2'd1: if (rxcnt == 10'd0) begin
                           rxsr <= {rxd, rxsr[7:1]};
-                          if (rbi == 4'd7) begin rxs <= 2'd2; rxcnt <= {1'b0, BAUD_DIV} - 10'd1; end
-                          else            begin rbi <= rbi + 4'd1; rxcnt <= {1'b0, BAUD_DIV} - 10'd1; end
+                          if (rbi == 4'd7) begin rxs <= 2'd2; rxcnt <= BAUD_DIV - 10'd1; end
+                          else            begin rbi <= rbi + 4'd1; rxcnt <= BAUD_DIV - 10'd1; end
                       end else rxcnt <= rxcnt - 10'd1;
                 2'd2: if (rxcnt == 10'd0) begin
                           rx_byte <= rxsr; rx_new <= 1'b1; rxs <= 2'd0;
@@ -277,7 +284,7 @@ module trinet_node_v2_ax7203 #(
     integer ti;
     always @(posedge mclk or posedge rst) begin
         if (rst) begin
-            responding <= 1'b0; tx_idx <= 5'd0; tcnt <= {1'b0, BAUD_DIV} - 10'd1;
+            responding <= 1'b0; tx_idx <= 5'd0; tcnt <= BAUD_DIV - 10'd1;
             tbi <= 4'd0; tsr <= 10'h3FF; uart_tx <= 1'b1;
             for (ti = 0; ti < 19; ti = ti + 1) tx_buf[ti] <= 8'hFF;
         end else begin
@@ -308,7 +315,7 @@ module trinet_node_v2_ax7203 #(
             end
 
             if (tcnt == 10'd0) begin
-                tcnt <= {1'b0, BAUD_DIV} - 10'd1;
+                tcnt <= BAUD_DIV - 10'd1;
                 if (tbi == 4'd9) begin
                     tbi <= 4'd0;
                     if (responding) begin
