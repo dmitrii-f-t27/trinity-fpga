@@ -230,19 +230,40 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
     defer m.deinit();
 
     var attached: usize = 0;
-    for (ports, 0..) |p, i| {
-        if (i >= fleet_nodes.len) {
-            std.debug.print("node {d}: no identity defined for this slot — extend fleet_nodes\n", .{i});
-            break;
+    for (ports) |p| {
+        // Ask the board who it is rather than inferring it from argument order.
+        // Binding identity to position looks fine until the ports come up in a
+        // different order — then the coordinator verifies each board against
+        // another's key, every honest receipt fails its tag check, and the
+        // network slashes operators for a cabling accident.
+        var n = node_mod.Node.initFpga(0, "unidentified", p, default_baud) catch |e| {
+            std.debug.print("{s}: did NOT open ({s}) — not counted\n", .{ p, @errorName(e) });
+            continue;
+        };
+        n.key = @splat(0); // any key; identification only reads the id field
+        const probe_job = protocol.Job.withNonce(1, @splat(0), @splat(0));
+        const claimed = n.execute(probe_job) catch |e| {
+            std.debug.print("{s}: opened but did not answer ({s}) — not counted\n", .{ p, @errorName(e) });
+            n.deinit();
+            continue;
+        };
+
+        var spec: ?FleetNode = null;
+        for (fleet_nodes) |f| {
+            if (f.id == claimed.node_id) spec = f;
         }
-        const spec = fleet_nodes[i];
-        if (node_mod.Node.initFpga(spec.id, spec.name, p, default_baud)) |n| {
-            try m.join(n.withKey(spec.key), "operator", 100000);
-            attached += 1;
-            std.debug.print("node {d}: {s} on {s}, id {x:0>8}\n", .{ i, spec.name, p, spec.id });
-        } else |e| {
-            std.debug.print("node {d}: {s} on {s} did NOT open ({s}) — not counted\n", .{ i, spec.name, p, @errorName(e) });
+        if (spec == null) {
+            std.debug.print("{s}: reports id {x:0>8}, which is not in the fleet table — not counted\n", .{ p, claimed.node_id });
+            n.deinit();
+            continue;
         }
+
+        n.id = spec.?.id;
+        n.name = spec.?.name;
+        n.key = spec.?.key;
+        try m.join(n, "operator", 100000);
+        attached += 1;
+        std.debug.print("{s}: identified as {s}, id {x:0>8}\n", .{ p, spec.?.name, spec.?.id });
     }
 
     if (attached == 0) {
