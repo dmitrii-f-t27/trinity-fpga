@@ -142,6 +142,37 @@ BBRAM with an encrypted bitstream, or an external secure element. Until then
 node identity is **asserted, not proven**, and must be described that way
 wherever it is published.
 
+### The key is loaded over the wire, not baked in (changed 2026-08-03)
+
+`RECEIPT_KEY` used to be a synthesis parameter. It was committed to a public
+repository, the fix was applied to the source, and **the fix never reached the
+silicon** — the fleet ran for a day signing with keys any reader of the git log
+could compute, and every test stayed green because a compromised key and a good
+key are indistinguishable to anything that only asks "does the tag match".
+
+The reason it never reached the silicon is the part worth keeping. Re-keying a
+baked-in key needs a place-and-route run **this workstation cannot perform** —
+an XC7A200T chipdb OOMs at Docker's 4 GB default, and raising it to 6 GB on an
+8 GB host stops Docker starting at all — plus 13 minutes of flashing, per board.
+A key that costs an hour to rotate is a key nobody rotates.
+
+So the node now takes its key from `op 0x02`: 16 bytes in the W and X operand
+fields, so the request stays 24 bytes and the frame parser is untouched.
+
+- **Write-once per configuration.** A second `setkey` returns `0x03 key locked`
+  and changes nothing. Without that, anyone reaching the wire could replace the
+  operator's key and every later receipt would verify under theirs.
+- **The ack is signed with the key just installed**, so acceptance is
+  distinguishable from an echo. `Node.setKey` checks the tag, not the status.
+- **An unkeyed board still computes.** It answers `0x04 no key` with a real
+  dot product and a meaningless tag. Anything measuring arithmetic must use
+  `protocol.statusMeansComputed()` — testing `status == status_ok` makes a
+  correctly working unkeyed board look broken at every candidate baud rate.
+- A non-null `RECEIPT_KEY` still bakes a key in and locks it at reset, for
+  anyone with a build machine who prefers the key never touch a wire.
+
+Cost: 1292 → 1484 LC, +15%. Still 0 DSP48.
+
 ## Files
 
 ```
@@ -156,22 +187,34 @@ specs/trinet/*.t27                             the record
 ## Commands
 
 ```bash
-zig test src/trinet/agent.zig -lc                     # 42 tests, whole stack
+zig test src/trinet/agent.zig -lc                     # whole stack
 zig build-exe src/trinet/main.zig -lc                 # CLI
 ./main selftest                                       # adversaries vs verifier
-./main probe /dev/cu.usbserial-1110                   # verify a flashed board
+./main probe <port> <baud>                            # arithmetic AND authenticity, reported apart
+./main census <port> 0 100 64                         # 100 runs; baud 0 = negotiate
 ./main demo                                           # mesh + agent + books
 
-python3 conformance/trinet_mac32_conformance_ax7203.py --self-test
-python3 conformance/trinet_mac32_conformance_ax7203.py --port /dev/cu.usbserial-1110 --n 512
+python3 conformance/trinet_discover.py                # who is on the bus, and at what rate
+python3 conformance/trinet_baud_sweep.py --port <p> --divisor 60   # a board's real rate
 ```
 
-Flash (13 minutes — pipeline other work against it):
+**Never trust a port name across sessions.** They move when hubs change:
+`-1110` was node0 one hour and node1 the next. Identity comes from the board's
+id field, never from argument order or device name.
+
+Bring a board up, in order:
 
 ```bash
 sudo -n /opt/homebrew/bin/openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
   -c "init" -c "pld load 0 <file.bit>" -c "runtest 2000" -c "shutdown"
+./main keygen > trinet-keys.txt          # gitignored, mode 600, never commit
+./main setkey <port0> <port1> <port2>     # one 24-byte frame per board
+./main fleet  <port0> <port1> <port2>     # now it can settle
 ```
+
+With several programmers attached, every AL321 reports the same USB serial, so
+pass `-c "adapter usb location <loc>"` with `ax7203_al321_multi.cfg` and sweep
+the locations fresh — they move with the hubs too.
 
 ## Board and toolchain truths
 
