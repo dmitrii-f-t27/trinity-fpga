@@ -5294,3 +5294,51 @@ against the format author's own implementation because its summary figure was wr
 """
   status IMPLEMENTED
 }
+
+// ---- Pass 144: the contradiction resolved by building the reference ----------
+
+result THE_SPEC_IS_RIGHT_AND_THE_RETRACTION_IS_NOT {
+  method """
+libtakum cloned from github.com/takum-arithmetic/libtakum, built, and
+research/libtakum_bridge.c compiled against it -- the step pass 143 said was needed and
+could not do. Then research/crossval_libtakum.py over all 65,536 takum16 codes.
+"""
+  measured """
+  takum16 vs libtakum   compared 65,536   DIVERGENT 32,766
+
+  raw 32769   oracle -1.8351858179575695e-77   libtakum -5.608679322432503e+76
+  raw 32770   oracle -1.94313792489625e-77     libtakum -5.4277541829991967e+76
+  ...all in the negative half
+
+takum_libtakum_crossval.t27 records positive_half agree 32,768 of 32,768 EXACT and
+negative_half agree 2 of 32,768. 32,768 - 2 = 32,766. Exact match, and the example
+divergence reproduces verbatim.
+"""
+  so """
+NEGATIVE_HALF_DECODE_SUSPECT -- severity HIGH, confidence ESTABLISHED, standing since
+pass 15 -- is confirmed today against the format author's own implementation, freshly
+cloned and built.
+
+ARXIV_V2_CORRECTION_PACKAGE.md withdrew that finding as "a design decision, not an
+undiscovered inconsistency" and reported 60485/60485 as what survives. The measurement
+supports neither: the divergence is present, and 60,485 corresponds to nothing in the
+comparison.
+"""
+  status VERIFIED_SW
+}
+
+note WHAT_THE_RETRACTION_MAY_HAVE_MEANT {
+  detail """
+Stated carefully, because the retraction was written by this campaign and may have been
+about something the measurement does not address.
+
+The retraction's stated grounds were that "the split is documented in that same
+docstring" -- takum_ref.py does describe its variant choice. So a reading survives
+under which the divergence is real, known, and deliberate: the oracle implements one
+variant and libtakum another, and the corpus knows it.
+
+What does not survive is the FIGURE. 60485/60485 appears in no spec, matches neither
+half of the comparison, and now contradicts a fresh exhaustive run. Whatever the
+retraction meant, that number should not be quoted.
+"""
+}
