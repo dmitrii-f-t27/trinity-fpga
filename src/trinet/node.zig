@@ -74,6 +74,9 @@ pub const Emulated = struct {
     prng: std.Random.DefaultPrng = .init(0xA11CE),
 };
 
+/// Which response format a board speaks. Asked of the wire, never assumed.
+pub const Wire = enum { v1_crc32, v2_keyed };
+
 pub const Node = struct {
     /// Registered identity. The mesh credits work to this id, and a receipt
     /// that claims a different id is not credited here.
@@ -99,6 +102,17 @@ pub const Node = struct {
     /// coordinator needs to verify them; the node holds its own copy in its
     /// bitstream.
     key: ?[16]u8 = null,
+    /// Which response format this board actually speaks, learned from the wire
+    /// on the first exchange and latched.
+    ///
+    /// This used to be inferred from `key != null`, and that was wrong in a way
+    /// that hid itself well. The width is a property of the flashed bitstream;
+    /// the key is a property of the host's config file. Point a keyless host at
+    /// a v2 board and it reads 15 bytes of a 19-byte response, leaves four
+    /// behind, and every later read is offset by four -- so a perfectly healthy
+    /// board reports MalformedResponse forever, and a benchmark reads 15-byte
+    /// slices of a stream at full line rate and calls it throughput.
+    wire: ?Wire = null,
 
     pub fn withKey(self: Node, k: [16]u8) Node {
         var n = self;
@@ -186,23 +200,35 @@ pub const Node = struct {
             self.stats.unreachable_count += 1;
             return Error.Unreachable;
         };
-        // The response width is set by which cell is flashed, so it follows the
-        // key: a keyed node answers 19 bytes, an unkeyed one 15. Reading the
-        // wrong width would desynchronise the stream for every later job.
-        if (self.key != null) {
-            var raw: [protocol.response_len_v2]u8 = undefined;
-            port.readExact(&raw) catch {
-                self.stats.unreachable_count += 1;
-                return Error.Timeout;
-            };
-            return protocol.decodeResponseV2(&raw) orelse Error.MalformedResponse;
-        }
-        var raw: [protocol.response_len]u8 = undefined;
-        port.readExact(&raw) catch {
+        // Both formats share their first 15 bytes, so read those, and on the
+        // very first exchange ask the wire whether four more are coming rather
+        // than assuming from host-side config.
+        var raw: [protocol.response_len_v2]u8 = undefined;
+        port.readExact(raw[0..protocol.response_len]) catch {
             self.stats.unreachable_count += 1;
             return Error.Timeout;
         };
-        return protocol.decodeResponse(&raw) orelse Error.MalformedResponse;
+
+        if (self.wire == null) {
+            // One-time cost: on a v1 board this read waits out the timeout. It
+            // buys a host that cannot be misconfigured into a permanent desync.
+            if (port.readExact(raw[protocol.response_len..])) |_| {
+                self.wire = .v2_keyed;
+                return protocol.decodeResponseV2(&raw) orelse Error.MalformedResponse;
+            } else |_| {
+                self.wire = .v1_crc32;
+                return protocol.decodeResponse(raw[0..protocol.response_len]) orelse Error.MalformedResponse;
+            }
+        }
+
+        if (self.wire.? == .v1_crc32) {
+            return protocol.decodeResponse(raw[0..protocol.response_len]) orelse Error.MalformedResponse;
+        }
+        port.readExact(raw[protocol.response_len..]) catch {
+            self.stats.unreachable_count += 1;
+            return Error.Timeout;
+        };
+        return protocol.decodeResponseV2(&raw) orelse Error.MalformedResponse;
     }
 
     /// Send several jobs before reading any answer.
@@ -232,7 +258,12 @@ pub const Node = struct {
                         return Error.Unreachable;
                     };
                 }
-                const width: usize = if (self.key != null) protocol.response_len_v2 else protocol.response_len;
+                // Same rule as the single-job path: the width belongs to the
+                // board, not to the host's key file. Batching before the
+                // format is known would desynchronise the whole run, so an
+                // undetected node does one job first to settle it.
+                if (self.wire == null) _ = self.executeSerial(port, jobs[0]) catch {};
+                const width: usize = if (self.wire == .v1_crc32) protocol.response_len else protocol.response_len_v2;
                 const asked = jobs.len;
                 var got: usize = 0;
                 var buf: [protocol.response_len_v2]u8 = undefined;
@@ -243,10 +274,10 @@ pub const Node = struct {
                     // for answers that are not coming just adds a timeout per
                     // missing job.
                     port.readExact(buf[0..width]) catch break;
-                    out[got] = (if (self.key != null)
-                        protocol.decodeResponseV2(buf[0..width])
+                    out[got] = (if (self.wire == .v1_crc32)
+                        protocol.decodeResponse(buf[0..width])
                     else
-                        protocol.decodeResponse(buf[0..width])) orelse break;
+                        protocol.decodeResponseV2(buf[0..width])) orelse break;
                 }
 
                 // Additive increase, multiplicative decrease — the same shape
