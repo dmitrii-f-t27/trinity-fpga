@@ -6188,3 +6188,22 @@ resolution "the six unprobed gf formats are settled without decoding them" {
   honesty "this is an inference from a shared code path, not a measurement of the six formats, and the report labels it so. Formats with no such single gate stay NOT PROBED"
   coverage "84 formats: 78 probed, 6 resolved structurally, 0 unresolved"
 }
+
+finding "operand coverage above width 32 is the image of encode()" {
+  mechanism "generate_vectors.gen_pairs draws random operands from raw bits when width <= 32 and from encoded random VALUES above it; _rand_value_raw's docstring gives the motive as cost -- raw bits for a wide format would demand pow2(huge)"
+  consequence "no vector for a wide format could hold a code outside the image of encode: no non-canonical encoding, no reserved pattern, no redundant cohort member the encoder does not choose"
+  proof "pass 185's canonicality defect was present in decimal32, decimal64 and decimal128 alike and findable only in decimal32 -- the one format sitting on the width boundary. 485,760 non-canonical codes per sign in decimal32 with 20 in the pack; 1.26e15 in decimal64 with 0; 2.98e33 in decimal128 with 0"
+  counted "decimal64 1258999068426240, decimal128 2980742146337069071326240823050240, x87_fp80 302213008159583584124928, x87_48bit 70364449210368 -- all with zero appearances"
+  fixed "generate_vectors.structural_raws builds these codes from bits rather than values; constructing them was always cheap, a non-canonical BID coefficient decodes to zero and the x87 patterns are pinned to small exponents. Cost was never the objection -- nobody had asked"
+  now_reachable "decimal64 and decimal128 1116 each, x87_fp80 1848, x87_48bit 1851, vax family 264 to 276, double_double 168, quad_double 232"
+  independently_confirmed "gcc's Intel BID agrees on all 9783 decimal vectors including the new non-canonical operands: VALUE 0"
+}
+
+correction "VAX has no negative zero, and the corpus made one the answer to 467 vectors" {
+  spec "the VAX Architecture Reference Manual defines sign 1 with a zero exponent as the reserved operand: it does not name a number, it faults. Exponent 0 with sign 0 is true zero whatever the fraction holds"
+  defect "LegacyFormat.neg_zero returned 1 << sign_shift for every kind, so vax_f, vax_d, vax_g, vax_h and pdp11_float each published a neg_zero in their pack legend pointing at the reserved operand"
+  worse "format_add and format_mul returned it as a RESULT -- 467 vectors across 15 packs asserted that certain VAX operations produce a value real hardware traps on"
+  fixed "neg_zero raises AttributeError for kind == vax, so real_specials omits it; _signed_zero returns the one zero the format has"
+  packs "15 regenerated; 587 -> 546 vectors for vax_f, exactly the 41 lost when 21 edges become 20 and 441 becomes 400"
+  found_by "research/audit_operand_reachability.py, which flagged vax_d/g/h as the only wide formats WITH non-canonical operands -- the opposite of what it was written to look for"
+}
