@@ -610,7 +610,7 @@ warned would blur, and did.
 
 ### One caution about this checklist
 
-**27** blocks across ten spec files are typed `correction` — measurements or fixes of
+**57** blocks across 11 spec files are typed `correction` (it was 27 across ten when this line was written; the figure grows every time a pass records one, and 42 of the current total sit in `catalog_coverage_delta.t27` alone) — measurements or fixes of
 mine that turned out to be wrong and were withdrawn or repaired before publication.
 That figure is re-derivable: `grep -c '^correction' specs/numeric/*.t27`, through pass
 112. An earlier version of this line said "roughly fifteen across seventy passes",
