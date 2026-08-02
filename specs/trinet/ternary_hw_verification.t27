@@ -36,11 +36,18 @@ conformance host, not in the RTL — see finding FRAME_LENGTH_MISMATCH.
 
 constants {
   PHI = 1.6180339887498948482045868343656381177203091798
-  CFGMCLK_MHZ 69            // STARTUPE2 configuration oscillator, measured
-  BAUD_DIV 434              // yields ~160000 baud at CFGMCLK
-  UART_BAUD 160000
-  JTAG_TCK_KHZ 100          // AL321 stable speed
-  FLASH_SECONDS 778         // 9,730,795 bytes at 100 kHz, measured 2026-08-01
+  // CFGMCLK is an internal RC oscillator and therefore a property of the
+  // individual chip, not of the part. Measured 2026-08-02 on two boards; do not
+  // treat either as "the" value. The 69 MHz this block carried is superseded.
+  CFGMCLK_BOARD_A_MHZ 71.176
+  CFGMCLK_BOARD_B_MHZ 72.065
+  CFGMCLK_SPREAD_PERCENT 1.25
+  UART_TOLERANCE_PERCENT 4.4   // wide because the receiver re-syncs each start bit
+  BAUD_DIV_LEGACY 434          // ~164 kbaud on board A; hosts have used 160000, ~2.4% low
+  BAUD_DIV_FLEET 60            // ~1186 kbaud, the rate every board sustains
+  FLEET_HOST_BAUD 1193675      // midpoint of the fleet's measured rates
+  JTAG_TCK_KHZ 100             // AL321 stable speed
+  FLASH_SECONDS 778            // 9.7 MB at 100 kHz; unchanged when three flash in parallel
 }
 
 // ---------------------------------------------------------------------------
