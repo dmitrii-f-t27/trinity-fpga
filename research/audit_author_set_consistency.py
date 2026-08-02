@@ -29,6 +29,7 @@ from collections import defaultdict
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 AUTHOR_SET = [
+    "HANDOVER.md",
     "START_HERE.md",
     "SUBMISSION_CHECKLIST.md",
     "VERIFICATION_DOSSIER.md",
