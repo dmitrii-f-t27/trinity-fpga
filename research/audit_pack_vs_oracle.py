@@ -83,6 +83,9 @@ ALIASES = {
 }
 
 
+EX = None                                   # conformance/exact_ops, loaded in main()
+
+
 def load_module(name):
     p = os.path.join(CONF, f"{name}.py")
     if not os.path.exists(p):
@@ -95,20 +98,42 @@ def load_module(name):
 
 
 def op_fn(G, mod, family, op):
-    add = getattr(mod, "format_add", None)
-    mul = getattr(mod, "format_mul", None)
+    # gf_ref names its arithmetic gf_add/gf_mul; every other module uses format_*. The
+    # names come from generate_vectors.MODULES rather than being guessed, so a module
+    # that renames them does not silently become unverifiable.
+    names = {m: (a, mu) for m, a, mu, _f in G.MODULES}
+    add_name, mul_name = names.get(mod.__name__, ("format_add", "format_mul"))
+    add = getattr(mod, add_name, None)
+    mul = getattr(mod, mul_name, None)
     if op in ("add", "+"):
         return add
     if op in ("mul", "*"):
         return mul
     if op in ("sub", "-") and add is not None:
         return G.make_sub_fn(add, mod, family)
+    # div and sqrt, built from the module's own decode/encode by conformance/exact_ops.py.
+    # Pass 189 reported these thirty packs as NO ORACLE REACHABLE; twenty of them are
+    # reachable now. quire stays unreachable on purpose -- which fixed-point accumulator
+    # a quire is remains a design decision, and inventing one would be inventing the
+    # semantics these packs are meant to test.
+    if op in ("div", "/"):
+        try:
+            return EX.make_div(mod)
+        except Exception:
+            return None
+    if op == "sqrt":
+        try:
+            return EX.make_sqrt(mod)
+        except Exception:
+            return None
     return None
 
 
 def main() -> int:
     verbose = "--verbose" in sys.argv
     sys.path.insert(0, CONF)
+    global EX
+    EX = load_module("exact_ops")
     G = load_module("generate_vectors")
 
     fam_of, mod_of = {}, {}

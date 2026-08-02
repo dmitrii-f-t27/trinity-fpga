@@ -6244,3 +6244,23 @@ finding "twelve packs carry no significand information beyond bit 23" {
   not_flagged "every _sqrt pack has its sign bit dead, which is the square root of a non-negative argument behaving correctly; gf4_sqrt's one dead bit is a 4-bit format sampled 64 times"
   related "pass 189: these same packs have no oracle in the corpus for div, sqrt or quire, so nothing could have re-derived them and nothing did"
 }
+
+resolution "div and sqrt have oracles; twenty packs became verifiable" {
+  added "conformance/exact_ops.py builds format_div and format_sqrt from any oracle's own decode and encode -- neither operation needs new rounding code, only the exact value and the special cases stated"
+  sqrt_soundness "sqrt of a rational is irrational unless the rational is a perfect square of a rational, so a tie can only occur when the result is exactly representable, and then it is not a tie. Exact when exact, otherwise approximated by integer isqrt to the significand width plus 64 guard bits, and encode() does the rounding"
+  property_tested "the rounded sqrt must be the nearest representable value to the true one -- checked against both neighbours for 2..59, not against stored answers"
+  quire_excluded "which fixed-point accumulator a quire is remains a design decision; writing one here would be inventing the semantics the packs are meant to test"
+}
+
+correction "my own pass-189 audit mislabelled 54 GoldenFloat packs as unreachable" {
+  defect "op_fn hardcoded format_add and format_mul; gf_ref names its arithmetic gf_add and gf_mul, which generate_vectors.MODULES declares and the audit did not read"
+  consequence "every gf add/mul/sub pack fell into the NO ORACLE REACHABLE bucket, so pass 189's count of 94 was inflated by 54 -- and the report said nothing had checked the GoldenFloat widths when the oracle was there all along"
+  fixed "op_fn reads the names from MODULES, so a module that renames them does not silently become unverifiable"
+  now "hex schema 247 files, 2,424,014 vectors, 0 disagreements -- up from 187 files and 1,982,771"
+}
+
+finding "gf16's div and sqrt packs use binary16's field layout" {
+  decisive "x / x is 1 for any nonzero x. gf16's one is 0x3E00 (exponent field 31 at 9 mantissa bits); the pack answers 0x3C00, which is binary16's one. x / -0 gives 0xFC00, binary16's -infinity, where gf16's is 0xFE00"
+  incomplete "full binary16 division still does not reproduce the pack, 157 of 512, so the layout is not the only difference"
+  status "more specific than pass 190's bit-23 signature and still not a full identification. Stated as what is shown, not as a cause"
+}
