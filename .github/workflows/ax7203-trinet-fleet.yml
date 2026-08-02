@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'fpga/vivado/trinet_node_v2_ax7203.v'
+      - 'fpga/portable/trinet_node_core.v'
       - 'fpga/openxc7-synth/trinet_siphash24.v'
       - '.github/workflows/ax7203-trinet-fleet.yml'
 
@@ -30,7 +31,20 @@ on:
 # other board, since each holds a bitstream containing it; per-node keys confine
 # a leak to one node.
 #
-# BAUD_DIV is 60 (~1186 kbaud). 30 was tried first and one of the three boards
+# USE_DNA is 0. DNA_PORT places and routes on this flow and returns zero for all
+# 57 bits — measured 2026-08-01 — so the node id has to come from synthesis
+# regardless. Carrying the primitive and its read state machine into every
+# bitstream is dead weight, and removing it makes the node id in simulation
+# equal the one the hardware reports, which the DNA path made impossible.
+#
+# BAUD_DIV is 60, and it is NOT one line rate for the fleet. CFGMCLK is an
+# untrimmed RC oscillator, so its frequency belongs to the die: these three run
+# at 71.18, 70.46 and 67.47 MHz — 5.5% apart, where a UART tolerates about 3%.
+# The divisor is shared; the resulting rates are ~1186, ~1174 and ~1124 kbaud,
+# and the host negotiates per board rather than assuming one constant. Assuming
+# one is what made the third board look like a wiring fault for a day.
+#
+# 30 was tried first and one of the three boards
 # returned 18% of its responses damaged at that rate while another was clean on
 # the same design and host, so the fleet runs at a rate every member sustains
 # rather than the fastest any member can reach.
@@ -66,8 +80,8 @@ jobs:
         run: |
           mkdir -p build/${{ matrix.name }}
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
-            read_verilog fpga/openxc7-synth/trinet_siphash24.v fpga/vivado/trinet_node_v2_ax7203.v;
-            chparam -set FALLBACK_NODE_ID ${{ matrix.node_id }} -set BAUD_DIV_P 60 trinet_node_v2_ax7203;
+            read_verilog fpga/openxc7-synth/trinet_siphash24.v fpga/portable/trinet_node_core.v fpga/vivado/trinet_node_v2_ax7203.v;
+            chparam -set USE_DNA 0 -set FALLBACK_NODE_ID ${{ matrix.node_id }} -set BAUD_DIV_P 60 trinet_node_v2_ax7203;
             synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7 -top trinet_node_v2_ax7203;
             setundef -zero -params; write_json build/${{ matrix.name }}/node.json" 2>&1 | tee /tmp/yosys.log
           grep -E "Estimated|ERROR" /tmp/yosys.log
