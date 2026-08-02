@@ -6207,3 +6207,29 @@ correction "VAX has no negative zero, and the corpus made one the answer to 467 
   packs "15 regenerated; 587 -> 546 vectors for vax_f, exactly the 41 lost when 21 edges become 20 and 441 becomes 400"
   found_by "research/audit_operand_reachability.py, which flagged vax_d/g/h as the only wide formats WITH non-canonical operands -- the opposite of what it was written to look for"
 }
+
+finding "the vector directory holds two schemas and nothing said so" {
+  schema_a "{a, b, expected} with hex strings -- 247 files"
+  schema_b "{a, b, op, result} with integers -- 40 files"
+  provenance "all 40 arrived in one commit from another line: 'feat: Track A+B+C final -- silicon sprint script'"
+  consequence "a sweep written against either schema skips the other in silence: x['expected'] raises KeyError, and a .get that falls through to None skips without a word"
+  affected "the 40 include gf4, gf8, gf16, gf32 -- the GoldenFloat widths the first paper is about -- plus binary64, bf16, fp32_e8m23 and three more"
+  new_check "research/audit_pack_vs_oracle.py re-derives every stored answer from the oracle, in both schemas"
+  result_schema_a "1,982,771 vectors re-derive exactly, 0 disagreements"
+}
+
+finding "thirty packs assert results no oracle in the corpus can reproduce" {
+  operations "div, sqrt, quire -- 10 formats x 3 operations"
+  evidence "no format_div, format_sqrt or format_quire exists anywhere in conformance/ or research/; their headers carry no oracle field, unlike every schema-a pack"
+  status "unverifiable, not verified. Reported as NO ORACLE REACHABLE and never counted as passing"
+  not_fixed_here "they belong to the silicon-sprint line, and inventing an oracle for someone else's data would be worse than the gap"
+}
+
+finding "two systematic defects in the aliased packs" {
+  aliases "fp32_e8m23 is binary32 by field widths, bf16 is bfloat16; both agree with the oracle on every finite normal operand"
+  defect_1 "subnormal operands: the pack decodes a zero-exponent word as if normalized, so 0 + smallest-subnormal returns smallest-NORMAL. The factor is exactly 1 << mant_bits -- 2^23 for fp32_e8m23, 2^7 for bf16. These packs have no gradual underflow"
+  defect_2 "Inf/NaN operands: 0 + NaN returns 0"
+  counts "fp32_e8m23 84 of 512 on add and 170 of 512 on mul; bf16 102 and 258"
+  third_case "fp128_e15m112 matches binary128's field widths exactly and diverges on 235 vectors with no special operand in them -- 2 + x returns a word mixing the first exponent with the second's low bits. What it implements is an open question and the check does not pretend to answer it"
+  unresolved "fp16_e6m9 and fp24_7m16 have no counterpart; 6+9 and 7+16 are not the field widths of any format here, so they stay unresolved rather than forced onto a near-neighbour"
+}
