@@ -33,8 +33,8 @@ import math
 import os
 import sys
 
-SCRATCH = ("/private/tmp/claude-501/-Users-playom-trinity-fpga/"
-           "3a885a60-490c-4733-abfd-86bfa298080d/scratchpad")
+from artefacts import artefact_dir      # noqa: E402
+SCRATCH = artefact_dir()
 
 
 def load_ref(path: str) -> dict[int, float]:

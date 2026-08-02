@@ -26,6 +26,10 @@ the published pack and see only what changed.
 """
 from __future__ import annotations
 
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from artefacts import artefact_dir      # noqa: E402
+
 import argparse
 import json
 import math
@@ -169,8 +173,8 @@ def self_check() -> int:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--published", default=os.path.join(
-        "/private/tmp/claude-501/-Users-playom-trinity-fpga",
-        "3a885a60-490c-4733-abfd-86bfa298080d/scratchpad/takum8.json"))
+        artefact_dir(),
+        "takum8.json"))
     ap.add_argument("--out")
     ap.add_argument("--self-check", action="store_true")
     args = ap.parse_args()

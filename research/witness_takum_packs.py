@@ -44,8 +44,8 @@ mpmath.mp.prec = 300
 
 import takum_log_ref as T                               # noqa: E402
 
-SCRATCH = ("/private/tmp/claude-501/-Users-playom-trinity-fpga/"
-           "3a885a60-490c-4733-abfd-86bfa298080d/scratchpad")
+from artefacts import artefact_dir      # noqa: E402
+SCRATCH = artefact_dir()
 
 
 def exact_magnitude(fmt, raw):

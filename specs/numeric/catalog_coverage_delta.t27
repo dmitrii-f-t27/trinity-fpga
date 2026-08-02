@@ -5998,3 +5998,54 @@ reproduces on a different version sees why the number differs instead of doubtin
 claim.
 """
 }
+
+
+// ============================================================================
+// Pass 169 -- six results rested on a path that dies with the session.
+// ============================================================================
+
+finding CAMPAIGN_WAS_NOT_REPRODUCIBLE {
+  question "which checks work for someone who is not me, on a machine that is not this one"
+  method "run all 47 checks in a clean tree and ask which still believe they have inputs"
+
+  found """
+Six checks hardcoded a path containing a session identifier:
+
+  /private/tmp/claude-501/-Users-playom-trinity-fpga/<uuid>/scratchpad
+
+  compare_takum_packs.py      crossval_softposit.py
+  crossval_posit8_es2_rtl.py  measure_lns_true_error.py
+  regenerate_takum8_pack.py   witness_takum_packs.py
+
+That directory belongs to one session on one machine. It will not exist for a reader,
+and it will not exist for the next session either. Every result from those six -- the
+posit cross-validation, the takum8 regeneration ledger, the lns error measurement --
+was reproducible only from inside the session that produced it.
+"""
+
+  worse_than_it_looks """
+The clean-tree run did not fail. The path still existed on this machine, so the checks
+found their inputs and reported normally. A reproducibility defect that only appears
+somewhere else is invisible to the very sweep that would catch it, which is why this
+took 169 passes to notice.
+"""
+
+  fixed """
+research/artefacts.py resolves in order: an explicit --artefacts argument, then
+$TRINITY_ARTEFACTS, then ./artefacts/, then the legacy scratchpad if it happens to
+exist -- so in-flight work keeps running while the convention moves.
+
+Nothing is downloaded automatically. These artefacts are large and come from outside
+this repository, and fetching them silently is how a check ends up reporting a result
+nobody can trace. A missing input prints the exact command that produces it and exits
+2, verified by pointing TRINITY_ARTEFACTS at an empty directory: all five checks that
+need one exit 2 with instructions rather than passing quietly.
+"""
+
+  reading """
+Exit 0 on a missing input is the failure this whole set exists to prevent, and six
+checks were one directory away from it. The campaign has spent ten passes finding
+checks that could not see, measured the wrong thing, or cited a withdrawn claim. This
+is a fourth kind: a check that works only where it was written.
+"""
+}
