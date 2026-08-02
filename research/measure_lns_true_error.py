@@ -40,7 +40,8 @@ sys.path.insert(0, os.path.join(HERE, "..", "conformance"))
 try:
     import mpmath
 except ImportError:
-    print("mpmath is not installed; this measurement needs it.")
+    print("mpmath is not installed; this check needs it.")
+    print("  install with : python3 -m pip install mpmath")
     raise SystemExit(2)
 
 mpmath.mp.prec = 200
