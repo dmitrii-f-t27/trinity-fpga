@@ -6283,3 +6283,12 @@ finding "three modules named *_ref.py are outside every sweep" {
   second_instance "cross_validate_oracles.py has the same partial-resolution pattern for format_add"
   own_control_failed_honestly "the first control asserted decode resolves on every module. It does not, and the failure is how gf_mx_ref was identified. corpus_modules now separates oracles from non-oracles and reports the difference"
 }
+
+resolution "GoldenFloat arithmetic now has an independent second witness" {
+  witness "conformance/gf16_plus_ref.py -- a second implementation of the same seventeen widths, found unused in pass 192"
+  construction "add and mul built on gf16_plus_ref's OWN decode and encode, sharing no line with gf_ref.gf_add. Correctly-rounded arithmetic is exact-result-then-round, a specification rather than an implementation, so the two have only the spec in common"
+  result "159430 add/mul results across all seventeen widths, 0 disagreements"
+  with_decode "together with pass 192's 9041 decodes, this is what the first paper most needed: its formats were verified against one implementation checking itself, and are not any more"
+  limits "238 results skipped because an operand is special -- this witness does not model NaN propagation, and counting a skipped case as agreement is the substitution the campaign exists to catch. div and sqrt are not covered; exact_ops.py can build them the same way"
+  own_error "the first version reported 2471 disagreements and every one was its own: Fraction has no signed zero, so (-0) + (-0) came back +0 and x * 0 lost the sign. All 510 gf8 multiplication disagreements were exactly that. The sign of a zero is not a rounding question and cannot be recovered from the exact value, so it is carried separately, as every oracle here already does"
+}

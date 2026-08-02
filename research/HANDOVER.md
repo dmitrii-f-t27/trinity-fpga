@@ -11,6 +11,26 @@ the measurement lives, and what it costs to act on.
 
 ---
 
+## GoldenFloat now has an independent second witness — decode AND arithmetic
+
+`conformance/gf16_plus_ref.py` was in the repository all along: a second implementation of
+the same seventeen widths, not in `generate_vectors.MODULES`, never used by anything.
+
+- **decode**: 9,041 distinct codes across all seventeen widths, 0 disagreements (pass 192)
+- **add and mul**: 159,430 results, 0 disagreements (pass 193)
+
+The arithmetic is built on `gf16_plus_ref`'s own `decode` and `encode`, so it shares no
+line with `gf_ref.gf_add`. What the two have in common is the specification — exact
+result, then round — which is the thing being checked.
+
+This is the claim the first paper most needed and could not make: its formats were
+verified against one implementation checking itself. **They are not any more.**
+
+Two limits, stated rather than buried. Specials are skipped, not passed — 238 of them —
+because this witness does not model NaN propagation. And `div`/`sqrt` are not covered
+here; `conformance/exact_ops.py` can build them on `gf16_plus_ref` the same way, and that
+is the obvious next step.
+
 ## 1. Must change — a reviewer would catch these
 
 | # | paper | change | why | cost |
