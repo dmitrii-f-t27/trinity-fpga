@@ -19,6 +19,10 @@ a regeneration or a withdrawal.
 """
 from __future__ import annotations
 
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from artefacts import artefact_dir      # noqa: E402
+
 import argparse
 import json
 import os
@@ -39,8 +43,8 @@ mpmath.mp.prec = 200
 import takum_log_ref as T                               # noqa: E402
 
 DEFAULT = os.path.join(
-    "/private/tmp/claude-501/-Users-playom-trinity-fpga",
-    "3a885a60-490c-4733-abfd-86bfa298080d/scratchpad/takum8.json")
+    artefact_dir(),
+    "takum8.json")
 
 
 def exact_value(fmt, raw):
