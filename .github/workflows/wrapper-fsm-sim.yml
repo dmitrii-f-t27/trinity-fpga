@@ -14,6 +14,8 @@ on:
       - 'fpga/openxc7-synth/corona_decode_*_ax7203.v'
       - 'fpga/vivado/gf*_clean_ax7203.v'
       - 'fpga/openxc7-synth/gf_adder_param.v'
+      # the scripts this job runs: fixing a check must re-run it
+      - 'conformance/wrapper_fsm_audit.py'
       # the decoders its testbenches instantiate live in the submodule; only a
       # pointer bump is visible to this repository's path filter
       - 'external/tt-trinity-corona'

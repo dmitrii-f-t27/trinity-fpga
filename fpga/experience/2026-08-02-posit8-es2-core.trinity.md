@@ -69,7 +69,90 @@ Simulation is explicitly **not** one of the four by this project's own standard,
 until the board runs, the honest position is unchanged: the Tier-E row `posit8 256/256`
 proves posit(8,0), and the count of packs with board-verified decode is **45, not 46**.
 
-## Risk to watch on the next synthesis run
+## Measured 2026-08-03 — the risk below did not bite
+
+| core | es | LUTs |
+|---|---|---|
+| `posit8_decode` (legacy, `external/tt-trinity-corona`) | 0 | **45** |
+| **`posit8_es2_decode`** (this one) | **2** | **103** |
+| `posit16_decode` alone | 2 | 98 |
+
+Yosys 0.63, `synth_xilinx -abc9 -nodsp`, whole-design totals.
+
+So the correct-format core costs **58 LUTs more** than the legacy one — 2.3×, which
+sounds like a lot and is not. The XC7A200T has 134,600 LUTs; 103 is **0.08 %** of the
+part. There is no area argument against decoding the format the pack describes.
+
+The 103-vs-98 gap is the wrapper's own boundary, not waste: tying the low byte to zero
+lets yosys fold some of the 16-bit path, and the 8-bit port adds a little back.
+
+**This settles handover question 1.** The choice was: re-synthesise an es=2 core, or
+record that the silicon proves posit(8,0) and drop board-verified decode from 46 to 45.
+Re-synthesis costs 58 LUTs. Take it.
+
+What still needs the board: a CI run URL, the bitstream SHA-256, a UART log and the
+IDCODE. Simulation and synthesis are neither of the four.
+
+## It routes — bitstream built 2026-08-03
+
+The one thing synthesis could not answer: whether the es=2 cell places and routes on
+this part. It does.
+
+| | |
+|---|---|
+| CI run | https://github.com/gHashTag/trinity-fpga/actions/runs/30764181024 |
+| conclusion | **success** |
+| seed | **2** of a possible 8 |
+| artifact | `corona-decode-bitstream-corona_decode_posit8_es2_ax7203` |
+| bitstream | 9,730,797 bytes |
+| **SHA-256** | `f305dc65d3edc8b827fefd0adde1bb5e9818f7d65cd32f34bd74dc17d2c7143c` |
+
+Seed 2 matters. `takum64/32` exhausted all eight seeds and never routed, which is why
+that family is not Tier-E; this cell found a clean route on the second attempt, so it is
+not marginal.
+
+**Two of the four Tier-E links are now in hand** — a public CI run with its URL, and the
+SHA-256 of the specific bitstream. The remaining two need the board and nothing else: a
+UART log reading `HW RESULT: N/N bit-exact (fails=0)` at 160000 baud, and a matching
+IDCODE `0x13636093`.
+
+Flash it with the bitstream above. **Which host drives it is not recorded anywhere**,
+and that is worth knowing before someone goes looking: `conformance/` holds
+`posit16_`, `posit32_` and `posit64_decode_conformance_ax7203.py` but **no posit8 one**,
+and the existing posit8 proof in issue #199 reports its UART result without naming the
+script that produced it.
+
+What is certain is that the harness is byte-for-byte identical between the two cells —
+same STARTUPE2 clock, same 160000-baud framing, same five-byte response — so whatever
+drove the es=0 proof drives this one unchanged. Only the expected values differ, and
+those come from the posit8 pack, which `research/crossval_softposit.py` has already
+verified against SoftPosit on all 255 comparable codes.
+
+## The board cell, 2026-08-03
+
+`corona_decode_posit8_es2_ax7203.v` is a clone of the existing wrapper with one line
+changed -- it instantiates `posit8_es2_decode` instead of `posit8_decode`. The
+STARTUPE2 clock, the 160000-baud UART framing and the LED map are byte-for-byte the
+original, so a diff between the two files shows what differs about the format and
+nothing about the harness.
+
+| cell | es | LUTs | FF |
+|---|---|---|---|
+| `corona_decode_posit8_ax7203` (existing) | 0 | **130** | 139 |
+| `corona_decode_posit8_es2_ax7203` (new) | 2 | **187** | 139 |
+
+57 LUTs apart, which is the 58-LUT core difference almost exactly -- the flip-flop count
+is identical because the harness is. 187 LUTs is **0.14 %** of an XC7A200T.
+
+A second cell rather than an edit, deliberately: the existing wrapper's proof in issue
+#199 is a valid Tier-E result about posit(8,0), and overwriting it would destroy evidence
+to fix a labelling problem.
+
+**What is done: synthesis.** What is not: place-and-route, a bitstream, its SHA-256, a
+CI run, a flash, a UART log, an IDCODE read. Synthesising is the cheapest of those and
+the only one that does not need the board or the openXC7 flow.
+
+## Original risk note, kept for the record
 
 The wrapper instantiates the full 16-bit datapath to decode 8 bits, so the LUT cost will
 be `posit16_decode`'s, not a smaller posit8's. If area matters on the part, that is the

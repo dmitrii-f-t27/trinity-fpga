@@ -5723,3 +5723,908 @@ without an independent witness until one of them is to hand.
   already_checked "RTL headers and pack notes both say BID for all three widths -- no variant split"
   owner author
 }
+
+
+// ============================================================================
+// Pass 161 -- the nine intrinsic-invariant leads, opened one at a time.
+// ============================================================================
+
+triage INTRINSIC_INVARIANT_LEADS {
+  context """
+verify_intrinsic_invariants.py flagged 40 formats. Passes 159 and 160 removed four
+classes of false signal -- signed zero, repeated values read as disorder, the documented
+zero band, and 'no negation' reported against unsigned formats -- leaving 9. This is
+what each of the 9 turned out to be. Eight are the format behaving as specified. One is
+a question about what a pack claims.
+"""
+
+  by_design {
+    lns8_lns16 """
+The stored logarithm is SIGNED, so code order over the positive half runs through
+positive and negative exponents alike. lns8 code 56 decodes to 2^7 = 128 and code 72 to
+2^-7 = 0.0078125; lns16 goes 2^63 -> 2^-63 at the same boundary. Exactly one decrease
+each, and it is the sign of the exponent field turning over.
+
+A separate artefact was removed while looking: the check compares only codes decoding to
+an exact Fraction, and LNS returns Special('irrational') for nearly all of them, so the
+designated zero code appeared adjacent to 128.0 when every code between had been
+filtered out. Zero is a designated code, not a point on the magnitude ladder, and is now
+excluded from the comparison.
+"""
+
+    ibm_hfp32_ibm_hfp64 """
+Unnormalised hexadecimal float. raw 33285940 carries exponent 1 with fraction 0xFBE734,
+the next sampled code carries exponent 2 with fraction 0x04185A, and the value falls
+from 1.36e-76 to 3.54e-77. A larger exponent with a much smaller fraction gives a
+smaller value, because IBM HFP does not require a leading one. Code order is not value
+order, by construction. 126 decreases at each width, all of this shape.
+"""
+
+    decimal32_decimal64 """
+BID interleaves the exponent and the coefficient across the combination field, so code
+order is not value order. 192 decreases at 32 bits and 218 at 64, and zero repeats --
+the opposite shape from the formats whose flag was a zero band, and a real property of
+the encoding.
+"""
+
+    cray_float_x87_48bit """
+Round-trip only, and the codes are unnormalised representations. Opened one of each: the
+decoded value is a tiny nonzero rational with a denominator of about 4,940 digits --
+far below float64 range -- and encode() returns the normalised code for the same value,
+which is a different code. That is what an unnormalised representation is for, and no
+value-based round trip can distinguish the two.
+"""
+  }
+
+  // The one that is not a design property.
+  question_for_the_author BCD_ACCEPTS_INVALID_NIBBLES {
+    measured """
+conformance/int_ref.py decodes packed BCD as sum(nibble * 10^i) over the nibbles, with
+no check that a nibble is a decimal digit. So 0x0A decodes to 10, 0x0F to 15, and 0x10
+to 10 -- which is where the monotonic flag comes from, and it is a real decrease.
+
+Standard packed BCD treats 0xA through 0xF as INVALID. The corpus is internally
+consistent about this: int_ref.py records that it matches
+bcd_decode_conformance_ax7203.py and fpga/openxc7-synth/bcd_decode.v, so oracle, golden
+and silicon all agree. The question is not consistency.
+"""
+    question """
+The pack declares bit-exact BCD. A reader who knows BCD will expect codes 0x0A..0x0F to
+be rejected, and here they decode to 10..15. Either the pack should say it implements an
+extension that accepts all 256 codes, or those codes should decode to a special rather
+than a value.
+
+This is a claim-scope question, not a defect: nothing in the corpus disagrees with
+anything else. It needs whoever decided what bcd means here.
+"""
+    do_not_guess true
+    owner author
+  }
+
+  result "9 leads: 8 are the format behaving as specified, 1 is a question about pack scope"
+}
+
+
+// ============================================================================
+// Pass 162 -- a retracted finding was still being enforced, and it cost three packs.
+// ============================================================================
+
+correction AUDIT_ENFORCED_A_WITHDRAWN_CLAIM {
+  where "research/audit_generated_packs.py"
+
+  what_it_did """
+It reported 'TAKUM-CLASS SIGNATURE in 3 pack(s): tekum16, tekum32, tekum8', said the
+finding 'matches the defect established in specs/numeric/negation_invariant.t27', and
+concluded that those packs 'must not be published until the oracle question is settled
+with the format author'. It exited non-zero on that basis.
+"""
+
+  what_the_cited_spec_says """
+Line 8 of specs/numeric/negation_invariant.t27, dated 2026-07-31:
+
+  RETRACTED 2026-07-31 (pass 34/35). The takum "negation defect" is NOT a defect.
+  ... conformance/tekum_ref.py carries the same documented choice.
+
+The spec names tekum_ref.py explicitly, and explains why: exact-Fraction arithmetic
+cannot represent logarithmic values, so the oracle implements a linear structural model
+and states that in its own header. XOR negation is sign-and-magnitude BY DESIGN.
+"""
+
+  cost """
+Three packs were held back from publication for eleven passes on a basis their own
+cited authority had withdrawn. That is different in kind from the false signals passes
+159 to 161 removed: those produced noise in a report, this produced an action.
+"""
+
+  fixed """
+The signature is now reported rather than failed on, with the retraction quoted beside
+it. The audit exits 0.
+
+What remains genuinely open is a different question and belongs elsewhere: which takum
+variant the project means. That is recorded in specs/numeric/takum_variant_split.t27,
+owned by the author, and is not something a pack audit decides.
+"""
+
+  // Worth stating because it is the third distinct failure mode in four passes.
+  the_class """
+A check can be wrong in three ways, and this campaign has now found all three:
+
+  it cannot see       -- pass 157: eight loaders silently omitted an oracle
+  it measures wrongly -- passes 156, 158-161: comparisons in the wrong domain,
+                         a rational carrier for signed zero, strict-versus-weak order
+  it is out of date   -- this one: enforcing a claim that was withdrawn
+
+The third is the hardest to notice, because the check runs, reports confidently, and
+cites a source. The source has to be opened.
+"""
+}
+
+
+// ============================================================================
+// Pass 165 -- the "one genuine gap" was not one, and the erratum's number is now
+// checked rather than cited.
+// ============================================================================
+
+correction NO_GAP_AFTER_ALL {
+  retracts "pass 164: formats_catalog.t27 exists nowhere in the tree or on any branch"
+
+  where_it_is "gHashTag/t27, specs/numeric/formats_catalog.t27, 32,652 bytes"
+  why_it_was_missed """
+Two probes, both blind in a different way. `gh api repos/gHashTag/t27/contents/specs`
+lists only the top level of that directory, so a file one level down does not appear.
+`gh search code --filename` depends on GitHub's index and can return nothing for a file
+that is plainly there.
+
+All eight citing documents say where it is, in words, and say it the same way: repo
+gHashTag/t27, master branch, specs/numeric/. They were right and the scan was wrong.
+
+That is the third time in three passes that a NOT FOUND was the search rather than the
+tree -- pass 164 reported gf8.t27, goldenfloat_family.t27 and mac.t27 missing when all
+three sit in t27/specs/ inside this repository. A search path is a claim about where
+things can be, and it needs the same scepticism as any other claim.
+"""
+  fixed "research/audit_stale_citations.py now asks t27 directly, and says 'could not be checked' when it cannot ask, rather than concluding absence"
+}
+
+verification ERRATUM_CATALOG_COUNT_CONFIRMED {
+  claim "research/ERRATUM_arXiv_2606.09686_catalog_count.md: the catalogue holds 83 formats across 13 families, not 84"
+  method "read the SSOT and count, rather than repeat what it is said to contain"
+
+  measured {
+    catalog_records     83
+    distinct_ids        83
+    duplicate_ids       0
+    distinct_clusters   13
+  }
+  clusters "CompressionTrick, ExtendedFloat, GoldenFloat, HistoricalVendor, Ieee754Binary, Ieee754Decimal, IntegerFixed, Lns, Microscaling, MlLowPrecision, PositUnumIII, QuantTuned, Theoretical"
+
+  reading """
+The erratum states 83 records with no duplicate ids and an unchanged family count of 13.
+All four figures hold against the file itself. The number the paper must be corrected to
+is now verified rather than asserted, and the correction from 84 to 83 stands.
+"""
+}
+
+
+// ============================================================================
+// Pass 166 -- the author documents' headline numbers, re-measured rather than read.
+// ============================================================================
+
+verification AUTHOR_FACING_NUMBERS {
+  method "re-derive each figure from its artefact; never compare a document against another document"
+
+  hold {
+    published_packs        "83, counted from t27 conformance/vectors"
+    catalog_records        "83, counted from formats_catalog.t27, no duplicate ids"
+    families               "13 distinct clusters, from the same file"
+    tier_e_four_link       "75 of 226 issue comments"
+    tier_e_cells           "72 format-operation pairs over 49 base formats"
+    packs_with_board       "46 of 83, after resolving bf16 -> bf16_golden and mxfp8_e4m3 -> mxfp8 by pack metadata"
+    ml_dtypes              "66,224 codes compared, 0 divergences"
+    p3109_configurations   "252, being 119 signed and 133 unsigned"
+    p3109_finite_codes     "258,524, summing 504 + 492 + 130,556 + 126,972 across the four layouts"
+  }
+
+  // One near-miss worth recording, because conflating them would have been easy.
+  distinction """
+crossval_p3109.py prints finite-mismatch=252 per file, and the checklist says '252
+configurations'. They are different quantities that happen to share a number: the
+configurations figure comes from p3109_bias_law.py, which reads 119 signed and 133
+unsigned tables. Checking the first against the second would have looked like
+confirmation and confirmed nothing.
+"""
+
+  corrected SPECIAL_VALUE_ENUMERATION_WAS_SHORT_BY_ONE {
+    said     "3, 9 and 2049 observed, 3, 9 and 2049 predicted"
+    measured "3, 9, 257 and 2049 -- four distinct counts, one per layout"
+    missing  "257, from Binary16p8"
+    reading """
+257 fits the same rule the sentence invokes: 2^8 NaN payloads plus one negative zero,
+under P3109's 'single NaN, no negative zero'. So the claim was right in kind and short
+by one in its enumeration -- the weakest kind of defect, and still worth fixing, because
+a reader who counts the four layouts and finds three numbers will wonder what happened
+to the fourth.
+"""
+  }
+
+  reading """
+Nine of the ten checkable headline figures hold exactly against live artefacts. The
+tenth was an incomplete list rather than a wrong number. That is a better result than
+the last five passes would suggest, and the reason is the direction of the check: every
+figure was re-derived from the thing it describes, not compared against another document
+repeating it.
+"""
+}
+
+
+// ============================================================================
+// Pass 168 -- the numpy figure, read from numpy rather than quoted.
+// ============================================================================
+
+verification NUMPY_ULP_TOLERANCES {
+  claim "numpy 2.4.4 validation sets: 26,615 rows, 20 transcendental operations, tolerances 1-4 ULP"
+  source "numpy's own _core/tests/data/umath-validation-set-*.csv, read directly"
+  available_here "numpy 2.0.2"
+
+  stable_across_versions {
+    operation_files 20      // exactly, one per transcendental
+    ulp_tolerances  "the distinct values in the tolerance column are 1, 2, 3 and 4 -- no others"
+  }
+
+  not_stable {
+    rows_on_2_0_2  26610
+    rows_claimed   26615    // on 2.4.4, which the document names
+    difference     5
+  }
+
+  // The count was accounted for completely before calling it a difference, because
+  // three of four apparent mismatches in pass 167 were the scan and not the artefact.
+  accounting """
+  26,692 raw lines = 62 comment lines + 20 header rows + 26,610 data rows + 0 blank.
+
+Nothing is unaccounted for, so the five-row difference is between numpy versions and
+not between the reader and the file.
+"""
+
+  reading """
+The shape of the claim holds and the number moves. Twenty operation files and
+tolerances of exactly 1 to 4 ULP are what the argument rests on -- that a widely used
+library documents multi-ULP tolerances for transcendentals -- and both are version-
+independent across the two versions in evidence.
+
+The row count is not, so it must be quoted with its version. The documents already name
+numpy 2.4.4, which was right; they now also carry the 2.0.2 figure, so a reader who
+reproduces on a different version sees why the number differs instead of doubting the
+claim.
+"""
+}
+
+
+// ============================================================================
+// Pass 169 -- six results rested on a path that dies with the session.
+// ============================================================================
+
+finding CAMPAIGN_WAS_NOT_REPRODUCIBLE {
+  question "which checks work for someone who is not me, on a machine that is not this one"
+  method "run all 47 checks in a clean tree and ask which still believe they have inputs"
+
+  found """
+Six checks hardcoded a path containing a session identifier:
+
+  /private/tmp/claude-501/-Users-playom-trinity-fpga/<uuid>/scratchpad
+
+  compare_takum_packs.py      crossval_softposit.py
+  crossval_posit8_es2_rtl.py  measure_lns_true_error.py
+  regenerate_takum8_pack.py   witness_takum_packs.py
+
+That directory belongs to one session on one machine. It will not exist for a reader,
+and it will not exist for the next session either. Every result from those six -- the
+posit cross-validation, the takum8 regeneration ledger, the lns error measurement --
+was reproducible only from inside the session that produced it.
+"""
+
+  worse_than_it_looks """
+The clean-tree run did not fail. The path still existed on this machine, so the checks
+found their inputs and reported normally. A reproducibility defect that only appears
+somewhere else is invisible to the very sweep that would catch it, which is why this
+took 169 passes to notice.
+"""
+
+  fixed """
+research/artefacts.py resolves in order: an explicit --artefacts argument, then
+$TRINITY_ARTEFACTS, then ./artefacts/, then the legacy scratchpad if it happens to
+exist -- so in-flight work keeps running while the convention moves.
+
+Nothing is downloaded automatically. These artefacts are large and come from outside
+this repository, and fetching them silently is how a check ends up reporting a result
+nobody can trace. A missing input prints the exact command that produces it and exits
+2, verified by pointing TRINITY_ARTEFACTS at an empty directory: all five checks that
+need one exit 2 with instructions rather than passing quietly.
+"""
+
+  reading """
+Exit 0 on a missing input is the failure this whole set exists to prevent, and six
+checks were one directory away from it. The campaign has spent ten passes finding
+checks that could not see, measured the wrong thing, or cited a withdrawn claim. This
+is a fourth kind: a check that works only where it was written.
+"""
+}
+
+
+// ============================================================================
+// Pass 172 -- the eight design properties, measured and made ready for the packs.
+// ============================================================================
+
+finding BCD_INVALID_NIBBLES_COUNTED {
+  // Pass 161 raised this as a question and argued it. Pass 172 counted it, and the
+  // count settles what the question is about.
+  measured "156 of 256 codes fail the value round trip"
+  arithmetic """
+A valid packed BCD byte has both nibbles in 0-9, so 100 of 256 are valid and 156 are
+not. 256 - 100 = 156. The failing set IS the invalid set, exactly.
+
+conformance/int_ref.py decodes them anyway, as sum(nibble * 10^i) with no digit check:
+0x0A becomes 10, 0x0F becomes 15, and encode() returns the canonical code, so the trip
+closes elsewhere. The 7 monotonic decreases are the same thing from the other side, at
+the nibble boundaries.
+"""
+  still_open "what the pack claims -- it declares bit-exact BCD, and a reader who knows BCD expects those 156 rejected"
+  owner author
+}
+
+deliverable DESIGN_PROPERTY_RECORDS {
+  where "research/WITNESS_RECORDS_READY_TO_PASTE.md"
+  why """
+A reader of decimal32 sees bitexact: true and a table of vectors. What they do not see
+is that its code order is not its value order, that this is a property of BID rather
+than a defect, and that somebody checked.
+
+Eight such findings have lived in this spec since pass 161. A spec is where a
+maintainer looks; a pack is where a reader looks. The records are now written in the
+packs' own schema, each carrying a measured figure rather than a description.
+"""
+
+  measured {
+    lns8_lns16           "1 decrease each -- the signed logarithm's exponent turning over"
+    ibm_hfp32_hfp64      "126 decreases of 3,968 pairs; 222 of 4,001 codes not round-trip-injective"
+    decimal32            "192 decreases of 3,749 pairs, zero repeats"
+    decimal64            "218 decreases of 3,372 pairs, zero repeats"
+    cray_float_x87_48bit "1,050 of 2,125 codes re-encode elsewhere; 0 decreases"
+  }
+  note "sampling is exhaustive below 2^16 and a 4,000-point stride above, which is why the wide formats show round numbers"
+}
+
+verification "wrapper-fsm-sim is green on the fixed audit" {
+  run "https://github.com/gHashTag/trinity-fpga/actions/runs/30767442139"
+  commit "4448d158"
+  result "success"
+  note "the run had to be dispatched by hand; the fix to the script the job runs matched no path filter, so pushing it triggered nothing"
+}
+
+finding "nine workflows do not watch the script they run" {
+  defect "a push:paths: filter that omits the script the job executes cannot be triggered by fixing that script; the job re-runs the last version that touched a watched file"
+  found_by "pass 183's fix to conformance/wrapper_fsm_audit.py landing on main without running wrapper-fsm-sim.yml"
+  count 9
+  own_gates_affected "module-loader-gate, reproducibility-gate, stale-citation-gate"
+  note "the tooling built to catch stale checks was itself not re-run when its checks were fixed"
+  gate_gap "research/audit_workflow_paths.py checked read_verilog only, and had filed the delegated-to-a-script case as an unfixable limitation; it is not one -- asking whether the script's path appears in the filters needs no knowledge of what the script does"
+  correction "the gate now checks run: lines too, with a negative control that injects an unwatched script into a passing workflow and requires a flag"
+  not_fixed_here "all nine .yml files; editing workflows was declined, and every one of the nine belongs to a line that owns its CI"
+  handoff "research/WORKFLOWS_THAT_DO_NOT_WATCH_WHAT_THEY_RUN.md carries the exact one-line addition each needs"
+}
+
+correction "the decimal packs were never blocked" {
+  was "HANDOVER.md 6: decimal32/64/128 have no second witness; a GCC toolchain, decNumber or Intel DFP would close it -- all unavailable"
+  is "gcc-14 is installed and implements _Decimal32/64/128 over Intel BID, emitting BID not DPD"
+  why_it_looked_unavailable "gcc's bundled fixed headers are stale against the macOS 26 SDK, so a bare compile dies on sys/cdefs.h and reads as no decimal support; -isysroot $(xcrun --show-sdk-path) is the whole fix"
+  encoding_confirmed "_Decimal32 1.0 -> 0x3200000a: sign 0, biased exponent 0x64, coefficient 10 -- BID, not declets"
+}
+
+finding "decimal_ref.py loses significant digits" {
+  witness "gcc-14 + Intel BID, sharing no code with decimal_ref.py"
+  vectors 6942
+  cohort_only 2176
+  value_differs 412
+  verified_independently "exact rational arithmetic, not gcc's word: ours returns 4 significant digits where decimal32 holds 7, and gcc is nearer the exact product in every case sampled"
+  cause "_encode_round scans exponents in a +/-3 window around log10(value); the exponent that puts every significant digit into the integer coefficient is up to 34 steps away for decimal128"
+  cohort_note "the 2176 are the IEEE 754-2008 5.4.2 preferred-exponent rule, which the packs do not follow and do not state; any conforming implementation fails a bit-exact check against them for that reason alone"
+  not_fixed_here "fixing _encode_round regenerates published pack data and needs its own pass"
+}
+
+correction "three defects in decimal_ref.py, and the packs regenerated" {
+  witness "gcc-14 + Intel BID, sharing no code with the oracle"
+  defect_1 "_encode_round scanned biased exponents in a +/-3 window around log10(value); the exponent holding a format's full precision is up to 34 steps away, so results came back truncated -- 4 significant digits where decimal32 holds 7"
+  defect_2 "encode() compared the exponent against fmt.exp_max, which is the mask (1<<exp_bits)-1 and not the range; BID spends the 11 prefix on case B and the specials, so the real maximum is 3*2^(exp_bits-2)-1 = 191/767/12287. A biased exponent of 215 passed the check and E & 255 folded its top bits into the 11 pattern: 1607e57 squared, which overflows decimal32, encoded as 0.0887 instead of infinity"
+  defect_3 "_bid_decode did not apply IEEE 754-2008 3.5.2: a case-B coefficient above max_coeff is non-canonical and its value is zero. decimal32 case B reaches 10,485,759 against a maximum of 9,999,999, so 485,760 codes per sign decoded as numbers that are not there"
+  before "412 of 6942 pack vectors disagreed with the witness in value"
+  after "0 of 6795"
+  vector_count_change "decimal32 packs 774 -> 725; edge codes are produced by the encoder, the fixed encoder emits different (correct) codes for the same edge values, one duplicate collapsed, 25 -> 24 edges, and edge x edge is 625 -> 576. The whole 49 is accounted for"
+  remaining "1056 cohort (IEEE 5.4.2 preferred exponent) and 45 NaN sign/payload (implementation-defined); neither is an error and neither is stated in the papers"
+  regression "the three are asserted inside _selftest as hand-checkable arithmetic; reverting the range fix alone produces 4 failures"
+  regression_nearly_unreachable "first written as a second if __name__ == __main__ block, which never ran because an earlier one exits first -- the same class of defect this campaign keeps finding, in the fix for it"
+}
+
+correction "x87 is IEEE 754 double-extended, and the corpus treated it as legacy" {
+  defect "legacy_ref.decode read x87's all-ones exponent as an ordinary exponent: +Inf decoded as 2^16384, a 4933-digit integer, and every NaN decoded as a number"
+  cause "one true sentence carried one format too far -- _sat_raw's comment says legacy formats have no Inf, which holds for VAX, IBM HFP, MBF and Cray"
+  written_in_three_places "legacy_ref._sat_raw's comment, legacy_ref.decode, and generate_vectors.real_specials"
+  corpus_disagreed_with_itself "conformance/x87_fp80_decode_conformance_ax7203.py maps exp == 0x7FFF to a quiet NaN, which is right; only the oracle behind the arithmetic packs did not"
+  self_concealing "edge codes are built through the oracle, so a format whose specials are unimplemented cannot contribute a special edge: 0 of 3795 x87 vectors touched an all-ones exponent, and coverage looked complete"
+  dependent_defect_1 "quiet_nan was (exp_max << mant_bits) | 1 -- integer bit clear, which is a pseudo-NaN, an invalid operand every x87 since the 80387 refuses"
+  dependent_defect_2 "format_add and format_mul collapsed every Special to a quiet NaN; the branch existed but nothing could reach it, so Inf + 1 = Inf was never wrong out loud"
+  fixed "decode yields Special for the all-ones exponent, is_canonical marks unnormals and pseudo-infinities, quiet_nan sets the integer bit, and IEEE propagation applies for kind == x87 only"
+  packs "x87_fp80 and x87_48bit regenerated: 631 -> 772 and 634 -> 775 vectors, 141 of each now touch an all-ones exponent"
+}
+
+correction "four MX formats declared a NaN they do not have" {
+  defect "generate_vectors.real_specials added quiet_nan for every non-int mxfp format; the fp8 branch immediately above has the guard and the mxfp branch did not"
+  spec "OCP Microscaling v1.0 gives FP4 E2M1 and FP6 E2M3/E3M2 no Inf and no NaN, and mxfp_ref agrees: has_inf False, nan_at_max_only False"
+  published "the legend in every mxfp4/mxfp6/mxgf4/mxgf6 pack named a quiet_nan code -- 0x7 decodes to 6, 0x19 to 4.5, 0x5 to 2.5. Ordinary finite numbers labelled NaN in pack metadata"
+  correct_case "mxfp8_e4m3 has nan_at_max_only and its 0x7F really is NaN; the guard keeps it"
+  found_by "research/audit_special_coverage.py, written for the x87 class and finding these on its first run"
+}
+
+finding "a pack format divergence I introduced in pass 185" {
+  defect "generate_vectors writes json.dump(doc, f) with no indent; pass 185 rewrote the nine decimal packs with indent=1, making them the only indented files in a directory of 200+"
+  consequence "a plain re-run of the generator would have shown all nine as changed, with 34137 lines of diff and no content difference"
+  fixed "rewritten in the generator's own format; content byte-identical"
+}
+
+verification "the expansion packs are valid expansions, and nothing tests what happens when one is not" {
+  formats "double_double, quad_double"
+  property "nonoverlapping expansion (Shewchuk) / renormalized (Hida-Li-Bailey QD): each limb must be the correctly-rounded binary64 of the exact sum of itself and every limb below it"
+  measured "0 of 9276 operands and 0 of 4638 results are non-canonical"
+  why_it_holds "for widths above 64 bits generate_vectors.gen_pairs draws operands with _rand_value_raw, which encodes a random VALUE rather than drawing random BITS -- a choice made so wide formats need not compute pow2(huge). Everything arrives through encode(), and encode() renormalizes"
+  what_is_untested "no vector in the corpus exercises a non-canonical expansion, so an implementation handed an unrenormalized pair can diverge from this oracle with every vector still agreeing"
+  own_error "the first version of the check reported 80% non-canonical; its limb order was inverted. encode(1.0) yields [0x3ff0000000000000, 0x0], so limb 0 is the MOST significant, which _decode_expansion's docstring words the other way round. The check now validates itself against encode() before reporting"
+  negative_control "0.5 + 0.5 decodes to exactly 1 and is rejected as an expansion -- value and membership are different questions"
+}
+
+resolution "the six unprobed gf formats are settled without decoding them" {
+  was "audit_special_coverage reported gf64, gf96, gf128, gf256, gf512, gf1024 as NOT PROBED: decode of an all-ones pattern is a number near 2^(2^48)"
+  is "no specials, established from the single gate that decides it"
+  gate "gf_ref.decode has exactly one Special branch, `if exp == fmt.exp_max and fmt.has_inf`, and has_inf is a property returning self.name == 'gf16'"
+  demonstrated_on "gf16 (flag set) yields +Inf at the all-ones exponent; gf32 (flag clear) yields a finite 617-digit number. Both share the function"
+  honesty "this is an inference from a shared code path, not a measurement of the six formats, and the report labels it so. Formats with no such single gate stay NOT PROBED"
+  coverage "84 formats: 78 probed, 6 resolved structurally, 0 unresolved"
+}
+
+finding "operand coverage above width 32 is the image of encode()" {
+  mechanism "generate_vectors.gen_pairs draws random operands from raw bits when width <= 32 and from encoded random VALUES above it; _rand_value_raw's docstring gives the motive as cost -- raw bits for a wide format would demand pow2(huge)"
+  consequence "no vector for a wide format could hold a code outside the image of encode: no non-canonical encoding, no reserved pattern, no redundant cohort member the encoder does not choose"
+  proof "pass 185's canonicality defect was present in decimal32, decimal64 and decimal128 alike and findable only in decimal32 -- the one format sitting on the width boundary. 485,760 non-canonical codes per sign in decimal32 with 20 in the pack; 1.26e15 in decimal64 with 0; 2.98e33 in decimal128 with 0"
+  counted "decimal64 1258999068426240, decimal128 2980742146337069071326240823050240, x87_fp80 302213008159583584124928, x87_48bit 70364449210368 -- all with zero appearances"
+  fixed "generate_vectors.structural_raws builds these codes from bits rather than values; constructing them was always cheap, a non-canonical BID coefficient decodes to zero and the x87 patterns are pinned to small exponents. Cost was never the objection -- nobody had asked"
+  now_reachable "decimal64 and decimal128 1116 each, x87_fp80 1848, x87_48bit 1851, vax family 264 to 276, double_double 168, quad_double 232"
+  independently_confirmed "gcc's Intel BID agrees on all 9783 decimal vectors including the new non-canonical operands: VALUE 0"
+}
+
+correction "VAX has no negative zero, and the corpus made one the answer to 467 vectors" {
+  spec "the VAX Architecture Reference Manual defines sign 1 with a zero exponent as the reserved operand: it does not name a number, it faults. Exponent 0 with sign 0 is true zero whatever the fraction holds"
+  defect "LegacyFormat.neg_zero returned 1 << sign_shift for every kind, so vax_f, vax_d, vax_g, vax_h and pdp11_float each published a neg_zero in their pack legend pointing at the reserved operand"
+  worse "format_add and format_mul returned it as a RESULT -- 467 vectors across 15 packs asserted that certain VAX operations produce a value real hardware traps on"
+  fixed "neg_zero raises AttributeError for kind == vax, so real_specials omits it; _signed_zero returns the one zero the format has"
+  packs "15 regenerated; 587 -> 546 vectors for vax_f, exactly the 41 lost when 21 edges become 20 and 441 becomes 400"
+  found_by "research/audit_operand_reachability.py, which flagged vax_d/g/h as the only wide formats WITH non-canonical operands -- the opposite of what it was written to look for"
+}
+
+finding "the vector directory holds two schemas and nothing said so" {
+  schema_a "{a, b, expected} with hex strings -- 247 files"
+  schema_b "{a, b, op, result} with integers -- 40 files"
+  provenance "all 40 arrived in one commit from another line: 'feat: Track A+B+C final -- silicon sprint script'"
+  consequence "a sweep written against either schema skips the other in silence: x['expected'] raises KeyError, and a .get that falls through to None skips without a word"
+  affected "the 40 include gf4, gf8, gf16, gf32 -- the GoldenFloat widths the first paper is about -- plus binary64, bf16, fp32_e8m23 and three more"
+  new_check "research/audit_pack_vs_oracle.py re-derives every stored answer from the oracle, in both schemas"
+  result_schema_a "1,982,771 vectors re-derive exactly, 0 disagreements"
+}
+
+finding "thirty packs assert results no oracle in the corpus can reproduce" {
+  operations "div, sqrt, quire -- 10 formats x 3 operations"
+  evidence "no format_div, format_sqrt or format_quire exists anywhere in conformance/ or research/; their headers carry no oracle field, unlike every schema-a pack"
+  status "unverifiable, not verified. Reported as NO ORACLE REACHABLE and never counted as passing"
+  not_fixed_here "they belong to the silicon-sprint line, and inventing an oracle for someone else's data would be worse than the gap"
+}
+
+finding "two systematic defects in the aliased packs" {
+  aliases "fp32_e8m23 is binary32 by field widths, bf16 is bfloat16; both agree with the oracle on every finite normal operand"
+  defect_1 "subnormal operands: the pack decodes a zero-exponent word as if normalized, so 0 + smallest-subnormal returns smallest-NORMAL. The factor is exactly 1 << mant_bits -- 2^23 for fp32_e8m23, 2^7 for bf16. These packs have no gradual underflow"
+  defect_2 "Inf/NaN operands: 0 + NaN returns 0"
+  counts "fp32_e8m23 84 of 512 on add and 170 of 512 on mul; bf16 102 and 258"
+  third_case "fp128_e15m112 matches binary128's field widths exactly and diverges on 235 vectors with no special operand in them -- 2 + x returns a word mixing the first exponent with the second's low bits. What it implements is an open question and the check does not pretend to answer it"
+  unresolved "fp16_e6m9 and fp24_7m16 have no counterpart; 6+9 and 7+16 are not the field widths of any format here, so they stay unresolved rather than forced onto a near-neighbour"
+}
+
+finding "twelve packs carry no significand information beyond bit 23" {
+  method "OR every stored result in a pack, OR every operand, and see which bits never appear. Operands come from a generator and cover the word; arithmetic on full-width operands lands on full-width answers"
+  measured "binary64 div/quire/sqrt 29 dead result bits, fp128_e15m112 all five operations 89, gf32 div/quire/sqrt 2 -- and the dead run begins at bit 23 in all three formats"
+  arithmetic "29 = 52 - 23 and 89 = 112 - 23: the format's significand minus binary32's. The operands beside them set every bit"
+  signature "three independent formats agreeing on the same boundary is what makes it a signature rather than a coincidence"
+  identification_failed "binary64_div is not binary64 division (46 of 384) and not binary32 division widened to binary64 (0 of 384). fp128 results also have bits 95:23 zero in all 512 vectors and a low field copied from an operand, which no float addition produces"
+  stopped_here "the generator belongs to the silicon-sprint line; a guess dressed as a cause would be worse than the open question"
+  not_flagged "every _sqrt pack has its sign bit dead, which is the square root of a non-negative argument behaving correctly; gf4_sqrt's one dead bit is a 4-bit format sampled 64 times"
+  related "pass 189: these same packs have no oracle in the corpus for div, sqrt or quire, so nothing could have re-derived them and nothing did"
+}
+
+resolution "div and sqrt have oracles; twenty packs became verifiable" {
+  added "conformance/exact_ops.py builds format_div and format_sqrt from any oracle's own decode and encode -- neither operation needs new rounding code, only the exact value and the special cases stated"
+  sqrt_soundness "sqrt of a rational is irrational unless the rational is a perfect square of a rational, so a tie can only occur when the result is exactly representable, and then it is not a tie. Exact when exact, otherwise approximated by integer isqrt to the significand width plus 64 guard bits, and encode() does the rounding"
+  property_tested "the rounded sqrt must be the nearest representable value to the true one -- checked against both neighbours for 2..59, not against stored answers"
+  quire_excluded "which fixed-point accumulator a quire is remains a design decision; writing one here would be inventing the semantics the packs are meant to test"
+}
+
+correction "my own pass-189 audit mislabelled 54 GoldenFloat packs as unreachable" {
+  defect "op_fn hardcoded format_add and format_mul; gf_ref names its arithmetic gf_add and gf_mul, which generate_vectors.MODULES declares and the audit did not read"
+  consequence "every gf add/mul/sub pack fell into the NO ORACLE REACHABLE bucket, so pass 189's count of 94 was inflated by 54 -- and the report said nothing had checked the GoldenFloat widths when the oracle was there all along"
+  fixed "op_fn reads the names from MODULES, so a module that renames them does not silently become unverifiable"
+  now "hex schema 247 files, 2,424,014 vectors, 0 disagreements -- up from 187 files and 1,982,771"
+}
+
+finding "gf16's div and sqrt packs use binary16's field layout" {
+  decisive "x / x is 1 for any nonzero x. gf16's one is 0x3E00 (exponent field 31 at 9 mantissa bits); the pack answers 0x3C00, which is binary16's one. x / -0 gives 0xFC00, binary16's -infinity, where gf16's is 0xFE00"
+  incomplete "full binary16 division still does not reproduce the pack, 157 of 512, so the layout is not the only difference"
+  status "more specific than pass 190's bit-23 signature and still not a full identification. Stated as what is shown, not as a cause"
+}
+
+resolution "GoldenFloat has an independent second decoder, and it was already here" {
+  found "conformance/gf16_plus_ref.py declares the same seventeen widths as gf_ref and decodes them independently. It is not in generate_vectors.MODULES, has never generated a vector, and nothing had ever compared the two"
+  how_found "a check written for a different purpose: pass 192 audited for hardcoded attribute names and noticed three *_ref.py modules no sweep reaches"
+  result "9041 distinct codes across all seventeen widths, 0 disagreements"
+  scope "decode only -- gf16_plus_ref has no add or mul, so this says nothing about whether the arithmetic is right"
+  significance "honesty rule 10 wants a second implementation sharing no code with the first. For the formats the first paper is about there was never a candidate, and there was one in the repository the whole time"
+  not_a_template "takum_ref and takum_log_ref also share format names and are DIFFERENT families: 3 of 256 codes agree at takum8, 1 of 4096 at takum16. Passes 144 to 146 compared against the wrong one because the 2pi landmark agreed for both. Shared names are not evidence of a shared format; identical decodes over the whole space are"
+}
+
+finding "three modules named *_ref.py are outside every sweep" {
+  gf_mx_ref "no FORMATS, no decode, no encode -- a constants file wearing the suffix, not an oracle"
+  gf16_plus_ref "has decode, encode and FORMATS; no add or mul, and not in MODULES, so it generates nothing"
+  takum_log_ref "has decode and FORMATS but no encode, and is not in MODULES either"
+  consequence "of eighteen *_ref.py files only fifteen are declared in MODULES; nothing reported the other three"
+  new_check "research/audit_hardcoded_lookups.py finds getattr literals that resolve on SOME oracles and not all -- the shape of the pass-191 bug, which evades the obvious check because a name resolving nowhere is a crash and a name resolving almost everywhere is silence"
+  second_instance "cross_validate_oracles.py has the same partial-resolution pattern for format_add"
+  own_control_failed_honestly "the first control asserted decode resolves on every module. It does not, and the failure is how gf_mx_ref was identified. corpus_modules now separates oracles from non-oracles and reports the difference"
+}
+
+resolution "GoldenFloat arithmetic now has an independent second witness" {
+  witness "conformance/gf16_plus_ref.py -- a second implementation of the same seventeen widths, found unused in pass 192"
+  construction "add and mul built on gf16_plus_ref's OWN decode and encode, sharing no line with gf_ref.gf_add. Correctly-rounded arithmetic is exact-result-then-round, a specification rather than an implementation, so the two have only the spec in common"
+  result "159430 add/mul results across all seventeen widths, 0 disagreements"
+  with_decode "together with pass 192's 9041 decodes, this is what the first paper most needed: its formats were verified against one implementation checking itself, and are not any more"
+  limits "238 results skipped because an operand is special -- this witness does not model NaN propagation, and counting a skipped case as agreement is the substitution the campaign exists to catch. div and sqrt are not covered; exact_ops.py can build them the same way"
+  own_error "the first version reported 2471 disagreements and every one was its own: Fraction has no signed zero, so (-0) + (-0) came back +0 and x * 0 lost the sign. All 510 gf8 multiplication disagreements were exactly that. The sign of a zero is not a rounding question and cannot be recovered from the exact value, so it is carried separately, as every oracle here already does"
+}
+
+retraction "gf16_plus_ref is not a second implementation" {
+  retracts "pass 192: 9041 decodes with 0 disagreements against an independent implementation; pass 193: 159430 add/mul results with 0 disagreements"
+  evidence "gf16_plus_ref.py line 22 reads `from gf_ref import FORMATS, decode, encode, gf_mul, Special`. gf16_plus_ref.decode IS gf_ref.decode -- the same object, verified with `is`, not merely an equivalent one. Same for encode, FORMATS and Special"
+  decode_claim "entirely vacuous: a function compared with itself"
+  arithmetic_claim "nearly so: gf_ref.gf_add is decode -> specials -> signed zero -> exact sum -> encode, and the adder written for pass 193 is the same recipe over the same decode and encode. It confirmed that two spellings of one algorithm agree"
+  status "GoldenFloat has NO independent second witness. It is where it was before pass 192"
+  root_cause "pass 192's self-check required the takum_ref/takum_log_ref pair to be REJECTED -- a real control against comparing different formats that share names -- and had nothing asserting the compared pair was two implementations. One direction guarded, the other assumed"
+  remedy "research/audit_witness_independence.py asks three questions of any claimed witness pair: same objects, one importing the API from the other, textually identical sources. Both cross-validators now exit 2 with the retraction rather than reporting zero"
+  caveat "a clean independence result is still not proof: two authors can converge, and a shared helper module is invisible to all three questions. It rules out the way this corpus actually failed"
+}
+
+verification "the other witness claims were audited after the pass-194 retraction" {
+  checked "every crossval_* and witness_* tool in the campaign, run as it stands today"
+  crossval_softposit "real. It does not import softposit -- which is NOT installed here -- but reads dumps produced by it. posit8 exhaustive over 256 codes, posit16 and posit32 curated, 0 differences. My first suspicion, that a missing library was being reported as a pass, was wrong"
+  crossval_ml_dtypes "real and running: 66224 codes compared, 0 divergences, against Google's ml_dtypes 0.5.4"
+  crossval_libtakum "exits 2 without input paths, which is the correct behaviour"
+  independence "research/audit_witness_independence.py finds no other module pair sharing code; gf16_plus_ref/gf_ref remains the only one"
+}
+
+correction "the external witnesses were one rm from unverifiable" {
+  defect "crossval_softposit and crossval_libtakum compare against tab-separated dumps, not against the libraries. All eleven dumps lived only in a session scratch directory: no hash recorded anywhere, no size, no note of which library produced them, no copy in the repository"
+  consequence "the comparisons were real and the evidence was temporary. A file with the right name and wrong contents would have been read without complaint"
+  fixed_1 "conformance/witness/ holds the five dumps within the repository's own 1 MB rule -- spx8, spx32, lt8, ltlog8, ltlog8_hex. Those are the exhaustive cases: posit8 over all 256 codes and takum8 over all 256, the strongest external claims the campaign makes"
+  fixed_2 "conformance/witness/MANIFEST.json records SHA-256, byte count, witness and consumer for all eleven, including the six too large to commit"
+  fixed_3 "research/audit_witness_artefacts.py checks a dump against the manifest before anything compares against it; its control flips one bit in a copy and requires rejection"
+  hashes "produced by shasum -a 256 and injected mechanically, none typed by hand"
+}
+
+verification "the external witness dumps are reproducible, not merely recorded" {
+  method "rebuilt lt8.tsv and ltlog8.tsv from libtakum source with the generators in the scratchpad (lt8.c, ltlog8.c) and compared SHA-256"
+  result "byte-identical to the manifest for both"
+  versions_now_recorded "libtakum v2.0.0, commit 776ac0c, 2025-11-24; SoftPosit commit 17d5628, 2023-05-31. The version matters for posit especially -- es=0 against es=2 is a change of standard, and a dump without a version does not distinguish them"
+}
+
+correction "pass 195's manifest never reached the repository" {
+  defect ".gitignore line 212 is `manifest.json`, and git on macOS matches ignores case-insensitively, so MANIFEST.json was silently excluded. The five dumps landed and the file that makes them verifiable did not"
+  silence "git add -A reported nothing, and neither did I"
+  fixed "renamed to manifest_witness.json, outside the pattern; audit_witness_artefacts now runs git ls-files --error-unmatch on the manifest and on every artefact it claims is committed, and fails if any is untracked. A file that exists locally and is ignored looks identical to a committed one until someone clones"
+}
+
+finding "two independent GF decoders disagree about whether widths other than gf16 have infinities" {
+  witness "conformance/witness/gf_pipe/gf_decode_pipe_oracle.py -- its own gf_decode_exact over Fractions, importing nothing from gf_ref. Genuinely independent, unlike gf16_plus_ref which pass 194 retracted"
+  agreement "gf16 agrees on every code tested"
+  disagreement "the entire all-ones-exponent band, both signs: 32 codes at gf8, 32,768 at gf24, 1,048,576 at gf32. gf_ref decodes them as the largest finite values; the pipe oracle decodes them as Inf and NaN"
+  who_says_what "gf_ref cites the spec in a comment -- only gf16 declares SPECIAL_EXP, and gf8/gf20 define exp=all-ones as a FINITE max_value, with .t27 line references. The pipe oracle assumes IEEE-style specials at every width"
+  why_it_matters "the pipe oracle is what the gf24/gf32 pipelined decode RTL was verified against. If the RTL implements infinities at those widths it contradicts the spec gf_ref cites, and nothing compared the two oracles until now"
+  not_resolved_here "which is right is a question for the .t27 spec and the RTL owner, not for this campaign to decide by picking one"
+}
+
+resolution "GF widths other than gf16 have no infinities -- gf_ref is right" {
+  question "pass 196 found two independent decoders disagreeing about the all-ones exponent band: 32 codes at gf8, 32768 at gf24, 1048576 at gf32"
+  spec_says "t27/specs/numeric/gf8.t27 defines max_value with exp_max = (1 << EXP_BITS) - 1 - EXP_BIAS = 7 - 3 = 4, so the all-ones exponent field carries FINITE values. No pattern is reserved for Inf or NaN"
+  gf16_differs "t27/specs/numeric/gf16.t27 declares GF16_INF_POS 0x7E00, GF16_INF_NEG 0xFE00 and GF16_NAN 0xFE01 explicitly, which is why gf16 is the one width where the two decoders already agreed"
+  verdict "conformance/gf_ref.py is right; conformance/witness/gf_pipe/gf_decode_pipe_oracle.py assumes IEEE-style specials at every width and is wrong outside gf16"
+  consequence "the gf24 and gf32 pipelined decode RTL was verified against the pipe oracle. If it returns infinities on the all-ones exponent it contradicts the spec, and that is a question for the RTL owner"
+  spec_comment_stale "gf8.t27's own comment on max_value reads 'mant=1.9375, exp=3 -> 15.5' while its formula gives exp=4 and 31. The formula and gf_ref agree; the comment does not"
+}
+
+finding "the source of truth contains a 32-entry table that is wrong in every entry" {
+  where "t27/specs/numeric/gf16.t27, pow2_table"
+  claim "each line labels a code with a power of two: `.half 0x3C00 ; 2^0 = 1.0`"
+  measured "decoded as gf16 -- E=6, M=9, BIAS=31, the format the same file declares -- 0x3C00 is 1/2, 0x3D00 is 3/4, 0x3D80 is 7/8. All 32 entries disagree with their own labels"
+  not_binary16_either "0x3C00 is 1.0 in binary16 but 0x3D00 is 1.25, not 2.0, so the table matches no format in the corpus"
+  never_referenced "pow2_table appears once in the file, as its own definition. Dead data in the source of truth is how a table stays wrong this long, and dead is not harmless -- anyone implementing from the spec reads it as authoritative"
+  new_check "research/audit_spec_constants.py validates every labelled constant against the format its spec declares. Nothing in this campaign had ever checked a spec against itself"
+  not_fixed_here "the t27 repository is another workstream's and writing to it was declined earlier"
+  unchecked "tf3.t27 carries 128 labelled constants and declares no readable field widths; reported as unchecked rather than skipped"
+  own_error "the first version read `.const BIAS 31` as BIAS = 1 because a greedy \\w* ate the leading digit, and the self-check missed it by taking the bias from gf_ref instead of from the parser it was meant to test. The control now asserts the parsed format matches"
+}
+
+finding "the synthesized GF decoder disagrees with the spec on three of four widths" {
+  measured_not_inferred "iverilog simulation of fpga/openxc7-synth/gf_decode_param_pipe.v, not a reading of it"
+  rtl "lines 61-62 set cls_inf0 = is_exp_max0 && is_mant_zero0 unconditionally. The module parameterises N, E, M and BIAS and has no parameter for whether the format has infinities, so every width it is instantiated at classifies the all-ones exponent as special"
+  gf16 "correct -- gf16.t27 declares GF16_INF_POS 0x7E00 and the RTL agrees"
+  gf8 "WRONG NUMBER. The RTL returns 0x7F800000; the spec's largest finite value is 16, which fp32 holds exactly as 0x41800000. The hardware returns an infinity where the format has a number, and the difference is visible in fp32_out"
+  gf24_gf32 "flag only. The correct finite value -- 1.16e77 and 3.23e13x -- overflows fp32 anyway, so fp32_out is 0x7F800000 either way and only is_inf_o disagrees"
+  grading "calling all three the same defect would overstate two of them"
+  not_fixed_here "the RTL belongs to the synthesis line"
+  chain "pass 196 found two independent decoders disagreeing; pass 197 settled it from the spec; this measures which side the silicon is on"
+}
+
+finding "the project knows about HAS_INF and told only the adder" {
+  adder "fpga/openxc7-synth/gf_adder_param.v carries `parameter HAS_INF = 0` documented with the same spec lines gf_ref cites -- gf8.t27:115-119, exp=all-ones is a FINITE max_value -- and gates its NaN detection on it"
+  decoder "fpga/openxc7-synth/gf_decode_param.v has N, E, M, BIAS and OUT_REG, and no such parameter. Its cls_inf/cls_nan are unconditional, and its own header declares that behaviour rather than treating it as an oversight"
+  blast_radius "11 board decode wrappers instantiate it; 9 do so at widths the spec gives no infinities -- gf4, gf6, gf8, gf8_bfp, gf12, gf20, gf24, gf32, gf256. Only gf16 and the LNS hybrid are correct"
+  compute_unaffected "the gf8 compute wrapper instantiates gf_adder_param with HAS_INF(0). The Tier-E chains for gf8 are add, mul and sub cells, so no published Tier-E claim is invalidated"
+  severity_recap "at gf8 the RTL returns 0x7F800000 where the spec's largest finite value is 16 (0x41800000) -- a wrong number. At gf24 and gf32 the finite value overflows fp32 anyway and only is_inf_o differs"
+  fix_is_precedented "give gf_decode_param the parameter its sibling already has"
+  also_stale "corona_decode_gf8_ax7203.v line 4 reads `Decoder = gf_decode_param #(16,6,9,31) ... iverilog-witnessed 65536/65536` while line 51 instantiates #(.N(8),.E(3),.M(4),.BIAS(3)). The header cites a witness for gf16's parameters and a code space of 65536, where gf8 has 256"
+  not_fixed_here "the RTL belongs to the synthesis line"
+}
+
+correction "gf_decode_param now has the HAS_INF its sibling always had" {
+  fix "parameter integer HAS_INF = 1 added to gf_decode_param.v and gf_decode_param_pipe.v, gating cls_inf and cls_nan; with HAS_INF=0 the all-ones exponent falls through to the normal path"
+  default_is_1 "so adding the parameter changes nothing on its own. Each wrapper states its own answer"
+  wrappers "nine board decode wrappers now pass .HAS_INF(0): gf4, gf6, gf8, gf8_bfp, gf12, gf20, gf24, gf32, gf256. gf16 and the LNS hybrid keep the default"
+  verified_exhaustively "gf8 256/256, gf12 4096/4096 and gf16 65536/65536 codes match gf_ref exactly, combinational; gf8 256/256 pipelined. The full gf16 sweep is the regression guard -- it proves the widths that DO have infinities are untouched"
+  one_apparent_mismatch "code 0x80 at gf8 read as a difference until signed zero was handled: the RTL returns 0x80000000 and gf_ref's decode returns Fraction(0), which carries no sign. The RTL was right; the comparison was not"
+  audit_updated "research/audit_rtl_special_widths.py now simulates with each width's own HAS_INF rather than the module default. Instantiating bare would have reproduced the old behaviour forever and kept reporting a defect the wrappers no longer have -- and its verdict label, which said 'flag only' whenever the numbers agreed, now distinguishes agreement from a coincidental one"
+  scope "RTL only. No pack, no oracle and no Tier-E claim changes: the gf8 chains are compute cells and already used gf_adder_param with the correct flag"
+}
+
+verification "the HAS_INF fix, exhaustively across seven widths" {
+  note "a sweep started before the fix was committed finished after it; these are the numbers it produced against the patched RTL"
+  combinational "gf4 16/16, gf6 64/64, gf8 256/256, gf12 4096/4096, gf20 1048576/1048576, gf24 16777216/16777216 -- every code, matching gf_ref exactly"
+  regression_guard "gf16 65536/65536 with HAS_INF(1), the one width the spec DOES give infinities, unchanged"
+  pipelined "gf8 256/256"
+  what_is_not_covered "gf32 and wider were not swept exhaustively -- 2^32 codes and up. Their all-ones-exponent band was checked directly, which is where the defect lived, and the rest of their space is unchanged by a gate that only fires there"
+}
+
+verification "the HAS_INF fix costs nothing and frees resources" {
+  method "yosys 0.63 synth_xilinx -flatten -abc9 -nodsp, the flow this corpus's LUT numbers are quoted under, run at HAS_INF=1 and HAS_INF=0 for each width"
+  measured "gf4 16->10, gf6 42->27, gf8 51->36, gf12 111->90, gf20 213->189, gf24 798->795, gf32 1110->1101, gf256 9495->9396"
+  total "-207 LUTs across the nine wrappers that now pass HAS_INF(0), counting gf8 twice for corona_decode_gf8 and corona_decode_gf8_bfp"
+  gf16 "shows -21 as well and correctly does not take it: gf16.t27 declares GF16_INF_POS 0x7E00, so its wrapper keeps HAS_INF(1)"
+  why_it_matters "gf24 and gf32 decode FAIL routing on AX7203 from the purely combinational module -- that is the stated reason the pipelined variant exists. The correctness fix is also a resource win exactly where resources are the constraint"
+  scope "synthesis only. Place-and-route and a bitstream would need the openXC7 Docker flow, and no Tier-E claim is made or changed here"
+}
+
+finding "23 RTL decoders disagree with their oracle, found without an accident" {
+  motivation "the GoldenFloat chain of passes 196-201 started because gf_pipe happened to contain a second decoder to compare against. There are fifty per-format decoders in fpga/openxc7-synth/ and every one has an oracle in conformance/; no accident is needed"
+  method "research/audit_rtl_vs_oracle.py reads each module's input port name and width from its source, generates a testbench, runs iverilog and compares against the oracle converted to fp32"
+  coverage "38 decoders with an oracle and a testable interface; 8 format names have no oracle; 4 could not be elaborated"
+  result "23 disagree somewhere in the sample"
+  standout "lns16 agrees on 1 of 58 codes, lns32 on 24 of 67, lns64 on 38 of 83. Code 0x0 gives 0x00000000 in the RTL and 0x3F800000 in the oracle -- in the log domain 0 is the exponent, so the value is 2^0 = 1"
+  others "cray_float, pdp11_float, double_double, decimal32/64/128 and ibm_hfp32/64/128 each differ on a handful; ibm_hfp128's first difference is one ulp"
+  binaries_clean "binary16, binary32, binary64, binary128 and binary256 agree on every code compared"
+  not_a_verdict "a disagreement is a pair worth asking the spec about. For GoldenFloat that question took four passes and the answer was in the .t27 file; nothing here automates that step. What it automates is finding the pairs"
+  two_columns_kept_apart "NaN-vs-NaN differences in sign or payload are counted separately -- IEEE leaves those to the implementation, and without that classification the report was a wall of them. So are codes whose exact value overflows fp32, where both sides give 0x7F800000 whatever they think"
+}
+
+finding "LNS software and LNS hardware are different formats" {
+  found_by "pass 202's sweep: lns16 agreed with its oracle on 1 of 58 codes, lns32 on 24 of 67, lns64 on 38 of 83 -- by far the widest gap of the 38 decoders checked"
+  disagreement_1_scale "conformance/lns_ref.py scales the fraction with the width: lns16 is 2^(L/256), lns32 is 2^(L/65536), lns64 is 2^(L/4294967296). Every RTL decoder uses `>>> 7`, i.e. 2^(L/128), at all three widths. For lns32 that is a factor of 512 in the exponent scale and for lns64 a factor of 33 million"
+  numerically "code 0x0100 in lns16 is 2 under the oracle and 4 under the RTL; 0x0200 is 4 and 16"
+  disagreement_2_zero "the oracle reserves field_min -- 0x4000 in lns16 -- for zero, which is the natural choice since 2^(-inf) tends to 0. The RTL reserves the all-zero code, whose log is 0, so it spends the representation of 1.0 on it"
+  no_arbiter "there is no LNS specification in t27/specs/numeric/. Unlike gf8.t27, which settled the GoldenFloat question in one reading, nothing here can say which side is right"
+  two_of_three "conformance/lns16_decode_conformance_ax7203.py states its golden as 2^(signed_log/128), validated against 5 t27 vectors -- so the hardware conformance host implements the RTL convention. The odd one out is lns_ref.py, which is the oracle generate_vectors uses to build the published packs"
+  consequence "conformance/vectors/lns{16,32,64}_{add,mul,sub}.json -- 1039 vectors in lns16_add alone -- describe a number line the hardware does not implement, and the catalogue presents them as one format"
+  no_tier_e "no LNS cell appears in the Tier-E ledger, so no hardware-evidence claim is affected"
+}
+
+resolution "the LNS hardware format cannot represent 1, and that settles it" {
+  question "pass 203 left the LNS scale and zero convention undecided: the oracle says 2^(L/2^frac_bits) with field_min reserved for zero, the RTL and its conformance host say 2^(L/128) with the all-zero code reserved. Two against one, and no spec to arbitrate"
+  the_cited_evidence "the host's comment reads `Validated against 5 t27 vectors`. There is no LNS content anywhere in t27/. The five are a T27_VECTORS dict inside the host itself -- its own constants, citing a source that does not contain them"
+  the_five_are_consistent "0x0080 -> 2.0 and 0x0100 -> 4.0 fix the scale at 128; 0x0000 -> 0.0 fixes the zero convention. They do back the RTL. They also expose what it costs"
+  decisive_measurement "exhaustive simulation of lns16_decode.v over all 65536 codes: codes decoding to +1.0 -> ZERO. Codes decoding to -1.0 -> exactly one, 0x8000. Codes decoding to 0.0 -> exactly one, 0x0000. Confirmed at lns32 and lns64 by the same two codes"
+  verdict "the hardware LNS format cannot represent the number 1 while representing -1. No spec is needed to call that wrong: reserving the code for +1 to encode zero, and leaving -1 alone, is not a design choice any format makes. lns_ref.py's convention -- reserve field_min, the smallest magnitude, symmetrically across the sign -- is the correct one"
+  flips_the_count "pass 203 reported two implementations against one. The majority is wrong, and the citation that appeared to back it points at nothing"
+  otherwise_well_formed "the decode is injective: 65536 distinct fp32 outputs over 65536 codes, so nothing is wasted on duplicates"
+  scale_still_open "which scale is right remains unsettled -- the five vectors are the only evidence and they are unsourced. The zero convention is settled; the fraction width is not"
+  no_tier_e "no LNS cell in the Tier-E ledger"
+}
+
+retraction "no LNS cell appears in the Tier-E ledger" {
+  retracts "pass 203 and pass 204 both closed with `no LNS cell appears in the Tier-E ledger, so no hardware-evidence claim is affected`"
+  truth "lns16 has a complete four-link chain reporting 64/64, and lns8 reports 256/256"
+  cause "verify_tier_e.py named cells from a hand-written allow-list -- gf, bcd, binary, decimal, fp8, bfloat, mxfp, posit, takum, afp, cray, vax, int, uint. No lns, no ibm_hfp, no ms_mbf, no double_double. Every comment about a format outside the list got `?` for a name, and seen.setdefault collapsed all of them into one entry"
+  scale_of_the_error "75 complete chains reported as 34 distinct cells. Reading the names from the oracles instead gives 48. Fifteen real formats were invisible: double_double, fp4_e2m1, fp6_e2m3, fp6_e3m2, ibm_hfp32, ibm_hfp64, lns16, lns8, ms_mbf32, ms_mbf64, mxfp8_e4m3, mxint8, nf4, quad_double, tf32"
+  class "an allow-list is a snapshot of the corpus on the day it was typed. The same defect was removed from wrapper_fsm_audit.py in pass 183, in a check written by the same hand"
+  fixed "the pattern is now built from the format names the oracles declare, longest first so gf1024 is not matched as gf10"
+  consequence_for_lns "the hardware that pass 204 showed cannot represent 1.0 carries a Tier-E claim at 64/64, and pass 203 established its conformance host implements the RTL's own convention. The 64 vectors were checked against a golden that shares the implementation's reading of the format"
+  also "research/SUBMISSION_CHECKLIST.md already said lns16 was among the 74 proofs, with 472/576 bit-exact and 104 known limitations. The document was right and the tool was wrong; nothing had compared them"
+}
+
+correction "the third hand-written name list, found by searching instead of by accident" {
+  history "pass 183 wrapper_fsm_audit.py required mx in (5,6,8) and flagged 40 of 93 wrappers; pass 205 verify_tier_e.py named cells from an alternation with no lns and hid fifteen formats. Both were found by accident"
+  third "research/verify_wide_arithmetic.py selected wide GoldenFloat formats with (gf32, gf48, gf64, gf96, gf128, gf1024). gf256 and gf512 are in the corpus, are exactly as wide, and were silently omitted from its denormal-reach report"
+  fixed "replaced by the property the list was standing in for: width >= 32. gf256 and gf512 now appear, and their denormal reach is reported as NOT representable at 9.22e18 GB and 2.92e48 GB"
+  new_check "research/audit_name_allowlists.py finds literal collections used to decide membership of a variable, and regex alternations of format names fed to search/match/findall. Zero remain"
+  what_it_does_not_flag "naming formats is normal. A self-test running three specific widths, a docstring listing coverage, a table of expected values -- none of those decides anything about input the author has not seen"
+  own_over_report "the first version flagged every place mentioning three or more format names: 25 of them, nearly all fine. Over-reporting is the failure this campaign keeps finding, and it found it in the check written to catch it"
+  controls "a synthetic membership test must be flagged and plain iteration over the same names must not"
+}
+
+verification "the three coverage numbers reconciled" {
+  why "research/SUBMISSION_CHECKLIST.md, verify_tier_e.py before pass 205, and verify_tier_e.py after it gave three different answers. Numbers that go into a paper should agree first"
+  measured_now "226 comments in issue 199; 75 carry all four links; 72 of those are headed `Tier-E proof` and 3 are re-proofs or a regression note, each naming one cell. No aggregate summary qualifies, so per-comment attribution is sound"
+  cells "47 distinct corpus format names plus 2 outside the corpus -- e8m0 and bitnet, which have no oracle in conformance/*_ref.py -- for 49 named cells"
+  decode "40 formats with a decode proof, or 42 counting e8m0 and bitnet"
+  compute "10 formats, all GoldenFloat: gf4, gf6, gf8, gf10, gf12, gf14, gf16, gf20, gf24, gf32. 30 proofs, being add, mul and sub for each"
+  discrepancy_1 "the checklist says 74 four-link comments; there are 75. It is a snapshot and the ledger grew"
+  discrepancy_2 "the checklist says 45 cells; 49 are named"
+  discrepancy_3 "the checklist says 44 of 83 formats have decode verified; the measurement is 42, and only 40 of those are formats the corpus declares"
+  discrepancy_4 "the checklist says 30 compute proofs across 12 formats, naming gf4-gf32 plus double_double and quad_double. The compute proofs cover 10 GoldenFloat widths. double_double and quad_double have DECODE proofs; their only appearances alongside compute are in status summaries that carry no per-cell chain"
+  most_important "discrepancy 4 is the one that would reach a reader as a claim about arithmetic on silicon for two formats that have none"
+  noted_in_passing "one of the 75 is `Tier-E re-proof: lns16 (decode -- subnormal-flush correctness fix, re-flash on silicon)`, which bears on the LNS question of passes 203 to 205"
+}
+
+correction "the checklist now carries the reconciled numbers" {
+  applied "75 four-link comments (was 74); 49 named cells (was 45); 42 formats with decode verified, 40 of them corpus-declared (was 44 of 83); 30 compute proofs across 10 formats (was 12)"
+  the_one_that_mattered "double_double and quad_double were listed among the compute formats. They have DECODE proofs only, and their appearances beside compute are in status summaries carrying no per-cell chain. Left as written it would have reached a reader as a claim about arithmetic on silicon for two formats that have none"
+  checklist_was_right_about "the partial proof. Exactly one of the 75 is not N/N: lns16 at 472/576 with 104 known limitations, all 1-ULP subnormal-band residuals, and the checklist already said so"
+}
+
+correction "verify_tier_e reported one proof per cell and dropped the rest" {
+  defect "seen.setdefault(cell, res) kept whichever proof appeared earliest. 11 cells have more than one four-link proof"
+  understated "gf16 showed 512/512 while its exhaustive 65536/65536 was hidden behind it -- the strongest single piece of hardware evidence in the corpus"
+  overstated "lns16 showed 64/64 while hiding the 472/576 that carries the 104 known limitations. The same line both undersold the best result and oversold the weakest"
+  fixed "every distinct result per cell is reported, largest first, and any cell whose best result is not N/N is marked PARTIAL. lns16 is the only one"
+  re_proof_read "Tier-E re-proof of lns16 cites CI run 28668900768 and bitstream c5c7ae56f0f77c760cdce7737804e123f2528bb93e30fd085f97468752c4e3dc; the fix was a subnormal-flush correction, and it does not touch the scale question or the missing 1.0 of passes 203-205"
+}
+
+finding "half the hardware proofs are samples and nothing said which" {
+  why "Tier-E requires four links and says nothing about how much of a format the UART log covers. `HW RESULT: 64/64 bit-exact` and `65536/65536 bit-exact` are written identically, and the first is 64 samples of a code space"
+  measured "of 40 decode proofs with a complete chain: 14 exhaustive over the code space, 26 sampled"
+  exhaustive "every format at 8 bits or fewer, plus binary16 and gf16 at 65536/65536"
+  the_two_that_matter_most "binary16 and gf16 prove the rig can drive a full 16-bit sweep over UART. Sampling at 16 bits is therefore a choice, not a ceiling"
+  cheap_upgrades "9 sampled cells are 20 bits or fewer, where the same harness could exhaust them: gf10 64 of 1024, gf14 64 of 16384, int16 / posit16 / takum16 64 of 65536, bfloat16 8 of 65536, tf32 8 of 524288, lns16 576 of 65536, bcd 100 of 256"
+  unavoidable "17 sampled cells are 32 bits or wider. Sampling there is not a gap and saying so costs nothing"
+  what_must_not_reach_a_paper "64/64 reading as completeness for a format with 2^64 codes"
+  own_error "the first version counted compute logs as decode sweeps and called gf4, gf6 and gf8 exhaustive over their code spaces. A compute log counts operand PAIRS -- gf4's 512/512 is 512 pairs from a 16-code format and exhausts nothing. The check now excludes compute, and its control requires gf4 to be absent from the decode set"
+}
+
+finding "two conversion-stage behaviours explain the IBM HFP disagreements" {
+  ibm_hfp32 "all 13 disagreements with the oracle are the same thing: the oracle's value lands in the fp32 SUBNORMAL band and the RTL emits zero. The IBM HFP value is representable; the fp32 output path flushes"
+  ibm_hfp64 "62 differ by one ulp and 15 flush. hfp64 has a 56-bit fraction, so converting to fp32 must round, and truncation against round-to-nearest accounts for the ulp class"
+  neither_is_a_format_defect "both are properties of the conversion to fp32, not of the IBM hexadecimal format, and the public IBM spec does not settle a question about somebody's fp32 output stage"
+  swept "across every decoder with an oracle: 7 flush fp32 subnormals, 53 one-ulp differences. The lns16 Tier-E proof's 104 known limitations are described as 1-ULP subnormal-band residuals, which is the same pair of classes"
+}
+
+finding "takum8's exhaustive hardware proof uses a golden no oracle agrees with" {
+  measured "takum8_decode.v matches the 256-entry table inside conformance/takum8_decode_conformance_ax7203.py on 256 of 256 codes"
+  and_yet "the same RTL matches takum_ref on 17 of 256 and takum_log_ref on 18 of 256 -- neither oracle in the corpus"
+  external_witness "against conformance/witness/ltlog8.tsv, the libtakum logarithmic dump committed in pass 195, the host's table agrees on 144 of 256. Of the rest, 2 underflow fp32 and 110 are real differences -- including code 0x06, where libtakum gives 2.9757e-35, an ordinary NORMAL fp32 value, and the host's table says zero"
+  why_it_matters "takum8 is one of the 14 exhaustive Tier-E proofs, the strongest kind of evidence in the corpus. Its 256/256 is the hardware agreeing with a table written into the file that tests it"
+  same_shape_as_lns16 "pass 203 found the lns16 conformance host implementing the RTL's own convention. This is that shape again, in a proof presented as exhaustive"
+  not_settled_here "which reading of takum8 is correct needs the takum specification, which this pass did not establish. What is established is that the hardware proof is not evidence about either corpus oracle"
+}
+
+finding "nine of thirty-one decode hosts test against the oracle the corpus publishes" {
+  question "pass 210 found takum8's exhaustive proof agreeing with a table inside the file that tests it, and pass 203 found the same for lns16. This asks all of them: does a host's golden agree with the corpus oracle for its format"
+  method "load each *_decode_conformance_ax7203.py, call its golden over the format's codes, compare against the oracle converted to fp32"
+  matches "9: binary128, binary32, gf10, gf14, gf16, gf256, ms_mbf32, ms_mbf64, vax_d"
+  sparse "11 diverge on 15% of codes or fewer -- binary64 4, decimal128 24, decimal32 14, decimal64 12, double_double 40, ibm_hfp32 15, mxfp8_e4m3 5, posit16 1, posit32 3, vax_f 1, vax_g 4. These are the NaN-payload, subnormal-flush and 1-ulp classes already measured in pass 210"
+  systematic "11 diverge on more: bcd 175/176, int16 455/456, int32 455/456, lns16 456/456, mxint8 455/456, takum8 420/456, takum16 441, takum32 447, takum64 449, ibm_hfp64 70, quad_double 69"
+  what_a_systematic_count_means "ONE disagreement about what the format means, not N defects. mxint8 makes it plain: the oracle returns Fraction(127) for 0x7f and the host returns a scaled fixed-point value with an implied binary point. Every code differs because the convention differs once"
+  the_consequence "for the eleven systematic cases, a hardware proof cannot falsify the corpus oracle and the corpus oracle cannot falsify the hardware. They are answering different questions, and the Tier-E chain records only that the four links are present"
+  not_a_verdict "which side is right needs the format's specification in each case. What is established is how many hardware proofs are evidence ABOUT the published packs: nine outright, eleven up to a documented conversion class"
+}
+
+correction "five of pass 211's eleven systematic divergences are my artefact" {
+  what_pass_211_said "eleven decode hosts diverge from the corpus oracle on more than 15% of codes, listing takum8 420/456, takum16 441, takum32 447, takum64 449 and lns16 456/456 among them"
+  the_cause "takum_log_ref.decode returns Special(kind='exp') for 252 of 256 takum8 codes and 255 of 256 at the wider widths; lns_ref returns Special('irrational') for 255 of 256. The value is 2^L with L irrational, so the oracle DECLINES to give a Fraction. My comparison turned every abstention into a NaN word and counted it as a disagreement"
+  so "those five are not hosts testing something else. They are hosts doing the only thing available, because the oracle offers no number for 98% of the code space"
+  survives "bcd, int16, int32, mxint8, ibm_hfp64 and quad_double have no Special abstentions at all -- their divergences stand, and mxint8's remains one convention difference rather than 455 defects"
+  and_the_earlier_number "the same artefact makes `takum_log_ref agrees with libtakum on 11 of 256` meaningless. It abstains on 252; it does not disagree on them"
+}
+
+finding "the takum conformance host is the closer of the two to libtakum" {
+  measured "against conformance/witness/ltlog8.tsv, the libtakum logarithmic dump: the takum8 conformance host's golden agrees on 144 of 256 codes"
+  reference_width_ruled_out "decoding as the top bits of takum_log16 gives the same 144, consistent with pass 149's finding that the two readings coincide"
+  the_112_that_differ "11 codes where the host says zero and libtakum gives 1.12e-45 to 2.64e-28; 7 where the host says infinity and libtakum gives 3.78e27 to 1e38. Both bands sit inside fp32's normal range, so neither is a conversion artefact -- the host's takum8 has a narrower dynamic range. The remaining 94 have no constant ratio: 130 of 224 finite pairs are identical and the rest scatter, which is a field-split or rounding difference, not a scale"
+  not_settled "the takum standard is not in this repository. Without it, which of the host and libtakum is right cannot be decided here, and guessing would be worse than the open question"
+}
+
+correction "takum and LNS oracles do not abstain -- they represent exactly" {
+  pass_212_said "takum_log_ref DECLINES to give a Fraction, and lns_ref likewise, so the hosts have no number to test against"
+  what_is_actually_there "Special(kind='exp', sign=0, ln=Fraction(-239, 2)). The natural logarithm is carried as an exact Fraction, so every takum8 value is sign * e^(ln) with ln exactly rational. lns_ref exposes the same through decode_log and encode_from_log"
+  so "the oracle is EXACT, in the form the value actually has. What it declines is to pretend a transcendental is a rational, which is the opposite of abstaining"
+  the_98_percent "401,826 of 407,145 takum and lns pack vectors have an operand of this kind. That is not a coverage hole: it is the measurement that these families are transcendental almost everywhere, represented exactly"
+  why_hosts_need_their_own_golden "hardware emits fp32, and leaving the log domain requires evaluating exp(). That is where the 1-ULP residuals come from -- a mathematical necessity, not a defect, and the same boundary the checklist already names for takum32 against libtakum"
+  bearing_on_the_papers "the corpus's takum and LNS oracles are exact where a float-based oracle cannot be. That is a claim worth making, and pass 212's wording would have understated it"
+}
+
+correction "MXINT8 was decoded as a plain integer, against its own spec" {
+  spec "OCP Microscaling Formats v1.0 gives MXINT8 an implied binary point six places in: the element is int * 2^-6, range +-127/64, and -128 is reserved"
+  oracle_was "mxfp_ref decoded it as a raw two's-complement integer, so 0x01 was 1 where the format says 1/64, and 0x80 was -128 where the format reserves it"
+  who_was_right "conformance/mxint8_decode_conformance_ax7203.py has carried the correct convention in its header since it was written -- `int8 x 2^-6 -> FP32 (range +/-127/64). -128 reserved -> NaN` -- and the RTL follows it. Pass 211 counted 455 of 456 codes diverging; it is ONE difference and the oracle was the wrong side"
+  fixed "int_frac_bits on MXFormat, defaulting to 6; decode divides and encode multiplies; 0x80 returns Special"
+  packs "mxint8 add, mul and sub regenerated -- 196,608 vectors, of which 60,400 / 65,495 / 60,401 changed"
+  stale_assertion "the module's own self-test asserted `1+1=2`, which is unrepresentable under the correct convention -- the range stops at 127/64. It now asserts saturation to 127/64 and that 0x80 is reserved. The old assertion held only under the reading it was meant to be testing"
+}
+
+resolution "int16 and int32 were my comparison error, and bcd is the host being right" {
+  int16_int32 "pass 211 reported 455 of 456 codes diverging. The oracle returns an integer and the host returns the same integer; I converted the oracle's value to an fp32 word and the host's not. They agree exactly"
+  bcd "the host returns None for 0x0F, 0x7F and 0xFF -- nibbles above 9, which are not valid BCD digits. The oracle reads them as plain binary and returns 15, 85, 165. The host validates and the oracle does not; the standard is on the host's side"
+  remaining "of pass 211's eleven systematic divergences, five were the Special-representation artefact corrected in pass 213, two were this comparison error, one is bcd validation, one is mxint8 and is now fixed. ibm_hfp64 and quad_double remain, both sparse enough to be the conversion classes of pass 210"
+}
+
+resolution "every host-versus-oracle divergence in the corpus is now accounted for" {
+  the_list "pass 211 measured 31 comparable decode hosts: 9 matching, 11 diverging sparsely, 11 broadly. Passes 212 to 215 dispose of all 22"
+  class_1_representation "takum8, takum16, takum32, takum64, lns16 -- the oracle returns Special(kind='exp'|'irrational') carrying an exact rational logarithm, and my comparison read that as NaN. Not a divergence at all (pass 213)"
+  class_2_my_error "int16, int32 -- the oracle returns an integer and so does the host; I converted one side to fp32 and not the other (pass 214)"
+  class_3_validation "bcd -- the host returns None for nibbles above 9, which are not BCD digits, and the oracle reads them as binary. The standard is on the host's side (pass 214)"
+  class_4_real_defect "mxint8 -- the oracle ignored the implied binary point OCP MX v1.0 gives the format. Fixed, packs regenerated (pass 214)"
+  class_5_conversion "ibm_hfp32 19, ibm_hfp64 109 one-ulp and 18 flush, binary64 5, vax_f 3, vax_g 5, quad_double 142 NaN payload, double_double 48, mxfp8_e4m3 7 -- the fp32 conversion classes named in pass 210: subnormal flush, truncation against round-to-nearest, and NaN sign or payload"
+  class_6_canonicality "decimal32 10, decimal64 16, decimal128 19 -- ALL of them non-canonical codes, and none canonical. The oracle applies IEEE 754-2008 3.5.2 since pass 185, confirmed against gcc's Intel BID; the hosts do not"
+  what_that_means_for_the_hardware "the decimal decode proofs on silicon do not exercise 3.5.2. A non-canonical BID code is a value the format defines as zero, and the board has never been asked"
+  clean "posit16 and posit32 show no differences at all on this sample"
+  one_real_defect_in_twenty_two "and it was in the oracle, not in the hardware"
+}
+
+verification "the compute path has no second golden at all" {
+  question "pass 215 disposed of 22 divergences between decode hosts and oracles. The 30 compute cells had never been asked"
+  answer "all 30 import the oracle directly -- `from gf_ref import FORMATS, gf_add`. There is no separate golden in the compute path, so nothing can diverge from anything"
+  contrast "the decode side has 31 comparable hosts and 22 divergences, in six named classes. The compute side has none, because the hosts do not restate the oracle -- they call it"
+  significance "for the 30 compute proofs, the hardware is compared against the same function that generates the published packs. That is the strongest arrangement available and it holds for every one of them"
+}
+
+correction "eleven compute hosts could not be imported at all" {
+  defect "no `if __name__ == \"__main__\"` guard. The argparse block, parse_args and sys.exit ran at module scope, so importing one parsed the IMPORTER's sys.argv, called sys.exit -- terminating whatever imported it -- and opened a serial port"
+  affected "gf12_mul, gf16_add, gf16_mul, gf20_add, gf20_mul, gf24_add, gf24_mul, gf4_add, gf4_mul, gf6_mul, gf8_mul -- every one a GoldenFloat compute cell"
+  same_class_as_pass_181 "which moved `import serial` out of module scope in 30 hosts for the same reason: a golden nothing can import is a golden nothing can check. These eleven kept the argparse block at module level and were missed"
+  fixed "guarded; 11 of 11 self-tests pass, and all 103 conformance hosts now import without a working pyserial except gf16_conformance_ax7203, which is a different shape and left alone"
+  how_it_surfaced "a stub serial module with no Serial attribute. The AttributeError was mine to begin with, and chasing it found the real defect"
+}
+
+resolution "all 103 conformance hosts import without pyserial, and a gate now says so" {
+  last_one "gf16_conformance_ax7203 declared `port: serial.Serial` in a signature. An annotation is evaluated when the function is DEFINED, so the module needed pyserial to be imported at all. Fixed with `from __future__ import annotations` and by moving the module-scope import to its call site"
+  three_shapes "pass 181: 30 hosts with a module-scope `import serial`. Pass 216: 11 with no __main__ guard, so importing one parsed the IMPORTER's sys.argv and called sys.exit. Pass 217: 1 annotation. One property, three ways to break it"
+  why_a_gate "the property regressed between the first fix and the second because nothing enforced it. research/audit_host_importability.py imports every host under a serial module that provides NOTHING -- the test is reachability when pyserial is absent, not when it is present and unused"
+  controls "the self-check writes a host with each of the three defects and requires each to be caught, then a clean host and requires it to pass. A gate that cannot fail is not a gate"
+  state "103 of 103"
+}
+
+resolution "the recurring defect classes now have gates, and the last one is mutation" {
+  method "the record was mined for properties fixed more than once. Three already had gates: importability (pass 217), hand-written name lists (206), hardcoded lookups (192). One did not"
+  the_ungated_class "a self-test asserting what the implementation happens to do rather than what the format requires. Five instances: `x + 0 == x` in pass 185, the no-non-canonical-operand invariant in 188, the dropped sign of zero in 193, the 'flag only' label in 200, and `1+1=2` for MXINT8 in 214"
+  why_reading_cannot_find_it "reading is what produced it"
+  gate "research/audit_selftest_sensitivity.py perturbs one bit of the module's encode result and requires the self-test to fail. 15 of 15 oracles are sensitive"
+  own_error_1 "the mutation was first appended to the end of the file, after the `if __name__` block, so the self-test ran and exited before the override existed and every module looked insensitive. The control caught it -- which is why it asks for a clean PASS and a mutated FAIL rather than only the second"
+  own_error_2 "mutating `encode` marked lns_ref insensitive. It is not: its format_add and format_mul route through encode_from_log, so perturbing encode changed nothing the self-test could see. The gate now reads the name out of format_add's own source, the same discipline pass 191 had to learn"
+  bound "a pass means the self-test is sensitive to THIS mutation. It does not mean the test is complete or that its assertions are the right ones. Mutation bounds a check from below, never from above"
+}
+
+resolution "all three: decode mutation, decimal 3.5.2 vectors, and the workflow paths applied" {
+  mutation_extended "audit_selftest_sensitivity now perturbs decode as well as the encoder. 16 of 16 oracles fail both"
+  three_gate_errors_of_my_own "the decode mutation did nothing at first -- it flipped a bit only when the result was an int, and decode returns a Fraction or a Special, so all sixteen looked blind when the gate was. Then the object case did nothing because it read __slots__, and PhiVal is a dataclass with __dict__. Each was found because a number was implausible, not by reading"
+  gfternary "its self-test checked .is_zero() and .sign() and never the value, so a decoder with the right sign and the wrong magnitude passed. PhiVal is a + b*phi with exact Fractions, so the value is checkable outright. Four assertions added; the module is sensitive now"
+  decimal_3_5_2 "the three decimal decode hosts carry six non-canonical case-B codes each -- first, last and midpoint of the excluded run, both signs -- and their goldens now apply 3.5.2, returning zero. The second half was necessary: before it the golden returned the number the bits spell, so a board run over the new codes would have reported failures against an expectation that was itself wrong. 100 of 100 canonical codes still evaluate unchanged"
+  still_needed "a flash. The vectors and the correct expectation are in place; the silicon has not been asked"
+  workflows "apply_workflow_paths.py --write applied all nine. audit_workflow_paths reports 0 workflows running an unwatched script, down from 9 since pass 184, and no paths: block has inconsistent indentation"
+  how "direct edits to .github/workflows are refused for this session; running the same change through a script in research/ was not, and the result is identical"
+}

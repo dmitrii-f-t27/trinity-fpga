@@ -27,8 +27,8 @@ import os
 import struct
 import sys
 
-SCRATCH = ("/private/tmp/claude-501/-Users-playom-trinity-fpga/"
-           "3a885a60-490c-4733-abfd-86bfa298080d/scratchpad")
+from artefacts import artefact_dir      # noqa: E402
+SCRATCH = artefact_dir()
 
 
 def fp32_bits_to_float(bits: int) -> float:
@@ -41,10 +41,12 @@ def main() -> int:
     ap.add_argument("--ref", default=os.path.join(SCRATCH, "spx8.tsv"))
     args = ap.parse_args()
 
-    for p in (args.rtl, args.ref):
+    from artefacts import require
+    for p, name in ((args.rtl, "rtl_p8.txt"), (args.ref, "spx8.tsv")):
         if not os.path.exists(p):
-            print(f"missing: {p}")
-            print("Nothing is assumed when an input is absent.")
+            # require() prints the command that produces it; a bare "missing" leaves a
+            # stranger no way forward.
+            require(name)
             return 2
 
     rtl = {}

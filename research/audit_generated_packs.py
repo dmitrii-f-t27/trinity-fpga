@@ -22,7 +22,9 @@ where its witness is present; a missing complement means "not covered", never
 "violated".
 
 Run:  python3 research/audit_generated_packs.py
-Exit: 0 if no pack shows the takum-class signature, 1 otherwise.
+Exit: 0. The XOR-negation signature is reported, not failed on -- see the
+note printed with it. Pass 162 found this audit blocking three packs on a
+finding its own cited spec retracted eleven passes earlier.
 """
 from __future__ import annotations
 import glob
@@ -158,14 +160,26 @@ def main() -> int:
 
     print()
     if suspect:
-        print(f"TAKUM-CLASS SIGNATURE in {len(suspect)} pack(s): {', '.join(suspect)}")
-        print("A tapered format obeying XOR negation instead of two's complement")
-        print("matches the defect established in specs/numeric/negation_invariant.t27.")
-        print("These packs inherit it from their oracle and must not be published")
-        print("until the oracle question is settled with the format author.")
+        print(f"XOR-NEGATION ORACLE in {len(suspect)} pack(s): "
+              f"{', '.join(suspect)}")
+        print("These use a sign-and-magnitude oracle, which negates by XOR rather")
+        print("than by two's complement. That is DOCUMENTED and is not a defect.")
+        print()
+        print("specs/numeric/negation_invariant.t27 opens by retracting exactly this")
+        print("reading, on 2026-07-31, and names conformance/tekum_ref.py as carrying")
+        print("the same deliberate choice: exact-Fraction arithmetic cannot represent")
+        print("logarithmic values, so the oracle implements a linear structural model")
+        print("and says so in its own header.")
+        print()
+        print("This audit cited that spec as establishing a defect and blocked three")
+        print("packs from publication on it, for a claim the spec had already")
+        print("withdrawn. The block is lifted. What remains open is the separate")
+        print("question of which variant the project means -- recorded in")
+        print("specs/numeric/takum_variant_split.t27, owned by the author, and not")
+        print("something a pack audit decides.")
     else:
-        print("No pack shows the takum-class negation signature.")
-    return 1 if suspect else 0
+        print("No pack uses a sign-and-magnitude oracle.")
+    return 0
 
 
 if __name__ == "__main__":

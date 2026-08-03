@@ -259,6 +259,42 @@ def _decode_expansion(fmt: ExtendedFormat, raw: int):
     return total
 
 
+def is_canonical(fmt: ExtendedFormat, raw: int):
+    """Is this packed word a valid expansion, rather than merely a correct value?
+
+    These two formats are the only ones in the corpus where membership is a relation
+    between limbs instead of a pattern of bits. A double_double is a pair of binary64
+    values summing to the number, and it is a double_double only if the pair is
+    *nonoverlapping*: each limb must be the correctly-rounded binary64 of the exact sum of
+    itself and everything below it. Shewchuk calls that a nonoverlapping expansion; the QD
+    library of Hida, Li and Bailey calls it renormalized and requires it of every input.
+
+    So 0.5 + 0.5 holds the value 1 exactly and is not a double_double, because
+    fl(0.5 + 0.5) is 1.0 and not 0.5 -- the leading limb does not absorb its own tail.
+    Comparing decoded values can never see the difference; that is the whole point.
+
+    Returns None when a limb is Inf or NaN. A special is judged by the rules in
+    research/audit_special_coverage.py, and answering under both would count it twice.
+
+    Limb order note: limb 0 sits at bit position 0 and is the MOST significant, which
+    _decode_expansion's docstring words the other way round. encode(1.0) settles it --
+    [0x3ff0000000000000, 0x0]. An audit written from the docstring reported 80% of the
+    corpus as non-canonical before validating itself against encode().
+    """
+    limbs = [(raw >> (64 * i)) & ((1 << 64) - 1) for i in range(fmt.n_limbs)]
+    vals = []
+    for l in limbs:
+        d = _decode_binary64(l)
+        if isinstance(d, Special):
+            return None
+        vals.append(d)
+    for i in range(len(limbs) - 1):
+        tail = sum(vals[i + 1:], Fraction(0))
+        if _encode_binary64(vals[i] + tail) != limbs[i]:
+            return False
+    return True
+
+
 # -------------------- public API --------------------
 
 def decode(fmt: ExtendedFormat, raw: int):
@@ -397,12 +433,29 @@ def _selftest():
     qraw = encode(qd, big)
     check(decode(qd, qraw) == big, "quad_double: 4-limb expansion exact")
 
+    # pass 187: membership is not the same question as value.
+    dd = FORMATS["double_double"]
+    half = _encode_binary64(Fraction(1, 2))
+    overlapping = half | (half << 64)
+    check(decode(dd, overlapping) == 1,
+          "187: 0.5+0.5 holds the value 1 exactly")
+    check(is_canonical(dd, overlapping) is False,
+          "187: ...and is still not a valid expansion")
+    check(is_canonical(dd, encode(dd, Fraction(1, 3))) is True,
+          "187: encode() emits renormalized expansions")
+    check(is_canonical(dd, encode(dd, Fraction(1))) is True,
+          "187: a zero tail limb is canonical")
+    qd = FORMATS["quad_double"]
+    check(is_canonical(qd, encode(qd, Fraction(10) ** 40 / 3)) is True,
+          "187: quad_double encode() is renormalized too")
+
     if failures:
         print("SELF-TEST: FAIL (%d)" % len(failures))
         for f in failures[:20]:
             print("  " + f)
         return 1
-    print("SELF-TEST: PASS (extended: zero/unity/1+1/x+0/round-trip/Inf/NaN)")
+    print("SELF-TEST: PASS (extended: zero/unity/1+1/x+0/round-trip/Inf/NaN"
+          " + pass-187 expansion canonicality)")
     return 0
 
 

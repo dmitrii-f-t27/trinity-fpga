@@ -37,15 +37,16 @@ sys.path.insert(0, os.path.join(HERE, "..", "conformance"))
 try:
     import mpmath
 except ImportError:
-    print("mpmath is not installed; this witness needs it.")
+    print("mpmath is not installed; this check needs it.")
+    print("  install with : python3 -m pip install mpmath")
     raise SystemExit(2)
 
 mpmath.mp.prec = 300
 
 import takum_log_ref as T                               # noqa: E402
 
-SCRATCH = ("/private/tmp/claude-501/-Users-playom-trinity-fpga/"
-           "3a885a60-490c-4733-abfd-86bfa298080d/scratchpad")
+from artefacts import artefact_dir      # noqa: E402
+SCRATCH = artefact_dir()
 
 
 def exact_magnitude(fmt, raw):

@@ -48,11 +48,51 @@ class LegacyFormat:
     @property
     def pos_zero(self): return 0
     @property
-    def neg_zero(self): return 1 << self.sign_shift
+    def neg_zero(self):
+        # VAX has no negative zero, and neither does its PDP-11 ancestor. The VAX
+        # Architecture Reference Manual defines sign 1 with a zero exponent as the
+        # *reserved operand*: it does not name a number, it faults. Exponent 0 with sign 0
+        # is true zero whatever the fraction holds.
+        #
+        # Handing that pattern out as "neg_zero" put it in the published legend of 15
+        # packs and, worse, made it the ANSWER to 467 vectors -- the corpus asserted that
+        # certain VAX additions produce a value real VAX hardware traps on.
+        #
+        # AttributeError rather than a raise, so `getattr(fmt, "neg_zero", None)` -- how
+        # generate_vectors.real_specials probes -- gets its default and simply omits it.
+        if self.kind == 'vax':
+            raise AttributeError(f"{self.name} has no negative zero: sign 1 with a "
+                                 f"zero exponent is the reserved operand")
+        return 1 << self.sign_shift
     @property
     def quiet_nan(self):
-        # legacy formats have no canonical NaN; use a reserved exp/max-mant pattern
+        # VAX, IBM HFP, MBF and Cray have no NaN at all, so a reserved pattern is as good
+        # a marker as any and nothing decodes it back.
+        #
+        # x87 does have one, and this pattern was not it: with the explicit integer bit
+        # clear, exp all-ones is a *pseudo*-NaN -- an invalid operand every x87 since the
+        # 80387 refuses, not a quiet NaN. A real one sets the integer bit and the leading
+        # fraction bit. It went unnoticed while decode() had no notion of x87 specials to
+        # read it back with.
+        if self.kind == 'x87':
+            return (self.exp_max << self.mant_bits) | (0b11 << (self.mant_bits - 2))
         return (self.exp_max << self.mant_bits) | 1
+
+    @property
+    def pos_inf(self):
+        # Only x87 has one. Asking any other legacy format for an infinity is a bug in
+        # the caller, and saturating quietly would hide it.
+        # AttributeError, not AssertionError, so `getattr(fmt, "pos_inf", None)` --
+        # how generate_vectors.real_specials probes -- gets its default instead of an
+        # exception. Asking VAX or IBM HFP for an infinity is still a bug; it is just a
+        # bug the probing idiom is allowed to ask about.
+        if self.kind != 'x87':
+            raise AttributeError(f"{self.name} has no infinity")
+        return (self.exp_max << self.mant_bits) | (1 << (self.mant_bits - 1))
+
+    @property
+    def neg_inf(self):
+        return (1 << self.sign_shift) | self.pos_inf
 
 
 FORMATS = {
@@ -142,7 +182,29 @@ def decode(fmt: LegacyFormat, raw: int):
         return -value if sign else value
 
     if fmt.kind in ('cray', 'x87'):
-        # explicit integer bit at position (mant_bits-1): value = mant/2^(M-1) * 2^(e-bias)
+        # x87 is IEEE 754 double-extended, not a legacy format in the sense the rest of
+        # this module means. _sat_raw's comment -- "legacy formats have no Inf" -- is true
+        # of VAX, IBM HFP, MBF and Cray and was carried one format too far. Without this
+        # branch the all-ones exponent decoded as an ordinary exponent, so +Inf came back
+        # as 2^16384 (a 4,933-digit integer) and every NaN came back as a number.
+        #
+        # The corpus already disagreed with itself about this:
+        # conformance/x87_fp80_decode_conformance_ax7203.py maps exp == 0x7FFF to a quiet
+        # NaN, which is right. Only the oracle behind the arithmetic packs did not.
+        #
+        # Nothing in the packs had to change to hide it. edge_raws builds its edge codes
+        # through this decoder, so a format whose specials are unimplemented cannot
+        # produce a special edge, and 0 of 3,792 x87 vectors touched an all-ones exponent.
+        # The coverage looked complete because the missing piece was also the piece that
+        # would have shown it missing.
+        if fmt.kind == 'x87' and exp == fmt.exp_max:
+            int_bit = (mant >> (fmt.mant_bits - 1)) & 1
+            frac = mant & ((1 << (fmt.mant_bits - 1)) - 1)
+            if int_bit == 0:
+                # pseudo-infinity and pseudo-NaN: the 80387 and everything after it
+                # rejects these as invalid operands rather than reading a value.
+                return Special("nan", sign)
+            return Special("nan", sign) if frac else Special("inf", sign)
         if fmt.kind == 'x87' and exp == 0:
             if mant == 0:
                 return Fraction(0)
@@ -154,6 +216,53 @@ def decode(fmt: LegacyFormat, raw: int):
     raise ValueError(fmt.kind)
 
 
+def _signed_zero(fmt: LegacyFormat, sign: int) -> int:
+    """A zero of the given sign, or the only zero the format has.
+
+    VAX and PDP-11 have exactly one. Returning `neg_zero` for them produced the reserved
+    operand as an arithmetic result, which is a fault on hardware and was the answer to
+    467 vectors."""
+    if fmt.kind == 'vax' or not sign:
+        return fmt.pos_zero
+    return fmt.neg_zero
+
+
+def is_canonical(fmt: LegacyFormat, raw: int) -> bool:
+    """Does this encoding spell a value its format actually defines?
+
+    Added for the same reason as decimal_ref.is_canonical in pass 185: a consumer that
+    needs to tell "the decoder returned zero because the value is zero" from "because the
+    encoding is not a value" must be able to ask, not infer.
+
+    Per format:
+
+      x87       an explicit integer bit that contradicts the exponent. exp != 0 with the
+                integer bit clear is an *unnormal*; exp all-ones with it clear is a
+                pseudo-infinity or pseudo-NaN. The 80387 and every x87 since raise
+                invalid-operand on all of them. exp == 0 with the bit set is a
+                pseudo-denormal, which hardware *does* evaluate, so it stays canonical.
+      vax/pdp11 sign 1 with exponent 0 is the VAX reserved operand -- a trap, not a
+                number. Its PDP-11 ancestor calls the same encoding an undefined variable.
+      cray/ibm/mbf  every encoding denotes a value.
+
+    Deliberately not merged into decode(): decode answers "what number is this", and for
+    a non-value the honest answer is not another number.
+    """
+    raw &= fmt.mask
+    sign = (raw >> fmt.sign_shift) & 1
+    exp = (raw >> fmt.mant_bits) & fmt.exp_max
+    mant = raw & fmt.mant_max
+
+    if fmt.kind == 'x87':
+        int_bit = (mant >> (fmt.mant_bits - 1)) & 1
+        if exp == 0:
+            return True                      # zero, denormal, or pseudo-denormal
+        return int_bit == 1                  # unnormal / pseudo-inf / pseudo-NaN
+    if fmt.kind == 'vax':
+        return not (sign == 1 and exp == 0)  # reserved operand / undefined variable
+    return True
+
+
 def _sat_raw(fmt: LegacyFormat, sign: int) -> int:
     """Saturate to max-magnitude finite (legacy formats have no Inf)."""
     sat = (fmt.exp_max << fmt.mant_bits) | fmt.mant_max
@@ -162,6 +271,8 @@ def _sat_raw(fmt: LegacyFormat, sign: int) -> int:
 
 def encode(fmt: LegacyFormat, value):
     if isinstance(value, Special):
+        if fmt.kind == 'x87' and value.kind == "inf":
+            return fmt.neg_inf if value.sign else fmt.pos_inf
         return fmt.quiet_nan
 
     v = Fraction(value)
@@ -247,15 +358,47 @@ def encode(fmt: LegacyFormat, value):
     raise ValueError(fmt.kind)
 
 
+def _x87_special_add(fmt, a, b):
+    """IEEE infinity rules, for the one legacy format that is IEEE.
+
+    The Special branch here used to return a quiet NaN for every case, which is right for
+    formats with no infinity and wrong for x87: +Inf + 1 is +Inf. The branch was written
+    before decode() could produce a Special at all, so nothing ever reached it and nothing
+    ever contradicted it.
+    """
+    an, bn = isinstance(a, Special), isinstance(b, Special)
+    if (an and a.kind == "nan") or (bn and b.kind == "nan"):
+        return fmt.quiet_nan
+    if an and bn:
+        return fmt.quiet_nan if a.sign != b.sign else (
+            fmt.neg_inf if a.sign else fmt.pos_inf)
+    inf = a if an else b
+    return fmt.neg_inf if inf.sign else fmt.pos_inf
+
+
+def _x87_special_mul(fmt, a, b):
+    an, bn = isinstance(a, Special), isinstance(b, Special)
+    if (an and a.kind == "nan") or (bn and b.kind == "nan"):
+        return fmt.quiet_nan
+    other = b if an else a
+    if not (an and bn) and other == 0:
+        return fmt.quiet_nan                 # Inf * 0
+    sign = (a.sign if an else (1 if a < 0 else 0)) ^ \
+           (b.sign if bn else (1 if b < 0 else 0))
+    return fmt.neg_inf if sign else fmt.pos_inf
+
+
 def format_add(fmt: LegacyFormat, a_raw: int, b_raw: int) -> int:
     a = decode(fmt, a_raw)
     b = decode(fmt, b_raw)
     if isinstance(a, Special) or isinstance(b, Special):
+        if fmt.kind == 'x87':
+            return _x87_special_add(fmt, a, b)
         return fmt.quiet_nan
     sa = (a_raw >> fmt.sign_shift) & 1
     sb = (b_raw >> fmt.sign_shift) & 1
     if a == 0 and b == 0:
-        return fmt.neg_zero if (sa == 1 and sb == 1) else fmt.pos_zero
+        return _signed_zero(fmt, 1 if (sa == 1 and sb == 1) else 0)
     return encode(fmt, a + b)
 
 
@@ -263,12 +406,14 @@ def format_mul(fmt: LegacyFormat, a_raw: int, b_raw: int) -> int:
     a = decode(fmt, a_raw)
     b = decode(fmt, b_raw)
     if isinstance(a, Special) or isinstance(b, Special):
+        if fmt.kind == 'x87':
+            return _x87_special_mul(fmt, a, b)
         return fmt.quiet_nan
     sa = (a_raw >> fmt.sign_shift) & 1
     sb = (b_raw >> fmt.sign_shift) & 1
     rsign = sa ^ sb
     if a == 0 or b == 0:
-        return fmt.neg_zero if rsign else fmt.pos_zero
+        return _signed_zero(fmt, rsign)
     return encode(fmt, a * b)
 
 
@@ -332,13 +477,87 @@ def _selftest():
             r0 = format_add(fmt, raw, 0)
             check(decode(fmt, r0) == v, f"{fname}: x+0 value 0x{raw:x}")
 
+    _regressions_186(check)
+
     if failures:
         print("SELF-TEST: FAIL (%d)" % len(failures))
         for f in failures[:20]:
             print("  " + f)
         return 1
-    print("SELF-TEST: PASS (legacy: known-ibm/zero/unity/1+1/x+0)")
+    print("SELF-TEST: PASS (legacy: known-ibm/zero/unity/1+1/x+0"
+          " + pass-186 x87 specials/canonicality"
+          " + pass-188 no VAX negative zero)")
     return 0
+
+
+def _regressions_186(check):
+    """x87 is IEEE 754 double-extended. Before pass 186 this module treated the all-ones
+    exponent as an ordinary exponent, so +Inf decoded as 2^16384 and every NaN decoded as
+    a number. Stated as the format's own definition, not as words copied from the fix."""
+    for fname in ("x87_fp80", "x87_48bit"):
+        f = FORMATS[fname]
+        one = (f.bias << f.mant_bits) | (1 << (f.mant_bits - 1))
+        inf, ninf, nan = f.pos_inf, f.neg_inf, f.quiet_nan
+
+        check(isinstance(decode(f, inf), Special) and decode(f, inf).kind == "inf",
+              f"186: {fname} all-ones exponent with integer bit is an infinity")
+        check(decode(f, ninf).sign == 1, f"186: {fname} -Inf keeps its sign")
+        check(isinstance(decode(f, nan), Special) and decode(f, nan).kind == "nan",
+              f"186: {fname} quiet NaN decodes as NaN")
+        check(decode(f, one) == 1, f"186: {fname} one is still one")
+
+        # The old quiet_nan had the integer bit clear, which is a pseudo-NaN: an invalid
+        # operand, not a quiet NaN.
+        check(is_canonical(f, nan), f"186: {fname} quiet NaN is a canonical encoding")
+        check(not is_canonical(f, (f.exp_max << f.mant_bits) | 1),
+              f"186: {fname} integer bit clear at all-ones exponent is not canonical")
+        check(not is_canonical(f, 1 << f.mant_bits),
+              f"186: {fname} an unnormal is not canonical")
+        check(is_canonical(f, 1 << (f.mant_bits - 1)),
+              f"186: {fname} a pseudo-denormal is canonical -- hardware evaluates it")
+
+        # IEEE propagation. The Special branch existed but returned NaN for everything,
+        # because decode could not produce a Special for it to see.
+        check(format_add(f, inf, one) == inf, f"186: {fname} Inf + 1 = Inf")
+        check(format_add(f, inf, ninf) == nan, f"186: {fname} Inf + (-Inf) = NaN")
+        check(format_mul(f, inf, one) == inf, f"186: {fname} Inf * 1 = Inf")
+        check(format_mul(f, ninf, one) == ninf, f"186: {fname} -Inf * 1 = -Inf")
+        check(format_mul(f, inf, 0) == nan, f"186: {fname} Inf * 0 = NaN")
+
+    # pass 188: no VAX format may hand out a negative zero, as an operand or an answer.
+    for fname in ("vax_f", "vax_d", "vax_g", "vax_h", "pdp11_float"):
+        f = FORMATS[fname]
+        try:
+            f.neg_zero
+            ok = False
+        except AttributeError:
+            ok = True
+        check(ok, f"188: {fname} has no negative zero")
+        neg_one = encode(f, -1)
+        check(format_add(f, neg_one, encode(f, 1)) == f.pos_zero,
+              f"188: {fname} (-1) + 1 is the one zero it has")
+        check(format_mul(f, neg_one, f.pos_zero) == f.pos_zero,
+              f"188: {fname} (-1) * 0 does not produce a reserved operand")
+    for fname in ("ibm_hfp32", "ms_mbf32", "cray_float", "x87_fp80"):
+        f = FORMATS[fname]
+        check(f.neg_zero == 1 << f.sign_shift,
+              f"188: {fname} keeps its negative zero")
+
+    # VAX reserved operand: sign 1 with exponent 0 traps rather than naming a value.
+    vf = FORMATS["vax_f"]
+    check(not is_canonical(vf, 1 << vf.sign_shift),
+          "186: vax_f reserved operand is not canonical")
+    check(is_canonical(vf, 0), "186: vax_f true zero is canonical")
+
+    # The formats that genuinely have no infinity must not grow one.
+    for fname in ("vax_f", "ibm_hfp32", "ms_mbf32", "cray_float"):
+        f = FORMATS[fname]
+        try:
+            f.pos_inf
+            ok = False
+        except AttributeError:
+            ok = True
+        check(ok, f"186: {fname} still has no infinity")
 
 
 if __name__ == "__main__":

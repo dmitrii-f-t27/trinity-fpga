@@ -205,6 +205,16 @@ def _selftest():
     check(decode(fmt, 2).sign() == -1, "gfternary: code 2 -> -φ")
     check(decode(fmt, 3).sign() == +1, "gfternary: code 3 -> +φ (reserved)")
 
+    # The four assertions above check sign and zero-ness and never the VALUE, so a
+    # decoder returning the right sign with the wrong magnitude passed. Pass 219's
+    # mutation gate doubled every decoded value and this self-test did not notice.
+    # PhiVal is a + b*phi with exact Fractions, so the value is checkable outright.
+    for code, want_a, want_b in ((0, 0, 0), (1, 0, 1), (2, 0, -1), (3, 0, 1)):
+        d = decode(fmt, code)
+        check(d.a == Fraction(want_a) and d.b == Fraction(want_b),
+              f"gfternary: code {code} is {want_a} + {want_b}*phi, got "
+              f"{d.a} + {d.b}*phi")
+
     # Zero identity.
     check(format_add(fmt, 0, 0) == 0, "gfternary: 0+0 = 0")
     check(format_mul(fmt, 0, 0) == 0, "gfternary: 0*0 = 0")

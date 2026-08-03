@@ -1,3 +1,7 @@
+from __future__ import annotations   # `port: serial.Serial` in a signature is
+# evaluated when the function is DEFINED. Without this, importing the module to
+# reach its golden needs pyserial installed -- the pass-181 class, in an
+# annotation rather than a call.
 #!/usr/bin/env python3
 """
 gf16_conformance_ax7203.py
@@ -20,7 +24,6 @@ import sys
 from pathlib import Path
 from typing import List, Tuple
 
-import serial
 
 TRINITY_ANCHOR = 3.0
 PACK_MAGIC = None  # Accept any JSON pack; optional validation later
@@ -80,6 +83,8 @@ def run(pack_path: Path, device: str, baud: int = 115200, limit: int = 0) -> int
     vectors: List[dict] = pack.get("test_vectors", [])
     if limit:
         vectors = vectors[:limit]
+
+    import serial
 
     with serial.Serial(device, baud, timeout=2) as port:
         fails = 0

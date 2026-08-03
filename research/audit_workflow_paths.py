@@ -36,6 +36,15 @@ WF = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                   "..", ".github", "workflows")
 
 READV = re.compile(r"read_verilog\s+([^\";']+)")
+
+# Pass 184 found this gate half-blind. It checked the Verilog a workflow synthesises and
+# not the SCRIPTS it runs, so four workflows ran a tracked script their path filters did
+# not watch -- including wrapper-fsm-sim.yml, whose audit script I had just fixed without
+# triggering a single run of the workflow that executes it.
+#
+# "Watch what you build" and "watch what you run" are the same rule. Checking one and
+# not the other is the same shape as the defects this file was written to catch.
+RUNS = re.compile(r"(?:python3?|bash|sh)\s+([\w./-]+\.(?:py|sh))")
 # A source can reach the job through iverilog as well as through yosys. Looking only
 # at read_verilog flagged three trinet workflows whose testbenches are compiled by
 # iverilog on the line above -- three findings that were not findings, caught by
@@ -87,10 +96,76 @@ def matches(pattern: str, path: str) -> bool:
     return re.fullmatch(rx, path) is not None
 
 
+def script_gaps(tracked: set) -> list:
+    """Workflows that run a tracked script no `paths:` pattern would catch.
+
+    The Verilog half of this file asks whether a build watches what it reads. This asks
+    the same question one level up: a workflow whose first step runs a script, and whose
+    filters do not name that script, cannot be triggered by fixing the script. It will
+    keep re-running the last version that happened to touch a watched file.
+
+    Only tracked files count. An untracked path in a `run:` line is a typo or a generated
+    file, and neither is something `paths:` could watch.
+    """
+    out = []
+    for fn in sorted(f for f in os.listdir(WF) if f.endswith((".yml", ".yaml"))):
+        text = open(os.path.join(WF, fn), encoding="utf-8", errors="replace").read()
+        if not re.search(r"^\s+push:", text, re.M):
+            continue                       # dispatch-only: no filters to be wrong
+        watched = [p for p in paths_block(text) if "/" in p or "*" in p]
+        if not watched:
+            continue
+        run = {m for m in RUNS.findall(text) if m in tracked}
+        miss = [r for r in sorted(run) if not any(matches(r, p) for p in watched)]
+        if miss:
+            out.append((fn, miss))
+    return out
+
+
+def tracked_files() -> set:
+    import subprocess
+    r = subprocess.run(["git", "-C", os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ls-files"], capture_output=True,
+                       text=True, timeout=300)
+    return {f for f in r.stdout.split("\n") if f}
+
+
+def self_check() -> int:
+    """A negative control for the script half. Take a workflow that currently passes,
+    add a `run:` line for a tracked script no pattern watches, and require a flag. A
+    gate that cannot see an obvious gap is not evidence that there is none."""
+    tracked = tracked_files()
+    victim = "wrapper-fsm-sim.yml"
+    path = os.path.join(WF, victim)
+    if not os.path.exists(path):
+        print(f"self-check: SKIP -- {victim} is gone")
+        return 0
+    orig = open(path, encoding="utf-8").read()
+    before = {f for f, _ in script_gaps(tracked)}
+    probe = "research/audit_workflow_paths.py"
+    try:
+        open(path, "w", encoding="utf-8").write(
+            orig.replace("    steps:", f"    steps:\n      # probe\n"
+                                       f"      - run: python3 {probe}", 1))
+        after = dict(script_gaps(tracked))
+        seen = victim in after and probe in after[victim]
+    finally:
+        open(path, "w", encoding="utf-8").write(orig)
+    print(f"  injected `python3 {probe}` into {victim}")
+    print(f"  flagged -> {seen}  {'ok' if seen else 'THE SCRIPT HALF SEES NOTHING'}")
+    print(f"  restored, and the file is byte-identical -> "
+          f"{open(path, encoding='utf-8').read() == orig}")
+    print(f"\nbaseline gaps before injection: {len(before)}")
+    print(f"self-check: {'PASS' if seen else 'FAIL'}")
+    return 0 if seen else 1
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--self-check", action="store_true")
     args = ap.parse_args()
+    if args.self_check:
+        return self_check()
 
     files = sorted(f for f in os.listdir(WF) if f.endswith((".yml", ".yaml")))
     checked = 0
@@ -184,14 +259,22 @@ def main() -> int:
         if len(build_not_watch) > 12:
             print(f"  ... and {len(build_not_watch) - 12} more")
 
+    gaps = script_gaps(tracked_files())
+    print(f"\nworkflows that run a tracked script : "
+          f"{len(gaps)} run one no pattern watches")
+    for fn, miss in gaps:
+        print(f"  {fn}")
+        for m in miss:
+            print(f"      runs {m}, unwatched")
+
     print("""
-Read from `paths:` and `read_verilog` only. A workflow's name and its header comments
+Read from `paths:`, `read_verilog` and `run:` only. A workflow's name and its header comments
 are exactly what went stale in the case that prompted this, so neither is consulted.""")
     # Both directions fail the check. Exiting 0 on "built but not watched" was the
     # first version's behaviour, and the negative control caught it: that is the
     # direction which found the unwatched parametric cores behind the Tier-E proofs,
     # so a gate blind to it would be a gate blind to the worst case so far.
-    return 1 if (watch_not_build or build_not_watch) else 0
+    return 1 if (watch_not_build or build_not_watch or gaps) else 0
 
 
 if __name__ == "__main__":

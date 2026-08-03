@@ -122,3 +122,83 @@ Three routes exist, in descending order of strength:
 Writing "no independent witness exists for this format, and here is why" is itself a
 witness record worth having. It is what honesty rule #10 asks for when the answer is
 that there is nothing to compare against.
+
+---
+
+# Design-property records — added pass 172
+
+A reader of `decimal32` sees `bitexact: true` and a table of vectors. What they do not
+see is that its code order is not its value order, that this is a property of BID rather
+than a defect, and that somebody checked. `verify_intrinsic_invariants.py` flagged nine
+formats; pass 161 opened all nine and found eight behaving exactly as specified.
+
+Those eight findings live in a spec. They belong in the packs, where the reader is.
+
+Each record below carries a **measured** figure, not a description. The sampling is
+exhaustive below 2^16 and a 4,000-point stride above, which is why the wide formats show
+round numbers.
+
+## `lns8`, `lns16` — the stored logarithm is signed
+
+```json
+{
+  "kind": "code_order_is_not_value_order",
+  "observed": "1 decrease over the positive half (lns8: of 14 comparable pairs; lns16: of 126)",
+  "why": "the stored logarithm is signed, so the positive half of the code space runs through positive and negative exponents alike. lns8 code 56 decodes to 2^7 = 128 and code 72 to 2^-7; lns16 goes 2^63 to 2^-63 at the same boundary. The single decrease is the exponent sign turning over.",
+  "not_a_defect": "monotonicity in code order is not a property this encoding claims"
+}
+```
+
+## `ibm_hfp32`, `ibm_hfp64` — unnormalised hexadecimal float
+
+```json
+{
+  "kind": "code_order_is_not_value_order",
+  "observed": "126 decreases over 3,968 sampled pairs, at each width",
+  "why": "the fraction need not carry a leading one, so a larger exponent with a much smaller fraction gives a smaller value. Exponent 1 with fraction 0xFBE734 is followed by exponent 2 with fraction 0x04185A, and the value falls from 1.36e-76 to 3.54e-77.",
+  "also": "222 of 4,001 sampled codes do not survive a value round trip, for the same reason: several codes denote one value and encode() returns the normalised one"
+}
+```
+
+## `decimal32`, `decimal64` — BID interleaves exponent and coefficient
+
+```json
+{
+  "kind": "code_order_is_not_value_order",
+  "observed": "192 decreases over 3,749 pairs at 32 bits; 218 over 3,372 at 64",
+  "why": "the combination field encodes exponent and coefficient together, so consecutive codes do not denote consecutive values. Zero repeats -- the values differ, they are simply not sorted.",
+  "contrast": "a format whose flag comes from a zero band shows the opposite shape: repeats and no decreases"
+}
+```
+
+## `cray_float`, `x87_48bit` — unnormalised representations
+
+```json
+{
+  "kind": "value_round_trip_is_not_injective",
+  "observed": "1,050 of 2,125 sampled codes re-encode to a different code; 0 decreases in value order",
+  "why": "both formats admit unnormalised representations, so several codes denote one value and encode() returns the normalised one. Opened one of each: the decoded value is a tiny nonzero rational with a ~4,940-digit denominator, and its normalised code differs.",
+  "not_a_defect": "no value-based round trip can distinguish codes that denote the same value; that is what an unnormalised representation is for"
+}
+```
+
+## `bcd` — and this one is a question, not a record
+
+156 of 256 codes fail the value round trip. **That is exactly the count of invalid packed
+BCD bytes**: a valid one has both nibbles in 0–9, so 100 of 256 are valid and 156 are
+not.
+
+`conformance/int_ref.py` decodes them anyway, as `sum(nibble * 10^i)` with no digit
+check — `0x0A` becomes 10, `0x0F` becomes 15 — and `encode()` returns the canonical code,
+so the trip closes elsewhere. The 7 monotonic decreases are the same thing seen from the
+other side, at the nibble boundaries.
+
+The corpus is internally consistent: `int_ref.py` records that it matches
+`bcd_decode_conformance_ax7203.py` and `fpga/openxc7-synth/bcd_decode.v`, so oracle,
+golden and silicon agree. **The question is what the pack claims.** It declares bit-exact
+BCD, and a reader who knows BCD expects those 156 codes rejected.
+
+Either the pack says it implements an extension accepting all 256 codes, or they decode
+to a special. Recorded for the author in `catalog_coverage_delta.t27`; nothing here is
+guessed, and the 156 is now measured rather than argued.
+

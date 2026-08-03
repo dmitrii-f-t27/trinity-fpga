@@ -157,8 +157,15 @@ def real_specials(fmt, family, width):
         if getattr(fmt, "has_inf", False) or getattr(fmt, "nan_at_max_only", False):
             add("quiet_nan")
     elif family == "mxfp":
+        # Same guard the fp8 branch above already has, and it was missing here.
+        # OCP Microscaling v1.0 gives FP4 E2M1 and FP6 E2M3/E3M2 no Inf and no NaN, and
+        # mxfp_ref agrees: has_inf False and nan_at_max_only False for all four. The
+        # unconditional add put a "quiet_nan" in the published legend of every one --
+        # mxfp4's pointed at 0x7, which decodes to 6; mxfp6's and mxgf6's at 4.5;
+        # mxgf4's at 2.5. Ordinary finite numbers, labelled NaN in pack metadata.
         if getattr(fmt, "kind", "") != "int":
-            add("quiet_nan")
+            if getattr(fmt, "has_inf", False) or getattr(fmt, "nan_at_max_only", False):
+                add("quiet_nan")
             if getattr(fmt, "has_inf", False):
                 add("pos_inf")
                 add("neg_inf")
@@ -167,7 +174,24 @@ def real_specials(fmt, family, width):
         add("pos_inf")
         add("neg_inf")
         add("quiet_nan")
-    # legacy / int / nf4 / gfternary: decode never yields a Special
+    elif family == "legacy":
+        # x87 is IEEE 754 double-extended and has infinities and NaNs like any other IEEE
+        # format. The rest of the legacy family genuinely does not, and legacy_ref raises
+        # AttributeError if asked, so `add` sees no attribute and adds nothing.
+        #
+        # Until pass 186 this branch did not exist and the comment below read "legacy ...
+        # decode never yields a Special" -- true of VAX, IBM HFP, MBF and Cray, carried
+        # one format too far. It was the third place the same over-general sentence had
+        # been written down, after legacy_ref._sat_raw's comment and its decode.
+        #
+        # It also made the gap self-concealing: edge codes are built through the oracle,
+        # so a format whose specials are unimplemented cannot contribute a special edge,
+        # and 0 of 3,795 x87 vectors touched an all-ones exponent. Nothing looked missing.
+        if getattr(fmt, "kind", "") == "x87":
+            add("pos_inf")
+            add("neg_inf")
+            add("quiet_nan")
+    # int / nf4 / gfternary: decode never yields a Special
     return out
 
 
@@ -244,12 +268,78 @@ def make_sub_fn(add_fn, mod, family):
     return sub_fn
 
 
+def structural_raws(fmt, mod, family, width, mask):
+    """Codes a format's own definition excludes, built from bits rather than from values.
+
+    Every random operand for a format wider than the cut in gen_pairs comes from
+    `_rand_value_raw`, which encodes a random VALUE. That was a cost decision -- raw bits
+    for a wide format would demand pow2(huge) -- and it silently fixed the coverage: no
+    vector could hold a code outside the image of encode().
+
+    Those codes exist in quantity. research/audit_operand_reachability.py counts them:
+    1.26e15 non-canonical BID coefficients in decimal64, 2.98e33 in decimal128, 3.02e23
+    x87 unnormals in fp80. Not one appeared in any vector, and pass 185's canonicality
+    defect was findable only in decimal32 -- the single format sitting on the width
+    boundary where raw-random operands are still drawn.
+
+    Constructing these is cheap even where decoding a *random* wide code is not: a
+    non-canonical BID coefficient decodes to zero by IEEE 754-2008 3.5.2, and the x87
+    patterns here are pinned to small exponents on purpose. Cost was never the objection
+    to covering them; nobody had asked.
+    """
+    out = set()
+    if family == "decimal":
+        # Case B above max_coeff: non-canonical, value zero. Take the first, the last and
+        # the midpoint of the excluded run rather than a sample, so the set is stable.
+        lo = fmt.max_coeff + 1
+        hi = ((0b100 << (fmt.coeff_bits_big - 3))
+              | ((1 << (fmt.coeff_bits_big - 3)) - 1))
+        if hi >= lo:
+            for C in (lo, hi, (lo + hi) // 2):
+                lower = fmt.coeff_bits_big - 3
+                code = ((0b11 << (fmt.sign_shift - 2))
+                        | ((fmt.bias & fmt.exp_max) << lower)
+                        | (C & ((1 << lower) - 1)))
+                out.add(code & mask)
+                out.add((code | (1 << fmt.sign_shift)) & mask)
+    elif family == "legacy" and getattr(fmt, "kind", "") == "x87":
+        m = fmt.mant_bits
+        for exp in (1, fmt.bias, fmt.exp_max):
+            base = (exp << m) & mask
+            out.add(base)                                   # integer bit clear
+            out.add((base | 1) & mask)                      # ...with a fraction
+            out.add((base | (1 << fmt.sign_shift)) & mask)  # ...negative
+    elif family == "legacy" and getattr(fmt, "kind", "") == "vax":
+        out.add((1 << fmt.sign_shift) & mask)               # the reserved operand
+        out.add(((1 << fmt.sign_shift) | 0x1234) & mask)    # ...with a fraction
+    elif family == "extended":
+        # Overlapping expansions: a correct value through limbs that are not a
+        # nonoverlapping expansion, so the pair is not a member of the format. 0.5 + 0.5
+        # sums to exactly 1 and fails, because fl(0.5 + 0.5) is 1.0 rather than 0.5 --
+        # the leading limb does not absorb its own tail. Built here rather than counted in
+        # audit_operand_reachability, which reports this family as not countable.
+        half = mod._encode_binary64(Fraction(1, 2))
+        one = mod._encode_binary64(Fraction(1))
+        quarter = mod._encode_binary64(Fraction(1, 4))
+        out.add((half | (half << 64)) & mask)
+        out.add((one | (half << 64)) & mask)
+        out.add((half | (quarter << 64)) & mask)
+        if fmt.n_limbs >= 4:
+            out.add((half | (half << 64) | (half << 128) | (half << 192)) & mask)
+    return sorted(out)
+
+
 def edge_raws(fmt, mod, family, width, mask):
     """Representative raw bit-patterns: real specials + encoded boundary values."""
     raws = set()
 
     # 1. real specials (structural, decode-safe — see real_specials)
     for _attr, raw in real_specials(fmt, family, width):
+        raws.add(raw)
+
+    # 1b. codes the format excludes. See structural_raws: without these, a format wider
+    # than gen_pairs' raw-random cut can only ever be tested on the image of encode().
+    for raw in structural_raws(fmt, mod, family, width, mask):
         raws.add(raw)
 
     enc = mod.encode

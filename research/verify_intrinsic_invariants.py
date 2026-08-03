@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
 """Sweep every golden oracle for intrinsic structural invariants.
 
-Rationale: the strongest result of this campaign came from an invariant that
-needs no external reference (see specs/numeric/negation_invariant.t27). This
-script generalises that method across the whole oracle layer.
+Rationale, restated in pass 163. This file used to say that "the strongest result
+of this campaign came from an invariant that needs no external reference", citing
+specs/numeric/negation_invariant.t27. That spec opens by RETRACTING its own result:
+the takum "negation defect" is not a defect, because the oracle is a documented
+linear structural model. The finding did not survive; the METHOD did.
+
+So the honest rationale is the method itself: an invariant checkable from the
+encoding alone costs nothing to run and needs no second implementation, which
+matters for the many formats that have none. What this sweep has actually produced
+is a lesson about its own output -- it flagged 40 formats, and passes 159 to 161
+found that 31 of those were the checker measuring the wrong thing, while the 9 that
+survived were 8 formats behaving exactly as specified and 1 question about pack
+scope. A dependency-free check is cheap to run and expensive to read.
 
 Three properties are tested, each checkable from the encoding alone:
 
@@ -103,7 +113,19 @@ def codes_for(width):
 
 
 def check_monotonic(mod, fmt, width):
-    """Strictly increasing over the positive half (codes below the MSB)."""
+    """Non-decreasing over the positive half, with repeats reported apart.
+
+    Strict increase is the wrong test. Pass 160 opened the flags it raised: vax_f had
+    15 "violations" and ms_mbf32 had 46, and NONE was a decrease. Every one was a pair
+    of codes decoding to the same value, and that value was zero -- both formats define
+    exponent field 0 as zero regardless of the mantissa bits, so a whole band decodes
+    to 0.0 by definition.
+
+    Repeating a value is redundancy; decreasing is disorder. They are different
+    properties, and merging them flagged two formats for a documented zero band.
+    decimal32 shows the opposite shape -- 192 genuine decreases and zero repeats -- and
+    that is a real property of BID code order.
+    """
     span = 1 << width
     half = span >> 1
     if half <= 1:
@@ -111,15 +133,29 @@ def check_monotonic(mod, fmt, width):
     step = 1 if half <= MAX_ENUM else max(1, half // SAMPLE)
     prev = None
     bad = 0
+    repeats = 0
     tested = 0
     for raw in range(0, half, step):
         v = finite(mod, fmt, raw)
         if v is None:
             continue
+        if v == 0:
+            # Zero is a designated code, not a point on the magnitude ladder, and in
+            # several formats it does not sit at the start of one. lns8 reserves code
+            # 64 for zero because a logarithm has no representation for it, and the
+            # only reason that code appeared adjacent to 128.0 is that every code
+            # between them decodes to Special('irrational') and was filtered out.
+            #
+            # Comparing a designated zero against a positive value in code order
+            # measures the filter, not the format. It was lns8's and lns16's entire
+            # monotonic flag: exactly one "decrease", and it was the zero code.
+            continue
         if prev is not None:
             tested += 1
-            if v <= prev:
+            if v < prev:
                 bad += 1
+            elif v == prev:
+                repeats += 1
         prev = v
     if tested == 0:
         return None, 0
@@ -162,10 +198,28 @@ def check_sign(mod, fmt, width):
 
 
 def check_roundtrip(mod, fmt, width):
+    """decode(raw) -> encode(value) -> raw, with signed zero counted separately.
+
+    Pass 159 opened the flags this raised. For binary16, bfloat16, fp8_e5m2, fp6_e2m3
+    and gf16 the answer was the same every time: exactly ONE code out of the whole
+    space fails, and it is the negative-zero code. The oracles carry values as
+    `Fraction`, which cannot distinguish -0 from +0, so encode() returns the positive
+    zero code and the round trip closes on the wrong one.
+
+    That is a property of the carrier, not of the format -- the corpus already knows
+    it, and crossval_ml_dtypes.py prints "[2 zero-sign not carried by oracle]" for the
+    same reason. Reporting it as VIOLATED put 21 of 35 narrow formats on a flag list
+    for a defect none of them has.
+
+    It also explains why the flag tracked width. Exhaustive enumeration always reaches
+    the negative-zero code; the stride sample used above 16 bits usually steps over it.
+
+    So signed zero is counted apart, and anything else is a real round-trip failure.
+    """
     if not hasattr(mod, "encode"):
         return None, 0
     codes, _ = codes_for(width)
-    bad = tested = 0
+    bad = tested = zero_band = 0
     for raw in codes:
         v = finite(mod, fmt, raw)
         if v is None:
@@ -175,8 +229,22 @@ def check_roundtrip(mod, fmt, width):
         except Exception:
             continue
         tested += 1
-        if back != raw:
-            bad += 1
+        if back == raw:
+            continue
+        if v == 0:
+            # A code whose VALUE is zero cannot be recovered from that value when the
+            # format has more than one zero code, and several here do by definition.
+            # vax_f, ms_mbf32/64 and pdp11_float all specify that exponent field 0
+            # means zero regardless of the mantissa bits, so a whole band decodes to
+            # 0.0; encode(0) returns the one canonical code and the trip closes
+            # elsewhere. The negative-zero code of every sign-magnitude format is the
+            # same thing at width one.
+            #
+            # That is redundancy in the encoding -- a design property, not a round-trip
+            # defect.
+            zero_band += 1
+            continue
+        bad += 1
     if tested == 0:
         return None, 0
     return bad == 0, tested
@@ -210,7 +278,12 @@ def main() -> int:
         s = "-" if sign is None else sign
         r = "-" if rt is None else ("OK" if rt else "VIOLATED")
         print(f"{name:<14}{width:>5}  {m:<11}{s:<11}{r}", flush=True)
-        if mono is False or sign == "neither" or rt is False:
+        # "neither" means no negation convention holds. For a SIGNED format that is a
+        # lead; for an unsigned one it is the correct answer. uint4/8/16/32 have no
+        # sign bit to flip, nf4 indexes a 16-entry quantile table, and bcd encodes
+        # decimal digits. Flagging them said only that the check does not apply.
+        unsigned = name.startswith("uint") or name in ("nf4", "bcd")
+        if mono is False or (sign == "neither" and not unsigned) or rt is False:
             flagged.append(name)
 
     print()

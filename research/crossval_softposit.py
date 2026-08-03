@@ -33,8 +33,8 @@ import math
 import os
 import sys
 
-SCRATCH = ("/private/tmp/claude-501/-Users-playom-trinity-fpga/"
-           "3a885a60-490c-4733-abfd-86bfa298080d/scratchpad")
+from artefacts import artefact_dir      # noqa: E402
+SCRATCH = artefact_dir()
 
 
 def load_ref(path: str) -> dict[int, float]:
@@ -100,7 +100,13 @@ def main() -> int:
 
     if not checked:
         print("\nNothing was compared. This script does not report success when it "
-              "has read nothing.")
+              "has read nothing.\n")
+        # Say how to obtain what is missing. A check that reports absence without a
+        # recipe leaves a stranger no way forward, which pass 170's gate treats as a
+        # failure in its own right.
+        from artefacts import require
+        require("posit8.json", args.ref_dir)
+        require("spx8.tsv", args.ref_dir)
         return 2
 
     print(f"""

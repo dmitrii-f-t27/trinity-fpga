@@ -7,9 +7,16 @@ Posit and takum both define negation as two's complement of the code word:
 
 for every non-special code. This is intrinsic to the encoding, so the invariant
 can be tested WITHOUT any external reference implementation — which makes it a
-cheap, dependency-free way to detect the sign-and-magnitude confusion found in
-specs/numeric/takum_libtakum_crossval.t27, and to see whether it reaches beyond
-one family.
+cheap, dependency-free way to test the property across families.
+
+It used to say it detected "the sign-and-magnitude confusion found in
+specs/numeric/takum_libtakum_crossval.t27". That spec opens by retracting exactly
+that reading: conformance/takum_ref.py is a documented linear structural model,
+sign-and-magnitude by design, because exact-Fraction arithmetic cannot carry
+logarithmic values. There was no confusion to detect.
+
+What the check is good for is the property itself, which every one of the eight
+posit and takum families satisfies -- 211,576 code pairs, zero violations.
 
 Zero and NaR are self-complementary and are excluded, as are any codes whose
 decode is a special value.

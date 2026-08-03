@@ -1,0 +1,163 @@
+{
+ "note": "SHA-256 of every external-witness dump the campaign compares against. Hashes produced by shasum -a 256 and injected mechanically; none typed by hand.",
+ "reproduced": {
+  "lt8.tsv": "rebuilt from libtakum source in pass 196 -- byte-identical",
+  "ltlog8.tsv": "rebuilt from libtakum source in pass 196 -- byte-identical"
+ },
+ "artefacts": [
+  {
+   "name": "spx8.tsv",
+   "sha256": "e392dbdbd369bb9bf2a7775277286fa701a2059cd69242a57c2505b9ba7840c8",
+   "bytes": 2879,
+   "in_repo": "conformance/witness/spx8.tsv",
+   "witness": "SoftPosit positX, es = 2 (Posit Standard 2022)",
+   "used_by": "research/crossval_softposit.py",
+   "library_version": {
+    "commit": "17d5628",
+    "date": "2023-05-31",
+    "tag": null
+   },
+   "generator": "spx.c / spx32.c"
+  },
+  {
+   "name": "spx16.tsv",
+   "sha256": "cee919117ea2938e514970ad6811b7cabe1815c3ab7003eb0b50a27dc8e88a8b",
+   "bytes": 1304911,
+   "in_repo": null,
+   "witness": "SoftPosit positX, es = 2 (Posit Standard 2022)",
+   "used_by": "research/crossval_softposit.py",
+   "library_version": {
+    "commit": "17d5628",
+    "date": "2023-05-31",
+    "tag": null
+   },
+   "generator": "spx.c / spx32.c"
+  },
+  {
+   "name": "spx32.tsv",
+   "sha256": "9acacd564d284928e7c833af62eba7579c2e5258fc6d8564814ec868929071bf",
+   "bytes": 98,
+   "in_repo": "conformance/witness/spx32.tsv",
+   "witness": "SoftPosit positX, es = 2 (Posit Standard 2022)",
+   "used_by": "research/crossval_softposit.py",
+   "library_version": {
+    "commit": "17d5628",
+    "date": "2023-05-31",
+    "tag": null
+   },
+   "generator": "spx.c / spx32.c"
+  },
+  {
+   "name": "lt8.tsv",
+   "sha256": "f60e791faed9900df1afbab843d26886c317f45e5b2eff673d4d8f34feb6da9b",
+   "bytes": 4377,
+   "in_repo": "conformance/witness/lt8.tsv",
+   "witness": "libtakum takum{N}_to_float64 -- the LINEAR family",
+   "used_by": "research/crossval_libtakum.py",
+   "library_version": {
+    "commit": "776ac0c",
+    "date": "2025-11-24",
+    "tag": "v2.0.0"
+   },
+   "generator": "lt8.c / lt16both.c"
+  },
+  {
+   "name": "lt16.tsv",
+   "sha256": "ead36e7c9aa3612e0123af55754adc663235ac693ee25e4371801431be5f382d",
+   "bytes": 1496218,
+   "in_repo": null,
+   "witness": "libtakum takum{N}_to_float64 -- the LINEAR family",
+   "used_by": "research/crossval_libtakum.py",
+   "library_version": {
+    "commit": "776ac0c",
+    "date": "2025-11-24",
+    "tag": "v2.0.0"
+   },
+   "generator": "lt8.c / lt16both.c"
+  },
+  {
+   "name": "lt32.tsv",
+   "sha256": "7422a875eb5fdd35e43ab537f7009c7c93939b12f98ab518ebe52962f206e7a6",
+   "bytes": 1278509,
+   "in_repo": null,
+   "witness": "libtakum takum{N}_to_float64 -- the LINEAR family",
+   "used_by": "research/crossval_libtakum.py",
+   "library_version": {
+    "commit": "776ac0c",
+    "date": "2025-11-24",
+    "tag": "v2.0.0"
+   },
+   "generator": "lt8.c / lt16both.c"
+  },
+  {
+   "name": "lt64.tsv",
+   "sha256": "1c977cc498a9cd91f990c648525444c9b2e1c88c26280085ce85090b0a3dca40",
+   "bytes": 975873,
+   "in_repo": null,
+   "witness": "libtakum takum{N}_to_float64 -- the LINEAR family",
+   "used_by": "research/crossval_libtakum.py",
+   "library_version": {
+    "commit": "776ac0c",
+    "date": "2025-11-24",
+    "tag": "v2.0.0"
+   },
+   "generator": "lt8.c / lt16both.c"
+  },
+  {
+   "name": "ltlog8.tsv",
+   "sha256": "6cd3e4b5ff90fb8bffd4ad80626655327187018904ffd9a9d8ed4daa7698435e",
+   "bytes": 6277,
+   "in_repo": "conformance/witness/ltlog8.tsv",
+   "witness": "libtakum takum_log{N}_to_float64 -- the LOGARITHMIC family",
+   "used_by": "research/crossval_libtakum.py",
+   "library_version": {
+    "commit": "776ac0c",
+    "date": "2025-11-24",
+    "tag": "v2.0.0"
+   },
+   "generator": "ltlog8.c"
+  },
+  {
+   "name": "ltlog16.tsv",
+   "sha256": "4e2aeb1e7d28dbf3210b1faf77a0d9bc522fc89776eb28412e1be76f9ddd78e8",
+   "bytes": 1773023,
+   "in_repo": null,
+   "witness": "libtakum takum_log{N}_to_float64 -- the LOGARITHMIC family",
+   "used_by": "research/crossval_libtakum.py",
+   "library_version": {
+    "commit": "776ac0c",
+    "date": "2025-11-24",
+    "tag": "v2.0.0"
+   },
+   "generator": "ltlog8.c"
+  },
+  {
+   "name": "ltlog8_hex.tsv",
+   "sha256": "1d88067ef2c71fa90f49f30bd1c3fb537b95545c324cbd60bd60c270b39deb7b",
+   "bytes": 5266,
+   "in_repo": "conformance/witness/ltlog8_hex.tsv",
+   "witness": "libtakum takum_log{N}_to_float64 -- the LOGARITHMIC family",
+   "used_by": "research/crossval_libtakum.py",
+   "library_version": {
+    "commit": "776ac0c",
+    "date": "2025-11-24",
+    "tag": "v2.0.0"
+   },
+   "generator": "ltlog8.c"
+  },
+  {
+   "name": "ltlog16_hex.tsv",
+   "sha256": "cb27149b9bca14f566d5f15cfceb2270ab88097614976936788d5b98d92cffde",
+   "bytes": 1496218,
+   "in_repo": null,
+   "witness": "libtakum takum_log{N}_to_float64 -- the LOGARITHMIC family",
+   "used_by": "research/crossval_libtakum.py",
+   "library_version": {
+    "commit": "776ac0c",
+    "date": "2025-11-24",
+    "tag": "v2.0.0"
+   },
+   "generator": "ltlog8.c"
+  }
+ ]
+}
