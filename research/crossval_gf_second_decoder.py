@@ -1,36 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""An independent second decoder for GoldenFloat was already in the repository.
+"""RETRACTED. gf16_plus_ref is not a second implementation.
 
-Honesty rule #10 wants a second implementation that shares no code with the first. This
-campaign has spent passes hunting for one -- SoftPosit for posit, libtakum for takum,
-gcc's Intel BID for decimal. For GoldenFloat, the formats the first paper is about, there
-was never a candidate.
+Pass 194 read its first import:
 
-There was. `conformance/gf16_plus_ref.py` declares the same seventeen widths as
-`conformance/gf_ref.py` and decodes them independently. It is not in
-`generate_vectors.MODULES`, so it has never generated a vector, and nothing has ever
-compared the two. It was found by a check written for a different purpose: pass 192 was
-auditing for hardcoded attribute names and noticed three `*_ref.py` modules that no sweep
-reaches.
+    from gf_ref import FORMATS, decode, encode, gf_mul, Special
 
-    9,041 distinct codes across all seventeen widths, 0 disagreements.
+`gf16_plus_ref.decode is gf_ref.decode` is True. So is encode, so is FORMATS, so is
+Special -- the same objects, not merely equivalent ones. This file compared a function
+with itself and reported that it agreed.
 
-WHAT THIS IS NOT
-----------------
-Not a witness for the arithmetic. `gf16_plus_ref` has no add or mul; only `decode` is
-comparable, so this covers the decode packs' operands and results as *values* and says
-nothing about whether the operations on them are right.
+What passes 192 and 193 claimed:
 
-And emphatically not a template for `takum`. `takum_ref` and `takum_log_ref` also share
-format names -- takum8, takum16, takum32, takum64 -- and are **different families**:
-3 of 256 codes agree at takum8, 1 of 4096 at takum16. Passes 144 to 146 were spent
-comparing against the wrong one because the 2*pi landmark happened to agree for both, and
-a landmark that agrees for two different things distinguishes neither. Shared names are
-not evidence of a shared format; identical decodes over the whole code space are.
+    9,041 decodes, 0 disagreements, against an independent implementation
+    159,430 add/mul results, 0 disagreements, against an independent implementation
 
-    python3 research/crossval_gf_second_decoder.py [--verbose] [--self-check]
+Both are void as independence claims. The decode comparison is entirely vacuous. The
+arithmetic comparison is nearly so: `gf_ref.gf_add` is decode -> specials -> signed zero
+-> exact sum -> encode, and the "independent" adder written for pass 193 is the same
+recipe over the same decode and encode. It confirmed that two spellings of one algorithm
+agree, which was never in doubt.
+
+**GoldenFloat has no independent second witness.** It is where it was before pass 192, and
+saying so is worth more than the number that was there instead.
+
+The lesson is about the control, not the claim. Pass 192's self-check required the
+takum_ref/takum_log_ref pair to be REJECTED -- a real control against comparing unrelated
+formats -- and had nothing asserting the two modules were distinct code. Guarding against
+the wrong pair while never checking the pair is two things is exactly the shape this
+campaign keeps finding elsewhere.
+
+`research/audit_witness_independence.py` now checks that: any module claiming to witness
+another must not re-export its functions. Both files here refuse to run rather than print
+a comforting zero.
 """
+
 from __future__ import annotations
 
 import glob
@@ -82,7 +86,27 @@ def compare(A, B, name, codes):
     return n, ok, first
 
 
+def _independence_or_die():
+    """Refuse to run. Left as executable code rather than deleted, so the retraction is
+    visible where the claim was made and cannot be quietly resurrected."""
+    import importlib
+    import sys
+    sys.path.insert(0, CONF)
+    A = importlib.import_module("gf_ref")
+    B = importlib.import_module("gf16_plus_ref")
+    shared = [n for n in ("decode", "encode", "FORMATS", "Special")
+              if getattr(A, n, None) is getattr(B, n, None)]
+    print("RETRACTED -- gf16_plus_ref re-exports gf_ref; see the module docstring.")
+    print(f"  shared objects: {', '.join(shared)}")
+    print("  GoldenFloat has no independent second witness.")
+    return 2
+
+
 def main() -> int:
+    return _independence_or_die()
+
+
+def _old_main() -> int:
     verbose = "--verbose" in sys.argv
     A, B = load()
 
@@ -172,5 +196,5 @@ def self_check() -> int:
 
 if __name__ == "__main__":
     if "--self-check" in sys.argv:
-        raise SystemExit(self_check())
+        raise SystemExit(_independence_or_die())
     raise SystemExit(main())

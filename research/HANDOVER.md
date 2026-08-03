@@ -11,25 +11,32 @@ the measurement lives, and what it costs to act on.
 
 ---
 
-## GoldenFloat now has an independent second witness — decode AND arithmetic
+## RETRACTED: GoldenFloat has NO independent second witness
 
-`conformance/gf16_plus_ref.py` was in the repository all along: a second implementation of
-the same seventeen widths, not in `generate_vectors.MODULES`, never used by anything.
+Passes 192 and 193 claimed one, in this file, in two merged pull requests and in the SSOT:
 
-- **decode**: 9,041 distinct codes across all seventeen widths, 0 disagreements (pass 192)
-- **add and mul**: 159,430 results, 0 disagreements (pass 193)
+> `conformance/gf16_plus_ref.py` ... a second implementation ... 9,041 decodes,
+> 0 disagreements ... 159,430 arithmetic results, 0 disagreements
 
-The arithmetic is built on `gf16_plus_ref`'s own `decode` and `encode`, so it shares no
-line with `gf_ref.gf_add`. What the two have in common is the specification — exact
-result, then round — which is the thing being checked.
+Pass 194 read that module's first import:
 
-This is the claim the first paper most needed and could not make: its formats were
-verified against one implementation checking itself. **They are not any more.**
+```python
+from gf_ref import FORMATS, decode, encode, gf_mul, Special
+```
 
-Two limits, stated rather than buried. Specials are skipped, not passed — 238 of them —
-because this witness does not model NaN propagation. And `div`/`sqrt` are not covered
-here; `conformance/exact_ops.py` can build them on `gf16_plus_ref` the same way, and that
-is the obvious next step.
+`gf16_plus_ref.decode is gf_ref.decode` is True. Same object. The decode comparison was a
+function against itself. The arithmetic comparison used the same decode and encode with an
+adder written to the same recipe `gf_ref.gf_add` already follows — decode, specials, signed
+zero, exact sum, encode — so it confirmed that two spellings of one algorithm agree.
+
+**The formats of the first paper are still verified by one implementation checking
+itself.** That is where they were before pass 192.
+
+What the episode is actually worth: pass 192's control required the `takum_ref` /
+`takum_log_ref` pair to be *rejected* — a genuine guard against comparing two different
+formats that share names — and had nothing asserting the compared pair was two things at
+all. `research/audit_witness_independence.py` now asks that, and both cross-validators
+refuse to run rather than print a comforting zero.
 
 ## 1. Must change — a reviewer would catch these
 
