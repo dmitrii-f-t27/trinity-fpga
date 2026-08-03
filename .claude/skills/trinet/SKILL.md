@@ -216,6 +216,31 @@ With several programmers attached, every AL321 reports the same USB serial, so
 pass `-c "adapter usb location <loc>"` with `ax7203_al321_multi.cfg` and sweep
 the locations fresh — they move with the hubs too.
 
+Get the locations from `ioreg`, do not guess them:
+
+```bash
+ioreg -p IOUSB -w0 | grep -E "Hub|Digilent|CP2102N"
+```
+
+`Digilent USB Device@01120000` → openocd location `1-1.2` (first byte is the
+bus, each remaining non-zero nibble is a port down the chain). A CP2102N next to
+a Digilent under the **same hub** is the same board — that is how to pair a
+serial port with a programmer without flashing anything to find out.
+
+**Measured 2026-08-03, and it cost an hour:** three AL321 cables attached, only
+one reachable. The two on the host controller directly stalled in
+`mpsse_flush()` on every attempt; the one behind a USB2.1 hub worked on every
+attempt, three times running. `mpsse stall` is therefore not automatically a
+dead cable or a wedged FT2232H — check whether the working and failing cables
+are on different buses before reseating anything. A first probe left running for
+ten minutes also wedges a cable, so bound every JTAG probe with a hard timeout:
+
+```bash
+sudo -n /opt/homebrew/bin/openocd -f fpga/openxc7-synth/ax7203_al321_multi.cfg \
+  -c "adapter usb location 0-1.2" -c "init" -c "shutdown" > /tmp/j.log 2>&1 &
+P=$!; ( sleep 25; kill -9 $P 2>/dev/null ) & wait $P
+```
+
 ## Board and toolchain truths
 
 - **Verify `sudo -n true` at the start of every flash session.** The
