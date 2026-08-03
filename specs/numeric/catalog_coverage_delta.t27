@@ -6548,3 +6548,12 @@ finding "the takum conformance host is the closer of the two to libtakum" {
   the_112_that_differ "11 codes where the host says zero and libtakum gives 1.12e-45 to 2.64e-28; 7 where the host says infinity and libtakum gives 3.78e27 to 1e38. Both bands sit inside fp32's normal range, so neither is a conversion artefact -- the host's takum8 has a narrower dynamic range. The remaining 94 have no constant ratio: 130 of 224 finite pairs are identical and the rest scatter, which is a field-split or rounding difference, not a scale"
   not_settled "the takum standard is not in this repository. Without it, which of the host and libtakum is right cannot be decided here, and guessing would be worse than the open question"
 }
+
+correction "takum and LNS oracles do not abstain -- they represent exactly" {
+  pass_212_said "takum_log_ref DECLINES to give a Fraction, and lns_ref likewise, so the hosts have no number to test against"
+  what_is_actually_there "Special(kind='exp', sign=0, ln=Fraction(-239, 2)). The natural logarithm is carried as an exact Fraction, so every takum8 value is sign * e^(ln) with ln exactly rational. lns_ref exposes the same through decode_log and encode_from_log"
+  so "the oracle is EXACT, in the form the value actually has. What it declines is to pretend a transcendental is a rational, which is the opposite of abstaining"
+  the_98_percent "401,826 of 407,145 takum and lns pack vectors have an operand of this kind. That is not a coverage hole: it is the measurement that these families are transcendental almost everywhere, represented exactly"
+  why_hosts_need_their_own_golden "hardware emits fp32, and leaving the log domain requires evaluating exp(). That is where the 1-ULP residuals come from -- a mathematical necessity, not a defect, and the same boundary the checklist already names for takum32 against libtakum"
+  bearing_on_the_papers "the corpus's takum and LNS oracles are exact where a float-based oracle cannot be. That is a claim worth making, and pass 212's wording would have understated it"
+}
