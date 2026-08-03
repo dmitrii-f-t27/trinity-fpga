@@ -786,6 +786,14 @@ fn census(gpa: std.mem.Allocator, path: []const u8, baud: u32, runs: usize, per_
     var stale_runs: usize = 0;
     var open_failures: usize = 0;
 
+    // Authenticity is a separate count from arithmetic, and now that a board
+    // can hold a key nobody published, it is the one worth reporting. Without
+    // a key file the column is simply absent rather than quietly zero.
+    const keys_loaded = loadFleetKeys(gpa) catch 0;
+    var verified_total: usize = 0;
+    var node_key: ?[16]u8 = null;
+    var node_name: []const u8 = "unidentified";
+
     var prng: std.Random.DefaultPrng = .init(0x5EED);
     const rand = prng.random();
 
@@ -823,6 +831,17 @@ fn census(gpa: std.mem.Allocator, path: []const u8, baud: u32, runs: usize, per_
             if (protocol.statusMeansComputed(r.status) and
                 std.mem.eql(u8, &r.nonce, &job.nonce) and
                 r.y == protocol.dot(job.w, job.x)) correct += 1;
+            if (node_key == null and keys_loaded > 0) {
+                for (fleet_nodes) |f| {
+                    if (f.id == r.node_id) {
+                        node_key = f.key;
+                        node_name = f.name;
+                    }
+                }
+            }
+            if (node_key) |k| {
+                if (protocol.verifyWithKey(job, r, k).accepted()) verified_total += 1;
+            }
         }
         scores[run] = correct;
         if (stale > 0) stale_runs += 1;
@@ -845,6 +864,17 @@ fn census(gpa: std.mem.Allocator, path: []const u8, baud: u32, runs: usize, per_
         scores[0], scores[runs / 2], scores[(runs * 95) / 100], scores[runs - 1], mean,
     });
     if (open_failures > 0) std.debug.print("runs that could not open the port: {d}\n", .{open_failures});
+    if (node_key != null) {
+        std.debug.print("receipts authenticated: {d} ({d:.3}%) under {s}'s own key\n", .{
+            verified_total,
+            @as(f64, @floatFromInt(verified_total)) / @as(f64, @floatFromInt(attempted)) * 100,
+            node_name,
+        });
+    } else if (keys_loaded == 0) {
+        std.debug.print("receipts authenticated: not checked — no key file loaded\n", .{});
+    } else {
+        std.debug.print("receipts authenticated: no key on file for this node's id\n", .{});
+    }
     line();
     if (stale_runs > 0) {
         std.debug.print("{d}/{d} runs carried receipts signed with a PUBLISHED key.\n", .{ stale_runs, runs });
