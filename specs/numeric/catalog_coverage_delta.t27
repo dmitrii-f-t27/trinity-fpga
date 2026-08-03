@@ -6522,3 +6522,14 @@ finding "takum8's exhaustive hardware proof uses a golden no oracle agrees with"
   same_shape_as_lns16 "pass 203 found the lns16 conformance host implementing the RTL's own convention. This is that shape again, in a proof presented as exhaustive"
   not_settled_here "which reading of takum8 is correct needs the takum specification, which this pass did not establish. What is established is that the hardware proof is not evidence about either corpus oracle"
 }
+
+finding "nine of thirty-one decode hosts test against the oracle the corpus publishes" {
+  question "pass 210 found takum8's exhaustive proof agreeing with a table inside the file that tests it, and pass 203 found the same for lns16. This asks all of them: does a host's golden agree with the corpus oracle for its format"
+  method "load each *_decode_conformance_ax7203.py, call its golden over the format's codes, compare against the oracle converted to fp32"
+  matches "9: binary128, binary32, gf10, gf14, gf16, gf256, ms_mbf32, ms_mbf64, vax_d"
+  sparse "11 diverge on 15% of codes or fewer -- binary64 4, decimal128 24, decimal32 14, decimal64 12, double_double 40, ibm_hfp32 15, mxfp8_e4m3 5, posit16 1, posit32 3, vax_f 1, vax_g 4. These are the NaN-payload, subnormal-flush and 1-ulp classes already measured in pass 210"
+  systematic "11 diverge on more: bcd 175/176, int16 455/456, int32 455/456, lns16 456/456, mxint8 455/456, takum8 420/456, takum16 441, takum32 447, takum64 449, ibm_hfp64 70, quad_double 69"
+  what_a_systematic_count_means "ONE disagreement about what the format means, not N defects. mxint8 makes it plain: the oracle returns Fraction(127) for 0x7f and the host returns a scaled fixed-point value with an implied binary point. Every code differs because the convention differs once"
+  the_consequence "for the eleven systematic cases, a hardware proof cannot falsify the corpus oracle and the corpus oracle cannot falsify the hardware. They are answering different questions, and the Tier-E chain records only that the four links are present"
+  not_a_verdict "which side is right needs the format's specification in each case. What is established is how many hardware proofs are evidence ABOUT the published packs: nine outright, eleven up to a documented conversion class"
+}
