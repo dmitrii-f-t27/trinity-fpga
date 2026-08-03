@@ -34,6 +34,46 @@ LINKS = {
 }
 
 
+def _cell_pattern():
+    """Format names taken from the oracles, not from a list written by hand.
+
+    The pattern here used to be an allow-list:
+
+        gf\w+|bcd|binary\d+|decimal\d+|fp8\w*|bfloat\d+|mxfp\d+|posit\d+|
+        takum\d+|afp|cray\w*|vax\w*|int\d+|uint\d+
+
+    It has no lns, no x87, no ibm_hfp, no pdp11, no ms_mbf, no tekum, no
+    double_double. Every comment about one of those got "?" for a cell name, and
+    seen.setdefault collapsed all of them into a single "?" entry -- which is why 75
+    complete chains reported as 34 distinct cells, and why passes 203 and 204 stated
+    that no LNS cell appears in this ledger. They were wrong, and the reason was here.
+
+    An allow-list is a snapshot of the corpus on the day it was typed. The corpus is
+    enumerable, so this asks it.
+    """
+    import glob
+    import importlib
+    import os
+    import sys
+    conf = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "conformance")
+    sys.path.insert(0, conf)
+    names = set()
+    for path in sorted(glob.glob(os.path.join(conf, "*_ref.py"))):
+        try:
+            mod = importlib.import_module(os.path.basename(path)[:-3])
+        except Exception:
+            continue
+        names |= set(getattr(mod, "FORMATS", {}))
+    # Longest first, so gf1024 is not matched as gf10.
+    alts = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
+    return r"\b(" + alts + r")\b"
+
+
+_UNUSED = {
+}
+
+
 def comments():
     out = []
     for page in range(1, 6):
@@ -47,6 +87,9 @@ def comments():
             break
         out.extend(chunk)
     return out
+
+
+CELL_RE = _cell_pattern()
 
 
 def main() -> int:
@@ -65,9 +108,7 @@ def main() -> int:
         n = sum(have.values())
         if n == 4:
             m = re.search(r"HW RESULT:\s*(\d+/\d+)", body, re.I)
-            cell = re.search(r"\b(gf\w+|bcd|binary\d+|decimal\d+|fp8\w*|"
-                             r"bfloat\d+|mxfp\d+|posit\d+|takum\d+|afp|"
-                             r"cray\w*|vax\w*|int\d+|uint\d+)\b", body, re.I)
+            cell = re.search(CELL_RE, body, re.I)
             complete.append((cell.group(1).lower() if cell else "?",
                              m.group(1) if m else "?"))
         elif n >= 2:
