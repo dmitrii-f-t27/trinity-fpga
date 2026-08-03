@@ -6373,3 +6373,14 @@ finding "the synthesized GF decoder disagrees with the spec on three of four wid
   not_fixed_here "the RTL belongs to the synthesis line"
   chain "pass 196 found two independent decoders disagreeing; pass 197 settled it from the spec; this measures which side the silicon is on"
 }
+
+finding "the project knows about HAS_INF and told only the adder" {
+  adder "fpga/openxc7-synth/gf_adder_param.v carries `parameter HAS_INF = 0` documented with the same spec lines gf_ref cites -- gf8.t27:115-119, exp=all-ones is a FINITE max_value -- and gates its NaN detection on it"
+  decoder "fpga/openxc7-synth/gf_decode_param.v has N, E, M, BIAS and OUT_REG, and no such parameter. Its cls_inf/cls_nan are unconditional, and its own header declares that behaviour rather than treating it as an oversight"
+  blast_radius "11 board decode wrappers instantiate it; 9 do so at widths the spec gives no infinities -- gf4, gf6, gf8, gf8_bfp, gf12, gf20, gf24, gf32, gf256. Only gf16 and the LNS hybrid are correct"
+  compute_unaffected "the gf8 compute wrapper instantiates gf_adder_param with HAS_INF(0). The Tier-E chains for gf8 are add, mul and sub cells, so no published Tier-E claim is invalidated"
+  severity_recap "at gf8 the RTL returns 0x7F800000 where the spec's largest finite value is 16 (0x41800000) -- a wrong number. At gf24 and gf32 the finite value overflows fp32 anyway and only is_inf_o differs"
+  fix_is_precedented "give gf_decode_param the parameter its sibling already has"
+  also_stale "corona_decode_gf8_ax7203.v line 4 reads `Decoder = gf_decode_param #(16,6,9,31) ... iverilog-witnessed 65536/65536` while line 51 instantiates #(.N(8),.E(3),.M(4),.BIAS(3)). The header cites a witness for gf16's parameters and a code space of 65536, where gf8 has 256"
+  not_fixed_here "the RTL belongs to the synthesis line"
+}
