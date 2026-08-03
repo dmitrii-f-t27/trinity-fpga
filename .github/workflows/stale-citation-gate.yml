@@ -21,6 +21,8 @@ on:
       - 'research/*.py'
       - 'specs/**/*.t27'
       - '.github/workflows/stale-citation-gate.yml'
+      # the scripts this job runs: fixing a check must re-run it
+      - 'research/audit_stale_citations.py'
   pull_request:
     paths:
       - 'research/*.py'

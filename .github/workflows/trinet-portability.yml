@@ -21,6 +21,8 @@ on:
       - 'formal/trinet_node_v2_tb.v'
       - 'conformance/key_default_check.py'
       - '.github/workflows/trinet-portability.yml'
+      # the scripts this job runs: fixing a check must re-run it
+      - 'conformance/portability_check.py'
   pull_request:
     paths:
       - 'fpga/portable/**'

@@ -7,6 +7,8 @@ on:
       - 'fpga/openxc7-synth/gf_adder_param.v'
       - 'fpga/openxc7-synth/gf_mul_param.v'
       - '.github/workflows/lut-report.yml'
+      # the scripts this job runs: fixing a check must re-run it
+      - 'fpga/openxc7-synth/run_synth.py'
   pull_request:
     branches: [main]
   workflow_dispatch:

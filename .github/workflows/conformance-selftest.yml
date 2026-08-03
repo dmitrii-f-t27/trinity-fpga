@@ -13,6 +13,10 @@ on:
     paths:
       - 'conformance/**'
       - '.github/workflows/conformance-selftest.yml'
+      # the scripts this job runs: fixing a check must re-run it
+      - 'conformance/compute_golden_consistency.py'
+      - 'conformance/corona_decode_host_ax7203.py'
+      - 'conformance/golden_consistency.py'
   pull_request:
     paths:
       - 'conformance/**'
