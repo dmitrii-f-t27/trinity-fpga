@@ -59,8 +59,54 @@ _orig_{fn} = {fn}
 
 def {fn}(*a, **k):                 # noqa: F811
     r = _orig_{fn}(*a, **k)
-    return (r ^ 1) if isinstance(r, int) else r
+    # Type-aware, because a decoder does not return an int. The first version flipped a
+    # bit only when the result was an int, so mutating decode -- which returns a Fraction
+    # or a Special -- was a no-op, and all sixteen oracles looked blind to it. They are
+    # not; the mutation was.
+    if isinstance(r, bool):
+        return r
+    if isinstance(r, int):
+        return r ^ 1
+    try:
+        return r * 2 if r != 0 else r.__class__(1)
+    except Exception:
+        pass
+    # Objects that do not multiply -- gfternary's PhiVal(a, b) is one. Bump the first
+    # numeric field. Without this the mutation silently returned the value unchanged and
+    # the module looked blind to a corrupted decode when it was the gate that was blind.
+    fields = (getattr(type(r), "__slots__", None)
+              or tuple(getattr(type(r), "__dataclass_fields__", ()))
+              or tuple(vars(r)) if hasattr(r, "__dict__") else ())
+    for attr in fields or ():
+        try:
+            v = getattr(r, attr)
+            if isinstance(v, bool) or not hasattr(v, "__add__"):
+                continue
+            import copy
+            c = copy.copy(r)
+            object.__setattr__(c, attr, v + 1)
+            return c
+        except Exception:
+            continue
+    return r
 '''
+
+
+def targets(src):
+    """Every function worth perturbing: the encoder the arithmetic uses, and decode.
+
+    The first version mutated only the encoder. Half this corpus is decode packs, and a
+    self-test that never checks what decode returns would pass a corrupted decoder
+    forever -- the same blind spot in the other direction. Both are tried, and a module
+    is sensitive only if BOTH mutations are caught.
+    """
+    out = []
+    enc = encoder_used(src)
+    if f"\ndef {enc}(" in src:
+        out.append(enc)
+    if "\ndef decode(" in src:
+        out.append("decode")
+    return out
 
 
 def encoder_used(src):
@@ -125,18 +171,21 @@ def main() -> int:
             continue
 
         original = io.open(path, encoding="utf-8").read()
-        fn = encoder_used(original)
-        if f"\ndef {fn}(" not in original:
-            skipped.append((base, f"no module-level {fn} to mutate"))
+        fns = targets(original)
+        if not fns:
+            skipped.append((base, "no encode or decode to mutate"))
             continue
-        try:
-            io.open(path, "w", encoding="utf-8").write(inject(original, fn))
-            rc, tail = run_selftest(path)
-        finally:
-            io.open(path, "w", encoding="utf-8").write(original)
-
-        if rc == 0:
-            insensitive.append((base, tail))
+        survived = []
+        for fn in fns:
+            try:
+                io.open(path, "w", encoding="utf-8").write(inject(original, fn))
+                rc, tail = run_selftest(path)
+            finally:
+                io.open(path, "w", encoding="utf-8").write(original)
+            if rc == 0:
+                survived.append((fn, tail))
+        if survived:
+            insensitive.append((base, "; ".join(f"{fn} survives" for fn, _ in survived)))
         else:
             sensitive.append(base)
         if verbose:
@@ -144,8 +193,8 @@ def main() -> int:
 
     print(f"oracles with a self-test              : "
           f"{len(sensitive) + len(insensitive)}")
-    print(f"  fail when encode is perturbed       : {len(sensitive)}")
-    print(f"  STILL PASS when encode is perturbed : {len(insensitive)}")
+    print(f"  fail when encode AND decode perturbed: {len(sensitive)}")
+    print(f"  survive at least one mutation       : {len(insensitive)}")
     print(f"  not assessed                        : {len(skipped)}\n")
 
     for base, tail in insensitive:

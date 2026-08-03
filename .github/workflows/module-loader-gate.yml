@@ -21,6 +21,8 @@ on:
       - 'conformance/*_ref.py'
       - 'tools/**/*.py'
       - '.github/workflows/module-loader-gate.yml'
+      # the scripts this job runs: fixing a check must re-run it
+      - 'research/audit_module_loaders.py'
   pull_request:
     paths:
       - 'research/*.py'

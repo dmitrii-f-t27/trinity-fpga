@@ -7,6 +7,10 @@ on:
       - 'fpga/vivado/**'
       - 'fpga/openxc7-synth/**'
       - '.github/workflows/conformance-frame-alignment.yml'
+      # the scripts this job runs: fixing a check must re-run it
+      - 'conformance/frame_alignment_check.py'
+      - 'conformance/gfternary_compute_conformance_ax7203.py'
+      - 'conformance/trinet_mac32_conformance_ax7203.py'
   pull_request:
     paths:
       - 'conformance/**'

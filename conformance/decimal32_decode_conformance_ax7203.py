@@ -13,6 +13,21 @@ FMT_DECIMAL32 = 0x24
 MASK32 = (1 << 32) - 1
 
 
+# IEEE 754-2008 3.5.2: a case-B coefficient above max_coeff is non-canonical and
+# its value is ZERO, not the number the bits spell. Pass 215 measured that every
+# decimal host-versus-oracle difference is one of these, and that the board has
+# never been asked about one -- so the silicon proofs do not exercise 3.5.2.
+# First, last and midpoint of the excluded run, both signs.
+NON_CANONICAL = (
+    0x6cb89680,
+    0xecb89680,
+    0x6cbfffff,
+    0xecbfffff,
+    0x6cbc4b3f,
+    0xecbc4b3f,
+)
+
+
 def _bid32_decode(code):
     """Return ('finite', sign, C, E) | ('inf', sign) | ('nan', sign)."""
     code &= MASK32
@@ -60,7 +75,25 @@ def _dec_to_fp32(sign, d):
         return (sign << 31) | k_int
 
 
+def _is_canonical(code):
+    """Case A cannot overflow the coefficient at any width; only case B can."""
+    code &= 0xffffffff
+    if (code >> 29) & 0x3 != 0b11:
+        return True
+    if (code >> 27) & 0xF == 0b1111:
+        return True
+    c = (0b100 << 21) | (code & 0x1fffff)
+    return c <= 9999999
+
+
 def golden_decimal32(code):
+    # IEEE 754-2008 3.5.2. A case-B coefficient above max_coeff is non-canonical and
+    # its value is zero. Without this the golden returns the number the bits spell, and
+    # a board run over NON_CANONICAL would report failures against an expectation that is
+    # itself wrong. conformance/decimal_ref.py has applied the rule since pass 185,
+    # confirmed against gcc's Intel BID.
+    if not _is_canonical(code):
+        return 0x00000000
     kind = _bid32_decode(code)
     if kind[0] == 'inf':
         return (kind[1] << 31) | 0x7F800000
@@ -124,7 +157,7 @@ def self_test():
 def run_hw(port, baud, n):
     import serial, random
     ser = serial.Serial(port, baud, timeout=2); fails = 0; checked = 0; rnd = random.Random(7)
-    sample = list(T27.keys()) + [rnd.randint(0, MASK32) for _ in range(max(0, n - len(T27)))]
+    sample = list(T27.keys()) + list(NON_CANONICAL) + [rnd.randint(0, MASK32) for _ in range(max(0, n - len(T27)))]
     for code in sample:
         hw = hw_exchange(ser, code); gold = golden_decimal32(code); checked += 1
         if hw is None or hw != gold:

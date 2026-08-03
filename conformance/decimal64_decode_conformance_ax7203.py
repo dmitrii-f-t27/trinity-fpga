@@ -15,6 +15,21 @@ FMT_DECIMAL64 = 0x25
 MASK64 = (1 << 64) - 1
 
 
+# IEEE 754-2008 3.5.2: a case-B coefficient above max_coeff is non-canonical and
+# its value is ZERO, not the number the bits spell. Pass 215 measured that every
+# decimal host-versus-oracle difference is one of these, and that the board has
+# never been asked about one -- so the silicon proofs do not exercise 3.5.2.
+# First, last and midpoint of the excluded run, both signs.
+NON_CANONICAL = (
+    0x6c7386f26fc10000,
+    0xec7386f26fc10000,
+    0x6c77ffffffffffff,
+    0xec77ffffffffffff,
+    0x6c75c37937e07fff,
+    0xec75c37937e07fff,
+)
+
+
 def _bid_decode(code):
     """Return ('finite', sign, C, E) | ('inf', sign) | ('nan', sign)."""
     code &= MASK64
@@ -68,7 +83,25 @@ def _dec_to_fp32(sign, d):
         return (sign << 31) | k_int                      # exp field 0, mantissa k_int
 
 
+def _is_canonical(code):
+    """Case A cannot overflow the coefficient at any width; only case B can."""
+    code &= 0xffffffffffffffff
+    if (code >> 61) & 0x3 != 0b11:
+        return True
+    if (code >> 59) & 0xF == 0b1111:
+        return True
+    c = (0b100 << 51) | (code & 0x7ffffffffffff)
+    return c <= 9999999999999999
+
+
 def golden_decimal64(code):
+    # IEEE 754-2008 3.5.2. A case-B coefficient above max_coeff is non-canonical and
+    # its value is zero. Without this the golden returns the number the bits spell, and
+    # a board run over NON_CANONICAL would report failures against an expectation that is
+    # itself wrong. conformance/decimal_ref.py has applied the rule since pass 185,
+    # confirmed against gcc's Intel BID.
+    if not _is_canonical(code):
+        return 0x00000000
     kind = _bid_decode(code)
     if kind[0] == 'inf':
         return (kind[1] << 31) | 0x7F800000
@@ -134,7 +167,7 @@ def run_hw(port, baud, n):
     import serial
     ser = serial.Serial(port, baud, timeout=2); fails = 0; checked = 0; rnd = random.Random(42)
     corners = list(T27.keys()) + [_enc(0, 9999999999999999, 398), _enc(1, 1234567890123456, 384)]
-    sample = corners + [rnd.randint(0, MASK64) for _ in range(max(0, n - len(corners)))]
+    sample = corners + list(NON_CANONICAL) + [rnd.randint(0, MASK64) for _ in range(max(0, n - len(corners)))]
     for code in sample:
         hw = hw_exchange(ser, code); gold = golden_decimal64(code); checked += 1
         if hw is None or hw != gold:
