@@ -6495,3 +6495,14 @@ correction "verify_tier_e reported one proof per cell and dropped the rest" {
   fixed "every distinct result per cell is reported, largest first, and any cell whose best result is not N/N is marked PARTIAL. lns16 is the only one"
   re_proof_read "Tier-E re-proof of lns16 cites CI run 28668900768 and bitstream c5c7ae56f0f77c760cdce7737804e123f2528bb93e30fd085f97468752c4e3dc; the fix was a subnormal-flush correction, and it does not touch the scale question or the missing 1.0 of passes 203-205"
 }
+
+finding "half the hardware proofs are samples and nothing said which" {
+  why "Tier-E requires four links and says nothing about how much of a format the UART log covers. `HW RESULT: 64/64 bit-exact` and `65536/65536 bit-exact` are written identically, and the first is 64 samples of a code space"
+  measured "of 40 decode proofs with a complete chain: 14 exhaustive over the code space, 26 sampled"
+  exhaustive "every format at 8 bits or fewer, plus binary16 and gf16 at 65536/65536"
+  the_two_that_matter_most "binary16 and gf16 prove the rig can drive a full 16-bit sweep over UART. Sampling at 16 bits is therefore a choice, not a ceiling"
+  cheap_upgrades "9 sampled cells are 20 bits or fewer, where the same harness could exhaust them: gf10 64 of 1024, gf14 64 of 16384, int16 / posit16 / takum16 64 of 65536, bfloat16 8 of 65536, tf32 8 of 524288, lns16 576 of 65536, bcd 100 of 256"
+  unavoidable "17 sampled cells are 32 bits or wider. Sampling there is not a gap and saying so costs nothing"
+  what_must_not_reach_a_paper "64/64 reading as completeness for a format with 2^64 codes"
+  own_error "the first version counted compute logs as decode sweeps and called gf4, gf6 and gf8 exhaustive over their code spaces. A compute log counts operand PAIRS -- gf4's 512/512 is 512 pairs from a 16-code format and exhausts nothing. The check now excludes compute, and its control requires gf4 to be absent from the decode set"
+}
