@@ -56,7 +56,7 @@ If the answer to all three is "not really", that's worth knowing and I'll stop
 pitching it. I'm not looking for anything from you except whether this is real.
 
 **What I can back with measurements**, so you can weigh it: the dot-product cell
-is 1313 LC with zero DSP on xc7, and it synthesises unmodified on ten FPGA
+is 1480 LC with zero DSP on xc7, and it synthesises unmodified on ten FPGA
 families from eight vendors, with 819 flip-flops on nine of them. On hardware,
 across 100 independent runs of 64 jobs per board: two boards at 6400/6400 and a
 third at 6308/6400. What I *cannot* back yet is any power figure, and the receipt

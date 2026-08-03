@@ -117,7 +117,7 @@ question and not a fault.
 ## 1. The strongest sentence the evidence supports
 
 > Three ALINX AX7203 boards, synthesised end to end on a fully open toolchain
-> (yosys + nextpnr-xilinx), each run a 1313-logic-cell balanced-ternary
+> (yosys + nextpnr-xilinx), each run a 1480-logic-cell balanced-ternary
 > dot-product cell using no DSP block. Across 100 independent runs per board —
 > 19,200 dot products, port reopened every run — every board returned every
 > answer correctly. The same cell synthesises without modification on ten FPGA
@@ -151,7 +151,7 @@ three boards, whose settlement layer is not yet trustworthy on hardware".
 | Ternary dot product, statistical base — 100 independent runs × 64 jobs, port reopened each run | node0 **6400/6400**, node1 **6400/6400**, node2 6308/6400 |
 | Perfect runs | node0 100/100, node1 100/100, node2 42/100 (min 60, p50 63) |
 | Keyed receipt rejects a wrong key | every job, measured both directions |
-| Logic cost | 1313 LC, **0 DSP48** (yosys 0.63, `-flatten -abc9 -nocarry -nodsp -arch xc7`) |
+| Logic cost | 1480 LC, 1046 FF, **0 DSP48** (yosys 0.62, CI's chparams, `-flatten -abc9 -nocarry -nodsp -arch xc7`) |
 | Portability | synthesises clean on **10 FPGA families**, 1082 flip-flops on 9 of them, 1092 on the tenth (yosys 0.62) |
 | Software stack | **54 tests** (`zig test src/trinet/agent.zig`, which nests protocol/node/ledger/mesh/model/net) |
 | CFGMCLK, measured per chip | 70.46 / 67.13 / **68.69** MHz (±0.18) — a **4.97% per-chip spread** |
