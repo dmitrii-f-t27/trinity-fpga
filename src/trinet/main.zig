@@ -80,8 +80,10 @@ pub fn main(init: std.process.Init.Minimal) !void {
         gpa,
         if (args.len > 2) args[2] else default_serial,
         if (args.len > 3) try std.fmt.parseInt(usize, args[3], 10) else 500,
-        if (args.len > 4) try std.fmt.parseInt(u32, args[4], 10) else default_baud,
-        if (args.len > 5) try std.fmt.parseInt(usize, args[5], 10) else 0,
+        // 0 means negotiate. The old default was a fleet constant, and a
+        // constant is what put the marginal board on the rate that lost it 2.4%
+        // of its jobs.
+        if (args.len > 4) try std.fmt.parseInt(u32, args[4], 10) else 0,
     );
     if (std.mem.eql(u8, cmd, "fleet")) {
         if (args.len < 3) {
@@ -282,6 +284,11 @@ var fleet_nodes = [_]FleetNode{
 const key_file_env = "TRINET_KEYS";
 const key_file_default = "trinet-keys.txt";
 
+/// The UART divisor the fleet bitstream is built with. The board's line rate is
+/// CFGMCLK / this, so it is also the only honest way to read CFGMCLK back out of
+/// a negotiated rate.
+const fleet_baud_div: f64 = 60.0;
+
 /// Load per-node keys from `<name> <32 hex chars>` lines.
 ///
 /// Missing file is not an error: the fleet still runs, and every receipt is
@@ -472,16 +479,50 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
 /// nodes spend all their time waiting on a serial line is a serial line with a
 /// compute network attached to it, and the honest way to find that out is to
 /// measure both ends and print the gap.
-fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slot: usize) !void {
-    const spec = fleet_nodes[@min(node_slot, fleet_nodes.len - 1)];
-    std.debug.print("benchmarking {s} on {s} at {d} baud, {d} jobs\n", .{ spec.name, path, baud, n });
-    line();
-
+fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32) !void {
     var buf: [256]u8 = undefined;
     const zpath = try std.fmt.bufPrintZ(&buf, "{s}", .{path});
-    var node = try node_mod.Node.initFpga(spec.id, spec.name, zpath, baud);
-    node.key = spec.key;
+
+    // bench never loaded the key file. `FleetNode.key` is null until
+    // loadFleetKeys fills it, so `verifyWithKey` answered `unverifiable` for
+    // every job, `verified` stayed 0, and the throughput line read 0.0 jobs/s
+    // whatever the board did — on machines that had the keys all along. The
+    // command this project's own next-actions list depends on could not produce
+    // a number.
+    const keys_loaded = loadFleetKeys(gpa) catch 0;
+
+    var line_rate: u32 = baud;
+    var node = blk: {
+        if (baud == 0) {
+            const found = try node_mod.Node.initFpgaAutoBaud(protocol.default_node_id, "ax7203", zpath);
+            line_rate = found.baud;
+            break :blk found.node;
+        }
+        break :blk try node_mod.Node.initFpga(protocol.default_node_id, "ax7203", zpath, baud);
+    };
     defer node.deinit();
+
+    // Ask the board who it is. bench used to index the fleet table by a
+    // command-line slot, which hands node0's key to whichever port was typed
+    // first — the same identity-by-argument-order defect already fixed on the
+    // fleet path.
+    const who = try node.execute(protocol.Job.withNonce(1, @splat(0), @splat(0)));
+    var spec: FleetNode = .{ .name = "unidentified", .id = who.node_id };
+    for (fleet_nodes) |f| {
+        if (f.id == who.node_id) spec = f;
+    }
+    node.id = spec.id;
+    node.name = spec.name;
+    node.key = spec.key;
+
+    std.debug.print("benchmarking {s} (id {x:0>8}) on {s} at {d} baud, {d} jobs\n", .{
+        spec.name, spec.id, path, line_rate, n,
+    });
+    if (spec.key == null) {
+        std.debug.print("no key on file for this board ({d} loaded) — throughput below counts\n", .{keys_loaded});
+        std.debug.print("jobs that came back WHOLE, not jobs that came back AUTHENTICATED.\n", .{});
+    }
+    line();
 
     const latencies = try gpa.alloc(u64, n);
     defer gpa.free(latencies);
@@ -497,7 +538,13 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
         _ = node.execute(protocol.Job.withNonce(@intCast(i), protocol.pack(wv), protocol.pack(wv))) catch {};
     }
 
+    // Two counts, never merged. `verified` is work whose receipt checked out
+    // under this board's own key; `whole` is work whose every predictable byte
+    // came back right. With a key the first is the number to publish. Without
+    // one the second is all there is, and calling it the same thing is how a
+    // transport measurement gets cited as authenticated work.
     var verified: usize = 0;
+    var whole: usize = 0;
     const t0 = monoNanos();
 
     for (0..n) |i| {
@@ -513,13 +560,16 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
             continue;
         };
         const took = monoNanos() - start;
-        if (protocol.verifyWithKey(job, r, node.key).accepted()) {
-            // Only a verified job has a latency worth reporting. A failure
-            // returns fast — that is what failing looks like — and letting it
-            // into the percentiles reports the speed of giving up.
-            latencies[verified] = took;
-            verified += 1;
-        }
+        if (!protocol.statusMeansComputed(r.status)) continue;
+        if (!std.mem.eql(u8, &r.nonce, &job.nonce)) continue;
+        if (r.y != protocol.dot(job.w, job.x)) continue;
+        if (r.node_id != spec.id) continue;
+        // Only a job that came back whole has a latency worth reporting. A
+        // failure returns fast — that is what failing looks like — and letting
+        // it into the percentiles reports the speed of giving up.
+        latencies[whole] = took;
+        whole += 1;
+        if (protocol.verifyWithKey(job, r, node.key).accepted()) verified += 1;
     }
 
     const elapsed_ns = monoNanos() - t0;
@@ -532,6 +582,7 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
     defer gpa.free(receipts);
 
     var batched_ok: usize = 0;
+    var batched_whole: usize = 0;
     const bt0 = monoNanos();
     var done: usize = 0;
     while (done < n) : (done += batch) {
@@ -545,13 +596,25 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
         }
         const got = node.executeBatch(jobs[0..take], receipts[0..take]) catch break;
         for (jobs[0..got], receipts[0..got]) |j, r| {
+            if (!protocol.statusMeansComputed(r.status)) continue;
+            if (!std.mem.eql(u8, &r.nonce, &j.nonce)) continue;
+            if (r.y != protocol.dot(j.w, j.x)) continue;
+            if (r.node_id != spec.id) continue;
+            batched_whole += 1;
             if (protocol.verifyWithKey(j, r, node.key).accepted()) batched_ok += 1;
         }
     }
     const batched_ns = monoNanos() - bt0;
     const batched_s = @as(f64, @floatFromInt(batched_ns)) / 1e9;
-    const batched_jps = if (batched_s > 0) @as(f64, @floatFromInt(batched_ok)) / batched_s else 0;
     const elapsed_s = @as(f64, @floatFromInt(elapsed_ns)) / 1e9;
+
+    // Which count the headline uses, said once, so the label and the arithmetic
+    // cannot drift apart.
+    const authenticated = spec.key != null;
+    const counted = if (authenticated) verified else whole;
+    const batched_counted = if (authenticated) batched_ok else batched_whole;
+    const basis = if (authenticated) "authenticated" else "whole, NOT authenticated";
+    const batched_jps = if (batched_s > 0) @as(f64, @floatFromInt(batched_counted)) / batched_s else 0;
 
     // Throughput counts VERIFIED jobs, not attempted ones. Dividing by `n` was
     // wrong and hid itself well: a board answering nothing returns instantly,
@@ -560,10 +623,10 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
     // 0/64 verified. A rate that counts failures measures how fast you can
     // fail. Every jobs/s figure this project published before 2026-08-02 was
     // computed the broken way and is being restated.
-    const jobs_per_s = if (elapsed_s > 0) @as(f64, @floatFromInt(verified)) / elapsed_s else 0;
+    const jobs_per_s = if (elapsed_s > 0) @as(f64, @floatFromInt(counted)) / elapsed_s else 0;
     const macs_per_s = jobs_per_s * @as(f64, @floatFromInt(protocol.n_trits));
 
-    const lat = latencies[0..verified];
+    const lat = latencies[0..whole];
     std.sort.pdq(u64, lat, {}, std.sort.asc(u64));
     const p50 = if (lat.len > 0) lat[lat.len / 2] else 0;
     const p99 = if (lat.len > 0) lat[(lat.len * 99) / 100] else 0;
@@ -574,18 +637,27 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
     // wrong and showed itself immediately: batched throughput came out at 125%
     // of a ceiling that cannot be exceeded.
     const bytes_per_job: f64 = @floatFromInt(@max(protocol.request_len, protocol.response_len_v2));
-    const transport_jobs_per_s = @as(f64, @floatFromInt(baud)) / 10.0 / bytes_per_job;
+    const transport_jobs_per_s = @as(f64, @floatFromInt(line_rate)) / 10.0 / bytes_per_job;
 
     // Compute ceiling: the dot product is combinational, and the receipt engine
     // walks 26 preimage bytes at one byte per clock, so a job costs roughly 30
-    // cycles of the configuration oscillator. CFGMCLK measured 2026-08-02 at
-    // ~71.18 MHz by bracketing the host baud against a fixed-divisor bitstream
-    // — the 69-70 MHz this project had recorded was low by 2-3%.
-    const cfgmclk_hz: f64 = 71.18e6;
+    // cycles of the configuration oscillator.
+    //
+    // CFGMCLK used to be a constant here — 71.18 MHz, a figure taken from one
+    // die and applied to a fleet whose three dies measure 70.46, 67.13 and
+    // 68.69 MHz. It is not a constant, it is a per-die property of an untrimmed
+    // RC oscillator, and the board is telling us what it is: the line rate the
+    // link settled on IS CFGMCLK divided by the divisor in the bitstream.
+    // Deriving it from the negotiated rate cannot go stale the way a literal
+    // does.
+    const cfgmclk_hz: f64 = @as(f64, @floatFromInt(line_rate)) * fleet_baud_div;
     const cycles_per_job: f64 = 30.0;
     const compute_jobs_per_s = cfgmclk_hz / cycles_per_job;
 
-    std.debug.print("receipts verified   : {d}/{d}\n", .{ verified, n });
+    std.debug.print("jobs {s}: {d}/{d}\n", .{ basis, counted, n });
+    if (authenticated and whole != verified) {
+        std.debug.print("came back whole but unauthenticated: {d}\n", .{whole - verified});
+    }
     std.debug.print("elapsed             : {d:.3} s\n", .{elapsed_s});
     std.debug.print("throughput          : {d:.1} jobs/s = {d:.0} ternary MACs/s\n", .{ jobs_per_s, macs_per_s });
     std.debug.print("latency p50 / p99   : {d:.2} ms / {d:.2} ms\n", .{
@@ -593,10 +665,13 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
     });
     line();
     std.debug.print("transport ceiling   : {d:.1} jobs/s  (UART {d} baud, {d} bytes on the busier direction)\n", .{
-        transport_jobs_per_s, baud, @max(protocol.request_len, protocol.response_len_v2),
+        transport_jobs_per_s, line_rate, @max(protocol.request_len, protocol.response_len_v2),
     });
-    std.debug.print("compute ceiling     : {d:.0} jobs/s  (~{d:.0} cycles/job at 71.18 MHz CFGMCLK)\n", .{
-        compute_jobs_per_s, cycles_per_job,
+    std.debug.print("compute ceiling     : {d:.0} jobs/s  (~{d:.0} cycles/job at {d:.2} MHz CFGMCLK,\n", .{
+        compute_jobs_per_s, cycles_per_job, cfgmclk_hz / 1e6,
+    });
+    std.debug.print("                      derived from {d} baud x BAUD_DIV {d:.0}, not assumed)\n", .{
+        line_rate, fleet_baud_div,
     });
     std.debug.print("measured / transport: {d:.1}%\n", .{jobs_per_s / transport_jobs_per_s * 100});
     std.debug.print("compute / transport : {d:.0}x\n", .{compute_jobs_per_s / transport_jobs_per_s});
@@ -608,16 +683,15 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
         std.debug.print("IMPOSSIBLE: {d:.1} jobs/s exceeds the {d:.1} jobs/s the UART can carry.\n", .{ jobs_per_s, transport_jobs_per_s });
         std.debug.print("The measurement is wrong, not the node. Do not publish this number.\n", .{});
     }
-    if (verified == 0) {
+    if (counted == 0) {
         line();
-        std.debug.print("NO JOB VERIFIED. The throughput and latency above describe failures.\n", .{});
-        std.debug.print("Check the baud (`python3 conformance/trinet_discover.py` reports the\n", .{});
-        std.debug.print("rate each board actually answers at) and check that a receipt key for\n", .{});
-        std.debug.print("this node is loaded.\n", .{});
+        std.debug.print("NOTHING COUNTED. The throughput and latency above describe failures.\n", .{});
+        std.debug.print("Check the rate: `python3 conformance/trinet_baud_sweep.py --port <p>`\n", .{});
+        std.debug.print("reports the board's clean window and the rate to use.\n", .{});
     }
     line();
-    std.debug.print("batched x{d}       : {d}/{d} verified, {d:.1} jobs/s ({d:.1}x the one-at-a-time rate)\n", .{
-        batch, batched_ok, n, batched_jps, if (jobs_per_s > 0) batched_jps / jobs_per_s else 0,
+    std.debug.print("batched x{d}       : {d}/{d} {s}, {d:.1} jobs/s ({d:.1}x the one-at-a-time rate)\n", .{
+        batch, batched_counted, n, basis, batched_jps, if (jobs_per_s > 0) batched_jps / jobs_per_s else 0,
     });
     std.debug.print("batched / transport : {d:.1}%\n", .{batched_jps / transport_jobs_per_s * 100});
     line();
@@ -625,6 +699,12 @@ fn bench(gpa: std.mem.Allocator, path: []const u8, n: usize, baud: u32, node_slo
     std.debug.print("throughput claim about this node is a claim about the UART.\n", .{});
     std.debug.print("The compute ceiling above is derived, not measured — measuring it\n", .{});
     std.debug.print("needs a transport that can saturate the cell.\n", .{});
+    if (!authenticated) {
+        line();
+        std.debug.print("These jobs came back whole. No receipt was checked, because no key for\n", .{});
+        std.debug.print("this board is on file, so nothing above says WHO did the work. Cite it\n", .{});
+        std.debug.print("as a measurement of the transport and not as verified compute.\n", .{});
+    }
 }
 
 // ---------------------------------------------------------------------------

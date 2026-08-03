@@ -154,18 +154,43 @@ three boards, whose settlement layer is not yet trustworthy on hardware".
 | Logic cost | 1313 LC, **0 DSP48** (yosys 0.63, `-flatten -abc9 -nocarry -nodsp -arch xc7`) |
 | Portability | synthesises clean on **10 FPGA families**, 819 flip-flops on 9 of them |
 | Software stack | **54 tests** (`zig test src/trinet/agent.zig`, which nests protocol/node/ledger/mesh/model/net) |
-| CFGMCLK, measured per chip | 71.18 / 70.46 / **67.47** MHz — a **5.5% per-chip spread** |
+| CFGMCLK, measured per chip | 70.46 / 67.13 / **68.69** MHz (±0.18) — a **4.97% per-chip spread** |
 
-Throughput is deliberately absent from that table. Every figure this project
-published was computed by dividing by jobs *attempted* rather than jobs
-verified, so all of them are withdrawn rather than restated: a corrected number
-needs a fresh run on re-flashed boards, and those boards do not exist yet. What
-survives is the ceiling, which is arithmetic rather than measurement — at
-1186267 baud and 24 bytes on the busier direction, no node on this transport can
-exceed **4943 jobs/s**, and the cell is idle for all but ~30 of the ~200 clocks
-each job occupies. Any throughput claim about this node is a claim about a UART.
+Throughput was deliberately absent from that table: every figure this project
+published divided by jobs *attempted* rather than jobs verified, so all of them
+were withdrawn rather than restated.
 
-Report node2's minimum, not the fleet's mean. A fleet is used at its worst run.
+**Restated 2026-08-03**, 2000 jobs per board at each board's negotiated rate,
+every job counted only if it came back whole:
+
+| node | rate | one at a time | batched ×32 | of transport ceiling |
+|---|---|---|---|---|
+| node0 | 1174399 | 495.7 jobs/s | **3843.6 jobs/s** | 78.5% |
+| node1 | 1144744 | 483.7 jobs/s | **3680.1 jobs/s** | 77.2% |
+| node2 | 1144744 | 475.6 jobs/s | **3678.6 jobs/s** | 77.1% |
+
+2000/2000 whole on every board, and nothing near the ceiling flag. *These jobs
+came back whole; no receipt was checked, because the keys installed on these
+boards are not held on this machine. This is a measurement of the transport, not
+of verified compute.* Batching is worth 7.6–7.8× because the round trip is USB
+latency — 2.05 ms p50 against a wire time near 0.4 ms — and batching amortises
+it.
+
+The ceiling is arithmetic rather than measurement: at 1144744 baud and 24 bytes
+on the busier direction no node on this transport can exceed **4769.8 jobs/s**,
+against a derived compute ceiling of ~2.29 M jobs/s — **480× the transport**.
+The cell is idle for all but ~30 of the ~200 clocks each job occupies. Any
+throughput claim about this node is a claim about a UART.
+
+`bench` itself had four defects, all found by reading its output rather than its
+code: it never called `loadFleetKeys`, so `verified` was structurally 0 and the
+throughput line printed 0.0 jobs/s on any machine, key file or not; it took the
+node's identity from a command-line slot rather than asking the board, the same
+identity-by-argument-order defect already fixed on the fleet path; it derived
+the compute ceiling from a hardcoded 71.18 MHz CFGMCLK, a figure that belongs to
+no board in this fleet; and it printed the requested baud in the ceiling line
+while computing the ceiling from the negotiated one, so the label disagreed with
+its own arithmetic.
 
 Every number above came with a defect found by measuring rather than reasoning.
 The four from the batching work alone: fixed-size blocks gave a whole layer to

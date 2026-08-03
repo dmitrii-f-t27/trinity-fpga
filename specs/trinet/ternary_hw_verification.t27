@@ -1220,3 +1220,67 @@ defect CENSUS_CLEARED_A_RUN_IT_HAD_NOT_CHECKED {
   """
   rule "a green light that nothing can turn red is not a check"
 }
+
+claim THROUGHPUT_RESTATED_AT_THE_MEASURED_RATE {
+  statement """
+    2000 jobs per board at each board's negotiated line rate, counting only jobs
+    whose every predictable byte came back right. This replaces the figures
+    withdrawn by THROUGHPUT_COUNTED_FAILURES; none of those are restated, they
+    are superseded by a fresh run.
+  """
+  measured {
+    jobs_per_board            2000
+
+    node0_rate                1174399   node0_whole 2000
+    node0_serial_jobs_per_s   495.7     node0_batched32_jobs_per_s 3843.6
+    node0_transport_ceiling   4893.3    node0_pct_of_ceiling 78.5
+
+    node1_rate                1144744   node1_whole 2000
+    node1_serial_jobs_per_s   483.7     node1_batched32_jobs_per_s 3680.1
+    node1_transport_ceiling   4769.8    node1_pct_of_ceiling 77.2
+
+    node2_rate                1144744   node2_whole 2000
+    node2_serial_jobs_per_s   475.6     node2_batched32_jobs_per_s 3678.6
+    node2_transport_ceiling   4769.8    node2_pct_of_ceiling 77.1
+
+    latency_p50_ms            2.05
+    compute_ceiling_ratio     480
+  }
+  scope """
+    NOT AUTHENTICATED. No receipt was checked -- the keys these boards hold are
+    not on this machine (KEYS_NOT_ON_THIS_HOST). Whole is not the same claim as
+    verified and this entry must not be cited as verified compute.
+  """
+  why_batching_pays """
+    The round trip is USB latency, 2.05 ms p50 against roughly 0.4 ms of wire
+    time. Batching 32 amortises it and buys 7.6-7.8x, landing at 77-78% of the
+    line rate. What is left is not the cell: the cell is idle for all but ~30 of
+    the ~200 clocks a job occupies, and the derived compute ceiling is 480x the
+    transport.
+  """
+  trust_tier MEASURED_ON_FPGA
+}
+
+defect BENCH_COULD_NOT_HAVE_PRODUCED_A_NUMBER {
+  statement """
+    `trinet bench` never called loadFleetKeys. FleetNode.key is null until it
+    runs, so verifyWithKey answered `unverifiable` for every job, `verified`
+    stayed 0, and the throughput line printed 0.0 jobs/s on any machine --
+    including one holding the correct key file.
+  """
+  three_more_in_the_same_function """
+    It indexed the fleet table by a command-line slot instead of asking the
+    board its identity, the defect already fixed on the fleet path. It derived
+    the compute ceiling from a hardcoded 71.18 MHz CFGMCLK, a figure belonging
+    to no board in this fleet. And it printed the REQUESTED baud in the
+    transport-ceiling line while computing that ceiling from the NEGOTIATED one.
+  """
+  how_found "by reading the output, not the code -- all four were invisible in review and none survived one run"
+  fix """
+    Load the keys; ask the board who it is; derive CFGMCLK from the negotiated
+    rate times the divisor the bitstream ships with; print the rate the
+    arithmetic used. Count `whole` and `verified` separately and label which one
+    the headline is, so a transport measurement cannot be read as verified work.
+  """
+  rule "a tool that cannot produce its own output has not been run, only compiled"
+}
