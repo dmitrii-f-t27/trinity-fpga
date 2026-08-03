@@ -6481,3 +6481,17 @@ verification "the three coverage numbers reconciled" {
   most_important "discrepancy 4 is the one that would reach a reader as a claim about arithmetic on silicon for two formats that have none"
   noted_in_passing "one of the 75 is `Tier-E re-proof: lns16 (decode -- subnormal-flush correctness fix, re-flash on silicon)`, which bears on the LNS question of passes 203 to 205"
 }
+
+correction "the checklist now carries the reconciled numbers" {
+  applied "75 four-link comments (was 74); 49 named cells (was 45); 42 formats with decode verified, 40 of them corpus-declared (was 44 of 83); 30 compute proofs across 10 formats (was 12)"
+  the_one_that_mattered "double_double and quad_double were listed among the compute formats. They have DECODE proofs only, and their appearances beside compute are in status summaries carrying no per-cell chain. Left as written it would have reached a reader as a claim about arithmetic on silicon for two formats that have none"
+  checklist_was_right_about "the partial proof. Exactly one of the 75 is not N/N: lns16 at 472/576 with 104 known limitations, all 1-ULP subnormal-band residuals, and the checklist already said so"
+}
+
+correction "verify_tier_e reported one proof per cell and dropped the rest" {
+  defect "seen.setdefault(cell, res) kept whichever proof appeared earliest. 11 cells have more than one four-link proof"
+  understated "gf16 showed 512/512 while its exhaustive 65536/65536 was hidden behind it -- the strongest single piece of hardware evidence in the corpus"
+  overstated "lns16 showed 64/64 while hiding the 472/576 that carries the 104 known limitations. The same line both undersold the best result and oversold the weakest"
+  fixed "every distinct result per cell is reported, largest first, and any cell whose best result is not N/N is marked PARTIAL. lns16 is the only one"
+  re_proof_read "Tier-E re-proof of lns16 cites CI run 28668900768 and bitstream c5c7ae56f0f77c760cdce7737804e123f2528bb93e30fd085f97468752c4e3dc; the fix was a subnormal-flush correction, and it does not touch the scale question or the missing 1.0 of passes 203-205"
+}
