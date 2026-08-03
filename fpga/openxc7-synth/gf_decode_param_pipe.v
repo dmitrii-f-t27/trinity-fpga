@@ -28,7 +28,11 @@ module gf_decode_param_pipe #(
     parameter integer N    = 24,
     parameter integer E    = 8,
     parameter integer M    = 15,
-    parameter integer BIAS = 255
+    parameter integer BIAS = 255,
+    // See gf_decode_param.v for the citation. Same parameter, same default of 1 so that
+    // adding it changes nothing on its own; the pipelined variant had the same
+    // unconditional cls_inf/cls_nan as the combinational one.
+    parameter integer HAS_INF = 1
 ) (
     input  wire                 clk,
     input  wire                 rst_n,     // sync active-low
@@ -58,8 +62,9 @@ module gf_decode_param_pipe #(
 
     wire cls_zero0      = is_exp_zero0 &&  is_mant_zero0;
     wire cls_subnormal0 = is_exp_zero0 && !is_mant_zero0;
-    wire cls_inf0       = is_exp_max0  &&  is_mant_zero0;
-    wire cls_nan0       = is_exp_max0  && !is_mant_zero0;
+    wire has_special0   = (HAS_INF != 0);
+    wire cls_inf0       = has_special0 && is_exp_max0  &&  is_mant_zero0;
+    wire cls_nan0       = has_special0 && is_exp_max0  && !is_mant_zero0;
 
     function integer clz_m;
         input [M-1:0] v;

@@ -6384,3 +6384,13 @@ finding "the project knows about HAS_INF and told only the adder" {
   also_stale "corona_decode_gf8_ax7203.v line 4 reads `Decoder = gf_decode_param #(16,6,9,31) ... iverilog-witnessed 65536/65536` while line 51 instantiates #(.N(8),.E(3),.M(4),.BIAS(3)). The header cites a witness for gf16's parameters and a code space of 65536, where gf8 has 256"
   not_fixed_here "the RTL belongs to the synthesis line"
 }
+
+correction "gf_decode_param now has the HAS_INF its sibling always had" {
+  fix "parameter integer HAS_INF = 1 added to gf_decode_param.v and gf_decode_param_pipe.v, gating cls_inf and cls_nan; with HAS_INF=0 the all-ones exponent falls through to the normal path"
+  default_is_1 "so adding the parameter changes nothing on its own. Each wrapper states its own answer"
+  wrappers "nine board decode wrappers now pass .HAS_INF(0): gf4, gf6, gf8, gf8_bfp, gf12, gf20, gf24, gf32, gf256. gf16 and the LNS hybrid keep the default"
+  verified_exhaustively "gf8 256/256, gf12 4096/4096 and gf16 65536/65536 codes match gf_ref exactly, combinational; gf8 256/256 pipelined. The full gf16 sweep is the regression guard -- it proves the widths that DO have infinities are untouched"
+  one_apparent_mismatch "code 0x80 at gf8 read as a difference until signed zero was handled: the RTL returns 0x80000000 and gf_ref's decode returns Fraction(0), which carries no sign. The RTL was right; the comparison was not"
+  audit_updated "research/audit_rtl_special_widths.py now simulates with each width's own HAS_INF rather than the module default. Instantiating bare would have reproduced the old behaviour forever and kept reporting a defect the wrappers no longer have -- and its verdict label, which said 'flag only' whenever the numbers agreed, now distinguishes agreement from a coincidental one"
+  scope "RTL only. No pack, no oracle and no Tier-E claim changes: the gf8 chains are compute cells and already used gf_adder_param with the correct flag"
+}

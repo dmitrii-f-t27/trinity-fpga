@@ -49,7 +49,7 @@ module corona_decode_gf32_ax7203 (
     assign led[1]=frame_valid;
     wire [31:0] result;
     wire        is_zero;
-    gf_decode_param #(.N(32), .E(12), .M(19), .BIAS(2047), .OUT_REG(1)) u_dec (.clk(mclk), .rst_n(~rst), .gf_in(code_r[31:0]), .fp32_out(result), .is_nan_o(), .is_inf_o(), .is_zero_o(), .is_subnormal_o());
+    gf_decode_param #(.N(32), .E(12, .HAS_INF(0)), .M(19), .BIAS(2047), .OUT_REG(1)) u_dec (.clk(mclk), .rst_n(~rst), .gf_in(code_r[31:0]), .fp32_out(result), .is_nan_o(), .is_inf_o(), .is_zero_o(), .is_subnormal_o());
     assign led[2] = |result;
     reg responding; reg [2:0] tx_idx; reg [7:0] tx_buf0,tx_buf1,tx_buf2,tx_buf3,tx_buf4;
     reg [8:0] tcnt; reg [3:0] tbi; reg [9:0] tsr;

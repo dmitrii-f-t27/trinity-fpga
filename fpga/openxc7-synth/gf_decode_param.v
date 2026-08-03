@@ -71,7 +71,21 @@ module gf_decode_param #(
     parameter integer E        = 6,      // GF exponent width
     parameter integer M        = 9,      // GF mantissa width
     parameter integer BIAS     = 31,     // GF exponent bias
-    parameter integer OUT_REG  = 0       // 0 = pure combinational, 1 = registered output
+    parameter integer OUT_REG  = 0,      // 0 = pure combinational, 1 = registered output
+    // HAS_INF=1 only for formats where exp=all-ones is RESERVED as SPECIAL.
+    // gf16.t27 declares GF16_INF_POS 0x7E00 / GF16_INF_NEG 0xFE00 / GF16_NAN 0xFE01.
+    // Every other GF width defines exp_max = (1 << EXP_BITS) - 1 - EXP_BIAS
+    // (gf8.t27:115-119), i.e. exp=all-ones is a FINITE max_value -> HAS_INF=0.
+    //
+    // The sibling module gf_adder_param has carried exactly this parameter, with the
+    // same citation, since it was written. This one did not, so its cls_inf and cls_nan
+    // fired at every width: at gf8 the decoder returned +Inf (0x7F800000) where the
+    // format's largest finite value is 16 (0x41800000). Nine of eleven board wrappers
+    // instantiate it at a width the spec gives no infinities.
+    //
+    // The default is 1 so that adding the parameter changes nothing on its own; each
+    // wrapper states its own answer.
+    parameter integer HAS_INF  = 1
 ) (
     input  wire                 clk,     // used only when OUT_REG=1
     input  wire                 rst_n,   // sync active-low reset, used only when OUT_REG=1
@@ -122,9 +136,12 @@ module gf_decode_param #(
 
     wire cls_zero      = is_exp_zero  &&  is_mant_zero;
     wire cls_subnormal = is_exp_zero  && !is_mant_zero;
-    wire cls_inf       = is_exp_max   &&  is_mant_zero;
-    wire cls_nan       = is_exp_max   && !is_mant_zero;
-    wire cls_normal    = !is_exp_zero && !is_exp_max;
+    wire has_special   = (HAS_INF != 0);
+    wire cls_inf       = has_special && is_exp_max   &&  is_mant_zero;
+    wire cls_nan       = has_special && is_exp_max   && !is_mant_zero;
+    // With HAS_INF=0 the all-ones exponent is an ordinary exponent and its codes decode
+    // as normals -- which is what makes gf8's 0x70 the number 16 rather than infinity.
+    wire cls_normal    = !is_exp_zero && (!is_exp_max || !has_special);
 
     // -------------------------------------------------------------------
     // Leading-zero-count (LZC) for GF-subnormal -> renormalized (true_exp,
