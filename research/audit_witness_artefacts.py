@@ -46,7 +46,13 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 WITNESS = os.path.join(ROOT, "conformance", "witness")
-MANIFEST = os.path.join(WITNESS, "MANIFEST.json")
+# Not MANIFEST.json. .gitignore line 212 is `manifest.json`, and git on macOS matches
+# ignores case-insensitively, so the file pass 195 wrote was silently left out of the
+# commit -- five dumps landed and the thing that makes them verifiable did not. `git add
+# -A` said nothing, and neither did I. The lowercase-with-suffix name is outside that
+# pattern, and audit_committed() below asserts the file is actually tracked rather than
+# assuming that writing it was enough.
+MANIFEST = os.path.join(WITNESS, "manifest_witness.json")
 
 
 def sha256(path):
@@ -55,6 +61,15 @@ def sha256(path):
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def is_tracked(path):
+    """git ls-files, because a file that exists locally and is ignored looks identical to
+    a file that is committed until someone clones the repository."""
+    import subprocess
+    r = subprocess.run(["git", "-C", ROOT, "ls-files", "--error-unmatch", path],
+                       capture_output=True, text=True)
+    return r.returncode == 0
 
 
 def load_manifest():
@@ -90,6 +105,18 @@ def main() -> int:
         print(f"no manifest at {MANIFEST}")
         print("SKIPPED -- not a pass.")
         return 2
+
+    rel = os.path.relpath(MANIFEST, ROOT)
+    if not is_tracked(rel):
+        print(f"THE MANIFEST IS NOT TRACKED: {rel}")
+        print("  A manifest that exists only locally verifies nothing for anyone else.")
+        print("  Check .gitignore -- pass 195 lost the first one to a case-insensitive")
+        print("  match on `manifest.json`.")
+        return 1
+    for a in man["artefacts"]:
+        if a["in_repo"] and not is_tracked(a["in_repo"]):
+            print(f"NOT TRACKED: {a['in_repo']} is listed as committed and is not")
+            return 1
 
     dirs = search_dirs(args.dir)
     found = mismatch = absent = 0
@@ -130,6 +157,10 @@ An artefact that is absent is not a failure here -- six of the eleven are past t
 repository's 1 MB rule and are expected to be regenerated. An artefact that is PRESENT and
 different is: it means a comparison ran, or will run, against something other than the file
 the published numbers came from, and nothing else in the corpus would notice.
+
+Every artefact carries the library commit that produced it. lt8 and ltlog8 were rebuilt
+from libtakum v2.0.0 (776ac0c) in pass 196 and came out byte-identical, so those two are
+reproducible and not merely recorded.
 
 The five committed dumps are the exhaustive cases on purpose. posit8 over all 256 codes and
 takum8 over all 256 are the strongest claims the campaign makes from an external witness,
