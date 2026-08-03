@@ -6394,3 +6394,11 @@ correction "gf_decode_param now has the HAS_INF its sibling always had" {
   audit_updated "research/audit_rtl_special_widths.py now simulates with each width's own HAS_INF rather than the module default. Instantiating bare would have reproduced the old behaviour forever and kept reporting a defect the wrappers no longer have -- and its verdict label, which said 'flag only' whenever the numbers agreed, now distinguishes agreement from a coincidental one"
   scope "RTL only. No pack, no oracle and no Tier-E claim changes: the gf8 chains are compute cells and already used gf_adder_param with the correct flag"
 }
+
+verification "the HAS_INF fix, exhaustively across seven widths" {
+  note "a sweep started before the fix was committed finished after it; these are the numbers it produced against the patched RTL"
+  combinational "gf4 16/16, gf6 64/64, gf8 256/256, gf12 4096/4096, gf20 1048576/1048576, gf24 16777216/16777216 -- every code, matching gf_ref exactly"
+  regression_guard "gf16 65536/65536 with HAS_INF(1), the one width the spec DOES give infinities, unchanged"
+  pipelined "gf8 256/256"
+  what_is_not_covered "gf32 and wider were not swept exhaustively -- 2^32 codes and up. Their all-ones-exponent band was checked directly, which is where the defect lived, and the rest of their space is unchanged by a gate that only fires there"
+}
