@@ -6402,3 +6402,12 @@ verification "the HAS_INF fix, exhaustively across seven widths" {
   pipelined "gf8 256/256"
   what_is_not_covered "gf32 and wider were not swept exhaustively -- 2^32 codes and up. Their all-ones-exponent band was checked directly, which is where the defect lived, and the rest of their space is unchanged by a gate that only fires there"
 }
+
+verification "the HAS_INF fix costs nothing and frees resources" {
+  method "yosys 0.63 synth_xilinx -flatten -abc9 -nodsp, the flow this corpus's LUT numbers are quoted under, run at HAS_INF=1 and HAS_INF=0 for each width"
+  measured "gf4 16->10, gf6 42->27, gf8 51->36, gf12 111->90, gf20 213->189, gf24 798->795, gf32 1110->1101, gf256 9495->9396"
+  total "-207 LUTs across the nine wrappers that now pass HAS_INF(0), counting gf8 twice for corona_decode_gf8 and corona_decode_gf8_bfp"
+  gf16 "shows -21 as well and correctly does not take it: gf16.t27 declares GF16_INF_POS 0x7E00, so its wrapper keeps HAS_INF(1)"
+  why_it_matters "gf24 and gf32 decode FAIL routing on AX7203 from the purely combinational module -- that is the stated reason the pipelined variant exists. The correctness fix is also a resource win exactly where resources are the constraint"
+  scope "synthesis only. Place-and-route and a bitstream would need the openXC7 Docker flow, and no Tier-E claim is made or changed here"
+}
