@@ -810,10 +810,17 @@ correction CFGMCLK_SPREAD_IS_FIVE_PERCENT {
   actually    "71.18, 70.46 and 67.47 MHz across three dies -- a 5.5% spread"
   why "the 1.25% figure was two samples published as a fleet property"
   consequence """
-    No single host baud rate serves this fleet. Line rate must be negotiated
-    per board; Node.initFpgaAutoBaud scores six probes per candidate, because
-    on a lossy board one probe is one coin flip and latched two different
-    rates on consecutive runs from the same wire.
+    Line rate is a per-die property and must be measured, never assumed from a
+    fleet constant.
+  """
+  superseded_in_part_by "FLEET_HAS_ONE_WORKING_RATE -- the spread is real, but the conclusion drawn from it below was wrong"
+  withdrawn """
+    This entry used to conclude "no single host baud rate serves this fleet",
+    on the reasoning that a 5.5% spread beats a 3% UART tolerance. Both numbers
+    were wrong. The spread is 4.97% and each board tolerates +/-4.5%, so the
+    windows overlap and 1144744 baud serves all three -- 6400 jobs each, zero
+    failures. It also said six probes per candidate were enough to choose a
+    rate. They are not; see AUTOBAUD_CHOSE_A_RATE_THAT_MOSTLY_WORKED.
   """
   trust_tier MEASURED_ON_FPGA
 }
@@ -1028,10 +1035,11 @@ claim FLEET_FULLY_REKEYED {
     all_three_nodes_active true
   }
   note """
-    node2 remains the marginal board: 97.6% correct, min 59 of 64 in a run. Its
-    losses are the link, not the key -- it was swept to its own centre rate and
-    scored slightly worse there. Report the minimum; a fleet is used at its
-    worst run.
+    The node2 figures in this claim were taken at 1186267 baud, which is outside
+    that board's clean window. They measure the host's choice of line rate, not
+    the board. Re-measured at 1144744 baud the same board, same cable, same hub
+    returns 6400/6400 -- see NODE2_WAS_NEVER_MARGINAL. The node0 and node1
+    figures are unaffected: both rates are inside their windows.
   """
   trust_tier MEASURED_ON_FPGA
 }
@@ -1039,4 +1047,176 @@ claim FLEET_FULLY_REKEYED {
 board_facts PARALLEL_FLASH_CONFIRMED {
   measured "two boards flashed simultaneously on separate programmers, 778.755 s and 778.757 s -- 13 minutes for two, not 26"
   rule "flash the fleet in parallel; the AL321 bottleneck is per-cable, not shared"
+}
+
+// ---------------------------------------------------------------------------
+// 2026-08-03: the marginal board was a marginal line rate. Same boards, same
+// cables, same hubs, no re-flash and no power cycle between the measurements.
+// ---------------------------------------------------------------------------
+
+claim BOARD_LINE_RATES_MEASURED_BY_WINDOW {
+  statement """
+    Each board's line rate was bracketed by sweeping the host rate in 0.5%
+    steps and running 64 jobs at each step, counting a step clean only if every
+    one of the eleven predictable response bytes was right on all 64 jobs.
+  """
+  measured {
+    step_pct              0.5
+    jobs_per_step         64
+
+    node0_window_lo       1121020   node0_window_hi 1227778
+    node0_centre          1174399   node0_tolerance_pct 4.55
+    node0_cfgmclk_mhz     70.46
+
+    node1_window_lo       1068248   node1_window_hi 1169444
+    node1_centre          1118846   node1_tolerance_pct 4.52
+    node1_cfgmclk_mhz     67.13
+
+    node2_window_lo       1121020   node2_window_hi 1168468
+    node2_centre          1144744   node2_tolerance_pct 2.07
+    node2_cfgmclk_mhz     68.69
+
+    cfgmclk_spread_pct    4.97
+  }
+  precision """
+    The centre is quantised by the sweep step, so each CFGMCLK figure carries
+    about +/-0.18 MHz. Quoting more digits than that would be inventing them.
+  """
+  caveat """
+    node0 and node1 have hard window edges -- the next step out delivers nothing
+    at all -- so their centres are their transmit rates. node2's upper edge is
+    soft: it degrades to 96-98% clean over 1174399..1227778 instead of failing.
+    Its centre is therefore a rate that works, not necessarily the rate it
+    transmits at, and the 68.69 MHz above inherits that caveat. Whatever costs
+    node2 its upper margin is unexplained and is the only open item here.
+  """
+  tool "conformance/trinet_baud_sweep.py"
+  trust_tier MEASURED_ON_FPGA
+}
+
+claim FLEET_HAS_ONE_WORKING_RATE {
+  statement """
+    The three clean windows overlap on 1121020..1168468 baud. At 1144744, the
+    centre of that overlap, all three boards deliver every job.
+  """
+  measured {
+    rate                  1144744
+    runs_per_board        100
+    jobs_per_run          64
+    node0_clean           6400   node0_attempted 6400
+    node1_clean           6400   node1_attempted 6400
+    node2_clean           6400   node2_attempted 6400
+    failures_total        0
+  }
+  also_measured """
+    Each board at its own window centre, same protocol: node0 6400/6400 at
+    1174404, node1 6400/6400 at 1118852, node2 6400/6400 at 1147713 -- and node2
+    again, a second independent run at the same rate, 6400/6400. Two runs, not
+    one: a single clean run is an anecdote.
+  """
+  consequence "the coordinator does not need a rate per board; it needs a measured rate"
+  scope """
+    "clean" here means the magic, product, status, nonce and node identity are
+    all exactly right -- the eleven bytes a host can predict without a key. The
+    receipt tag is NOT checked, because the keys installed on these boards are
+    not held on this machine (see KEYS_NOT_ON_THIS_HOST). This is a measurement
+    of the transport, and nothing in it is evidence of authenticity. Do not read
+    6400/6400 here as the 6400/6400 authenticated in FLEET_FULLY_REKEYED.
+  """
+  trust_tier MEASURED_ON_FPGA
+}
+
+board_facts KEYS_NOT_ON_THIS_HOST {
+  statement """
+    All three boards answer status 0x01, so each holds a key. trinet-keys.txt
+    exists nowhere on this workstation: the checkout the 2026-08-03 session
+    worked in is gone and the current one is a fresh clone whose reflog has a
+    single entry.
+  """
+  consequence """
+    No receipt from this fleet can be verified until the boards are re-keyed.
+    Settlement correctly refuses rather than slashing -- the boards are honest
+    and the verifier is the one who cannot check.
+  """
+  why_it_cannot_be_undone_cheaply """
+    setkey is write-once per configuration, so re-keying needs the configuration
+    cleared, which means a power cycle, which drops the bitstream -- these are
+    JTAG-loaded, not in SPI flash. Re-flashing needs openocd as root, and the
+    NOPASSWD rule in /etc/sudoers.d/openocd is not present on this host today:
+    `sudo -n /opt/homebrew/bin/openocd --version` answers "a password is
+    required". Until an operator restores it, a power cut takes the fleet dark
+    and nothing here can bring it back.
+  """
+  rule "a fleet whose configuration is volatile and whose flash path needs a password is a perishable measurement -- take the hardware measurements first"
+}
+
+correction NODE2_WAS_NEVER_MARGINAL {
+  previously """
+    "node2 remains the marginal board: 97.6% correct, 25 of 100 perfect runs,
+    min 59 of 64. Not the baud, not the key -- try a different cable and a
+    different hub port before believing the board."
+  """
+  actually """
+    97.630% at 1186267 baud and 100.000% at 1144744, on the same cable and the
+    same hub port, measured minutes apart. 1186267 is 3.6% above the top of that
+    board's clean window.
+  """
+  how_the_baud_hypothesis_was_wrongly_killed """
+    It was tested by re-running at "its own centre rate" -- 1174399, taken from
+    the BAUD_DIV=60 candidate list. That rate is ALSO outside node2's window,
+    by 0.5%, and scored 98.08% against 98.56%. Two numbers half a percent apart
+    on a small sample were read as a refutation. The hypothesis was right; the
+    rate that would have shown it was never in the list.
+  """
+  why_it_persisted """
+    Every rate anyone tried came from a list of BAUD_DIV=60 candidates derived
+    from assumed oscillator frequencies. node2's real window centre is not in
+    that list and could not be, because the list is what the assumption
+    produced. Sweeping is what breaks that circle.
+  """
+  rule "when a hypothesis is refuted by two nearby numbers, the sample is the suspect, not the hypothesis"
+}
+
+defect AUTOBAUD_CHOSE_A_RATE_THAT_MOSTLY_WORKED {
+  statement """
+    Node.initFpgaAutoBaud and conformance/trinet_discover.py both accepted the
+    first candidate rate that answered -- six probes in the Zig path, one in the
+    Python path -- and stopped looking.
+  """
+  arithmetic """
+    A rate that loses 2.4% of jobs passes six probes in a row 86% of the time
+    and a single probe 97.6% of the time. Neither check can distinguish the rate
+    that works from the rate that nearly works, which is the only distinction
+    either of them exists to make.
+  """
+  same_shape_as """
+    THROUGHPUT_COUNTED_FAILURES and the settlement layer's verdict enumeration:
+    a check whose resolution is below the difference it is asked to detect,
+    reporting success either way.
+  """
+  fix """
+    64 jobs per rate, all eleven predictable bytes checked, and the operating
+    rate taken from the centre of the contiguous clean window rather than from
+    the first rate that replied. Failures are split by direction -- a wrong
+    product with an intact nonce is host->board damage, a damaged nonce or
+    identity is board->host -- so a minimum in one cannot hide a rise in the
+    other.
+  """
+  rule "a probe that cannot fail the marginal case is not a probe"
+}
+
+defect CENSUS_CLEARED_A_RUN_IT_HAD_NOT_CHECKED {
+  statement """
+    `trinet census` printed "no published key seen. Receipts from this fleet can
+    be cited." whenever no run had been caught carrying a published key --
+    including runs where no key was loaded at all, so no key could have been
+    seen, published or otherwise. Observed today on all three boards.
+  """
+  same_shape_as "the settlement layer treating every verdict it did not enumerate as an accusation, inverted: here every case it did not enumerate is an acquittal"
+  fix """
+    Ask what was verified instead of inferring it from what failed to happen.
+    Three outcomes now: a published key was seen; no key was checked; or N of M
+    receipts verified under the node's own key, with N and M printed.
+  """
+  rule "a green light that nothing can turn red is not a check"
 }

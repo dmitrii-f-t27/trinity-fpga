@@ -355,10 +355,12 @@ fn fleet(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
         // network slashes operators for a cabling accident.
         // Ask the board its line rate too, rather than assuming one constant
         // serves the fleet. It does not: CFGMCLK is an untrimmed RC oscillator
-        // and this fleet's three dies run at 71.18, 70.46 and 67.47 MHz. A UART
-        // tolerates about 3%, so the 5.5% spread means no single host rate can
-        // reach all three -- and the outlier was recorded as a wiring fault for
-        // a day while it was answering perfectly 5% down the dial.
+        // and this fleet's three dies run at 70.46, 67.13 and 68.69 MHz -- a
+        // 4.97% spread, and one of them was recorded as a wiring fault for a day
+        // while it was answering perfectly 5% down the dial. Each board still
+        // tolerates about +/-4.5%, so the windows overlap and one rate does
+        // reach all three; ask each board anyway, because that is a fact about
+        // these three dies and not about the next one.
         const found = node_mod.Node.initFpgaAutoBaud(0, "unidentified", p) catch |e| {
             std.debug.print("{s}: did NOT answer at any candidate rate ({s}) — not counted\n", .{ p, @errorName(e) });
             continue;
@@ -881,8 +883,21 @@ fn census(gpa: std.mem.Allocator, path: []const u8, baud: u32, runs: usize, per_
         std.debug.print("The arithmetic above is a real hardware measurement. The receipts\n", .{});
         std.debug.print("are not evidence of anything and this run must not be cited as\n", .{});
         std.debug.print("verified work.\n", .{});
+    } else if (node_key == null) {
+        // Reaching here used to print "no published key seen. Receipts from
+        // this fleet can be cited." — on a run where no key was loaded, so no
+        // key could have been seen, published or otherwise. A green light
+        // nothing can turn red is the same defect as a verdict enumeration that
+        // treats every unlisted case as innocent: ask what was checked, do not
+        // infer it from what failed to happen.
+        std.debug.print("no key was checked, so nothing here says who did this work.\n", .{});
+        std.debug.print("The arithmetic above is a real hardware measurement. The receipts\n", .{});
+        std.debug.print("are unverified and this run must not be cited as verified work.\n", .{});
     } else {
-        std.debug.print("no published key seen. Receipts from this fleet can be cited.\n", .{});
+        std.debug.print("no published key seen, and {d}/{d} receipts verified under {s}'s\n", .{
+            verified_total, attempted, node_name,
+        });
+        std.debug.print("own key. This run can be cited as verified work.\n", .{});
     }
     line();
     std.debug.print("Report the minimum, not the mean. A fleet is used at its worst run.\n", .{});

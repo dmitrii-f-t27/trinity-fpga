@@ -29,26 +29,35 @@ from trinet_mac32_conformance_ax7203 import (  # noqa: E402
     OP_MAC32, generate_vectors, golden_dot, build_request,
 )
 
-# Rates worth trying.
+# Rates worth trying, to ACQUIRE a board — not to operate it.
 #
-# This list used to hold only the rates a shared divisor implies, which quietly
-# assumed every board runs the same clock. They do not: CFGMCLK is an untrimmed
-# RC oscillator and this fleet's three dies measure 71.18, 70.46 and 67.47 MHz —
-# 5.5% apart, against a UART tolerance near 3%. So at BAUD_DIV=60 the fleet
-# speaks 1186267, 1174399 and 1124474 baud, and the board at the bottom of that
-# spread answered none of the rates listed here.
+# CFGMCLK is an untrimmed RC oscillator, so the line rate is a property of the
+# individual die. Measured on this fleet with trinet_baud_sweep.py on
+# 2026-08-03: 70.464, 67.131 and 68.685 MHz, so at BAUD_DIV=60 the boards speak
+# 1174399, 1118846 and 1144744 baud. A 4.97% spread.
 #
-# It was written off as a wiring fault for a day because of this list. Keep the
-# per-die rates in it, and re-measure with trinet_baud_sweep.py after any
-# re-flash rather than assuming these carry over.
+# The spread does NOT force a rate per board. Each board tolerates roughly
+# +/-4.5% and the three windows overlap on 1121020..1168468, so 1144744 reaches
+# all three: 6400 jobs each, zero failures. That rate leads the list.
+#
+# The important part is what this list cannot do. A single job answered at a
+# rate proves the rate is close enough to acquire the board, not that it is
+# close enough to work: node2 answers 97.6% of jobs at 1186267 and 100% at
+# 1144744, and one probe cannot tell those apart. So after acquiring, this tool
+# measures — see confirm() — rather than reporting the first rate that replied.
 CANDIDATE_RATES = [
+    1144744,   # BAUD_DIV=60, measured intersection of all three windows
+    1174399,   # BAUD_DIV=60, node0's own centre
+    1118846,   # BAUD_DIV=60, node1's own centre
+    1186267,   # BAUD_DIV=60, the fleet constant this project used to assume
     2372533,   # BAUD_DIV=30
-    1186267,   # BAUD_DIV=60, fastest die
-    1174399,   # BAUD_DIV=60, middle die
-    1124474,   # BAUD_DIV=60, slowest die
     593133,    # BAUD_DIV=120
     164000, 160000,   # BAUD_DIV=434, historical
 ]
+
+# Jobs used to judge an acquired rate. Six was the old figure and it is useless
+# here: a rate losing 2.4% of jobs passes six in a row 86% of the time.
+CONFIRM_JOBS = 64
 
 # Identities the fleet build assigns, so a board can name itself.
 KNOWN_IDS = {
@@ -84,6 +93,37 @@ def try_one(port, baud, timeout=0.25):
         ser.close()
 
 
+def confirm(port, baud, node_id, jobs=CONFIRM_JOBS, timeout=0.05):
+    """How many of `jobs` come back with every predictable byte right.
+
+    The tag is not checked — it needs the node's key, and this tool runs before
+    anyone knows whether a key is held. Everything else is predictable, and a
+    marginal rate damages those bytes as readily as it damages the tag.
+    """
+    import serial
+    try:
+        ser = serial.Serial(port, baud, timeout=timeout)
+    except Exception:
+        return 0, jobs
+    clean = 0
+    try:
+        ser.reset_input_buffer()
+        for nonce, w, x in generate_vectors(jobs):
+            ser.write(build_request(OP_MAC32, nonce, w, x))
+            raw = ser.read(19)
+            if len(raw) < 15:
+                continue
+            expected = bytes([0xA5, golden_dot(w, x) & 0xFF, 0x01]) + nonce + \
+                node_id.to_bytes(4, "little")
+            if raw[:11] == expected:
+                clean += 1
+    except Exception:
+        pass
+    finally:
+        ser.close()
+    return clean, jobs
+
+
 def main():
     ap = argparse.ArgumentParser(description="discover TRI-NET nodes on the bus")
     ap.add_argument("--ports", nargs="*", default=None)
@@ -93,6 +133,7 @@ def main():
     print(f"probing {len(ports)} port(s)\n")
 
     found = []
+    marginal = []
     for p in ports:
         hit = None
         for baud in CANDIDATE_RATES:
@@ -104,8 +145,13 @@ def main():
             baud, nid, width = hit
             name = KNOWN_IDS.get(nid, "unknown identity")
             frame = "keyed (v2)" if width >= 19 else "crc (v1)"
-            print(f"  {p:<36} NODE  id {nid:#010x} ({name}), {baud} baud, {frame}")
-            found.append((p, nid, baud))
+            clean, jobs = confirm(p, baud, nid)
+            pct = 100.0 * clean / jobs
+            print(f"  {p:<36} NODE  id {nid:#010x} ({name}), {baud} baud, {frame}, "
+                  f"{clean}/{jobs} clean")
+            found.append((p, nid, baud, pct))
+            if clean < jobs:
+                marginal.append((p, baud, pct))
         else:
             print(f"  {p:<36} —     no node answered at any candidate rate")
 
@@ -116,7 +162,7 @@ def main():
         print("will not answer.")
         return 1
 
-    ids = [n for _, n, _ in found]
+    ids = [n for _, n, _, _ in found]
     print(f"{len(found)} node(s) responding")
     if len(set(ids)) != len(ids):
         print("WARNING: two boards report the SAME identity. The ledger credits")
@@ -125,7 +171,19 @@ def main():
         print("different NODE_ID before running them together.")
         return 1
 
-    rates = {b for _, _, b in found}
+    if marginal:
+        print()
+        print("WARNING: a board answered, but not on every job. That is the shape")
+        print("of a host rate a few percent off the board's own, and it is NOT")
+        print("evidence of a bad board, cable or hub — node2 read as 97.6% for a")
+        print("day and delivers 6400/6400 once the rate is measured. Sweep it:")
+        for p, baud, pct in marginal:
+            print(f"  {p} at {baud} baud: {pct:.2f}% clean")
+            print(f"    python3 conformance/trinet_baud_sweep.py --port {p} "
+                  f"--centre {baud} --span 0.08")
+        return 1
+
+    rates = {b for _, _, b, _ in found}
     if len(rates) > 1:
         print(f"note: nodes are at different line rates {sorted(rates)} — the")
         print("coordinator opens each port at its own rate, so this is workable,")

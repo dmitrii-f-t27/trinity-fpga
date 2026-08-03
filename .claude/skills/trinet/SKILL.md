@@ -85,14 +85,29 @@ is comfortable, 60 → 1186 kbaud is in budget, 30 → 2372 kbaud is at the edge
 
 ## Running a fleet — what three boards teach that one cannot
 
-- **CFGMCLK differs per chip.** It is an internal RC oscillator: 71.176 MHz on
-  one board, 72.065 on another, a 1.25% spread. One host baud cannot be exactly
-  right for all of them, so open every port at the **midpoint** of the members'
-  measured rates. At an aggressive divisor the spread eats the margin that
-  quantisation has already narrowed.
+- **CFGMCLK differs per chip.** It is an internal RC oscillator. Measured across
+  this fleet on 2026-08-03: 70.46, 67.13 and 68.69 MHz (±0.18), a 4.97% spread.
+  Each board tolerates about ±4.5%, so the windows still overlap — **one rate
+  serves the fleet: 1144744 baud, 6400/6400 on each of the three.** Do not
+  assume that survives a re-flash or a new board; measure it.
+- **Measure the window, never take the first rate that answers.** A board a few
+  percent off its rate still replies — it just loses a few percent of jobs, and
+  that reads as a bad board, a bad cable or a bad hub. node2 was written up as
+  the marginal board of the fleet at 97.6%; it delivers 6400/6400 once the rate
+  is measured, on the same cable and the same hub port. The old check asked six
+  probes per candidate and took the first that passed all six. A rate losing
+  2.4% of jobs passes six probes 86% of the time.
+  ```bash
+  python3 conformance/trinet_baud_sweep.py --port <p> --centre <b> --span 0.08
+  ```
+  It prints a clean window, the rate to use, and — separately — the degraded
+  shoulder either side. Operate at the centre. Never inside a shoulder.
 - **A fleet runs at the rate every member sustains**, not the fastest any member
   reaches. At BAUD_DIV=30 one board was clean at 600/600 while another returned
-  18% of its responses damaged — same design, same host, different cable.
+  18% of its responses damaged — same design, same host, different cable. Re-read
+  that last clause with the above in mind: "different cable" was the conclusion
+  reached without a sweep, and it is exactly the conclusion the sweep overturned
+  for node2.
 - **Every AL321 in this set reports the same USB serial.** openocd cannot tell
   them apart and silently picks the first, so use
   `ax7203_al321_multi.cfg` and pass `adapter usb location`. Sweep to find the

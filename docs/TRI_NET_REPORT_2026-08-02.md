@@ -20,11 +20,11 @@ independent runs, making it the equal of the best board here. The diagnosis had
 been repeated for a day without being retested; it took the operator asking why
 the third board was missing for anyone to point a sweep at it.
 
-**The per-chip clock spread is 5.5%, not 1.25%.** CFGMCLK measures 71.18, 70.46
-and 67.47 MHz across the three dies. The 1.25% figure came from two samples and
-should not have been published as a fleet property. This is the difference
-between "a fleet can share one host baud rate" and "it cannot", and it is why
-the third board was invisible. Line rate is now negotiated per board.
+**The per-chip clock spread is about 5%, not 1.25%.** CFGMCLK differs per die —
+the 1.25% figure came from two samples and should not have been published as a
+fleet property — and that is why the third board was invisible. *The conclusion
+originally drawn from it, that no fleet can share one host baud rate, was wrong
+and is corrected below.*
 
 **Every board is running a receipt key that was published in this
 repository.** W01 nulled the committed keys in the source and never reached the
@@ -67,6 +67,51 @@ response width from `key != null` — a host-side config fact — rather than fr
 the wire. A keyless host read 15 bytes of a 19-byte response and offset every
 later read by four, so a healthy board reported `MalformedResponse` forever.
 
+### Entered 2026-08-03: the marginal board was a marginal line rate
+
+**node2 is not a marginal board, and the fleet does share one rate.** Both
+claims above were measured wrong, by the same instrument.
+
+Each board's line rate was bracketed by sweeping the host rate in 0.5% steps
+with 64 jobs per step, counting a step clean only when every predictable byte of
+every response was right. The windows:
+
+| node | clean window (baud) | centre | tolerated | implied CFGMCLK |
+|---|---|---|---|---|
+| node0 | 1121020 – 1227778 | 1174399 | ±4.55% | 70.46 ± 0.18 MHz |
+| node1 | 1068248 – 1169444 | 1118846 | ±4.52% | 67.13 ± 0.18 MHz |
+| node2 | 1121020 – 1168468 | 1144744 | ±2.07% | 68.69 ± 0.18 MHz |
+
+The spread is 4.97% and each board tolerates about ±4.5%, so the windows
+overlap on 1121020–1168468. **At 1144744 baud all three boards returned every
+job: 100 runs × 64 on each, 19 200 jobs, zero failures.** At its own window
+centre each board did the same, and node2 was run twice to make it a
+reproduction rather than an anecdote.
+
+node2's 97.6% was measured at 1186267 — 3.6% above the top of its window. Same
+cable, same hub port, no re-flash, no power cycle between the two measurements.
+
+The baud hypothesis had been tested and recorded as refuted: node2 was re-run at
+"its own centre rate", scored 98.08% against 98.56%, and the half-percent gap
+was read as a refutation. That rate was 1174399, taken from a list of
+`BAUD_DIV=60` candidates — and it is *also* outside node2's window. Every rate
+anyone tried came from a list the wrong assumption had generated, so no test
+drawn from that list could escape it.
+
+The instrument itself was the defect, and it is the recurring shape: `six
+probes per candidate, accept the first that passes`. A rate losing 2.4% of jobs
+passes six probes 86% of the time. The check could not fail the case it existed
+to detect. `conformance/trinet_baud_sweep.py` now uses 64 jobs per rate, checks
+every predictable byte, splits failures by direction, and reports the centre of
+the clean window; `conformance/trinet_discover.py` measures an acquired rate
+instead of trusting the first reply.
+
+**What this does not explain.** node0 and node1 have hard window edges — one
+step out and nothing comes back. node2 degrades gently instead, 96–98% clean
+over 1174399–1227778. Something costs that board its upper margin and nothing
+here identifies it. It no longer costs it any jobs, which is why this is an open
+question and not a fault.
+
 ---
 
 ## 1. The strongest sentence the evidence supports
@@ -74,9 +119,14 @@ later read by four, so a healthy board reported `MalformedResponse` forever.
 > Three ALINX AX7203 boards, synthesised end to end on a fully open toolchain
 > (yosys + nextpnr-xilinx), each run a 1313-logic-cell balanced-ternary
 > dot-product cell using no DSP block. Across 100 independent runs per board —
-> 19,200 dot products, port reopened every run — two boards returned every
-> answer correctly and the third returned 98.6%. The same cell synthesises
-> without modification on ten FPGA families from eight vendors.
+> 19,200 dot products, port reopened every run — every board returned every
+> answer correctly. The same cell synthesises without modification on ten FPGA
+> families from eight vendors.
+
+*(That sentence read "two boards returned every answer correctly and the third
+returned 98.6%" until 2026-08-03. The third board was being talked to at a rate
+outside its window; at 1144744 baud all three are clean. See the correction
+above.)*
 
 That establishes a ternary dot-product cell that works on silicon, on an open
 flow, reproducibly, on more than one die, and portably. It establishes nothing
