@@ -98,6 +98,12 @@ pub const Account = struct {
     /// link-quality signal about the operator's wiring, not about their honesty.
     corrupted: u64 = 0,
     consecutive_corruptions: u32 = 0,
+    /// Responses we could not judge, because we hold no key for this node.
+    /// Counted apart from `corrupted` on purpose: corrupt is a claim about the
+    /// link, unverifiable is a claim about the verifier, and merging them would
+    /// let our own missing key look like the node's bad cable.
+    unverifiable: u64 = 0,
+    consecutive_unverifiable: u32 = 0,
     status: Status = .active,
 
     pub fn reputation(self: Account) f64 {
@@ -116,6 +122,11 @@ pub const Outcome = enum {
     corrupt_not_charged,
     /// The receipt claimed an identity other than the node we dispatched to.
     identity_mismatch,
+    /// The verifier holds no key for this node, so nothing can be concluded.
+    /// Not credited, and NOT slashed — this is a statement about us, not about
+    /// the node, and charging stake for our own missing key is how an honest
+    /// operator gets punished for a configuration error they cannot see.
+    unverifiable_not_charged,
     /// Node is suspended and should not have been dispatched to.
     not_eligible,
 };
@@ -145,6 +156,7 @@ pub const Ledger = struct {
     total_credited_mtri: u64 = 0,
     total_slashed_mtri: u64 = 0,
     total_corrupted: u64 = 0,
+    total_unverifiable: u64 = 0,
     jobs_on_silicon: u64 = 0,
 
     pub fn init(gpa: std.mem.Allocator, policy: Policy) Error!Ledger {
@@ -233,6 +245,33 @@ pub const Ledger = struct {
             };
         }
 
+        // A verdict that does not indict must never cost stake. The rule lived
+        // in protocol.Verdict.indictsTheNode() and this function never asked:
+        // it switched on `.corrupt` by name and slashed everything else, so
+        // `.unverifiable` — added precisely so a keyless verifier could not
+        // accuse — went straight to the slash path. Measured on hardware: two
+        // honest boards lost 600 mTRI each and were suspended, for holding keys
+        // WE could not check.
+        //
+        // Asking the verdict rather than naming the cases is the fix; a new
+        // verdict now defaults to costing nothing rather than to costing stake.
+        if (!verdict.accepted() and !verdict.indictsTheNode()) {
+            acct.unverifiable += 1;
+            acct.consecutive_unverifiable += 1;
+            self.total_unverifiable += 1;
+            // Stop sending work we can never pay for. This is scheduling, not
+            // punishment: no stake moves, and the detail says whose problem it
+            // is.
+            if (acct.consecutive_unverifiable >= self.policy.corruption_tolerance) {
+                acct.status = .unreliable;
+            }
+            return .{
+                .node_id = dispatched_to,
+                .outcome = .unverifiable_not_charged,
+                .detail = verdict.reason(),
+            };
+        }
+
         if (!verdict.accepted()) {
             const slash = @min(acct.stake_mtri, self.policy.slash_per_bad_receipt_mtri);
             acct.stake_mtri -= slash;
@@ -266,6 +305,7 @@ pub const Ledger = struct {
         acct.accepted += 1;
         acct.consecutive_rejections = 0;
         acct.consecutive_corruptions = 0;
+        acct.consecutive_unverifiable = 0;
         if (acct.status == .probation) acct.status = .active;
         self.total_credited_mtri += reward;
         if (acct.physical) self.jobs_on_silicon += 1;
@@ -483,4 +523,73 @@ test "payouts aggregate across the nodes one developer runs" {
     defer p.deinit(std.testing.allocator);
     try std.testing.expectEqual(@as(u64, 30), p.get("erin").?); // 10 + 20
     try std.testing.expectEqual(@as(u64, 30), p.get("frank").?);
+}
+
+test "a verifier holding no key charges nobody" {
+    // The regression this exists for: two honest boards lost 600 mTRI each and
+    // were suspended, because settle() named `.corrupt` as the one verdict that
+    // does not cost stake and slashed everything else. `.unverifiable` had been
+    // added specifically so a keyless verifier could not accuse, and this
+    // function never asked.
+    var l = try Ledger.init(std.testing.allocator, .{});
+    defer l.deinit();
+    try l.register(0xB0A2D, "operator", true, 100_000);
+
+    const job = protocol.Job.withNonce(1, @splat(0x55), @splat(0x55));
+    const y = protocol.dot(job.w, job.x);
+    var key: [16]u8 = undefined;
+    for (&key, 0..) |*b, i| b.* = @intCast(0x11 +% i);
+
+    // A perfectly honest keyed receipt, judged by a coordinator with no key.
+    const r: protocol.Receipt = .{
+        .kind = .siphash24,
+        .y = y,
+        .status = protocol.status_ok,
+        .nonce = job.nonce,
+        .node_id = 0xB0A2D,
+        .tag = protocol.receiptTagKeyed(job, y, 0xB0A2D, key),
+    };
+    const verdict = protocol.verifyWithKey(job, r, null);
+    try std.testing.expectEqual(protocol.Verdict.unverifiable, verdict);
+
+    const before = l.get(0xB0A2D).?.stake_mtri;
+    const st = try l.settle(0xB0A2D, job, r, verdict);
+
+    try std.testing.expectEqual(Outcome.unverifiable_not_charged, st.outcome);
+    try std.testing.expectEqual(@as(u64, 0), st.slash_delta_mtri);
+    try std.testing.expectEqual(before, l.get(0xB0A2D).?.stake_mtri);
+    try std.testing.expectEqual(@as(u64, 0), l.get(0xB0A2D).?.rejected);
+    try std.testing.expectEqual(@as(u64, 1), l.get(0xB0A2D).?.unverifiable);
+    try std.testing.expectEqual(Status.active, l.get(0xB0A2D).?.status);
+}
+
+test "work we can never pay for eventually stops being dispatched" {
+    // Not punishment — no stake moves — but there is no point sending jobs to a
+    // node whose answers can never be credited.
+    const policy: Policy = .{};
+    var l = try Ledger.init(std.testing.allocator, policy);
+    defer l.deinit();
+    try l.register(0xB0A2D, "operator", true, 100_000);
+
+    var key: [16]u8 = undefined;
+    for (&key, 0..) |*b, i| b.* = @intCast(0x77 +% i);
+
+    for (0..policy.corruption_tolerance) |i| {
+        const job = protocol.Job.withNonce(@intCast(i + 1), @splat(0x55), @splat(0x55));
+        const y = protocol.dot(job.w, job.x);
+        const r: protocol.Receipt = .{
+            .kind = .siphash24,
+            .y = y,
+            .status = protocol.status_ok,
+            .nonce = job.nonce,
+            .node_id = 0xB0A2D,
+            .tag = protocol.receiptTagKeyed(job, y, 0xB0A2D, key),
+        };
+        _ = try l.settle(0xB0A2D, job, r, protocol.verifyWithKey(job, r, null));
+    }
+
+    try std.testing.expectEqual(Status.unreliable, l.get(0xB0A2D).?.status);
+    // And still not a penny taken.
+    try std.testing.expectEqual(@as(u64, 100_000), l.get(0xB0A2D).?.stake_mtri);
+    try std.testing.expectEqual(@as(u64, 0), l.get(0xB0A2D).?.slashed_mtri);
 }
