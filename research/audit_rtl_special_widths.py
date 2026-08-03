@@ -143,7 +143,23 @@ def main() -> int:
     print(f"  widths where only the flag disagrees        : {len(flag_only)}")
     print(f"  widths where the RTL is correct             : {len(agree)}")
 
+    inv = wrapper_inventory()
+    wrong = [r for r in inv if r[2] is False]
+    print(f"\n  board decode wrappers instantiating gf_decode_param : {len(inv)}")
+    print(f"    at a width the spec gives no infinities            : {len(wrong)}")
+    for name, n, hi in inv:
+        print(f"      {name:<38} N={n:<5} spec has_inf={hi}")
+
     print("""
+The project already knows the answer. gf_adder_param carries a HAS_INF parameter,
+documented with the same spec lines gf_ref cites (gf8.t27:115-119), and the gf8 compute
+wrapper instantiates it with HAS_INF(0). gf_decode_param has N, E, M, BIAS and OUT_REG
+and no such parameter. The knowledge was applied to the adder and never to the decoder,
+which is why the compute cells are right and the decode cells are not.
+
+The Tier-E chains for gf8 are compute cells -- add, mul and sub -- and they use
+gf_adder_param with the correct flag. No published Tier-E claim is invalidated by this.
+
 The module classifies the all-ones exponent as Inf or NaN with no parameter for whether
 the format has them, so this is one line of RTL behaving four different ways depending on
 what the spec says about the width it was instantiated at.
@@ -155,6 +171,36 @@ only is_inf_o disagrees. Calling all three the same defect would overstate two o
 
 Not fixed here: the RTL belongs to the synthesis line.""")
     return 1 if wrong_number else 0
+
+
+def wrapper_inventory():
+    """Which board wrappers instantiate the parameterless decoder at a finite-max width.
+
+    The point of listing them is that the project already knows the answer. Its sibling
+    module gf_adder_param carries
+
+        parameter HAS_INF = 0,   // gf8.t27:115-119 -- exp=all-ones is a FINITE max_value
+
+    citing the same spec lines gf_ref cites, and the gf8 compute wrapper instantiates it
+    with HAS_INF(0). The knowledge was applied to the adder and never to the decoder.
+    """
+    import glob
+    import importlib
+    import re
+    sys.path.insert(0, os.path.join(ROOT, "conformance"))
+    gf = importlib.import_module("gf_ref")
+    out = []
+    for path in sorted(glob.glob(os.path.join(
+            ROOT, "fpga", "openxc7-synth", "corona_decode_gf*_ax7203.v"))):
+        text = open(path, encoding="utf-8", errors="replace").read()
+        m = re.search(r"gf_decode_param\s*#\(\s*\.N\((\d+)\)", text)
+        if not m:
+            continue
+        n = int(m.group(1))
+        name = f"gf{n}"
+        has_inf = gf.FORMATS[name].has_inf if name in gf.FORMATS else None
+        out.append((os.path.basename(path), n, has_inf))
+    return out
 
 
 def self_check() -> int:
