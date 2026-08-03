@@ -6320,3 +6320,24 @@ correction "the external witnesses were one rm from unverifiable" {
   fixed_3 "research/audit_witness_artefacts.py checks a dump against the manifest before anything compares against it; its control flips one bit in a copy and requires rejection"
   hashes "produced by shasum -a 256 and injected mechanically, none typed by hand"
 }
+
+verification "the external witness dumps are reproducible, not merely recorded" {
+  method "rebuilt lt8.tsv and ltlog8.tsv from libtakum source with the generators in the scratchpad (lt8.c, ltlog8.c) and compared SHA-256"
+  result "byte-identical to the manifest for both"
+  versions_now_recorded "libtakum v2.0.0, commit 776ac0c, 2025-11-24; SoftPosit commit 17d5628, 2023-05-31. The version matters for posit especially -- es=0 against es=2 is a change of standard, and a dump without a version does not distinguish them"
+}
+
+correction "pass 195's manifest never reached the repository" {
+  defect ".gitignore line 212 is `manifest.json`, and git on macOS matches ignores case-insensitively, so MANIFEST.json was silently excluded. The five dumps landed and the file that makes them verifiable did not"
+  silence "git add -A reported nothing, and neither did I"
+  fixed "renamed to manifest_witness.json, outside the pattern; audit_witness_artefacts now runs git ls-files --error-unmatch on the manifest and on every artefact it claims is committed, and fails if any is untracked. A file that exists locally and is ignored looks identical to a committed one until someone clones"
+}
+
+finding "two independent GF decoders disagree about whether widths other than gf16 have infinities" {
+  witness "conformance/witness/gf_pipe/gf_decode_pipe_oracle.py -- its own gf_decode_exact over Fractions, importing nothing from gf_ref. Genuinely independent, unlike gf16_plus_ref which pass 194 retracted"
+  agreement "gf16 agrees on every code tested"
+  disagreement "the entire all-ones-exponent band, both signs: 32 codes at gf8, 32,768 at gf24, 1,048,576 at gf32. gf_ref decodes them as the largest finite values; the pipe oracle decodes them as Inf and NaN"
+  who_says_what "gf_ref cites the spec in a comment -- only gf16 declares SPECIAL_EXP, and gf8/gf20 define exp=all-ones as a FINITE max_value, with .t27 line references. The pipe oracle assumes IEEE-style specials at every width"
+  why_it_matters "the pipe oracle is what the gf24/gf32 pipelined decode RTL was verified against. If the RTL implements infinities at those widths it contradicts the spec gf_ref cites, and nothing compared the two oracles until now"
+  not_resolved_here "which is right is a question for the .t27 spec and the RTL owner, not for this campaign to decide by picking one"
+}
