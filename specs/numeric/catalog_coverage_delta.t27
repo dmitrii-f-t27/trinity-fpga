@@ -6423,3 +6423,14 @@ finding "23 RTL decoders disagree with their oracle, found without an accident" 
   not_a_verdict "a disagreement is a pair worth asking the spec about. For GoldenFloat that question took four passes and the answer was in the .t27 file; nothing here automates that step. What it automates is finding the pairs"
   two_columns_kept_apart "NaN-vs-NaN differences in sign or payload are counted separately -- IEEE leaves those to the implementation, and without that classification the report was a wall of them. So are codes whose exact value overflows fp32, where both sides give 0x7F800000 whatever they think"
 }
+
+finding "LNS software and LNS hardware are different formats" {
+  found_by "pass 202's sweep: lns16 agreed with its oracle on 1 of 58 codes, lns32 on 24 of 67, lns64 on 38 of 83 -- by far the widest gap of the 38 decoders checked"
+  disagreement_1_scale "conformance/lns_ref.py scales the fraction with the width: lns16 is 2^(L/256), lns32 is 2^(L/65536), lns64 is 2^(L/4294967296). Every RTL decoder uses `>>> 7`, i.e. 2^(L/128), at all three widths. For lns32 that is a factor of 512 in the exponent scale and for lns64 a factor of 33 million"
+  numerically "code 0x0100 in lns16 is 2 under the oracle and 4 under the RTL; 0x0200 is 4 and 16"
+  disagreement_2_zero "the oracle reserves field_min -- 0x4000 in lns16 -- for zero, which is the natural choice since 2^(-inf) tends to 0. The RTL reserves the all-zero code, whose log is 0, so it spends the representation of 1.0 on it"
+  no_arbiter "there is no LNS specification in t27/specs/numeric/. Unlike gf8.t27, which settled the GoldenFloat question in one reading, nothing here can say which side is right"
+  two_of_three "conformance/lns16_decode_conformance_ax7203.py states its golden as 2^(signed_log/128), validated against 5 t27 vectors -- so the hardware conformance host implements the RTL convention. The odd one out is lns_ref.py, which is the oracle generate_vectors uses to build the published packs"
+  consequence "conformance/vectors/lns{16,32,64}_{add,mul,sub}.json -- 1039 vectors in lns16_add alone -- describe a number line the hardware does not implement, and the catalogue presents them as one format"
+  no_tier_e "no LNS cell appears in the Tier-E ledger, so no hardware-evidence claim is affected"
+}
