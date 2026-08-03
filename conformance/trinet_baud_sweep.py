@@ -60,6 +60,12 @@ RESP_LEN_V1 = 15
 RESP_LEN_V2 = 19
 
 STATUS_OK = 0x01
+# A board that has not been keyed yet answers 0x04 NO_KEY and computes the dot
+# product correctly. That is the state every board is in between a re-flash and
+# `trinet setkey` — precisely when its line rate has to be measured — so a sweep
+# that demands 0x01 reports a healthy fresh board as 0% clean at every rate and
+# finds no window at all. Mirrors protocol.statusMeansComputed().
+STATUS_COMPUTED = frozenset({0x01, 0x04})
 HEAD_LEN = 11          # magic, y, status, nonce[4], node_id[4] — the tag needs the key
 
 
@@ -100,7 +106,8 @@ def modal_node_id(samples):
         if not results:
             continue
         for raw, nonce, gy in results:
-            if len(raw) >= HEAD_LEN and raw[0] == MAGIC_RESP and raw[2] == STATUS_OK \
+            if len(raw) >= HEAD_LEN and raw[0] == MAGIC_RESP \
+                    and raw[2] in STATUS_COMPUTED \
                     and raw[3:7] == nonce and raw[1] == (gy & 0xFF):
                 votes[int.from_bytes(raw[7:11], "little")] += 1
     return votes.most_common(1)[0][0] if votes else None
@@ -115,12 +122,12 @@ def judge(results, resp_len, node_id):
         elif len(raw) < resp_len:
             short += 1
         else:
-            exp = bytes([MAGIC_RESP, gy & 0xFF, STATUS_OK]) + nonce + \
-                node_id.to_bytes(4, "little")
+            tail = nonce + node_id.to_bytes(4, "little")
             got = raw[:HEAD_LEN]
-            if got == exp:
+            status_ok = got[0] == MAGIC_RESP and got[2] in STATUS_COMPUTED
+            if status_ok and got[1] == (gy & 0xFF) and got[3:11] == tail:
                 clean += 1
-            elif got[0] == MAGIC_RESP and got[2] == STATUS_OK and got[3:11] == exp[3:11]:
+            elif status_ok and got[3:11] == tail:
                 # Nonce and identity survived, the product did not: the damage is
                 # in the operands, so it happened host -> board.
                 tx_bad += 1

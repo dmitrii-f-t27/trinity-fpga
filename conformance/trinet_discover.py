@@ -59,6 +59,16 @@ CANDIDATE_RATES = [
 # here: a rate losing 2.4% of jobs passes six in a row 86% of the time.
 CONFIRM_JOBS = 64
 
+# Statuses that mean "the arithmetic in this frame is real". A board that has
+# not been given a key yet answers 0x04 NO_KEY and computes the dot product
+# correctly; that is the state EVERY board is in for the minutes between a
+# re-flash and `trinet setkey`, which is exactly when the rate has to be
+# measured. Comparing status against 0x01 reports a healthy fresh board as
+# 0.00% clean — measured on node0 right after its 2026-08-04 re-flash. Mirrors
+# protocol.statusMeansComputed().
+STATUS_COMPUTED = {0x01, 0x04}
+STATUS_NAME = {0x01: "keyed", 0x02: "KEY_SET", 0x03: "KEY_LOCKED", 0x04: "no key yet"}
+
 # Identities the fleet build assigns, so a board can name itself.
 KNOWN_IDS = {
     0x5452494E: "node0",
@@ -104,8 +114,9 @@ def confirm(port, baud, node_id, jobs=CONFIRM_JOBS, timeout=0.05):
     try:
         ser = serial.Serial(port, baud, timeout=timeout)
     except Exception:
-        return 0, jobs
+        return 0, jobs, None
     clean = 0
+    status = None
     try:
         ser.reset_input_buffer()
         for nonce, w, x in generate_vectors(jobs):
@@ -113,15 +124,20 @@ def confirm(port, baud, node_id, jobs=CONFIRM_JOBS, timeout=0.05):
             raw = ser.read(19)
             if len(raw) < 15:
                 continue
-            expected = bytes([0xA5, golden_dot(w, x) & 0xFF, 0x01]) + nonce + \
-                node_id.to_bytes(4, "little")
-            if raw[:11] == expected:
-                clean += 1
+            if raw[0] != 0xA5 or raw[2] not in STATUS_COMPUTED:
+                continue
+            if raw[1] != (golden_dot(w, x) & 0xFF):
+                continue
+            if raw[3:7] != nonce or raw[7:11] != node_id.to_bytes(4, "little"):
+                continue
+            if status is None:
+                status = raw[2]
+            clean += 1
     except Exception:
         pass
     finally:
         ser.close()
-    return clean, jobs
+    return clean, jobs, status
 
 
 def main():
@@ -145,10 +161,12 @@ def main():
             baud, nid, width = hit
             name = KNOWN_IDS.get(nid, "unknown identity")
             frame = "keyed (v2)" if width >= 19 else "crc (v1)"
-            clean, jobs = confirm(p, baud, nid)
+            clean, jobs, status = confirm(p, baud, nid)
             pct = 100.0 * clean / jobs
+            key_state = STATUS_NAME.get(status, "no clean frame") if status is not None \
+                else "no clean frame"
             print(f"  {p:<36} NODE  id {nid:#010x} ({name}), {baud} baud, {frame}, "
-                  f"{clean}/{jobs} clean")
+                  f"{key_state}, {clean}/{jobs} clean")
             found.append((p, nid, baud, pct))
             if clean < jobs:
                 marginal.append((p, baud, pct))

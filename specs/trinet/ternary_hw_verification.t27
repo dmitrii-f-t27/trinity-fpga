@@ -1326,3 +1326,96 @@ defect PORTABILITY_GATE_HAD_NEVER_PASSED {
   note "819 was the figure before the receipt key started arriving over the wire; the number moved because the design did, which is why the check asserts the spread and not the value"
   rule "a gate that has never gone green is not a gate; check that a check has ever passed"
 }
+
+// ---------------------------------------------------------------------------
+// 2026-08-04: node0 re-flashed and re-keyed. One board of three; the other two
+// were not on the bus.
+// ---------------------------------------------------------------------------
+
+claim NODE0_REKEYED_AND_AUTHENTICATED {
+  statement """
+    node0 re-flashed from the CI artifact, came up unkeyed (status 0x04) with
+    correct arithmetic, and took a key generated with `openssl rand -hex 16`
+    that has never been printed, committed or transmitted anywhere but the
+    16 key bytes of one op 0x02 request.
+  """
+  measured {
+    flash_seconds          778.76
+    jtag_location          "1-1.2"
+    port                   "/dev/cu.usbserial-1110"
+    negotiated_baud        1174399
+    runs                   100
+    jobs_per_run           64
+    correct                6400   attempted 6400
+    authenticated          6400   perfect_runs 100
+
+    bench_jobs             2000
+    bench_authenticated    2000
+    serial_jobs_per_s      481.4
+    batched32_jobs_per_s   3788.0
+    pct_of_transport       77.4
+    latency_p50_ms         2.02
+    cfgmclk_mhz            70.46   // derived from the negotiated rate, matches 2026-08-03
+  }
+  write_once_latch_reconfirmed """
+    A second setkey on the same configuration returned "already locked" and
+    changed nothing. Checked on this configuration rather than assumed from the
+    previous one.
+  """
+  scope "ONE board. node1 and node2 were not attached; nothing here is a fleet result."
+  trust_tier MEASURED_ON_FPGA
+}
+
+defect MY_OWN_CHECKS_REJECTED_A_HEALTHY_FRESH_BOARD {
+  statement """
+    conformance/trinet_discover.py and conformance/trinet_baud_sweep.py both
+    compared the response status against 0x01 exactly. A board between a
+    re-flash and setkey answers 0x04 NO_KEY with a correct dot product, so both
+    tools reported the freshly flashed node0 as 0.00% clean -- and the sweep
+    would have found no window at all, at precisely the moment its rate has to
+    be measured.
+  """
+  irony """
+    Written yesterday, in the same session that fixed three other checks for
+    treating a legitimate state as a failure, and against a handoff that says in
+    so many words: "An unkeyed board answers 0x04 NO_KEY with a real dot
+    product. Anything measuring arithmetic must call statusMeansComputed()."
+  """
+  fix "both tools accept the statuses that mean the arithmetic is real ({0x01, 0x04}) and print which of the two the board is in"
+  rule "the state a board is in for five minutes is the state your tool will meet it in"
+}
+
+board_facts AL321_STALL_NEEDED_A_REPLUG_AND_THE_TIMEOUT_RECIPE_DOES_NOT_RUN {
+  what_happened """
+    Every AL321 adapter stalled in mpsse_flush() on init -- backing off 2s, 4s,
+    8s ... 1024s -- with no leaked openocd beforehand. Replugging the cables
+    fixed it: the first adapter probed after the replug answered IDCODE
+    0x13636093 immediately.
+  """
+  the_locations_were_not_the_problem """
+    Control test: openocd with a deliberately bogus `adapter usb location 9-9.9`
+    errors instantly with "no device found". A location that stalls is therefore
+    one that was found and opened, and the fault is downstream of enumeration.
+    Run that control before doubting a location string.
+  """
+  the_documented_mitigation_does_not_exist_here """
+    The recipe on record is `sudo -n timeout -s KILL 25 openocd ...`, to put the
+    bound inside the privileged process. There is no `timeout` on this machine
+    and no `gtimeout` -- coreutils is not installed -- so that recipe cannot be
+    run as written. What works: start the privileged command in the background
+    and poll it. A foreground wrapper killed by an outer timeout leaves openocd
+    running AS ROOT, and a user-level kill cannot touch it; that happened again
+    today and cost two adapters until the operator ran `sudo pkill -9 openocd`.
+  """
+  bus_numbers_move_on_replug "the board that was bus 0 came back as bus 1: 0-1.2 became 1-1.2 and its port /dev/cu.usbserial-110 became -1110. Re-read ioreg after every replug, including one you did yourself a minute ago"
+  not_our_boards """
+    Three "Digilent Adept USB Device" adapters (pid 0x6010, serial 210203859289)
+    appeared where two AX7203s had been. All three read IDCODE 0x23727093 --
+    part 0x3727, a Zynq-7020, not the 0x13636093 Artix-7 200T this project
+    flashes. The repo's openocd config filters on pid 0x6014 and device_desc
+    "Digilent USB Device", so it answered "no device found" for them; widening
+    that filter until something replies is how a bitstream reaches a device
+    nobody identified. Ask the adapter what is behind it first -- init and
+    shutdown, no pld load.
+  """
+}
