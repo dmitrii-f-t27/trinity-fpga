@@ -6506,3 +6506,19 @@ finding "half the hardware proofs are samples and nothing said which" {
   what_must_not_reach_a_paper "64/64 reading as completeness for a format with 2^64 codes"
   own_error "the first version counted compute logs as decode sweeps and called gf4, gf6 and gf8 exhaustive over their code spaces. A compute log counts operand PAIRS -- gf4's 512/512 is 512 pairs from a 16-code format and exhausts nothing. The check now excludes compute, and its control requires gf4 to be absent from the decode set"
 }
+
+finding "two conversion-stage behaviours explain the IBM HFP disagreements" {
+  ibm_hfp32 "all 13 disagreements with the oracle are the same thing: the oracle's value lands in the fp32 SUBNORMAL band and the RTL emits zero. The IBM HFP value is representable; the fp32 output path flushes"
+  ibm_hfp64 "62 differ by one ulp and 15 flush. hfp64 has a 56-bit fraction, so converting to fp32 must round, and truncation against round-to-nearest accounts for the ulp class"
+  neither_is_a_format_defect "both are properties of the conversion to fp32, not of the IBM hexadecimal format, and the public IBM spec does not settle a question about somebody's fp32 output stage"
+  swept "across every decoder with an oracle: 7 flush fp32 subnormals, 53 one-ulp differences. The lns16 Tier-E proof's 104 known limitations are described as 1-ULP subnormal-band residuals, which is the same pair of classes"
+}
+
+finding "takum8's exhaustive hardware proof uses a golden no oracle agrees with" {
+  measured "takum8_decode.v matches the 256-entry table inside conformance/takum8_decode_conformance_ax7203.py on 256 of 256 codes"
+  and_yet "the same RTL matches takum_ref on 17 of 256 and takum_log_ref on 18 of 256 -- neither oracle in the corpus"
+  external_witness "against conformance/witness/ltlog8.tsv, the libtakum logarithmic dump committed in pass 195, the host's table agrees on 144 of 256. Of the rest, 2 underflow fp32 and 110 are real differences -- including code 0x06, where libtakum gives 2.9757e-35, an ordinary NORMAL fp32 value, and the host's table says zero"
+  why_it_matters "takum8 is one of the 14 exhaustive Tier-E proofs, the strongest kind of evidence in the corpus. Its 256/256 is the hardware agreeing with a table written into the file that tests it"
+  same_shape_as_lns16 "pass 203 found the lns16 conformance host implementing the RTL's own convention. This is that shape again, in a proof presented as exhaustive"
+  not_settled_here "which reading of takum8 is correct needs the takum specification, which this pass did not establish. What is established is that the hardware proof is not evidence about either corpus oracle"
+}
