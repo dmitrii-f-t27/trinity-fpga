@@ -6457,3 +6457,13 @@ retraction "no LNS cell appears in the Tier-E ledger" {
   consequence_for_lns "the hardware that pass 204 showed cannot represent 1.0 carries a Tier-E claim at 64/64, and pass 203 established its conformance host implements the RTL's own convention. The 64 vectors were checked against a golden that shares the implementation's reading of the format"
   also "research/SUBMISSION_CHECKLIST.md already said lns16 was among the 74 proofs, with 472/576 bit-exact and 104 known limitations. The document was right and the tool was wrong; nothing had compared them"
 }
+
+correction "the third hand-written name list, found by searching instead of by accident" {
+  history "pass 183 wrapper_fsm_audit.py required mx in (5,6,8) and flagged 40 of 93 wrappers; pass 205 verify_tier_e.py named cells from an alternation with no lns and hid fifteen formats. Both were found by accident"
+  third "research/verify_wide_arithmetic.py selected wide GoldenFloat formats with (gf32, gf48, gf64, gf96, gf128, gf1024). gf256 and gf512 are in the corpus, are exactly as wide, and were silently omitted from its denormal-reach report"
+  fixed "replaced by the property the list was standing in for: width >= 32. gf256 and gf512 now appear, and their denormal reach is reported as NOT representable at 9.22e18 GB and 2.92e48 GB"
+  new_check "research/audit_name_allowlists.py finds literal collections used to decide membership of a variable, and regex alternations of format names fed to search/match/findall. Zero remain"
+  what_it_does_not_flag "naming formats is normal. A self-test running three specific widths, a docstring listing coverage, a table of expected values -- none of those decides anything about input the author has not seen"
+  own_over_report "the first version flagged every place mentioning three or more format names: 25 of them, nearly all fine. Over-reporting is the failure this campaign keeps finding, and it found it in the check written to catch it"
+  controls "a synthetic membership test must be flagged and plain iteration over the same names must not"
+}

@@ -211,8 +211,14 @@ def main() -> int:
         cells = "".join(f"{('OK' if not bad[k] else str(bad[k])):<8}" for k in keys)
         print(f"{name:<9}{pairs:>7}  {cells}{secs:>7.2f}")
 
-    report_denormal_reach(gf, [n for n in names if n in
-                               ("gf32", "gf48", "gf64", "gf96", "gf128", "gf1024")])
+    # A property, not a list. The hand-written set here was
+    # ("gf32", "gf48", "gf64", "gf96", "gf128", "gf1024") and silently omitted gf256 and
+    # gf512, which are in the corpus and are exactly as wide. Pass 205 found the same
+    # shape in verify_tier_e.py, where it hid fifteen formats; pass 183 found it in
+    # wrapper_fsm_audit.py. A list of names is a snapshot of the corpus on the day it was
+    # typed, and the corpus is enumerable.
+    report_denormal_reach(gf, [n for n in names
+                               if gf.FORMATS[n].width >= 32])
 
     if offenders:
         print("\nVIOLATIONS:")
