@@ -227,19 +227,40 @@ bus, each remaining non-zero nibble is a port down the chain). A CP2102N next to
 a Digilent under the **same hub** is the same board — that is how to pair a
 serial port with a programmer without flashing anything to find out.
 
-**Measured 2026-08-03, and it cost an hour:** three AL321 cables attached, only
-one reachable. The two on the host controller directly stalled in
-`mpsse_flush()` on every attempt; the one behind a USB2.1 hub worked on every
-attempt, three times running. `mpsse stall` is therefore not automatically a
-dead cable or a wedged FT2232H — check whether the working and failing cables
-are on different buses before reseating anything. A first probe left running for
-ten minutes also wedges a cable, so bound every JTAG probe with a hard timeout:
+**`mpsse_flush()` stall usually means somebody else already holds the adapter —
+and on 2026-08-03 that somebody was me.**
+
+Two of three cables stalled on every attempt for an hour. The cause was not the
+cable, the board, or (as first recorded here, wrongly) which USB bus they sat
+on: two `openocd` processes from earlier probes were still alive as root,
+holding those two FTDI devices. Check before theorising:
 
 ```bash
-sudo -n /opt/homebrew/bin/openocd -f fpga/openxc7-synth/ax7203_al321_multi.cfg \
-  -c "adapter usb location 0-1.2" -c "init" -c "shutdown" > /tmp/j.log 2>&1 &
-P=$!; ( sleep 25; kill -9 $P 2>/dev/null ) & wait $P
+ps -eo pid,etime,comm | grep openocd     # anything older than the current probe is a leak
+sudo -n pkill -9 openocd                 # and it takes sudo to clear, see below
 ```
+
+**Why they leaked, which is the part to not repeat.** Bounding a probe with
+
+```bash
+sudo -n openocd ... & P=$!; ( sleep 25; kill -9 $P ) & wait $P
+```
+
+does *not* work. `$!` is the `sudo` wrapper, `openocd` runs as root beneath it,
+and a user `kill -9` cannot touch a root child. The wrapper dies, the timeout
+looks like it worked, and the adapter stays held. Put the timeout **inside**
+the privileged process instead:
+
+```bash
+sudo -n timeout -s KILL 25 /opt/homebrew/bin/openocd \
+  -f fpga/openxc7-synth/ax7203_al321_multi.cfg \
+  -c "adapter usb location 0-1.2" -c "init" -c "shutdown"
+```
+
+Order of suspicion for a stall: leaked openocd first, then a replug of the
+cable, then the board's power. Bus position was a coincidence — after the
+cables were replugged all three answered, including both that had "always"
+stalled.
 
 ## Board and toolchain truths
 
