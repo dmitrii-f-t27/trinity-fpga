@@ -49,11 +49,11 @@ RTL = os.path.join(ROOT, "fpga", "openxc7-synth", "gf_decode_param_pipe.v")
 
 TB = """`timescale 1ns/1ps
 module tb_special;
-  parameter N=%d, E=%d, M=%d, BIAS=%d;
+  parameter N=%d, E=%d, M=%d, BIAS=%d, HI=%d;
   reg clk=0, rst_n=0;
   reg [N-1:0] gf_in;
   wire [31:0] fp32_out; wire is_nan_o,is_inf_o,is_zero_o,is_subnormal_o;
-  gf_decode_param_pipe #(.N(N),.E(E),.M(M),.BIAS(BIAS)) dut(
+  gf_decode_param_pipe #(.N(N),.E(E),.M(M),.BIAS(BIAS),.HAS_INF(HI)) dut(
     .clk(clk),.rst_n(rst_n),.gf_in(gf_in),.fp32_out(fp32_out),
     .is_nan_o(is_nan_o),.is_inf_o(is_inf_o),
     .is_zero_o(is_zero_o),.is_subnormal_o(is_subnormal_o));
@@ -72,12 +72,12 @@ def have_iverilog():
     return subprocess.run(["which", "iverilog"], capture_output=True).returncode == 0
 
 
-def run_rtl(n, e, m, b):
+def run_rtl(n, e, m, b, has_inf):
     """(fp32_out, is_inf, is_nan) from a real simulation, or None."""
     with tempfile.TemporaryDirectory() as d:
         tb = os.path.join(d, "tb.v")
         vvp = os.path.join(d, "tb.vvp")
-        open(tb, "w").write(TB % (n, e, m, b))
+        open(tb, "w").write(TB % (n, e, m, b, has_inf))
         r = subprocess.run(["iverilog", "-g2012", "-o", vvp, tb, RTL],
                            capture_output=True, text=True)
         if r.returncode:
@@ -118,10 +118,16 @@ def main() -> int:
     gf = importlib.import_module("gf_ref")
 
     wrong_number, flag_only, agree = [], [], []
+    print("  simulated with each width's own HAS_INF, as the board wrappers set it\n")
     print(f"  {'width':<7}{'RTL fp32':>12}{'is_inf':>8}   {'spec fp32':>12}  verdict")
     for name in ("gf8", "gf16", "gf24", "gf32"):
         f = gf.FORMATS[name]
-        got = run_rtl(f.width, f.exp_bits, f.mant_bits, f.bias)
+        # The wrapper's own setting, not the module default. Pass 200 gave
+        # gf_decode_param a HAS_INF parameter defaulting to 1 -- so instantiating it bare
+        # reproduces the OLD behaviour forever, and a check that did that would keep
+        # reporting a defect the wrappers no longer have.
+        got = run_rtl(f.width, f.exp_bits, f.mant_bits, f.bias,
+                      1 if f.has_inf else 0)
         if got is None:
             print(f"  {name:<7} simulation failed -- not counted either way")
             continue
@@ -133,9 +139,14 @@ def main() -> int:
         elif want != fp32:
             verdict = "WRONG NUMBER"
             wrong_number.append((name, fp32, want))
-        else:
+        elif is_inf or is_nan:
+            # Numbers agree but the RTL still calls it special. Only reachable when the
+            # correct finite value overflows fp32, so fp32_out coincides by accident.
             verdict = "flag only (the finite value overflows fp32)"
             flag_only.append(name)
+        else:
+            verdict = "correct -- finite, and not flagged special"
+            agree.append(name)
         w = "n/a" if want is None else f"{want:#010x}"
         print(f"  {name:<7}{fp32:>#12x}{int(is_inf):>8}   {w:>12}  {verdict}")
 
@@ -215,14 +226,18 @@ def self_check() -> int:
     gf = importlib.import_module("gf_ref")
 
     f = gf.FORMATS["gf8"]
-    got = run_rtl(f.width, f.exp_bits, f.mant_bits, f.bias)
+    got = run_rtl(f.width, f.exp_bits, f.mant_bits, f.bias, 0)
     ran = got is not None
     print(f"  gf8 simulation produced a result -> {ran}  {got}")
 
     want, kind = spec_fp32(gf, "gf8")
     print(f"  spec side for gf8: {want:#010x} ({kind})")
-    differs = ran and got[0] != want
-    print(f"  and they differ -> {differs}  (this is the finding, not an error here)")
+    matches = ran and got[0] == want
+    print(f"  with HAS_INF(0) the RTL now matches the spec -> {matches}")
+    stale = run_rtl(f.width, f.exp_bits, f.mant_bits, f.bias, 1)
+    old = stale is not None and stale[0] != want
+    print(f"  and with HAS_INF(1) it still shows the old behaviour -> {old} "
+          f"(so this check is measuring the parameter, not a constant)")
 
     # The spec side must come from the oracle, not a literal. Perturb the oracle's format
     # and require the expected value to move with it.
@@ -233,7 +248,7 @@ def self_check() -> int:
     gf.FORMATS["gf8"] = orig
     print(f"  expectation follows the oracle, not a literal -> {moved}")
 
-    ok = ran and differs and moved
+    ok = ran and matches and old and moved
     print(f"\nself-check: {'PASS' if ok else 'FAIL'}")
     return 0 if ok else 1
 
