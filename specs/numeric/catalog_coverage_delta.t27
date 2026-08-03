@@ -6411,3 +6411,15 @@ verification "the HAS_INF fix costs nothing and frees resources" {
   why_it_matters "gf24 and gf32 decode FAIL routing on AX7203 from the purely combinational module -- that is the stated reason the pipelined variant exists. The correctness fix is also a resource win exactly where resources are the constraint"
   scope "synthesis only. Place-and-route and a bitstream would need the openXC7 Docker flow, and no Tier-E claim is made or changed here"
 }
+
+finding "23 RTL decoders disagree with their oracle, found without an accident" {
+  motivation "the GoldenFloat chain of passes 196-201 started because gf_pipe happened to contain a second decoder to compare against. There are fifty per-format decoders in fpga/openxc7-synth/ and every one has an oracle in conformance/; no accident is needed"
+  method "research/audit_rtl_vs_oracle.py reads each module's input port name and width from its source, generates a testbench, runs iverilog and compares against the oracle converted to fp32"
+  coverage "38 decoders with an oracle and a testable interface; 8 format names have no oracle; 4 could not be elaborated"
+  result "23 disagree somewhere in the sample"
+  standout "lns16 agrees on 1 of 58 codes, lns32 on 24 of 67, lns64 on 38 of 83. Code 0x0 gives 0x00000000 in the RTL and 0x3F800000 in the oracle -- in the log domain 0 is the exponent, so the value is 2^0 = 1"
+  others "cray_float, pdp11_float, double_double, decimal32/64/128 and ibm_hfp32/64/128 each differ on a handful; ibm_hfp128's first difference is one ulp"
+  binaries_clean "binary16, binary32, binary64, binary128 and binary256 agree on every code compared"
+  not_a_verdict "a disagreement is a pair worth asking the spec about. For GoldenFloat that question took four passes and the answer was in the .t27 file; nothing here automates that step. What it automates is finding the pairs"
+  two_columns_kept_apart "NaN-vs-NaN differences in sign or payload are counted separately -- IEEE leaves those to the implementation, and without that classification the report was a wall of them. So are codes whose exact value overflows fp32, where both sides give 0x7F800000 whatever they think"
+}
