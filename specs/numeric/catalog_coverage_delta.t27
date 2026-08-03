@@ -6446,3 +6446,14 @@ resolution "the LNS hardware format cannot represent 1, and that settles it" {
   scale_still_open "which scale is right remains unsettled -- the five vectors are the only evidence and they are unsourced. The zero convention is settled; the fraction width is not"
   no_tier_e "no LNS cell in the Tier-E ledger"
 }
+
+retraction "no LNS cell appears in the Tier-E ledger" {
+  retracts "pass 203 and pass 204 both closed with `no LNS cell appears in the Tier-E ledger, so no hardware-evidence claim is affected`"
+  truth "lns16 has a complete four-link chain reporting 64/64, and lns8 reports 256/256"
+  cause "verify_tier_e.py named cells from a hand-written allow-list -- gf, bcd, binary, decimal, fp8, bfloat, mxfp, posit, takum, afp, cray, vax, int, uint. No lns, no ibm_hfp, no ms_mbf, no double_double. Every comment about a format outside the list got `?` for a name, and seen.setdefault collapsed all of them into one entry"
+  scale_of_the_error "75 complete chains reported as 34 distinct cells. Reading the names from the oracles instead gives 48. Fifteen real formats were invisible: double_double, fp4_e2m1, fp6_e2m3, fp6_e3m2, ibm_hfp32, ibm_hfp64, lns16, lns8, ms_mbf32, ms_mbf64, mxfp8_e4m3, mxint8, nf4, quad_double, tf32"
+  class "an allow-list is a snapshot of the corpus on the day it was typed. The same defect was removed from wrapper_fsm_audit.py in pass 183, in a check written by the same hand"
+  fixed "the pattern is now built from the format names the oracles declare, longest first so gf1024 is not matched as gf10"
+  consequence_for_lns "the hardware that pass 204 showed cannot represent 1.0 carries a Tier-E claim at 64/64, and pass 203 established its conformance host implements the RTL's own convention. The 64 vectors were checked against a golden that shares the implementation's reading of the format"
+  also "research/SUBMISSION_CHECKLIST.md already said lns16 was among the 74 proofs, with 472/576 bit-exact and 104 known limitations. The document was right and the tool was wrong; nothing had compared them"
+}
