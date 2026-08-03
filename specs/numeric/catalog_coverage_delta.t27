@@ -6572,3 +6572,16 @@ resolution "int16 and int32 were my comparison error, and bcd is the host being 
   bcd "the host returns None for 0x0F, 0x7F and 0xFF -- nibbles above 9, which are not valid BCD digits. The oracle reads them as plain binary and returns 15, 85, 165. The host validates and the oracle does not; the standard is on the host's side"
   remaining "of pass 211's eleven systematic divergences, five were the Special-representation artefact corrected in pass 213, two were this comparison error, one is bcd validation, one is mxint8 and is now fixed. ibm_hfp64 and quad_double remain, both sparse enough to be the conversion classes of pass 210"
 }
+
+resolution "every host-versus-oracle divergence in the corpus is now accounted for" {
+  the_list "pass 211 measured 31 comparable decode hosts: 9 matching, 11 diverging sparsely, 11 broadly. Passes 212 to 215 dispose of all 22"
+  class_1_representation "takum8, takum16, takum32, takum64, lns16 -- the oracle returns Special(kind='exp'|'irrational') carrying an exact rational logarithm, and my comparison read that as NaN. Not a divergence at all (pass 213)"
+  class_2_my_error "int16, int32 -- the oracle returns an integer and so does the host; I converted one side to fp32 and not the other (pass 214)"
+  class_3_validation "bcd -- the host returns None for nibbles above 9, which are not BCD digits, and the oracle reads them as binary. The standard is on the host's side (pass 214)"
+  class_4_real_defect "mxint8 -- the oracle ignored the implied binary point OCP MX v1.0 gives the format. Fixed, packs regenerated (pass 214)"
+  class_5_conversion "ibm_hfp32 19, ibm_hfp64 109 one-ulp and 18 flush, binary64 5, vax_f 3, vax_g 5, quad_double 142 NaN payload, double_double 48, mxfp8_e4m3 7 -- the fp32 conversion classes named in pass 210: subnormal flush, truncation against round-to-nearest, and NaN sign or payload"
+  class_6_canonicality "decimal32 10, decimal64 16, decimal128 19 -- ALL of them non-canonical codes, and none canonical. The oracle applies IEEE 754-2008 3.5.2 since pass 185, confirmed against gcc's Intel BID; the hosts do not"
+  what_that_means_for_the_hardware "the decimal decode proofs on silicon do not exercise 3.5.2. A non-canonical BID code is a value the format defines as zero, and the board has never been asked"
+  clean "posit16 and posit32 show no differences at all on this sample"
+  one_real_defect_in_twenty_two "and it was in the oracle, not in the hardware"
+}
