@@ -58,12 +58,17 @@ def run_hw(port, baud):
     print(f"HW RESULT: {checked-fails}/{checked} bit-exact (fails={fails})")
     return fails == 0
 
-
-ap = argparse.ArgumentParser()
-ap.add_argument("--self-test", action="store_true")
-ap.add_argument("--port", default="/dev/cu.usbserial-1120")
-ap.add_argument("--baud", type=int, default=160000)
-a = ap.parse_args()
-if a.self_test:
-    sys.exit(0 if self_test() else 1)
-sys.exit(0 if run_hw(a.port, a.baud) else 1)
+# Guarded. Without this, importing the module parses the IMPORTER's sys.argv,
+# calls sys.exit() -- killing whatever imported it -- and opens a serial port.
+# Pass 181 moved `import serial` out of module scope in 30 hosts for the same
+# reason: a golden nothing can import is a golden nothing can check. These eleven
+# kept the argparse block at module level and were missed.
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--port", default="/dev/cu.usbserial-1120")
+    ap.add_argument("--baud", type=int, default=160000)
+    a = ap.parse_args()
+    if a.self_test:
+        sys.exit(0 if self_test() else 1)
+    sys.exit(0 if run_hw(a.port, a.baud) else 1)
