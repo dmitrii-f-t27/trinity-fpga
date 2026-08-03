@@ -1,32 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""A second witness for GoldenFloat arithmetic, not just for its decode.
+"""RETRACTED. gf16_plus_ref is not a second implementation.
 
-Pass 192 found `conformance/gf16_plus_ref.py`: a second, independent implementation of the
-same seventeen GoldenFloat widths, sitting in the repository unused, agreeing with
-`gf_ref` on 9,041 decodes. That covered the values the packs name and said nothing about
-the operations on them, because `gf16_plus_ref` has no add or mul.
+Pass 194 read its first import:
 
-It does have `decode` and `encode`, and that is enough. Correctly-rounded arithmetic is
-"take the exact result, then round it to the format" -- a specification, not an
-implementation -- so an adder built on this module's own decode and encode shares no line
-of code with `gf_ref.gf_add`. That is what makes it a witness rather than a restatement.
+    from gf_ref import FORMATS, decode, encode, gf_mul, Special
 
-    python3 research/crossval_gf_second_arithmetic.py [--verbose] [--self-check]
+`gf16_plus_ref.decode is gf_ref.decode` is True. So is encode, so is FORMATS, so is
+Special -- the same objects, not merely equivalent ones. This file compared a function
+with itself and reported that it agreed.
 
-WHAT THE FIRST VERSION GOT WRONG
---------------------------------
-It reported 2,471 disagreements out of 159,430, and every single one was its own. The
-naive construction computes `Fraction(a) + Fraction(b)` and encodes it -- and a Fraction
-has no signed zero, so `(-0) + (-0)` came back `+0` and `x * 0` lost the sign of the
-product. All 510 gf8 multiplication disagreements were exactly that, and so was the one in
-addition. The packs were right in every case.
+What passes 192 and 193 claimed:
 
-The sign of a zero is not a rounding question and cannot be recovered from the exact
-value, so it is carried separately here, the way every oracle in this corpus already does:
-the sign of a product is the exclusive-or of the operand signs, and a sum of two zeros
-keeps their sign only when they agree.
+    9,041 decodes, 0 disagreements, against an independent implementation
+    159,430 add/mul results, 0 disagreements, against an independent implementation
+
+Both are void as independence claims. The decode comparison is entirely vacuous. The
+arithmetic comparison is nearly so: `gf_ref.gf_add` is decode -> specials -> signed zero
+-> exact sum -> encode, and the "independent" adder written for pass 193 is the same
+recipe over the same decode and encode. It confirmed that two spellings of one algorithm
+agree, which was never in doubt.
+
+**GoldenFloat has no independent second witness.** It is where it was before pass 192, and
+saying so is worth more than the number that was there instead.
+
+The lesson is about the control, not the claim. Pass 192's self-check required the
+takum_ref/takum_log_ref pair to be REJECTED -- a real control against comparing unrelated
+formats -- and had nothing asserting the two modules were distinct code. Guarding against
+the wrong pair while never checking the pair is two things is exactly the shape this
+campaign keeps finding elsewhere.
+
+`research/audit_witness_independence.py` now checks that: any module claiming to witness
+another must not re-export its functions. Both files here refuse to run rather than print
+a comforting zero.
 """
+
 from __future__ import annotations
 
 import glob
@@ -121,7 +129,27 @@ def run(B, verbose=False):
     return rows, tot, agree, skipped
 
 
+def _independence_or_die():
+    """Refuse to run. Left as executable code rather than deleted, so the retraction is
+    visible where the claim was made and cannot be quietly resurrected."""
+    import importlib
+    import sys
+    sys.path.insert(0, CONF)
+    A = importlib.import_module("gf_ref")
+    B = importlib.import_module("gf16_plus_ref")
+    shared = [n for n in ("decode", "encode", "FORMATS", "Special")
+              if getattr(A, n, None) is getattr(B, n, None)]
+    print("RETRACTED -- gf16_plus_ref re-exports gf_ref; see the module docstring.")
+    print(f"  shared objects: {', '.join(shared)}")
+    print("  GoldenFloat has no independent second witness.")
+    return 2
+
+
 def main() -> int:
+    return _independence_or_die()
+
+
+def _old_main() -> int:
     verbose = "--verbose" in sys.argv
     B = load()
     rows, tot, agree, skipped = run(B, verbose)
@@ -202,5 +230,5 @@ def self_check() -> int:
 
 if __name__ == "__main__":
     if "--self-check" in sys.argv:
-        raise SystemExit(self_check())
+        raise SystemExit(_independence_or_die())
     raise SystemExit(main())

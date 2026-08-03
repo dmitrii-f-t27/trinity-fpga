@@ -6292,3 +6292,14 @@ resolution "GoldenFloat arithmetic now has an independent second witness" {
   limits "238 results skipped because an operand is special -- this witness does not model NaN propagation, and counting a skipped case as agreement is the substitution the campaign exists to catch. div and sqrt are not covered; exact_ops.py can build them the same way"
   own_error "the first version reported 2471 disagreements and every one was its own: Fraction has no signed zero, so (-0) + (-0) came back +0 and x * 0 lost the sign. All 510 gf8 multiplication disagreements were exactly that. The sign of a zero is not a rounding question and cannot be recovered from the exact value, so it is carried separately, as every oracle here already does"
 }
+
+retraction "gf16_plus_ref is not a second implementation" {
+  retracts "pass 192: 9041 decodes with 0 disagreements against an independent implementation; pass 193: 159430 add/mul results with 0 disagreements"
+  evidence "gf16_plus_ref.py line 22 reads `from gf_ref import FORMATS, decode, encode, gf_mul, Special`. gf16_plus_ref.decode IS gf_ref.decode -- the same object, verified with `is`, not merely an equivalent one. Same for encode, FORMATS and Special"
+  decode_claim "entirely vacuous: a function compared with itself"
+  arithmetic_claim "nearly so: gf_ref.gf_add is decode -> specials -> signed zero -> exact sum -> encode, and the adder written for pass 193 is the same recipe over the same decode and encode. It confirmed that two spellings of one algorithm agree"
+  status "GoldenFloat has NO independent second witness. It is where it was before pass 192"
+  root_cause "pass 192's self-check required the takum_ref/takum_log_ref pair to be REJECTED -- a real control against comparing different formats that share names -- and had nothing asserting the compared pair was two implementations. One direction guarded, the other assumed"
+  remedy "research/audit_witness_independence.py asks three questions of any claimed witness pair: same objects, one importing the API from the other, textually identical sources. Both cross-validators now exit 2 with the retraction rather than reporting zero"
+  caveat "a clean independence result is still not proof: two authors can converge, and a shared helper module is invisible to all three questions. It rules out the way this corpus actually failed"
+}
