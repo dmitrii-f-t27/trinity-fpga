@@ -1284,3 +1284,45 @@ defect BENCH_COULD_NOT_HAVE_PRODUCED_A_NUMBER {
   """
   rule "a tool that cannot produce its own output has not been run, only compiled"
 }
+
+defect PORTABILITY_GATE_HAD_NEVER_PASSED {
+  statement """
+    The `portability` job in .github/workflows/trinet-portability.yml installed
+    yosys from apt. On ubuntu-latest that is 0.33, and under 0.33 every
+    synth_<family> pass returns without stats conformance/portability_check.py
+    can read, so the job reported "only 0 families synthesised" and failed. On
+    every run of that workflow since it was added, on every branch, including
+    the commit whose message announced the ten-family result.
+  """
+  the_claim_is_unharmed """
+    Ten families agree under yosys 0.62 and eleven under 0.65, same flip-flop
+    count, no multipliers -- reproduced today under both. What was broken is the
+    gate, not the thing it guards. But NODE_CELL_IS_VENDOR_NEUTRAL and
+    docs/TRI_NET_PORTABILITY.md both cited a check that had never once gone
+    green, and no regression could have been caught.
+  """
+  second_defect_in_the_check_itself """
+    A family that synthesised but whose register cells the script could not name
+    entered `results` -- counting toward "N families checked" -- and was then
+    dropped from the flip-flop comparison by a truthiness filter. It inflated the
+    headline while contributing nothing to the invariant the headline is about.
+    Measured: analogdevices under yosys 0.65 reports 2686 cells and zero
+    recognised flip-flops, and the run announced 11 families when 10 agreed.
+  """
+  fix """
+    CI runs the check inside the pinned regymm/openxc7 image instead of taking
+    whatever yosys the runner ships, the way ax7203-format-cost.yml already did.
+    The script prints the yosys version with its results. A family with zero
+    recognised flip-flops is named in the output and counted in neither
+    direction.
+  """
+  measured {
+    yosys_0_33_families 0
+    yosys_0_62_families 10
+    yosys_0_65_families 10   // 11 synthesise; analogdevices names no register cell
+    flipflops_low       1082
+    flipflops_high      1092   // intel_alm
+  }
+  note "819 was the figure before the receipt key started arriving over the wire; the number moved because the design did, which is why the check asserts the spread and not the value"
+  rule "a gate that has never gone green is not a gate; check that a check has ever passed"
+}

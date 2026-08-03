@@ -6,8 +6,8 @@ reference. Where it states a number, that number was measured; where it states
 a limit, the limit was hit.
 
 Branch `trinet-fleet-truth`, PR
-[#355](https://github.com/gHashTag/trinity-fpga/pull/355), 19 commits ahead of
-`main` at time of writing.
+[#355](https://github.com/gHashTag/trinity-fpga/pull/355). Merged up to `main`
+on 2026-08-03, so the PR is mergeable rather than conflicting.
 
 ---
 
@@ -92,7 +92,8 @@ slashed, 96 mTRI credited, all three nodes active.**
 Reproduce:
 
 ```bash
-for p in /dev/cu.usbserial-110 /dev/cu.usbserial-1110 /dev/cu.usbserial-1130; do trinet census $p 0 100 64; done
+python3 conformance/trinet_discover.py   # ports move; ask, never assume
+for p in <the ports it reports>; do trinet census $p 0 100 64; done  # 0 = negotiate
 ```
 
 **Report the minimum, not the mean.** A fleet is used at its worst run.
@@ -115,8 +116,7 @@ hypothesis.*
 jobs *attempted*, not verified, so a board answering nothing read as the fastest
 run ever recorded — 5409 jobs/s against a transport ceiling of 4942, with 0/64
 verified. The bench now counts verified work only and prints `IMPOSSIBLE` above
-the ceiling. A corrected throughput number needs a fresh run and nobody has
-taken one.
+the ceiling.
 
 **Restated 2026-08-03**, 2000 jobs per board at each board's negotiated rate:
 
@@ -368,8 +368,14 @@ transport measurement).
 The cell contains exactly two Xilinx primitives — `STARTUPE2` for the clock and
 `DNA_PORT` for identity, both board concerns. With those in a wrapper, the core
 in `fpga/portable/trinet_node_core.v` synthesises **with zero errors on ten FPGA
-families from eight vendors**, with **819 flip-flops on nine of them** and no
-inferred multiplier anywhere. See `docs/TRI_NET_PORTABILITY.md`.
+families from eight vendors**, with **1082 flip-flops on nine of them**, 1092 on
+the tenth, and no inferred multiplier anywhere. See
+`docs/TRI_NET_PORTABILITY.md`.
+
+Until 2026-08-03 the CI job that guards this claim installed yosys from apt —
+version 0.33, under which the check reads no stats at all. It had failed on every
+run since it was added. The claim reproduces under 0.62 and 0.65; the gate that
+was supposed to protect it had never gone green. CI now pins the toolchain.
 
 This does not establish portability of *product*: synthesis is not P&R, no
 non-Xilinx mapping has met timing, and only xc7 has run on silicon. And it does

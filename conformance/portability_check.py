@@ -4,11 +4,16 @@
 The check asserts an invariant rather than a number.
 
   * Every family must recover the SAME amount of sequential state. Measured
-    2026-08-02 across nine families: 819 flip-flops on eight of them, 831 on
-    Intel ALM, whose register cell absorbs reset logic the others express
-    separately. Nine independent synthesisers agreeing to the register is what
-    portable RTL looks like; a design tuned to one vendor's carry chain would
-    not survive the transfer.
+    2026-08-03 across ten families under yosys 0.62: 1082 flip-flops on nine of
+    them, 1092 on Intel ALM, whose register cell absorbs reset logic the others
+    express separately. Ten independent synthesisers agreeing to the register is
+    what portable RTL looks like; a design tuned to one vendor's carry chain
+    would not survive the transfer.
+
+    (It was 819 on 2026-08-02, before the receipt key started arriving over the
+    wire and brought a key register and its write-once latch with it. The number
+    is not the claim — the agreement is — which is why this check asserts the
+    spread and not the value.)
 
   * No family may infer a multiplier. The dot product is
     popcount(agreements) - popcount(disagreements), so there is no multiply to
@@ -98,6 +103,14 @@ def main() -> int:
                     help="allowed spread in flip-flop count across families")
     args = ap.parse_args()
 
+    # Which yosys produced these numbers, said out loud. The families a build
+    # offers and the stat output this script parses both move between versions:
+    # under 0.33 every family returns without readable stats and this check
+    # reports zero, under 0.62 ten pass and under 0.65 eleven. A result with no
+    # tool version attached cannot be compared with the one before it.
+    ver = subprocess.run(["yosys", "-V"], capture_output=True, text=True).stdout.strip()
+    print(ver.splitlines()[0] if ver else "yosys version unknown")
+
     fams = available_families()
     if not fams:
         print("FAIL: yosys reported no synth_<family> passes at all")
@@ -106,7 +119,7 @@ def main() -> int:
     print(f"yosys offers {len(fams)} candidate families: {' '.join(fams)}\n")
     print(f"{'family':<12}{'cells':>8}{'LUTs':>8}{'FFs':>8}{'mult':>7}  result")
 
-    results, failures = {}, []
+    results, failures, unreadable = {}, [], []
     with tempfile.TemporaryDirectory() as td:
         work = pathlib.Path(td)
         for fam in fams:
@@ -125,6 +138,19 @@ def main() -> int:
             if st["cells"] == 0:
                 print(f"{fam:<12}{'':>8}{'':>8}{'':>8}{'':>7}  no stats (skipped)")
                 continue
+            if st["ff"] == 0:
+                # A family that synthesises but whose register cells this script
+                # cannot name used to land in `results` -- counting toward "N
+                # families checked" -- and then get dropped from the flip-flop
+                # comparison by a truthiness filter. It inflated the headline
+                # while contributing nothing to the invariant that headline is
+                # about. Observed: analogdevices under yosys 0.65 reports 2686
+                # cells and zero recognised flip-flops, and the run announced 11
+                # families when 10 had agreed.
+                print(f"{fam:<12}{st['cells']:>8}{st['lut']:>8}{'0':>8}{st['mul']:>7}"
+                      f"  NO FLIP-FLOPS RECOGNISED — not counted, extend FF_PAT")
+                unreadable.append(fam)
+                continue
             results[fam] = st
             note = ""
             if st["mul"]:
@@ -140,10 +166,13 @@ def main() -> int:
               f"{args.min_families} are needed for this to mean anything")
         return 1
 
-    ffs = {f: r["ff"] for f, r in results.items() if r["ff"]}
+    # No truthiness filter here any more: a zero never reaches `results`, so
+    # every family in it carries a real count and none can be dropped
+    # silently from the comparison.
+    ffs = {f: r["ff"] for f, r in results.items()}
     if not ffs:
-        print("FAIL: no family reported any flip-flops. The cell has 819 of "
-              "them, so the parser is broken, not the design.")
+        print("FAIL: no family reported any flip-flops. The cell has "
+              "well over a thousand, so the parser is broken, not the design.")
         return 1
 
     lo, hi = min(ffs.values()), max(ffs.values())
@@ -162,6 +191,8 @@ def main() -> int:
             print("  FAIL  " + f)
         return 1
 
+    if unreadable:
+        print(f"note: {len(unreadable)} family(ies) synthesised but named no register\n      cell this script knows — {', '.join(unreadable)}. Not counted either way.")
     print(f"OK: {len(results)} families, no multipliers, sequential state agrees")
     return 0
 

@@ -152,7 +152,7 @@ three boards, whose settlement layer is not yet trustworthy on hardware".
 | Perfect runs | node0 100/100, node1 100/100, node2 42/100 (min 60, p50 63) |
 | Keyed receipt rejects a wrong key | every job, measured both directions |
 | Logic cost | 1313 LC, **0 DSP48** (yosys 0.63, `-flatten -abc9 -nocarry -nodsp -arch xc7`) |
-| Portability | synthesises clean on **10 FPGA families**, 819 flip-flops on 9 of them |
+| Portability | synthesises clean on **10 FPGA families**, 1082 flip-flops on 9 of them, 1092 on the tenth (yosys 0.62) |
 | Software stack | **54 tests** (`zig test src/trinet/agent.zig`, which nests protocol/node/ledger/mesh/model/net) |
 | CFGMCLK, measured per chip | 70.46 / 67.13 / **68.69** MHz (±0.18) — a **4.97% per-chip spread** |
 
