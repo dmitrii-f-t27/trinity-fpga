@@ -925,3 +925,58 @@ limit LOCAL_PLACE_AND_ROUTE_IS_NOT_POSSIBLE {
   """
   consequence "any plan step assuming a local bitstream build is dead on arrival"
 }
+
+// ---------------------------------------------------------------------------
+// 2026-08-03: a receipt that is evidence. First one in this programme.
+// ---------------------------------------------------------------------------
+
+claim FIRST_CITABLE_RECEIPT {
+  statement """
+    node0 re-flashed from CI artifact trinet_node0.bit (sha256 0fafd225e2..,
+    1455 LC, routed heap/seed 1), came up unkeyed and reported status 0x04 with
+    a correct dot product, then took a key over the wire that has never been
+    published anywhere.
+  """
+  measured {
+    runs                 100
+    jobs_per_run         64
+    jobs_attempted       6400
+    dot_products_correct 6400
+    receipts_authenticated 6400
+    perfect_runs         100
+    published_key_seen   false
+    flash_seconds        778
+  }
+  why_it_matters """
+    Every previous "keyed receipt verified on silicon" in this programme was a
+    tag any reader of the git log could compute. This is the first that is not.
+  """
+  trust_tier MEASURED_ON_FPGA
+}
+
+claim WRITE_ONCE_LATCH_HOLDS_ON_SILICON {
+  statement """
+    With the operator's key installed, a second op 0x02 carrying an attacker's
+    key (0xDE repeated) returned status 0x03 KEY_LOCKED and changed nothing.
+    Work afterwards still verified under the operator's key and did NOT verify
+    under the attacker's.
+  """
+  why """
+    Simulation showing a latch hold is not the same claim as silicon showing it.
+    Without this property anyone reaching the UART could replace the operator's
+    key and every later receipt would verify under theirs.
+  """
+  trust_tier MEASURED_ON_FPGA
+}
+
+board_facts JTAG_REACHABILITY_IS_A_BUS_PROPERTY {
+  measured_2026_08_03 """
+    Three AL321 cables attached. The two on the host controller directly
+    (locations 1-1.2, 1-1.4) stalled in mpsse_flush() on every attempt. The one
+    behind a USB2.1 hub (0-1.2) answered IDCODE 0x13636093 on every attempt,
+    three times running, and flashed cleanly in 778 s.
+  """
+  rule "an mpsse stall is not automatically a dead cable -- compare buses before reseating"
+  pairing "a CP2102N and a Digilent under the same hub are the same board; that pairs a serial port to a programmer without flashing anything to find out"
+  caution "an unbounded JTAG probe wedges a cable -- one left running ten minutes, and the two cables it touched never recovered in this session"
+}

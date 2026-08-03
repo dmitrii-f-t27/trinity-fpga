@@ -34,6 +34,22 @@ this document is therefore a tag any reader of the git log can compute.* The
 arithmetic is real; the receipts are not evidence. Tooling now detects this and
 refuses to credit such a board — no slash either, because the boards are honest.
 
+> **Resolved for node0, 2026-08-03.** Re-flashed from CI, came up unkeyed
+> (`status 0x04`) with correct arithmetic, and took a key over the wire that has
+> never been published. 100 runs × 64 jobs: **6400/6400 correct and 6400/6400
+> authenticated**. An attacker's second key was refused on silicon
+> (`0x03 KEY_LOCKED`) and later work still verified under the operator's key,
+> not the attacker's. This is the first receipt in the programme that is
+> evidence of anything. node1 and node2 are still on published keys — their two
+> JTAG cables stall in `mpsse_flush()` while the third, behind a different hub,
+> works every time, so the blocker is the bench and not the design.
+>
+> The reason the fix had not reached the silicon for a day is worth keeping:
+> rotating a baked-in key needed a place-and-route run this workstation cannot
+> perform. **A key that costs an hour to rotate is a key nobody rotates**, so
+> the key is now loaded over the wire, write-once per configuration, and
+> rotation costs a power cycle.
+
 **Every published jobs/s figure was computed by dividing by jobs attempted.**
 Including failures. A board answering nothing returns instantly, so a total
 failure read as the fastest run ever recorded — caught at 5409 jobs/s against a
