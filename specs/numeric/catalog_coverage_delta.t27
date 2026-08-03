@@ -6434,3 +6434,15 @@ finding "LNS software and LNS hardware are different formats" {
   consequence "conformance/vectors/lns{16,32,64}_{add,mul,sub}.json -- 1039 vectors in lns16_add alone -- describe a number line the hardware does not implement, and the catalogue presents them as one format"
   no_tier_e "no LNS cell appears in the Tier-E ledger, so no hardware-evidence claim is affected"
 }
+
+resolution "the LNS hardware format cannot represent 1, and that settles it" {
+  question "pass 203 left the LNS scale and zero convention undecided: the oracle says 2^(L/2^frac_bits) with field_min reserved for zero, the RTL and its conformance host say 2^(L/128) with the all-zero code reserved. Two against one, and no spec to arbitrate"
+  the_cited_evidence "the host's comment reads `Validated against 5 t27 vectors`. There is no LNS content anywhere in t27/. The five are a T27_VECTORS dict inside the host itself -- its own constants, citing a source that does not contain them"
+  the_five_are_consistent "0x0080 -> 2.0 and 0x0100 -> 4.0 fix the scale at 128; 0x0000 -> 0.0 fixes the zero convention. They do back the RTL. They also expose what it costs"
+  decisive_measurement "exhaustive simulation of lns16_decode.v over all 65536 codes: codes decoding to +1.0 -> ZERO. Codes decoding to -1.0 -> exactly one, 0x8000. Codes decoding to 0.0 -> exactly one, 0x0000. Confirmed at lns32 and lns64 by the same two codes"
+  verdict "the hardware LNS format cannot represent the number 1 while representing -1. No spec is needed to call that wrong: reserving the code for +1 to encode zero, and leaving -1 alone, is not a design choice any format makes. lns_ref.py's convention -- reserve field_min, the smallest magnitude, symmetrically across the sign -- is the correct one"
+  flips_the_count "pass 203 reported two implementations against one. The majority is wrong, and the citation that appeared to back it points at nothing"
+  otherwise_well_formed "the decode is injective: 65536 distinct fp32 outputs over 65536 codes, so nothing is wasted on duplicates"
+  scale_still_open "which scale is right remains unsettled -- the five vectors are the only evidence and they are unsourced. The zero convention is settled; the fraction width is not"
+  no_tier_e "no LNS cell in the Tier-E ledger"
+}
