@@ -6557,3 +6557,18 @@ correction "takum and LNS oracles do not abstain -- they represent exactly" {
   why_hosts_need_their_own_golden "hardware emits fp32, and leaving the log domain requires evaluating exp(). That is where the 1-ULP residuals come from -- a mathematical necessity, not a defect, and the same boundary the checklist already names for takum32 against libtakum"
   bearing_on_the_papers "the corpus's takum and LNS oracles are exact where a float-based oracle cannot be. That is a claim worth making, and pass 212's wording would have understated it"
 }
+
+correction "MXINT8 was decoded as a plain integer, against its own spec" {
+  spec "OCP Microscaling Formats v1.0 gives MXINT8 an implied binary point six places in: the element is int * 2^-6, range +-127/64, and -128 is reserved"
+  oracle_was "mxfp_ref decoded it as a raw two's-complement integer, so 0x01 was 1 where the format says 1/64, and 0x80 was -128 where the format reserves it"
+  who_was_right "conformance/mxint8_decode_conformance_ax7203.py has carried the correct convention in its header since it was written -- `int8 x 2^-6 -> FP32 (range +/-127/64). -128 reserved -> NaN` -- and the RTL follows it. Pass 211 counted 455 of 456 codes diverging; it is ONE difference and the oracle was the wrong side"
+  fixed "int_frac_bits on MXFormat, defaulting to 6; decode divides and encode multiplies; 0x80 returns Special"
+  packs "mxint8 add, mul and sub regenerated -- 196,608 vectors, of which 60,400 / 65,495 / 60,401 changed"
+  stale_assertion "the module's own self-test asserted `1+1=2`, which is unrepresentable under the correct convention -- the range stops at 127/64. It now asserts saturation to 127/64 and that 0x80 is reserved. The old assertion held only under the reading it was meant to be testing"
+}
+
+resolution "int16 and int32 were my comparison error, and bcd is the host being right" {
+  int16_int32 "pass 211 reported 455 of 456 codes diverging. The oracle returns an integer and the host returns the same integer; I converted the oracle's value to an fp32 word and the host's not. They agree exactly"
+  bcd "the host returns None for 0x0F, 0x7F and 0xFF -- nibbles above 9, which are not valid BCD digits. The oracle reads them as plain binary and returns 15, 85, 165. The host validates and the oracle does not; the standard is on the host's side"
+  remaining "of pass 211's eleven systematic divergences, five were the Special-representation artefact corrected in pass 213, two were this comparison error, one is bcd validation, one is mxint8 and is now fixed. ibm_hfp64 and quad_double remain, both sparse enough to be the conversion classes of pass 210"
+}

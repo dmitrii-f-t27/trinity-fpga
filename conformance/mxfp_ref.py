@@ -32,6 +32,9 @@ class MXFormat:
     has_inf: bool = False
     nan_at_max_only: bool = False
     scale_exp: int = 0      # shared e8m0 unbiased block exponent (default 0 -> *2^0)
+    # Fractional bits of an integer element. OCP MX v1.0 gives MXINT8 six, so the element
+    # value is int * 2^-6. Zero for a format that really is a plain integer.
+    int_frac_bits: int = 6
 
     @property
     def width(self): return self.elem_bits
@@ -117,10 +120,21 @@ def _decode_elem(fmt: MXFormat, raw: int):
     """Decode the element WITHOUT block scale. Returns Fraction | Special."""
     raw &= fmt.mask
     if fmt.kind == 'int':
-        # two's complement signed integer
-        if raw >> fmt.sign_shift:
-            return Fraction(raw - (1 << fmt.elem_bits))
-        return Fraction(raw)
+        # OCP Microscaling Formats v1.0 defines MXINT8 as a two's-complement int8 with an
+        # implied binary point six places in -- the element value is int * 2^-6, giving a
+        # range of +-127/64 -- and reserves -128. This module returned the raw integer, so
+        # 0x01 was 1 where the format says 1/64 and 0x80 was -128 where the format says
+        # nothing at all.
+        #
+        # conformance/mxint8_decode_conformance_ax7203.py has stated the correct
+        # convention in its own header since it was written -- "int8 x 2^-6 -> FP32
+        # (range +/-127/64). -128 reserved -> NaN" -- and the RTL follows it. Pass 211
+        # counted the two sides as diverging on 455 of 456 codes; it is one difference,
+        # and this side was the wrong one.
+        if raw == (1 << fmt.sign_shift):
+            return Special("nan")                    # -128 is reserved
+        v = raw - (1 << fmt.elem_bits) if raw >> fmt.sign_shift else raw
+        return Fraction(v, 1 << fmt.int_frac_bits)
 
     sign = (raw >> fmt.sign_shift) & 1
     exp = (raw >> fmt.mant_bits) & ((1 << fmt.exp_bits) - 1)
@@ -153,7 +167,7 @@ def _encode_elem(fmt: MXFormat, value):
 
     v = Fraction(value)
     if fmt.kind == 'int':
-        m, _ = _round_half_even(v)
+        m, _ = _round_half_even(v * (1 << fmt.int_frac_bits))
         # saturate to signed range
         hi = (1 << (fmt.elem_bits - 1)) - 1
         lo = -(1 << (fmt.elem_bits - 1))
@@ -268,11 +282,18 @@ def _selftest():
             r = format_add(fmt, one, one)
             check(decode(fmt, r) == 2, f"{fname}: 1+1=2 (got {decode(fmt, r)})")
         else:
-            # mxint8: 1 + 1 = 2
+            # mxint8: 1 + 1 SATURATES. OCP MX v1.0 gives the format an implied binary
+            # point six places in, so its range is +-127/64 and 2 is not in it. The
+            # assertion here was `1+1=2`, which held only under the plain-integer reading
+            # this module used before -- a check encoding the convention it was meant to
+            # be testing.
             one = encode(fmt, Fraction(1))
             check(decode(fmt, one) == 1, f"{fname}: 1 (0x{one:x})")
             r = format_add(fmt, one, one)
-            check(decode(fmt, r) == 2, f"{fname}: 1+1=2")
+            check(decode(fmt, r) == Fraction(127, 64),
+                  f"{fname}: 1+1 saturates to 127/64, the largest value the format has")
+            check(isinstance(decode(fmt, 0x80), Special),
+                  f"{fname}: 0x80 is reserved")
 
         check(format_add(fmt, 0, 0) == 0, f"{fname}: 0+0=0")
 
