@@ -6600,3 +6600,11 @@ correction "eleven compute hosts could not be imported at all" {
   fixed "guarded; 11 of 11 self-tests pass, and all 103 conformance hosts now import without a working pyserial except gf16_conformance_ax7203, which is a different shape and left alone"
   how_it_surfaced "a stub serial module with no Serial attribute. The AttributeError was mine to begin with, and chasing it found the real defect"
 }
+
+resolution "all 103 conformance hosts import without pyserial, and a gate now says so" {
+  last_one "gf16_conformance_ax7203 declared `port: serial.Serial` in a signature. An annotation is evaluated when the function is DEFINED, so the module needed pyserial to be imported at all. Fixed with `from __future__ import annotations` and by moving the module-scope import to its call site"
+  three_shapes "pass 181: 30 hosts with a module-scope `import serial`. Pass 216: 11 with no __main__ guard, so importing one parsed the IMPORTER's sys.argv and called sys.exit. Pass 217: 1 annotation. One property, three ways to break it"
+  why_a_gate "the property regressed between the first fix and the second because nothing enforced it. research/audit_host_importability.py imports every host under a serial module that provides NOTHING -- the test is reachability when pyserial is absent, not when it is present and unused"
+  controls "the self-check writes a host with each of the three defects and requires each to be caught, then a clean host and requires it to pass. A gate that cannot fail is not a gate"
+  state "103 of 103"
+}
