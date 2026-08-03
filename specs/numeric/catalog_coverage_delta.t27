@@ -6585,3 +6585,18 @@ resolution "every host-versus-oracle divergence in the corpus is now accounted f
   clean "posit16 and posit32 show no differences at all on this sample"
   one_real_defect_in_twenty_two "and it was in the oracle, not in the hardware"
 }
+
+verification "the compute path has no second golden at all" {
+  question "pass 215 disposed of 22 divergences between decode hosts and oracles. The 30 compute cells had never been asked"
+  answer "all 30 import the oracle directly -- `from gf_ref import FORMATS, gf_add`. There is no separate golden in the compute path, so nothing can diverge from anything"
+  contrast "the decode side has 31 comparable hosts and 22 divergences, in six named classes. The compute side has none, because the hosts do not restate the oracle -- they call it"
+  significance "for the 30 compute proofs, the hardware is compared against the same function that generates the published packs. That is the strongest arrangement available and it holds for every one of them"
+}
+
+correction "eleven compute hosts could not be imported at all" {
+  defect "no `if __name__ == \"__main__\"` guard. The argparse block, parse_args and sys.exit ran at module scope, so importing one parsed the IMPORTER's sys.argv, called sys.exit -- terminating whatever imported it -- and opened a serial port"
+  affected "gf12_mul, gf16_add, gf16_mul, gf20_add, gf20_mul, gf24_add, gf24_mul, gf4_add, gf4_mul, gf6_mul, gf8_mul -- every one a GoldenFloat compute cell"
+  same_class_as_pass_181 "which moved `import serial` out of module scope in 30 hosts for the same reason: a golden nothing can import is a golden nothing can check. These eleven kept the argparse block at module level and were missed"
+  fixed "guarded; 11 of 11 self-tests pass, and all 103 conformance hosts now import without a working pyserial except gf16_conformance_ax7203, which is a different shape and left alone"
+  how_it_surfaced "a stub serial module with no Serial attribute. The AttributeError was mine to begin with, and chasing it found the real defect"
+}
