@@ -123,11 +123,24 @@ def main() -> int:
 
     if complete:
         seen = {}
+        # All of them, not the first. seen.setdefault kept whichever proof appeared
+        # earliest and dropped the rest, and 11 cells have more than one: for gf16 that
+        # hid the exhaustive 65536/65536 behind a 512/512, and for lns16 it showed 64/64
+        # while hiding the 472/576 that carries 104 known limitations. The view
+        # understated the strongest evidence and overstated the weakest at the same time.
         for cell, res in complete:
-            seen.setdefault(cell, res)
+            seen.setdefault(cell, []).append(res)
         print(f"\ndistinct cells with a complete chain: {len(seen)}")
-        for cell, res in sorted(seen.items()):
-            print(f"    {cell:<12} {res}")
+        for cell, results in sorted(seen.items()):
+            uniq = sorted(set(results),
+                          key=lambda r: -int(r.split("/")[0]) if "/" in r else 0)
+            best = uniq[0] if uniq else "?"
+            extra = f"   (+{len(uniq) - 1} more: {', '.join(uniq[1:])})" \
+                if len(uniq) > 1 else ""
+            partial = [r for r in uniq if "/" in r
+                       and r.split("/")[0] != r.split("/")[1]]
+            mark = "  PARTIAL" if partial else ""
+            print(f"    {cell:<12} {best}{extra}{mark}")
 
     print("""
 What this checks is PRESENCE of the four links in one comment, which is what
