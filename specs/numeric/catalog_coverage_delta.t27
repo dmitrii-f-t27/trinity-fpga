@@ -6303,3 +6303,20 @@ retraction "gf16_plus_ref is not a second implementation" {
   remedy "research/audit_witness_independence.py asks three questions of any claimed witness pair: same objects, one importing the API from the other, textually identical sources. Both cross-validators now exit 2 with the retraction rather than reporting zero"
   caveat "a clean independence result is still not proof: two authors can converge, and a shared helper module is invisible to all three questions. It rules out the way this corpus actually failed"
 }
+
+verification "the other witness claims were audited after the pass-194 retraction" {
+  checked "every crossval_* and witness_* tool in the campaign, run as it stands today"
+  crossval_softposit "real. It does not import softposit -- which is NOT installed here -- but reads dumps produced by it. posit8 exhaustive over 256 codes, posit16 and posit32 curated, 0 differences. My first suspicion, that a missing library was being reported as a pass, was wrong"
+  crossval_ml_dtypes "real and running: 66224 codes compared, 0 divergences, against Google's ml_dtypes 0.5.4"
+  crossval_libtakum "exits 2 without input paths, which is the correct behaviour"
+  independence "research/audit_witness_independence.py finds no other module pair sharing code; gf16_plus_ref/gf_ref remains the only one"
+}
+
+correction "the external witnesses were one rm from unverifiable" {
+  defect "crossval_softposit and crossval_libtakum compare against tab-separated dumps, not against the libraries. All eleven dumps lived only in a session scratch directory: no hash recorded anywhere, no size, no note of which library produced them, no copy in the repository"
+  consequence "the comparisons were real and the evidence was temporary. A file with the right name and wrong contents would have been read without complaint"
+  fixed_1 "conformance/witness/ holds the five dumps within the repository's own 1 MB rule -- spx8, spx32, lt8, ltlog8, ltlog8_hex. Those are the exhaustive cases: posit8 over all 256 codes and takum8 over all 256, the strongest external claims the campaign makes"
+  fixed_2 "conformance/witness/MANIFEST.json records SHA-256, byte count, witness and consumer for all eleven, including the six too large to commit"
+  fixed_3 "research/audit_witness_artefacts.py checks a dump against the manifest before anything compares against it; its control flips one bit in a copy and requires rejection"
+  hashes "produced by shasum -a 256 and injected mechanically, none typed by hand"
+}
