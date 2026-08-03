@@ -233,29 +233,35 @@ and on 2026-08-03 that somebody was me.**
 Two of three cables stalled on every attempt for an hour. The cause was not the
 cable, the board, or (as first recorded here, wrongly) which USB bus they sat
 on: two `openocd` processes from earlier probes were still alive as root,
-holding those two FTDI devices. Check before theorising:
+holding those two FTDI devices. Check for that before theorising:
 
 ```bash
-ps -eo pid,etime,comm | grep openocd     # anything older than the current probe is a leak
-sudo -n pkill -9 openocd                 # and it takes sudo to clear, see below
+ps -eo pid,stat,etime,comm | grep openocd
 ```
 
-**Why they leaked, which is the part to not repeat.** Bounding a probe with
+Anything older than the probe you just ran is a leak.
 
-```bash
-sudo -n openocd ... & P=$!; ( sleep 25; kill -9 $P ) & wait $P
-```
-
-does *not* work. `$!` is the `sudo` wrapper, `openocd` runs as root beneath it,
-and a user `kill -9` cannot touch a root child. The wrapper dies, the timeout
-looks like it worked, and the adapter stays held. Put the timeout **inside**
-the privileged process instead:
+**Why they leaked — do not repeat this.** The probes were bounded by
+backgrounding `sudo`, capturing `$!`, and sending `kill -9` to it after a sleep.
+That does not work: `$!` is the **`sudo` wrapper**, `openocd` runs as root
+beneath it, and a user `kill -9` cannot touch a root child. The wrapper dies,
+the timeout looks like it worked, and the adapter stays held. (Do not copy that
+form from anywhere — it is written out here only to be recognised, never run.)
+Put the timeout **inside** the privileged process instead:
 
 ```bash
 sudo -n timeout -s KILL 25 /opt/homebrew/bin/openocd \
   -f fpga/openxc7-synth/ax7203_al321_multi.cfg \
   -c "adapter usb location 0-1.2" -c "init" -c "shutdown"
 ```
+
+**Clearing a leak needs the operator, not `sudo -n`.** The NOPASSWD rule in
+`/etc/sudoers.d/openocd` covers exactly one binary — `/opt/homebrew/bin/openocd`
+— so `sudo -n pkill -9 openocd` fails with "a password is required", and being
+`-n` it fails *silently* instead of prompting. A leaked openocd survived three
+such attempts while every one of them was reported as having cleared it. Check
+with `ps` afterwards rather than trusting the exit, and when it really needs
+clearing, ask the operator to run `sudo pkill -9 openocd`.
 
 Order of suspicion for a stall: leaked openocd first, then a replug of the
 cable, then the board's power. Bus position was a coincidence — after the

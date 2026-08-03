@@ -988,7 +988,15 @@ board_facts JTAG_STALL_WAS_MY_OWN_LEAKED_PROCESS {
     kill -9 cannot touch a root child. The wrapper died, the timeout looked
     like it had worked, and the adapter stayed held.
   """
-  fix "put the timeout inside the privileged process: sudo -n timeout -s KILL 25 openocd ..."
+  fix "put the timeout inside the privileged process: sudo -n timeout -s KILL 25 openocd -f <cfg> -c ..."
+  second_failure """
+    The cleanup was also reported without being checked. `sudo -n pkill -9
+    openocd` fails with "a password is required" -- the NOPASSWD rule covers
+    /opt/homebrew/bin/openocd and nothing else -- and with -n it fails silently
+    rather than prompting. Three separate attempts were each reported as having
+    cleared the leak; ps showed both processes still alive 2h49m later. Verify
+    with ps, and hand the operator `sudo pkill -9 openocd` when it matters.
+  """
   order_of_suspicion "leaked openocd, then replug the cable, then board power -- bus position last"
   pairing "a CP2102N and a Digilent under the same hub are the same board; that pairs a serial port to a programmer without flashing anything to find out"
 }
