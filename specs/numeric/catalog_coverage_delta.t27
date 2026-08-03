@@ -6608,3 +6608,13 @@ resolution "all 103 conformance hosts import without pyserial, and a gate now sa
   controls "the self-check writes a host with each of the three defects and requires each to be caught, then a clean host and requires it to pass. A gate that cannot fail is not a gate"
   state "103 of 103"
 }
+
+resolution "the recurring defect classes now have gates, and the last one is mutation" {
+  method "the record was mined for properties fixed more than once. Three already had gates: importability (pass 217), hand-written name lists (206), hardcoded lookups (192). One did not"
+  the_ungated_class "a self-test asserting what the implementation happens to do rather than what the format requires. Five instances: `x + 0 == x` in pass 185, the no-non-canonical-operand invariant in 188, the dropped sign of zero in 193, the 'flag only' label in 200, and `1+1=2` for MXINT8 in 214"
+  why_reading_cannot_find_it "reading is what produced it"
+  gate "research/audit_selftest_sensitivity.py perturbs one bit of the module's encode result and requires the self-test to fail. 15 of 15 oracles are sensitive"
+  own_error_1 "the mutation was first appended to the end of the file, after the `if __name__` block, so the self-test ran and exited before the override existed and every module looked insensitive. The control caught it -- which is why it asks for a clean PASS and a mutated FAIL rather than only the second"
+  own_error_2 "mutating `encode` marked lns_ref insensitive. It is not: its format_add and format_mul route through encode_from_log, so perturbing encode changed nothing the self-test could see. The gate now reads the name out of format_add's own source, the same discipline pass 191 had to learn"
+  bound "a pass means the self-test is sensitive to THIS mutation. It does not mean the test is complete or that its assertions are the right ones. Mutation bounds a check from below, never from above"
+}
