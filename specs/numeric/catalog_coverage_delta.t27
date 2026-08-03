@@ -6533,3 +6533,18 @@ finding "nine of thirty-one decode hosts test against the oracle the corpus publ
   the_consequence "for the eleven systematic cases, a hardware proof cannot falsify the corpus oracle and the corpus oracle cannot falsify the hardware. They are answering different questions, and the Tier-E chain records only that the four links are present"
   not_a_verdict "which side is right needs the format's specification in each case. What is established is how many hardware proofs are evidence ABOUT the published packs: nine outright, eleven up to a documented conversion class"
 }
+
+correction "five of pass 211's eleven systematic divergences are my artefact" {
+  what_pass_211_said "eleven decode hosts diverge from the corpus oracle on more than 15% of codes, listing takum8 420/456, takum16 441, takum32 447, takum64 449 and lns16 456/456 among them"
+  the_cause "takum_log_ref.decode returns Special(kind='exp') for 252 of 256 takum8 codes and 255 of 256 at the wider widths; lns_ref returns Special('irrational') for 255 of 256. The value is 2^L with L irrational, so the oracle DECLINES to give a Fraction. My comparison turned every abstention into a NaN word and counted it as a disagreement"
+  so "those five are not hosts testing something else. They are hosts doing the only thing available, because the oracle offers no number for 98% of the code space"
+  survives "bcd, int16, int32, mxint8, ibm_hfp64 and quad_double have no Special abstentions at all -- their divergences stand, and mxint8's remains one convention difference rather than 455 defects"
+  and_the_earlier_number "the same artefact makes `takum_log_ref agrees with libtakum on 11 of 256` meaningless. It abstains on 252; it does not disagree on them"
+}
+
+finding "the takum conformance host is the closer of the two to libtakum" {
+  measured "against conformance/witness/ltlog8.tsv, the libtakum logarithmic dump: the takum8 conformance host's golden agrees on 144 of 256 codes"
+  reference_width_ruled_out "decoding as the top bits of takum_log16 gives the same 144, consistent with pass 149's finding that the two readings coincide"
+  the_112_that_differ "11 codes where the host says zero and libtakum gives 1.12e-45 to 2.64e-28; 7 where the host says infinity and libtakum gives 3.78e27 to 1e38. Both bands sit inside fp32's normal range, so neither is a conversion artefact -- the host's takum8 has a narrower dynamic range. The remaining 94 have no constant ratio: 130 of 224 finite pairs are identical and the rest scatter, which is a field-split or rounding difference, not a scale"
+  not_settled "the takum standard is not in this repository. Without it, which of the host and libtakum is right cannot be decided here, and guessing would be worse than the open question"
+}
