@@ -6467,3 +6467,17 @@ correction "the third hand-written name list, found by searching instead of by a
   own_over_report "the first version flagged every place mentioning three or more format names: 25 of them, nearly all fine. Over-reporting is the failure this campaign keeps finding, and it found it in the check written to catch it"
   controls "a synthetic membership test must be flagged and plain iteration over the same names must not"
 }
+
+verification "the three coverage numbers reconciled" {
+  why "research/SUBMISSION_CHECKLIST.md, verify_tier_e.py before pass 205, and verify_tier_e.py after it gave three different answers. Numbers that go into a paper should agree first"
+  measured_now "226 comments in issue 199; 75 carry all four links; 72 of those are headed `Tier-E proof` and 3 are re-proofs or a regression note, each naming one cell. No aggregate summary qualifies, so per-comment attribution is sound"
+  cells "47 distinct corpus format names plus 2 outside the corpus -- e8m0 and bitnet, which have no oracle in conformance/*_ref.py -- for 49 named cells"
+  decode "40 formats with a decode proof, or 42 counting e8m0 and bitnet"
+  compute "10 formats, all GoldenFloat: gf4, gf6, gf8, gf10, gf12, gf14, gf16, gf20, gf24, gf32. 30 proofs, being add, mul and sub for each"
+  discrepancy_1 "the checklist says 74 four-link comments; there are 75. It is a snapshot and the ledger grew"
+  discrepancy_2 "the checklist says 45 cells; 49 are named"
+  discrepancy_3 "the checklist says 44 of 83 formats have decode verified; the measurement is 42, and only 40 of those are formats the corpus declares"
+  discrepancy_4 "the checklist says 30 compute proofs across 12 formats, naming gf4-gf32 plus double_double and quad_double. The compute proofs cover 10 GoldenFloat widths. double_double and quad_double have DECODE proofs; their only appearances alongside compute are in status summaries that carry no per-cell chain"
+  most_important "discrepancy 4 is the one that would reach a reader as a claim about arithmetic on silicon for two formats that have none"
+  noted_in_passing "one of the 75 is `Tier-E re-proof: lns16 (decode -- subnormal-flush correctness fix, re-flash on silicon)`, which bears on the LNS question of passes 203 to 205"
+}
