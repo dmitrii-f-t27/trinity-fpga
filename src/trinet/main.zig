@@ -977,7 +977,15 @@ fn setkey(gpa: std.mem.Allocator, ports: []const [:0]const u8) !void {
             p,                                                           spec.?.name, ok,
             if (stale) "  (was on a PUBLISHED key before this)" else "",
         });
-        if (ok == 32) installed += 1;
+        // The key went in — setKey already checked the acknowledgement's tag,
+        // which only a board holding that key can produce. Counting only boards
+        // that then scored a perfect 32/32 hid a successfully keyed node behind
+        // its own lossy cable, and reported "1 board keyed" when two were.
+        installed += 1;
+        if (ok < 32) {
+            std.debug.print("    {d} of 32 verification jobs did not return clean — that is this\n", .{32 - ok});
+            std.debug.print("    board's link, not its key. The key is installed either way.\n", .{});
+        }
     }
 
     line();

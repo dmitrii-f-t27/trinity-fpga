@@ -992,3 +992,43 @@ board_facts JTAG_STALL_WAS_MY_OWN_LEAKED_PROCESS {
   order_of_suspicion "leaked openocd, then replug the cable, then board power -- bus position last"
   pairing "a CP2102N and a Digilent under the same hub are the same board; that pairs a serial port to a programmer without flashing anything to find out"
 }
+
+// ---------------------------------------------------------------------------
+// 2026-08-03: all three boards re-flashed and keyed. The published-key era ends.
+// ---------------------------------------------------------------------------
+
+claim FLEET_FULLY_REKEYED {
+  statement """
+    All three AX7203 boards re-flashed from CI artifacts, each came up unkeyed
+    (status 0x04) with correct arithmetic, and each took a per-node key over the
+    wire that has never been published anywhere.
+  """
+  measured {
+    boards                 3
+    runs_per_board         100
+    jobs_per_run           64
+    jobs_attempted         19200
+
+    node0_correct          6400   node0_authenticated 6400   node0_perfect_runs 100
+    node1_correct          6400   node1_authenticated 6400   node1_perfect_runs 100
+    node2_correct          6245   node2_authenticated 6235   node2_perfect_runs 25
+
+    published_key_seen     false
+  }
+  agent_pass {
+    jobs 96  accepted 96  rejected 0  slashed_mtri 0  credited_mtri 96
+    all_three_nodes_active true
+  }
+  note """
+    node2 remains the marginal board: 97.6% correct, min 59 of 64 in a run. Its
+    losses are the link, not the key -- it was swept to its own centre rate and
+    scored slightly worse there. Report the minimum; a fleet is used at its
+    worst run.
+  """
+  trust_tier MEASURED_ON_FPGA
+}
+
+board_facts PARALLEL_FLASH_CONFIRMED {
+  measured "two boards flashed simultaneously on separate programmers, 778.755 s and 778.757 s -- 13 minutes for two, not 26"
+  rule "flash the fleet in parallel; the AL321 bottleneck is per-cable, not shared"
+}

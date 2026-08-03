@@ -40,9 +40,15 @@ refuses to credit such a board — no slash either, because the boards are hones
 > authenticated**. An attacker's second key was refused on silicon
 > (`0x03 KEY_LOCKED`) and later work still verified under the operator's key,
 > not the attacker's. This is the first receipt in the programme that is
-> evidence of anything. node1 and node2 are still on published keys — their two
-> JTAG cables stall in `mpsse_flush()` while the third, behind a different hub,
-> works every time, so the blocker is the bench and not the design.
+> evidence of anything.
+>
+> **All three, later the same day.** node1 and node2 re-flashed too, in parallel
+> — 13 minutes for both. Across 100 runs each: node0 6400/6400 correct and
+> authenticated, node1 6400/6400 and 6400/6400, node2 6245/6400 and 6235/6400.
+> The agent's forward pass then ran across all three: **96 of 96 accepted, 0
+> rejected, 0 slashed, all three nodes active**. No published key anywhere in
+> the fleet. This is the first settlement in the programme resting on receipts
+> that are evidence.
 >
 > The reason the fix had not reached the silicon for a day is worth keeping:
 > rotating a baked-in key needed a place-and-route run this workstation cannot
