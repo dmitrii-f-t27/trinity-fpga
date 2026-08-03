@@ -6362,3 +6362,14 @@ finding "the source of truth contains a 32-entry table that is wrong in every en
   unchecked "tf3.t27 carries 128 labelled constants and declares no readable field widths; reported as unchecked rather than skipped"
   own_error "the first version read `.const BIAS 31` as BIAS = 1 because a greedy \\w* ate the leading digit, and the self-check missed it by taking the bias from gf_ref instead of from the parser it was meant to test. The control now asserts the parsed format matches"
 }
+
+finding "the synthesized GF decoder disagrees with the spec on three of four widths" {
+  measured_not_inferred "iverilog simulation of fpga/openxc7-synth/gf_decode_param_pipe.v, not a reading of it"
+  rtl "lines 61-62 set cls_inf0 = is_exp_max0 && is_mant_zero0 unconditionally. The module parameterises N, E, M and BIAS and has no parameter for whether the format has infinities, so every width it is instantiated at classifies the all-ones exponent as special"
+  gf16 "correct -- gf16.t27 declares GF16_INF_POS 0x7E00 and the RTL agrees"
+  gf8 "WRONG NUMBER. The RTL returns 0x7F800000; the spec's largest finite value is 16, which fp32 holds exactly as 0x41800000. The hardware returns an infinity where the format has a number, and the difference is visible in fp32_out"
+  gf24_gf32 "flag only. The correct finite value -- 1.16e77 and 3.23e13x -- overflows fp32 anyway, so fp32_out is 0x7F800000 either way and only is_inf_o disagrees"
+  grading "calling all three the same defect would overstate two of them"
+  not_fixed_here "the RTL belongs to the synthesis line"
+  chain "pass 196 found two independent decoders disagreeing; pass 197 settled it from the spec; this measures which side the silicon is on"
+}
