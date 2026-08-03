@@ -6341,3 +6341,24 @@ finding "two independent GF decoders disagree about whether widths other than gf
   why_it_matters "the pipe oracle is what the gf24/gf32 pipelined decode RTL was verified against. If the RTL implements infinities at those widths it contradicts the spec gf_ref cites, and nothing compared the two oracles until now"
   not_resolved_here "which is right is a question for the .t27 spec and the RTL owner, not for this campaign to decide by picking one"
 }
+
+resolution "GF widths other than gf16 have no infinities -- gf_ref is right" {
+  question "pass 196 found two independent decoders disagreeing about the all-ones exponent band: 32 codes at gf8, 32768 at gf24, 1048576 at gf32"
+  spec_says "t27/specs/numeric/gf8.t27 defines max_value with exp_max = (1 << EXP_BITS) - 1 - EXP_BIAS = 7 - 3 = 4, so the all-ones exponent field carries FINITE values. No pattern is reserved for Inf or NaN"
+  gf16_differs "t27/specs/numeric/gf16.t27 declares GF16_INF_POS 0x7E00, GF16_INF_NEG 0xFE00 and GF16_NAN 0xFE01 explicitly, which is why gf16 is the one width where the two decoders already agreed"
+  verdict "conformance/gf_ref.py is right; conformance/witness/gf_pipe/gf_decode_pipe_oracle.py assumes IEEE-style specials at every width and is wrong outside gf16"
+  consequence "the gf24 and gf32 pipelined decode RTL was verified against the pipe oracle. If it returns infinities on the all-ones exponent it contradicts the spec, and that is a question for the RTL owner"
+  spec_comment_stale "gf8.t27's own comment on max_value reads 'mant=1.9375, exp=3 -> 15.5' while its formula gives exp=4 and 31. The formula and gf_ref agree; the comment does not"
+}
+
+finding "the source of truth contains a 32-entry table that is wrong in every entry" {
+  where "t27/specs/numeric/gf16.t27, pow2_table"
+  claim "each line labels a code with a power of two: `.half 0x3C00 ; 2^0 = 1.0`"
+  measured "decoded as gf16 -- E=6, M=9, BIAS=31, the format the same file declares -- 0x3C00 is 1/2, 0x3D00 is 3/4, 0x3D80 is 7/8. All 32 entries disagree with their own labels"
+  not_binary16_either "0x3C00 is 1.0 in binary16 but 0x3D00 is 1.25, not 2.0, so the table matches no format in the corpus"
+  never_referenced "pow2_table appears once in the file, as its own definition. Dead data in the source of truth is how a table stays wrong this long, and dead is not harmless -- anyone implementing from the spec reads it as authoritative"
+  new_check "research/audit_spec_constants.py validates every labelled constant against the format its spec declares. Nothing in this campaign had ever checked a spec against itself"
+  not_fixed_here "the t27 repository is another workstream's and writing to it was declined earlier"
+  unchecked "tf3.t27 carries 128 labelled constants and declares no readable field widths; reported as unchecked rather than skipped"
+  own_error "the first version read `.const BIAS 31` as BIAS = 1 because a greedy \\w* ate the leading digit, and the self-check missed it by taking the bias from gf_ref instead of from the parser it was meant to test. The control now asserts the parsed format matches"
+}
