@@ -6742,3 +6742,13 @@ resolution "the ten formats pass 229 could not check now have a landmark" {
   genuinely_absent "gf4 and mxgf4 have bias 0, so the exponent field for 1 is the same field that encodes zero and subnormals. gf_decode_param.v calls gf4 a degenerate edge in its own header. There is no unity landmark to take, and saying so is the answer rather than a gap"
   running_total "across passes 228 to 230 this check has reported 9, 6, 3, 5 and 0 mismatches. Every one of them was the landmark. The corpus has not been wrong once"
 }
+
+correction "nine formats declared a negative zero at a code that means something else" {
+  found_by "checking every specials-legend entry against what its code actually decodes to -- 649 entries across the packs"
+  takum_and_tekum "all eight widths listed neg_zero at the sign-bit-only pattern, which is NaR. In tekum_ref the two properties were the SAME EXPRESSION three lines apart: neg_zero returned 1 << sign_shift and nar returned 1 << sign_shift"
+  mxint8 "listed neg_zero at 0x80, which OCP MX v1.0 reserves and which pass 214 already made decode return a Special for"
+  same_as_pass_188 "VAX declared a negative zero at its reserved operand. A format with one zero declaring two, and the second pointing at a code that means something else entirely. Third occurrence, three unrelated families"
+  fixed "neg_zero raises AttributeError for takum, tekum and the MX integer kind, so generate_vectors.real_specials probes with getattr and omits it. 39 packs regenerated; 247 of 247 still rebuild byte-identical"
+  header_checks_that_passed "hex padding matches ceil(width/4) in all 325 files, no code exceeds its declared width, every vector_count matches, every named oracle exists"
+  own_error "the first width check required exact equality between declared width and hex digits and flagged 27 files. Hex rounds up to nibbles -- a 6-bit format takes 2 digits, a 10-bit format 3 -- so all 27 were the check. gfternary was a second one: its zero is PhiVal(0, 0), which does not compare equal to 0"
+}

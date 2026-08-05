@@ -94,7 +94,11 @@ class TekumFormat:
 
     @property
     def neg_zero(self):
-        return 1 << self.sign_shift
+        # tekum has no negative zero. This returned the same sign-bit-only pattern the
+        # property below calls NaR -- the two were literally the same expression, three
+        # lines apart -- so every tekum pack's legend listed NaR as `neg_zero`.
+        raise AttributeError(f"{self.name} has no negative zero: "
+                             f"{1 << self.sign_shift:#x} is NaR")
 
     @property
     def nar(self):
