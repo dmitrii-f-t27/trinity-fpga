@@ -158,6 +158,90 @@
     "tag": "v2.0.0"
    },
    "generator": "ltlog8.c"
+  },
+  {
+   "name": "posit16_div_softposit.tsv",
+   "sha256": "88c6fb646623efe7cfd601df088d9af3c1ad6f53e22a984027998746a8b17687",
+   "bytes": 3749,
+   "in_repo": "conformance/witness/posit16_div_softposit.tsv",
+   "witness": "SoftPosit reference implementation, es matched per width",
+   "used_by": "research/crossval_posit_softposit.py",
+   "library_version": {
+    "commit": "17d5628",
+    "date": "2023-05-31",
+    "tag": null
+   },
+   "generator": "p8div.c / pdiv.c / px2div.c / psqrt.c, built per the pass-225 recipe"
+  },
+  {
+   "name": "posit16_sqrt_softposit.tsv",
+   "sha256": "66ed57662d638525be28b5dd815213cc697068ee081fefd4bad1d48b89a148fb",
+   "bytes": 3016,
+   "in_repo": "conformance/witness/posit16_sqrt_softposit.tsv",
+   "witness": "SoftPosit reference implementation, es matched per width",
+   "used_by": "research/crossval_posit_softposit.py",
+   "library_version": {
+    "commit": "17d5628",
+    "date": "2023-05-31",
+    "tag": null
+   },
+   "generator": "p8div.c / pdiv.c / px2div.c / psqrt.c, built per the pass-225 recipe"
+  },
+  {
+   "name": "posit32_div_softposit.tsv",
+   "sha256": "6ed114e3cc0f3933e1853c09126bdf57411a02dc72361343a481ecbde3810fcf",
+   "bytes": 7015,
+   "in_repo": "conformance/witness/posit32_div_softposit.tsv",
+   "witness": "SoftPosit reference implementation, es matched per width",
+   "used_by": "research/crossval_posit_softposit.py",
+   "library_version": {
+    "commit": "17d5628",
+    "date": "2023-05-31",
+    "tag": null
+   },
+   "generator": "p8div.c / pdiv.c / px2div.c / psqrt.c, built per the pass-225 recipe"
+  },
+  {
+   "name": "posit32_sqrt_softposit.tsv",
+   "sha256": "f992c31c43a290789f1352ef8699734cfa720c221d1d17cdaf322740ab72f132",
+   "bytes": 5155,
+   "in_repo": "conformance/witness/posit32_sqrt_softposit.tsv",
+   "witness": "SoftPosit reference implementation, es matched per width",
+   "used_by": "research/crossval_posit_softposit.py",
+   "library_version": {
+    "commit": "17d5628",
+    "date": "2023-05-31",
+    "tag": null
+   },
+   "generator": "p8div.c / pdiv.c / px2div.c / psqrt.c, built per the pass-225 recipe"
+  },
+  {
+   "name": "posit8_div_softposit.tsv",
+   "sha256": "9b1385c8b242e12885ecf7741e93f69d84e71a0d9fca4ae7c79893b98f6e6a1f",
+   "bytes": 702348,
+   "in_repo": "conformance/witness/posit8_div_softposit.tsv",
+   "witness": "SoftPosit reference implementation, es matched per width",
+   "used_by": "research/crossval_posit_softposit.py",
+   "library_version": {
+    "commit": "17d5628",
+    "date": "2023-05-31",
+    "tag": null
+   },
+   "generator": "p8div.c / pdiv.c / px2div.c / psqrt.c, built per the pass-225 recipe"
+  },
+  {
+   "name": "posit8_sqrt_softposit.tsv",
+   "sha256": "2de2b732dc6e8ea954525b7b137ad0ee20de92075c7c62c89470c717db1ec9e3",
+   "bytes": 2332,
+   "in_repo": "conformance/witness/posit8_sqrt_softposit.tsv",
+   "witness": "SoftPosit reference implementation, es matched per width",
+   "used_by": "research/crossval_posit_softposit.py",
+   "library_version": {
+    "commit": "17d5628",
+    "date": "2023-05-31",
+    "tag": null
+   },
+   "generator": "p8div.c / pdiv.c / px2div.c / psqrt.c, built per the pass-225 recipe"
   }
  ]
 }
