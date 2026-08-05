@@ -358,7 +358,7 @@ def gf_mul(fmt: GFFormat, a_raw: int, b_raw: int) -> int:
 
 # -------------------- SELF-TEST --------------------
 
-if __name__ == "__main__":
+def _selftest():
     ok = 0
     for name, fmt in sorted(FORMATS.items()):
         if fmt.width > 32:
@@ -385,3 +385,7 @@ if __name__ == "__main__":
         assert gf_add(fmt, fmt.neg_zero, 0) == 0, f"{name}: -0+0 != +0"
         ok += 1
     print(f"SELF-TEST: PASS ({ok} formats: zero/-0+0/round-trip/identity)")
+
+
+if __name__ == "__main__":
+    _selftest()

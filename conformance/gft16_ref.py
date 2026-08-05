@@ -104,7 +104,7 @@ def gft16_mul(a_raw: int, b_raw: int) -> int:
     return encode(decode(a_raw) * decode(b_raw))
 
 
-if __name__ == "__main__":
+def _selftest():
     # self-test: round-trip, commutativity, known values, monotone exponent
     import random
     rnd = random.Random(1)
@@ -126,3 +126,7 @@ if __name__ == "__main__":
     # 6-bit-exponent (~18-decade) range, where GF16 saturates to Inf.
     v = 2.0 ** 35
     print(f"  2^35 round-trip = {float(decode(encode(v))):.4e} (GF-T16 holds it; GF16 clips to Inf)")
+
+
+if __name__ == "__main__":
+    _selftest()

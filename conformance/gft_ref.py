@@ -120,7 +120,7 @@ LADDER = {
 }
 
 
-if __name__ == "__main__":
+def _selftest():
     import random
     rnd = random.Random(1)
     print(f"{'rung':>6} {'Et':>3} {'M':>5} {'range(dec)':>11} {'add/mul commute (5k pairs)':>28}")
@@ -142,3 +142,7 @@ if __name__ == "__main__":
     F16 = LADDER[16]
     assert abs(float(decode(F16, gft_mul(F16, encode(F16, 1.5), encode(F16, 2.0)))) - 3.0) < 1e-2
     print("GF-T16 1.5*2.0 =", float(decode(F16, gft_mul(F16, encode(F16, 1.5), encode(F16, 2.0)))))
+
+
+if __name__ == "__main__":
+    _selftest()

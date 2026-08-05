@@ -158,7 +158,7 @@ def compute_quantization_error(original, quantized):
     }
 
 
-if __name__ == '__main__':
+def _selftest():
     print("GF-MX14 Oracle Self-Test")
     print("="*60)
 
@@ -222,4 +222,21 @@ if __name__ == '__main__':
         ok = "YES" if abs(g14-v)/max(abs(v),1e-30)<0.01 else "NO"
         print(f"   {v:>12.1e} {g14:>12.1e} {gmx:>12.1e} {ok:>10}")
 
+    # Hard gate (deterministic): exact powers of two must round-trip through
+    # bare GF14, and a fixed block must dequantize within a bounded rel error.
+    for v in [1.0, 2.0, 0.5, 4.0, -1.0]:
+        assert abs(gf14_decode(gf14_encode(v)) - v) < 1e-9, f"GF14 round-trip {v}"
+    # One shared scale can only hold a modest dynamic range; span ~2 decades
+    # (what MX is for) so the mantissa reaches every element.
+    fixed = np.array([0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 0.0] + [0] * 24)
+    s, raws = quantize_block(fixed)
+    back = dequantize_block(s, raws)
+    nz = fixed != 0
+    max_rel = float(np.max(np.abs(back[nz] - fixed[nz]) / np.abs(fixed[nz])))
+    assert max_rel < 0.05, f"GF-MX14 block max rel error {max_rel} >= 0.05"
+
     print("\n✓ GF-MX14 oracle: ALL TESTS PASS")
+
+
+if __name__ == "__main__":
+    _selftest()
