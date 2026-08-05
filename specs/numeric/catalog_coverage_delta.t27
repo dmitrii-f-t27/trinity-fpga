@@ -6918,3 +6918,26 @@ verification "pass 235" {
   structural_audit "28 hosts, 12,173 codes, 314 disagreements in 5 named classes, 6 hosts reported but not scored, 1 host still silent"
   unchanged "gf_decode_golden self-test 12/12; the decode-host audit 0 raising and 0 disagreeing"
 }
+
+correction "half the vectors waiting for the board expected the wrong sign" {
+  what "IEEE 754-2008 3.5.2 makes a non-canonical case-B coefficient decode to zero. It says nothing about the sign field, which is a separate field and still means what it means. The three decimal hosts returned a bare 0x00000000, so every non-canonical code with sign=1 decoded to +0 instead of -0"
+  scale "44 of the 46 zero-sign disagreements pass 235 counted. decimal128 22, decimal64 16, decimal32 6"
+  the_part_that_matters "each host carries a NON_CANONICAL tuple -- the 18 vectors prepared in pass 219 and waiting for the board to answer 3.5.2 on silicon. NINE of the 18, every sign=1 one, expected +0. The board has not been run yet, so this lands before the evidence would have been recorded against a wrong golden rather than after"
+  oracle_was_right "decimal_ref has carried the sign since pass 185. Only the hosts dropped it, and the packs -- rebuilt from the oracles in pass 232 -- were never affected"
+  fixed "return (code >> (WIDTH - 1)) << 31. All three widths, 0 disagreements"
+}
+
+finding "the last two zero-sign cases are two readings, not a right and a wrong" {
+  which "double_double and quad_double at the sign-bit-only code -- the high limb is -0.0 and every other limb is +0.0"
+  host "returns +0, which is what IEEE addition gives for (-0) + (+0)"
+  my_adapter "returned -0, taking the sign from the top bit"
+  the_correction "extended_ref hands back Fraction(0, 1), which carries NO sign. The -0 was my adapter's opinion, not the oracle's, and pass 235 counted it as a host disagreement. It is now marked convention-open and reported rather than scored"
+  open "which sign a double-double zero should carry is not written down anywhere in this repo"
+}
+
+verification "pass 236" {
+  zero_sign_class "46 -> 0. 44 fixed in the decimal hosts, 2 reclassified with the reason above"
+  structural "28 hosts, 12,171 codes, 268 disagreements -- truncation 172, flush-to-zero 68, unclassified 20, one-ulp 8"
+  unchanged "narrow audit 280,329 codes 0 disagreements; decode-host audit 0 and 0; header-vs-vectors CLEAN; decimal_ref and gf_decode_golden self-tests PASS"
+  still_open "truncation and flush-to-zero need the RTL. They are the two classes a board run would settle, and 172 of the 268 are the first one"
+}

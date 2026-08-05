@@ -8,6 +8,7 @@
 # of reuse by another host. A model that needs a board driver to be read is
 # checking the wrong thing.
 import argparse, sys, struct, random
+WIDTH = 64
 from decimal import Decimal, ROUND_HALF_EVEN, localcontext
 
 FRAME = bytes([0xAA, 0x55])
@@ -101,7 +102,12 @@ def golden_decimal64(code):
     # itself wrong. conformance/decimal_ref.py has applied the rule since pass 185,
     # confirmed against gcc's Intel BID.
     if not _is_canonical(code):
-        return 0x00000000
+        # ...and the SIGN survives. 3.5.2 makes the coefficient zero; it says
+        # nothing about the sign field, which is a separate field and still
+        # means what it means. This returned a bare 0x00000000, so every
+        # non-canonical code with sign=1 decoded to +0 instead of -0.
+        # decimal_ref has carried the sign since pass 185; the host did not.
+        return (code >> (WIDTH - 1)) << 31
     kind = _bid_decode(code)
     if kind[0] == 'inf':
         return (kind[1] << 31) | 0x7F800000
