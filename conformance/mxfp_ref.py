@@ -46,7 +46,14 @@ class MXFormat:
     @property
     def pos_zero(self): return 0
     @property
-    def neg_zero(self): return 1 << self.sign_shift
+    def neg_zero(self):
+        # MXINT8 reserves 1 << sign_shift per OCP MX v1.0 -- pass 214 established that and
+        # made decode return a Special for it. It is not a negative zero, and naming it
+        # one put a reserved code in the pack's specials legend.
+        if self.kind == 'int':
+            raise AttributeError(f"{self.name} reserves "
+                                 f"{1 << self.sign_shift:#x}; it has no negative zero")
+        return 1 << self.sign_shift
     @property
     def quiet_nan(self):
         # element-level NaN only meaningful for fp/gf minifloats

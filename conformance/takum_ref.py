@@ -63,7 +63,17 @@ class TakumFormat:
     @property
     def pos_zero(self): return 0
     @property
-    def neg_zero(self): return 1 << self.sign_shift
+    def neg_zero(self):
+        # takum has no negative zero. 1 << sign_shift is NaR -- the same code the format
+        # reserves for every result outside the reals -- so handing it out under this name
+        # put NaR in the specials legend of every takum pack as `neg_zero`.
+        #
+        # Same shape as pass 188's VAX finding: a format with one zero declaring two, and
+        # the second pointing at a code that means something else entirely. AttributeError
+        # rather than a raise, so generate_vectors.real_specials probes with getattr and
+        # simply omits it.
+        raise AttributeError(f"{self.name} has no negative zero: "
+                             f"{1 << self.sign_shift:#x} is NaR")
     @property
     def nar(self): return 1 << self.sign_shift
 
