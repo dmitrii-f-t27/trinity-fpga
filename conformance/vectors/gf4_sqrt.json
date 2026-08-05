@@ -1,6 +1,15 @@
 {
   "format": "gf4",
   "op": "sqrt",
+  "oracle": "gf_ref.py",
+  "family": "gf",
+  "width": 4,
+  "specials": {
+    "pos_zero": "0x0",
+    "neg_zero": "0x8"
+  },
+  "note": "exact sqrt by integer bisection on the exact significand (conformance/exact_ops.py); b is ignored.",
+  "provenance": "expected values recomputed from the named oracle. They previously came from conformance/golden_conformance_vectors.py, a float32 proxy: 6,690 of 11,520 disagreed (research/audit_fp32_proxy_golden.py). Inputs and order are unchanged from the silicon sprint.",
   "count": 64,
   "vectors": [
     {
@@ -13,37 +22,37 @@
       "a": 1,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 1
     },
     {
       "a": 15,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 8,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 8
     },
     {
       "a": 8,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 8
     },
     {
       "a": 4,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 3
     },
     {
       "a": 3,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 0,
@@ -55,49 +64,49 @@
       "a": 8,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 8
     },
     {
       "a": 7,
       "b": 0,
       "op": "sqrt",
-      "result": 5
+      "result": 4
     },
     {
       "a": 7,
       "b": 0,
       "op": "sqrt",
-      "result": 5
+      "result": 4
     },
     {
       "a": 4,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 3
     },
     {
       "a": 3,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 2,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 13,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 1,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 1
     },
     {
       "a": 0,
@@ -109,19 +118,19 @@
       "a": 2,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 6,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 3
     },
     {
       "a": 7,
       "b": 0,
       "op": "sqrt",
-      "result": 5
+      "result": 4
     },
     {
       "a": 0,
@@ -133,31 +142,31 @@
       "a": 6,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 3
     },
     {
       "a": 13,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 7,
       "b": 0,
       "op": "sqrt",
-      "result": 5
+      "result": 4
     },
     {
       "a": 14,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 8,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 8
     },
     {
       "a": 0,
@@ -169,223 +178,223 @@
       "a": 5,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 3
     },
     {
       "a": 13,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 10,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 8,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 8
     },
     {
       "a": 4,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 3
     },
     {
       "a": 6,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 3
     },
     {
       "a": 10,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 3,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 2,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 12,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 3,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 11,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 11,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 8,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 8
     },
     {
       "a": 1,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 1
     },
     {
       "a": 14,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 3,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 12,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 2,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 9,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 11,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 6,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 3
     },
     {
       "a": 2,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 1,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 1
     },
     {
       "a": 7,
       "b": 0,
       "op": "sqrt",
-      "result": 5
+      "result": 4
     },
     {
       "a": 9,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 2,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 7,
       "b": 0,
       "op": "sqrt",
-      "result": 5
+      "result": 4
     },
     {
       "a": 3,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 2
     },
     {
       "a": 12,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 8,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 8
     },
     {
       "a": 14,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 11,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 5,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 3
     },
     {
       "a": 11,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 11,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 5
     },
     {
       "a": 6,
       "b": 0,
       "op": "sqrt",
-      "result": 4
+      "result": 3
     }
   ]
 }

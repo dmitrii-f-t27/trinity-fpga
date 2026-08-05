@@ -11,8 +11,35 @@ Usage:
 
 Supports: gf4, gf6, gf8, gf10, gf12, gf14, gf16, gf20, gf24, gf32, bf16
 Operations: add, mul, div, sqrt, quire
+
+GOLDEN
+------
+The default golden is the exact-Fraction oracle (conformance/gf_ref.py,
+conformance/bf16_ref.py, div and sqrt via conformance/exact_ops.py).
+
+It used to be `golden_fp32` below, which decodes each operand into a Python
+float32, computes there, and encodes back. Pass 232 replaced it as the default
+because that path:
+
+  * rounds twice -- once into fp32, once into the target format
+  * CLAMPS the exponent to fp32's range. gf32 has E=12, bias=2047, so most of
+    its exponent range cannot exist in an fp32 at all and silently saturates
+  * returns NEGATIVE infinity for x/0 for every x, including 0/0 (NaN) and
+    x>0 (+Inf)
+  * returns 0 for sqrt of a negative, not NaN
+  * encodes every NaN as +0, and can never emit a subnormal result
+  * computes `quire` as the identity -- the comment says "just return a"
+
+`--golden fp32-proxy` still selects the old path, and `--compare` runs both over
+the sample WITHOUT a board and reports where they differ, so the effect on any
+past hardware run can be measured offline.
+
+Every Tier-E compute PASS recorded before pass 232 was scored against the proxy.
+Those runs need repeating against the oracle before they mean what they claim.
 """
-import argparse, sys, struct, random
+import argparse, sys, struct, random, os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Format definitions: (total_bits, exponent_bits, mantissa_bits, bias)
 #
@@ -131,6 +158,78 @@ def golden_fp32(a_bits, b_bits, fmt_name, op):
     return from_fp32(result)
 
 
+def golden_oracle(a_bits, b_bits, fmt_name, op):
+    """Exact-Fraction golden: the same oracles the conformance packs are built on."""
+    import gf_ref, bf16_ref, exact_ops
+    if fmt_name == "bf16":
+        mod, fmt = bf16_ref, bf16_ref.FORMATS["bfloat16"]
+    else:
+        mod, fmt = gf_ref, gf_ref.FORMATS[fmt_name]
+    total = FORMATS[fmt_name][0]
+    mask = (1 << total) - 1
+    if op == "add":
+        fn = getattr(mod, "gf_add", None) or mod.format_add
+    elif op == "mul":
+        fn = getattr(mod, "gf_mul", None) or mod.format_mul
+    elif op == "div":
+        fn = exact_ops.make_div(mod)
+    elif op == "sqrt":
+        fn = exact_ops.make_sqrt(mod)
+    elif op == "quire":
+        # The RTL QUIRE core accumulates; the only golden anyone has ever run
+        # against it is the identity. Hold it to that and say so, rather than
+        # invent an accumulator semantics the core was never specified against.
+        return mod.encode(fmt, mod.decode(fmt, a_bits & mask)) & mask
+    else:
+        raise ValueError("Unknown op: %s" % op)
+    return fn(fmt, a_bits & mask, b_bits & mask) & mask
+
+
+GOLDENS = {"oracle": golden_oracle, "fp32-proxy": golden_fp32}
+
+
+def sample_pairs(fmt_name, n):
+    """The exact sample run_hw uses -- shared so --compare scores the same inputs."""
+    total = FORMATS[fmt_name][0]
+    T = 1 << total
+    rnd = random.Random(42)
+    corners = [0, 1, T - 1, 1 << (total - 1), T // 2, T // 4]
+    sample = corners + [rnd.randint(0, T - 1) for _ in range(max(0, n - len(corners)))]
+    for a in sample:
+        for b in sample[:min(8, len(sample))]:
+            yield a, b
+
+
+def compare_goldens(fmt_name, op, n):
+    """Offline: how far apart are the two goldens on the inputs the board sees?"""
+    diff = total = crashed = 0
+    shown = 0
+    for a, b in sample_pairs(fmt_name, n):
+        total += 1
+        try:
+            g_o = golden_oracle(a, b, fmt_name, op)
+        except Exception as e:                       # noqa: BLE001
+            g_o = "raised %s" % type(e).__name__
+        try:
+            g_p = golden_fp32(a, b, fmt_name, op)
+        except Exception as e:                       # noqa: BLE001
+            # The proxy has no overflow guard: a product that exceeds fp32's
+            # range reaches struct.pack('<f', ...) and raises. On a real run
+            # this aborts the whole sweep for that (format, op).
+            crashed += 1
+            g_p = "raised %s" % type(e).__name__
+        if g_o != g_p:
+            diff += 1
+            if shown < 5:
+                print("  a=%#x b=%#x  oracle=%s  fp32-proxy=%s" % (a, b, g_o, g_p))
+                shown += 1
+    pct = 100.0 * diff / total if total else 0.0
+    print("%-6s %-6s  oracle vs fp32-proxy: %d/%d differ (%.1f%%)%s"
+          % (fmt_name, op, diff, total, pct,
+             ("  proxy CRASHED on %d" % crashed) if crashed else ""))
+    return diff, total, crashed
+
+
 def hw_exchange(ser, a, b, nbytes):
     """Send a,b to FPGA and read back result."""
     pkt = bytearray(FRAME)
@@ -150,27 +249,24 @@ def hw_exchange(ser, a, b, nbytes):
     return result
 
 
-def run_hw(port, baud, fmt_name, op, n):
+def run_hw(port, baud, fmt_name, op, n, golden="oracle"):
     import serial
     total, E, M, BIAS = FORMATS[fmt_name]
     nbytes = max(1, (total + 7) // 8)
-    T = 1 << total
+    gold_fn = GOLDENS[golden]
     ser = serial.Serial(port, baud, timeout=3)
     fails = 0; checked = 0
-    rnd = random.Random(42)
-    corners = [0, 1, T-1, 1 << (total-1), T//2, T//4]
-    sample = corners + [rnd.randint(0, T-1) for _ in range(max(0, n - len(corners)))]
-    for a in sample:
-        for b in sample[:min(8, len(sample))]:
-            hw = hw_exchange(ser, a, b, nbytes)
-            gold = golden_fp32(a, b, fmt_name, op)
-            checked += 1
-            if hw is None or hw != gold:
-                fails += 1
-                if fails <= 5:
-                    print(f"MISMATCH a=0x{a:0{nbytes*2}x} b=0x{b:0{nbytes*2}x} hw={hw} gold=0x{gold:0{nbytes*2}x}")
+    print(f"golden: {golden}")
+    for a, b in sample_pairs(fmt_name, n):
+        hw = hw_exchange(ser, a, b, nbytes)
+        gold = gold_fn(a, b, fmt_name, op)
+        checked += 1
+        if hw is None or hw != gold:
+            fails += 1
+            if fails <= 5:
+                print(f"MISMATCH a=0x{a:0{nbytes*2}x} b=0x{b:0{nbytes*2}x} hw={hw} gold=0x{gold:0{nbytes*2}x}")
     ser.close()
-    print(f"HW RESULT: {checked - fails}/{checked} bit-exact (fails={fails})")
+    print(f"HW RESULT: {checked - fails}/{checked} bit-exact (fails={fails}) golden={golden}")
     return fails == 0
 
 
@@ -181,5 +277,14 @@ if __name__ == "__main__":
     ap.add_argument("--fmt", required=True, choices=list(FORMATS.keys()))
     ap.add_argument("--op", required=True, choices=["add", "mul", "div", "sqrt", "quire"])
     ap.add_argument("--n", type=int, default=64)
+    ap.add_argument("--golden", choices=sorted(GOLDENS), default="oracle",
+                    help="which reference to score the board against "
+                         "(default: oracle -- exact Fraction)")
+    ap.add_argument("--compare", action="store_true",
+                    help="no board: report where the two goldens disagree")
     args = ap.parse_args()
-    sys.exit(0 if run_hw(args.port, args.baud, args.fmt, args.op, args.n) else 1)
+    if args.compare:
+        diff, _, _ = compare_goldens(args.fmt, args.op, args.n)
+        sys.exit(0 if diff == 0 else 1)
+    sys.exit(0 if run_hw(args.port, args.baud, args.fmt, args.op, args.n,
+                         args.golden) else 1)

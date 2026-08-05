@@ -1,6 +1,15 @@
 {
   "format": "gf32",
   "op": "quire",
+  "oracle": "gf_ref.py",
+  "family": "gf",
+  "width": 32,
+  "specials": {
+    "pos_zero": "0x00000000",
+    "neg_zero": "0x80000000"
+  },
+  "note": "NOT an accumulator: this is encode(decode(a)), the decode/encode round trip the fp32 proxy called `quire`. b is ignored. The QUIRE core on silicon has never been checked against an accumulator golden.",
+  "provenance": "expected values recomputed from the named oracle. They previously came from conformance/golden_conformance_vectors.py, a float32 proxy: 6,690 of 11,520 disagreed (research/audit_fp32_proxy_golden.py). Inputs and order are unchanged from the silicon sprint.",
   "count": 64,
   "vectors": [
     {
@@ -13,10 +22,16 @@
       "a": 1,
       "b": 0,
       "op": "quire",
-      "result": 33554432
+      "result": 1
     },
     {
       "a": 4294967295,
+      "b": 0,
+      "op": "quire",
+      "result": 4294967295
+    },
+    {
+      "a": 2147483648,
       "b": 0,
       "op": "quire",
       "result": 0
@@ -25,13 +40,7 @@
       "a": 2147483648,
       "b": 0,
       "op": "quire",
-      "result": 2147483648
-    },
-    {
-      "a": 2147483648,
-      "b": 0,
-      "op": "quire",
-      "result": 2147483648
+      "result": 0
     },
     {
       "a": 1073741824,
@@ -43,7 +52,7 @@
       "a": 2746317213,
       "b": 0,
       "op": "quire",
-      "result": 2721151389
+      "result": 2746317213
     },
     {
       "a": 1181241943,
@@ -55,13 +64,13 @@
       "a": 958682846,
       "b": 0,
       "op": "quire",
-      "result": 941905630
+      "result": 958682846
     },
     {
       "a": 3163119785,
       "b": 0,
       "op": "quire",
-      "result": 3154731177
+      "result": 3163119785
     },
     {
       "a": 1812140441,
@@ -73,19 +82,19 @@
       "a": 127978094,
       "b": 0,
       "op": "quire",
-      "result": 102812270
+      "result": 127978094
     },
     {
       "a": 939042955,
       "b": 0,
       "op": "quire",
-      "result": 913877131
+      "result": 939042955
     },
     {
       "a": 2340505846,
       "b": 0,
       "op": "quire",
-      "result": 2315340022
+      "result": 2340505846
     },
     {
       "a": 946785248,
@@ -97,7 +106,7 @@
       "a": 2530876844,
       "b": 0,
       "op": "quire",
-      "result": 2522488236
+      "result": 2530876844
     },
     {
       "a": 3460967357,
@@ -109,19 +118,19 @@
       "a": 2998485882,
       "b": 0,
       "op": "quire",
-      "result": 2990097274
+      "result": 2998485882
     },
     {
       "a": 1461364854,
       "b": 0,
       "op": "quire",
-      "result": 1444587638
+      "result": 1461364854
     },
     {
       "a": 667779376,
       "b": 0,
       "op": "quire",
-      "result": 642613552
+      "result": 667779376
     },
     {
       "a": 1445662585,
@@ -133,67 +142,67 @@
       "a": 398340369,
       "b": 0,
       "op": "quire",
-      "result": 373174545
+      "result": 398340369
     },
     {
       "a": 415393687,
       "b": 0,
       "op": "quire",
-      "result": 407005079
+      "result": 415393687
     },
     {
       "a": 3639960595,
       "b": 0,
       "op": "quire",
-      "result": 3631571987
+      "result": 3639960595
     },
     {
       "a": 2592983555,
       "b": 0,
       "op": "quire",
-      "result": 2584594947
+      "result": 2592983555
     },
     {
       "a": 3466589567,
       "b": 0,
       "op": "quire",
-      "result": 3458200959
+      "result": 3466589567
     },
     {
       "a": 3134174160,
       "b": 0,
       "op": "quire",
-      "result": 3125785552
+      "result": 3134174160
     },
     {
       "a": 2303082117,
       "b": 0,
       "op": "quire",
-      "result": 2286304901
+      "result": 2303082117
     },
     {
       "a": 1625792787,
       "b": 0,
       "op": "quire",
-      "result": 1617404179
+      "result": 1625792787
     },
     {
       "a": 2370996465,
       "b": 0,
       "op": "quire",
-      "result": 2354219249
+      "result": 2370996465
     },
     {
       "a": 3701002945,
       "b": 0,
       "op": "quire",
-      "result": 3692614337
+      "result": 3701002945
     },
     {
       "a": 2479708607,
       "b": 0,
       "op": "quire",
-      "result": 2454542783
+      "result": 2479708607
     },
     {
       "a": 3026113008,
@@ -205,109 +214,109 @@
       "a": 433797840,
       "b": 0,
       "op": "quire",
-      "result": 408632016
+      "result": 433797840
     },
     {
       "a": 1193887545,
       "b": 0,
       "op": "quire",
-      "result": 1177110329
+      "result": 1193887545
     },
     {
       "a": 1566942273,
       "b": 0,
       "op": "quire",
-      "result": 1550165057
+      "result": 1566942273
     },
     {
       "a": 1589915144,
       "b": 0,
       "op": "quire",
-      "result": 1581526536
+      "result": 1589915144
     },
     {
       "a": 2783290795,
       "b": 0,
       "op": "quire",
-      "result": 2758124971
+      "result": 2783290795
     },
     {
       "a": 3131575764,
       "b": 0,
       "op": "quire",
-      "result": 3123187156
+      "result": 3131575764
     },
     {
       "a": 701808367,
       "b": 0,
       "op": "quire",
-      "result": 676642543
+      "result": 701808367
     },
     {
       "a": 1629748727,
       "b": 0,
       "op": "quire",
-      "result": 1612971511
+      "result": 1629748727
     },
     {
       "a": 2392080953,
       "b": 0,
       "op": "quire",
-      "result": 2383692345
+      "result": 2392080953
     },
     {
       "a": 2940395823,
       "b": 0,
       "op": "quire",
-      "result": 2923618607
+      "result": 2940395823
     },
     {
       "a": 3332894265,
       "b": 0,
       "op": "quire",
-      "result": 3324505657
+      "result": 3332894265
     },
     {
       "a": 1354860540,
       "b": 0,
       "op": "quire",
-      "result": 1346471932
+      "result": 1354860540
     },
     {
       "a": 1149938334,
       "b": 0,
       "op": "quire",
-      "result": 1141549726
+      "result": 1149938334
     },
     {
       "a": 1351531223,
       "b": 0,
       "op": "quire",
-      "result": 1343142615
+      "result": 1351531223
     },
     {
       "a": 2815087637,
       "b": 0,
       "op": "quire",
-      "result": 2789921813
+      "result": 2815087637
     },
     {
       "a": 1970753705,
       "b": 0,
       "op": "quire",
-      "result": 1953976489
+      "result": 1970753705
     },
     {
       "a": 1137651678,
       "b": 0,
       "op": "quire",
-      "result": 1112485854
+      "result": 1137651678
     },
     {
       "a": 2510777721,
       "b": 0,
       "op": "quire",
-      "result": 2485611897
+      "result": 2510777721
     },
     {
       "a": 1715412119,
@@ -319,7 +328,7 @@
       "a": 4284391408,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 4284391408
     },
     {
       "a": 2188398760,
@@ -337,7 +346,7 @@
       "a": 2694860228,
       "b": 0,
       "op": "quire",
-      "result": 2686471620
+      "result": 2694860228
     },
     {
       "a": 272849424,
@@ -349,19 +358,19 @@
       "a": 4278308761,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 4278308761
     },
     {
       "a": 2272528809,
       "b": 0,
       "op": "quire",
-      "result": 2255751593
+      "result": 2272528809
     },
     {
       "a": 3095476665,
       "b": 0,
       "op": "quire",
-      "result": 3087088057
+      "result": 3095476665
     },
     {
       "a": 2752909971,
@@ -373,13 +382,13 @@
       "a": 479112937,
       "b": 0,
       "op": "quire",
-      "result": 470724329
+      "result": 479112937
     },
     {
       "a": 1867302554,
       "b": 0,
       "op": "quire",
-      "result": 1850525338
+      "result": 1867302554
     },
     {
       "a": 1948728483,

@@ -1,6 +1,18 @@
 {
   "format": "gf16",
   "op": "quire",
+  "oracle": "gf_ref.py",
+  "family": "gf",
+  "width": 16,
+  "specials": {
+    "pos_zero": "0x0000",
+    "neg_zero": "0x8000",
+    "pos_inf": "0x7E00",
+    "neg_inf": "0xFE00",
+    "quiet_nan": "0x7E01"
+  },
+  "note": "NOT an accumulator: this is encode(decode(a)), the decode/encode round trip the fp32 proxy called `quire`. b is ignored. The QUIRE core on silicon has never been checked against an accumulator golden.",
+  "provenance": "expected values recomputed from the named oracle. They previously came from conformance/golden_conformance_vectors.py, a float32 proxy: 6,690 of 11,520 disagreed (research/audit_fp32_proxy_golden.py). Inputs and order are unchanged from the silicon sprint.",
   "count": 64,
   "vectors": [
     {
@@ -13,13 +25,13 @@
       "a": 1,
       "b": 0,
       "op": "quire",
-      "result": 1024
+      "result": 1
     },
     {
       "a": 65535,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 32257
     },
     {
       "a": 32768,
@@ -61,7 +73,7 @@
       "a": 32098,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 32098
     },
     {
       "a": 29256,
@@ -163,7 +175,7 @@
       "a": 851,
       "b": 0,
       "op": "quire",
-      "result": 1024
+      "result": 851
     },
     {
       "a": 20926,

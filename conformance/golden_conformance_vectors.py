@@ -1,14 +1,32 @@
 #!/usr/bin/env python3
-"""golden_conformance_vectors.py — Generate golden conformance vectors for
-div, sqrt, quire operations. JSON output for CI verification.
+"""RETIRED -- this is a float32 proxy, not a golden reference. Do not use.
 
-Each vector: {a, b, op, golden_result} where values are hex-encoded format-specific.
+It generated the div/sqrt/quire vectors for the silicon sprint, and
+research/audit_fp32_proxy_golden.py found that 6,690 of its 11,520 values (58.1%)
+disagree with the project's own oracles. The packs were recomputed by
+research/regenerate_silicon_packs.py; the file is kept only so that history
+remains reproducible.
 
-Usage:
-  python3 golden_conformance_vectors.py --fmt gf16 --op div --n 64 > vectors/gf16_div.json
-  python3 golden_conformance_vectors.py --fmt gf16 --op sqrt --n 64 > vectors/gf16_sqrt.json
+What is wrong with it:
+
+  * every value goes through a Python float32, so binary64 (52-bit mantissa) and
+    fp128_e15m112 (112-bit) lose most of their precision before being called golden
+  * subnormals decode with the mantissa ZEROED, so every subnormal of a format
+    collapses to the single value 2**(1-bias)
+  * NaN encodes to +0
+  * underflow flushes to signed zero -- the encoder can never emit a subnormal
+  * x/0 returns sign=1, exp=all-ones, mant=0 for every a, including 0/0
+    (which is NaN) and a>0 (which is +Inf)
+  * sqrt of a negative returns 0, not NaN
+  * `quire` is from_fp32(to_fp32(a)): a decode/encode round trip that ignores b.
+    It is not an accumulator
+  * three of the four GF layouts contradict gf_ref, the oracle that matches
+    silicon -- gf4 is described as 1+2+2 = 5 bits in a 4-bit format and gf32 as
+    1+7+25 = 33 bits in a 32-bit format
+
+Use conformance/generate_vectors.py, which drives the real oracles.
 """
-import argparse, json, struct, random, math, os
+import argparse, json, struct, random, math, os, sys
 
 FORMATS = {
     "gf4":  (4,  2, 2, 1),
@@ -129,6 +147,11 @@ def gen_vectors(fmt_name, op, n, seed=42):
     return vectors
 
 if __name__ == "__main__":
+    if "--yes-i-know-this-is-an-fp32-proxy" not in sys.argv:
+        sys.stderr.write(__doc__)
+        sys.stderr.write("\nRefusing to run. See the docstring above.\n")
+        sys.exit(2)
+    sys.argv.remove("--yes-i-know-this-is-an-fp32-proxy")
     ap = argparse.ArgumentParser()
     ap.add_argument("--fmt", required=True, choices=list(FORMATS.keys()))
     ap.add_argument("--op", required=True, choices=["add", "mul", "div", "sqrt", "quire"])
