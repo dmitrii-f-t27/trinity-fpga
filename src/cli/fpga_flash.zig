@@ -127,6 +127,11 @@ fn verifyPid() !void {
         std.debug.print("\x1b[33m⚠️  BOOTLOADER MODE (PID 0x0013)\x1b[0m\n", .{});
         std.debug.print("   Need to run fxload again!\n\n", .{});
         std.debug.print("Next: fpga-flash fxload\n\n", .{});
+        // Not JTAG-ready. `full` (step 4 = "Verify PID = 0x0008") calls this via
+        // `try` before flashing, so returning success here would flash a cable
+        // still in bootloader mode -> guaranteed failure. Signal not-ready; the
+        // guidance above still prints for the interactive caller.
+        return error.BootloaderMode;
     } else {
         std.debug.print("\x1b[31m❌ UNKNOWN PID: {s}\x1b[0m\n", .{pid});
         return error.UnknownPid;
@@ -162,6 +167,10 @@ fn flashBitstream() !void {
     } else {
         std.debug.print("\n\x1b[31m❌ Flash may have failed\x1b[0m\n", .{});
         std.debug.print("Check output above for errors\n\n", .{});
+        // Signal failure with a non-zero exit so callers (`fpga-flash full`,
+        // CI, scripts) can detect it. verifyPid() already returns errors; flash
+        // silently returned success on failure, which this fixes.
+        return error.FlashFailed;
     }
 }
 
