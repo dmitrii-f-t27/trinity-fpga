@@ -6971,3 +6971,19 @@ correction "gf256's own testbench modelled a core the board does not contain" {
   fixed "the testbench now sets HAS_INF(0)"
   note "pass 235 called gf256's output domain 'not established'. It is established -- fp32, from the RTL itself. It stays unscored for a different and now measured reason: scoring it would report the RTL's 40-bit exponent path as hundreds of host defects"
 }
+
+correction "the decode core's bias never fit, and 4,073 codes decoded wrong because of it" {
+  root_cause "parameter integer BIAS. A Verilog integer is 32 bits SIGNED, so every GF format with BIAS >= 2**31 had its bias truncated before any arithmetic happened -- gf96 (2**35-1), gf128, gf256, gf512, gf1024. EXP_CALC_W being a flat 40 compounded it for the widest"
+  how_it_hid "exp_in - BIAS truncated both sides the same way, so codes near the bias still came out right. Widening EXP_CALC_W alone made it visible instantly: 1.0 started decoding to +Inf, because exp_in was now carried at full width and BIAS was not"
+  fix "BIAS is declared parameter [E:0] and made signed at each use; EXP_CALC_W = max(E + 2, 40), so every existing narrow instantiation is bit-identical"
+
+  witness "research/witness_gf_decode_rtl.py runs the module under iverilog against conformance/gf_decode_golden.py in ONE testbench per format instead of one invocation per code"
+  before "4,073 disagreements -- gf96 261, gf128 417, gf256 653, gf512 1020, gf1024 1722"
+  after 0
+  scale "94,894 codes across all 17 GF widths. gf4 through gf16 EXHAUSTIVELY, 87,376 of them"
+  unmoved "gf4 through gf64 were already clean and stay clean. Those are the widths the Tier-E evidence actually rests on"
+
+  own_error "my first rewrite of the subnormal exponent ended with `- 1'sb1`. A 1-bit SIGNED literal 1 is -1, so it added where it meant to subtract, and every subnormal in every format came out exactly 2x too large -- 1,962 disagreements across gf8 to gf16, formats that had been clean. Caught by the witness before it went anywhere. Restored to the original grouping with only BIAS made signed"
+  header "the module header said it MUST NOT be instantiated for N>32. That was true when written; it now says why it was true, what changed, and that a simulation witness is still not silicon"
+  unchanged_rule "no gf48/64/96/128/256/512/1024 cell appears in any complete-chain Tier-E comment, and none of this is evidence that one should"
+}
