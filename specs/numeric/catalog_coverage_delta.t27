@@ -6672,3 +6672,12 @@ resolution "div and sqrt now exist in a reproducible form for eight formats" {
   quire_still_absent "which fixed-point accumulator a quire is remains a design decision; inventing one would be inventing the semantics the packs are meant to test"
   own_integration_defect "the new names broke both gates. audit_pack_vs_oracle read bf16_div_exact as the format `bf16_div` with the operation `exact` and moved 16 files into the no-oracle bucket the moment they appeared -- 18 became 34. Both gates now know the suffix, and the reproducibility gate counts the _exact family separately so its headline does not shrink when the corpus grows something it cannot rebuild"
 }
+
+resolution "exact_ops covers the NaR formats, and div/sqrt now span 17 formats" {
+  what_blocked_them "exact_ops required fmt.quiet_nan and fmt.pos_inf. posit, takum and tekum have neither: one code, NaR, stands for every result outside the reals, so all nine of those formats were excluded from div and sqrt"
+  fixed "_nan falls back to nar and _inf falls back to nar. x/0 is NaR in a posit because the Posit Standard has no infinity at all -- that is the format's own answer, not a substitution"
+  built "22 more files, 5045 vectors, across posit8/16/32/64, takum8/16/32/64 and tekum8/16/32/64"
+  total "38 _exact packs, 8261 vectors, every one re-derived from the oracle its header names"
+  self_test "the NaR path is asserted in exact_ops' own self-test -- 1/1, 1/0 = NaR rather than infinity, 0/0 = NaR, sqrt(1), sqrt(-1) = NaR -- so the branch cannot rot unnoticed"
+  gates "audit_pack_vs_oracle now re-derives 307 files with no-oracle unchanged at 18; audit_pack_reproducibility counts 38 in the _exact family beside its 247"
+}
