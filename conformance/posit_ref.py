@@ -171,10 +171,17 @@ def encode(fmt: PositFormat, value):
     if a >= largest:
         m = hi
     elif a <= smallest:
-        # round between 0 and smallest: tie -> even (0 is even)
-        m = lo if (a > smallest / 2) else 0
-        if m == 0:
-            return fmt.pos_zero
+        # Posit Standard 2022: a NONZERO value never rounds to zero. It saturates to
+        # minpos, and symmetrically never rounds to NaR at the top. This branch applied
+        # round-to-nearest-even between 0 and minpos, so anything below minpos/2 became
+        # +0 -- and lost its sign on the way, since it returned pos_zero for negatives
+        # too.
+        #
+        # Found in pass 225 against SoftPosit's pX2_div: posit8_div agreed on 135 of 251
+        # pairs, and 0x01/0x61 came back as 0x00 here where the reference gives 0x01.
+        # Rounding a nonzero quotient to zero is the one thing a posit is defined not to
+        # do, which is why the disagreement was systematic rather than scattered.
+        m = lo
     else:
         # binary search largest m with decode(m) <= a
         while lo < hi:
