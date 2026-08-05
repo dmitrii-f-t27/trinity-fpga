@@ -6663,3 +6663,12 @@ verification "all 247 generated packs reproduce byte for byte, in forty seconds"
   not_covered "the 40 integer-schema packs from the silicon-sprint generator (pass 189). Counted and named every run rather than omitted"
   control "a one-byte change to a committed pack must produce a different hash, and the real file must never be written -- the lesson pass 220 paid for when an interrupted mutation left two oracles corrupted on disk"
 }
+
+resolution "div and sqrt now exist in a reproducible form for eight formats" {
+  gap "pass 222 left 40 integer-schema packs unreproducible -- their generator belongs to another line and is not in the repository. Ten formats carry div, sqrt and quire there and nowhere else"
+  what_was_built "conformance/exact_ops.py (pass 191) builds div and sqrt from any oracle's own decode and encode. Eight of the ten formats have a reachable oracle: bf16, binary64, fp128_e15m112, fp32_e8m23 and gf4, gf8, gf16, gf32. fp16_e6m9 and fp24_7m16 have none"
+  written "16 files as <fmt>_<op>_exact.json, 3216 vectors, every one re-derivable from the oracle its header names. The silicon-sprint packs of the same operation are NOT overwritten -- pass 210 showed their goldens differ and which is right needs each format's spec"
+  overlap "operand selection differs, so the shared (a, b) pairs are few. Where they exist: gf4_div 0 of 7 agree, gf8_div 1 of 3, and every sqrt overlap is the trivial case. Division genuinely disagrees, consistent with passes 210 and 211"
+  quire_still_absent "which fixed-point accumulator a quire is remains a design decision; inventing one would be inventing the semantics the packs are meant to test"
+  own_integration_defect "the new names broke both gates. audit_pack_vs_oracle read bf16_div_exact as the format `bf16_div` with the operation `exact` and moved 16 files into the no-oracle bucket the moment they appeared -- 18 became 34. Both gates now know the suffix, and the reproducibility gate counts the _exact family separately so its headline does not shrink when the corpus grows something it cannot rebuild"
+}

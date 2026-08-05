@@ -156,6 +156,13 @@ def main() -> int:
         if not vectors:
             continue
         base = os.path.basename(path)[:-5]
+        # `<fmt>_<op>_exact.json` holds div and sqrt built by conformance/exact_ops.py
+        # from an oracle's own decode and encode (pass 223). Stripping the suffix here
+        # rather than leaving it to rpartition, which read bf16_div_exact as the format
+        # `bf16_div` with the operation `exact` and quietly moved 16 files into the
+        # no-oracle bucket the moment they were added.
+        if base.endswith("_exact"):
+            base = base[:-len("_exact")]
         fname, _, op = base.rpartition("_")
         if fname not in mod_of and fname in ALIASES:
             alias_mod, alias_fmt = ALIASES[fname]
