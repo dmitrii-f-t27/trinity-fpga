@@ -139,6 +139,62 @@ def check_sem(mod_name, family_has_inf=None, skipped=None):
     return rows
 
 
+def unity_code(fmt):
+    """The code that must decode to exactly 1, whatever the width.
+
+    maxfinite is not computable for a format whose bias is near 2^60 -- 2^(top-bias)
+    cannot be materialised at all -- but ONE always can. It pins the same (exp_bits,
+    mant_bits, bias) triple: get any of the three wrong and unity lands somewhere else.
+    That is what makes gf64 through gf1024 checkable after pass 229 had to skip them.
+    """
+    if getattr(fmt, "kind", "") == "int":
+        return 1 << getattr(fmt, "int_frac_bits", 0)
+    base = getattr(fmt, "base", 2)
+    if base != 2:
+        # IBM hexadecimal floating point has no implicit leading one and a base-16
+        # exponent, so 1 is 1/16 * 16^1: exponent field bias+1, significand one sixteenth
+        # of full scale. bias << mant_bits is the ZERO code there, which is what the
+        # first version of this landmark decoded.
+        shift = fmt.mant_bits - 4
+        return ((fmt.bias + 1) << fmt.mant_bits) | (1 << shift)
+    code = fmt.bias << fmt.mant_bits
+    if getattr(fmt, "explicit_int_bit", False):
+        # cray and x87 carry the leading bit in the field instead of implying it.
+        code |= 1 << (fmt.mant_bits - 1)
+    return code
+
+
+def check_unity(mod_name):
+    """(name, decoded, ok) -- computable at every width, unlike maxfinite."""
+    sys.path.insert(0, CONF)
+    try:
+        M = importlib.import_module(mod_name)
+    except Exception:
+        return []
+    rows = []
+    for name, fmt in getattr(M, "FORMATS", {}).items():
+        if not all(hasattr(fmt, a) for a in ("mant_bits", "bias")) \
+                and getattr(fmt, "kind", "") != "int":
+            continue
+        if getattr(fmt, "bias", None) == 0 and getattr(fmt, "kind", "") != "int":
+            # gf4 and mxgf4 have bias 0, so the exponent field for 1 is the same field
+            # that encodes zero and subnormals. gf_decode_param.v calls gf4 a degenerate
+            # edge in its own header for this reason. There is no unity landmark to take.
+            rows.append((name, "no unity code: bias is 0", None))
+            continue
+        try:
+            got = M.decode(fmt, unity_code(fmt))
+        except Exception as e:
+            rows.append((name, f"<{type(e).__name__}>", False))
+            continue
+        S = getattr(M, "Special", None)
+        if S is not None and isinstance(got, S):
+            rows.append((name, str(got), False))
+            continue
+        rows.append((name, got, got == 1))
+    return rows
+
+
 def pack_agrees(name):
     """Does a committed pack decode under the same oracle it names?
 
@@ -175,6 +231,21 @@ def main() -> int:
         if verbose:
             print(f"      pack oracle: {pack_agrees(name)}")
 
+    unity = []
+    for mod_name in ("ieee_ref", "bf16_ref", "fp8_ref", "gf_ref", "mxfp_ref",
+                     "legacy_ref"):
+        for r in check_unity(mod_name):
+            unity.append((mod_name, *r))
+    unity_bad = [r for r in unity if r[3] is False]
+    unity_na = [r for r in unity if r[3] is None]
+    print(f"\n  unity landmark, computable at every width: "
+          f"{len(unity) - len(unity_na)} formats, {len(unity_bad)} where the code for 1 "
+          f"does not decode to 1")
+    if unity_na:
+        print(f"    no unity code: {', '.join(r[1] for r in unity_na)} (bias is 0)")
+    for mod_name, name, got, ok in unity_bad:
+        print(f"    {name:<14} ({mod_name}) -> {str(got)[:40]}")
+
     print(f"\n  sign-exponent-mantissa families: {len(sem)} formats checked, "
           f"{len(sem_bad)} mismatched, {len(skipped)} past the exponent bound")
     if skipped:
@@ -201,7 +272,7 @@ validations were real and they were about different formats.
 Which convention a paper cites has to be stated. es = 0 is the older draft; the 2022
 standard fixes es = 2 at every width, and the corpus carries a separate posit8_es2 decode
 path for it.""")
-    return 1 if (bad or sem_bad) else 0
+    return 1 if (bad or sem_bad or unity_bad) else 0
 
 
 def self_check() -> int:

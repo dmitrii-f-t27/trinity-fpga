@@ -6733,3 +6733,12 @@ verification "every computable format's largest finite value matches its declara
   four_landmark_errors_of_my_own "every mismatch this check reported before the last fix was the landmark, not a format. fp8_e4m3 and mxfp8_e4m3 reserve only all-ones-exponent WITH all-ones-mantissa for NaN, so their largest finite sits one mantissa step below and the naive top code IS the NaN. IBM HFP has base 16 and no implicit leading one. The maximum significand is (2^m - 1)/2^m and I wrote (2^m)/2^m. x87 has infinities, so passing the legacy family default read its all-ones exponent as finite and decoded a NaN"
   the_pattern "9 mismatches, then 6, then 3, then 0 -- and not one of them was ever a defect in the corpus. A landmark is only as good as the format facts it encodes, and this one needed four before it encoded them all"
 }
+
+resolution "the ten formats pass 229 could not check now have a landmark" {
+  the_problem "maxfinite is not computable for a format whose bias is near 2^60 -- 2^(top-bias) cannot be materialised at all -- so gf64 through gf1024 were skipped, along with mxint8 and the three explicit-integer-bit formats"
+  the_answer "ONE is computable at every width, and it pins the same (exp_bits, mant_bits, bias) triple: get any of the three wrong and unity lands somewhere else. gf1024's unity code is 254 hex digits long and decodes to exactly 1"
+  coverage "49 formats now have a unity landmark and all 49 pass, beside the 41 with a maxfinite landmark and the 4 posits with a maxpos one"
+  three_more_landmark_errors_of_my_own "the explicit-integer-bit formats need that bit set in the unity code -- cray and x87 carry the leading one in the field rather than implying it. IBM HFP's unity is 1/16 * 16^1, so bias << mant_bits is its ZERO code, which is what my first version decoded. And mxint8's unity is 1 << int_frac_bits, not an exponent field at all"
+  genuinely_absent "gf4 and mxgf4 have bias 0, so the exponent field for 1 is the same field that encodes zero and subnormals. gf_decode_param.v calls gf4 a degenerate edge in its own header. There is no unity landmark to take, and saying so is the answer rather than a gap"
+  running_total "across passes 228 to 230 this check has reported 9, 6, 3, 5 and 0 mismatches. Every one of them was the landmark. The corpus has not been wrong once"
+}
