@@ -1,6 +1,15 @@
 {
   "format": "gf4",
   "op": "quire",
+  "oracle": "gf_ref.py",
+  "family": "gf",
+  "width": 4,
+  "specials": {
+    "pos_zero": "0x0",
+    "neg_zero": "0x8"
+  },
+  "note": "NOT an accumulator: this is encode(decode(a)), the decode/encode round trip the fp32 proxy called `quire`. b is ignored. The QUIRE core on silicon has never been checked against an accumulator golden.",
+  "provenance": "expected values recomputed from the named oracle. They previously came from conformance/golden_conformance_vectors.py, a float32 proxy: 6,690 of 11,520 disagreed (research/audit_fp32_proxy_golden.py). Inputs and order are unchanged from the silicon sprint.",
   "count": 64,
   "vectors": [
     {
@@ -13,25 +22,25 @@
       "a": 1,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 1
     },
     {
       "a": 15,
       "b": 0,
       "op": "quire",
+      "result": 15
+    },
+    {
+      "a": 8,
+      "b": 0,
+      "op": "quire",
       "result": 0
     },
     {
       "a": 8,
       "b": 0,
       "op": "quire",
-      "result": 8
-    },
-    {
-      "a": 8,
-      "b": 0,
-      "op": "quire",
-      "result": 8
+      "result": 0
     },
     {
       "a": 4,
@@ -43,7 +52,7 @@
       "a": 3,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 3
     },
     {
       "a": 0,
@@ -55,7 +64,7 @@
       "a": 8,
       "b": 0,
       "op": "quire",
-      "result": 8
+      "result": 0
     },
     {
       "a": 7,
@@ -79,25 +88,25 @@
       "a": 3,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 3
     },
     {
       "a": 2,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 2
     },
     {
       "a": 13,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 13
     },
     {
       "a": 1,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 1
     },
     {
       "a": 0,
@@ -109,7 +118,7 @@
       "a": 2,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 2
     },
     {
       "a": 6,
@@ -139,7 +148,7 @@
       "a": 13,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 13
     },
     {
       "a": 7,
@@ -151,13 +160,13 @@
       "a": 14,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 14
     },
     {
       "a": 8,
       "b": 0,
       "op": "quire",
-      "result": 8
+      "result": 0
     },
     {
       "a": 0,
@@ -175,7 +184,7 @@
       "a": 13,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 13
     },
     {
       "a": 10,
@@ -187,7 +196,7 @@
       "a": 8,
       "b": 0,
       "op": "quire",
-      "result": 8
+      "result": 0
     },
     {
       "a": 4,
@@ -211,13 +220,13 @@
       "a": 3,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 3
     },
     {
       "a": 2,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 2
     },
     {
       "a": 12,
@@ -229,7 +238,7 @@
       "a": 3,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 3
     },
     {
       "a": 11,
@@ -247,25 +256,25 @@
       "a": 8,
       "b": 0,
       "op": "quire",
-      "result": 8
+      "result": 0
     },
     {
       "a": 1,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 1
     },
     {
       "a": 14,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 14
     },
     {
       "a": 3,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 3
     },
     {
       "a": 12,
@@ -277,7 +286,7 @@
       "a": 2,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 2
     },
     {
       "a": 9,
@@ -301,13 +310,13 @@
       "a": 2,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 2
     },
     {
       "a": 1,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 1
     },
     {
       "a": 7,
@@ -325,7 +334,7 @@
       "a": 2,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 2
     },
     {
       "a": 7,
@@ -337,7 +346,7 @@
       "a": 3,
       "b": 0,
       "op": "quire",
-      "result": 4
+      "result": 3
     },
     {
       "a": 12,
@@ -349,13 +358,13 @@
       "a": 8,
       "b": 0,
       "op": "quire",
-      "result": 8
+      "result": 0
     },
     {
       "a": 14,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 14
     },
     {
       "a": 11,

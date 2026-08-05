@@ -6753,6 +6753,63 @@ correction "nine formats declared a negative zero at a code that means something
   own_error "the first width check required exact equality between declared width and hex digits and flagged 27 files. Hex rounds up to nibbles -- a 6-bit format takes 2 digits, a 10-bit format 3 -- so all 27 were the check. gfternary was a second one: its zero is PhiVal(0, 0), which does not compare equal to 0"
 }
 
+finding "the silicon line was scored by a float32 proxy, in two places" {
+  how_found "pass 231 checked the specials legend. This checked the rest of the header -- operation, oracle, width, family -- by recomputing every vector from the oracle the pack itself names, rather than from the table that made the pack"
+  scale "2,442,533 vectors recomputed across all 325 packs"
+
+  place_one "conformance/golden_conformance_vectors.py made the 40 packs that named no oracle at all. Proved by regenerating all 40 and getting byte-identical output. 6,690 of their 11,520 values (58.1%) disagree with the project's own oracles"
+  place_two "conformance/compute_conformance_template.py -- the host the AX7203 sprint actually runs -- carries its OWN copy of the same fp32 path. It never read the packs. This is the golden the board was scored against"
+
+  what_is_wrong_with_the_fp32_path {
+    double_rounding "operand -> fp32 -> target format rounds twice"
+    exponent_clamp "gf32 has E=12, bias=2047. Most of its exponent range cannot exist in an fp32, and the code silently saturates with max(0, min(254, de))"
+    div_by_zero "returns sign=1, exp=all-ones, mant=0 for every a -- NEGATIVE infinity, including 0/0 (NaN) and a>0 (+Inf)"
+    sqrt_negative "returns 0, not NaN"
+    nan "encodes to +0"
+    subnormal_out "underflow flushes to signed zero; the encoder can never emit a subnormal"
+    quire "is the identity. In the pack generator it is from_fp32(to_fp32(a)); in the host the comment says 'For golden: just return a'"
+    no_overflow_guard "in the host only: a product past fp32's range reaches struct.pack('<f') and raises OverflowError. run_hw has no exception handling"
+  }
+  pack_generator_extra "its subnormal decode zeroes the mantissa, collapsing every subnormal of a format to one value; and three of its four GF layouts contradict gf_ref, which matches silicon -- gf4 described as 1+2+2 = 5 bits in a 4-bit format, gf32 as 1+7+25 = 33 bits in a 32-bit format. The host's own table had already been corrected in an earlier pass and is right"
+
+  measured_offline "switching the host to the oracle changes the verdict on ALL 25 (format, op) pairs the sprint flashes: 3,916 of 6,400 comparisons differ (61.2%), and the old golden CRASHES on 107 of them, across gf4 add/mul, gf8 mul, gf16 mul, gf32 add/mul/div and bf16 div. With the sprint's own --n 32, those seven pairs could not have completed"
+  not_established "which recorded Tier-E cells, if any, were scored by this host. The ledger indexes cells by format, not by (format, op), and none of the first 100 issue comments names the host. This is an open question, not an answer"
+}
+
+resolution "pass 210's open question is settled" {
+  pass_210_said "the silicon-sprint packs and the _exact packs of the same name carry different goldens, and which is right needs each format's spec"
+  answer "the silicon-sprint side is an fp32 proxy with named, demonstrable defects. The oracle side is right"
+  done "all 40 silicon packs recomputed from the real oracles -- same filenames, same {a,b,op,result} integer schema, same input pairs in the same order, so the silicon flow still reads them. The header gained the oracle, width, family, specials legend, note and provenance it never had. The stale note in the 16 _exact packs now says the question is closed"
+}
+
+correction "one _exact value was still the pass-231 defect, as a value" {
+  found "takum64_div_exact.json said 0 / (a negative finite) = 0x8000000000000000 -- the sign-bit-only pattern, which for takum is NaR"
+  why "the pack predates pass 231. takum has one zero, so the exact result is 0"
+  note "audit_pack_reproducibility never covered the _exact packs -- they are among the 78 it cannot rebuild. The new audit found this because it recomputes from the header instead of rebuilding"
+}
+
+correction "my own check compared two unrelated generators" {
+  what "the shared-input invariant -- add, mul and sub of one format use the same (a,b) pairs -- is generate_vectors' invariant. I applied it to div, sqrt and quire too, which come from other generators that sample differently, and it reported 31 formats with 'different inputs' and 27 packs with 'dropped' vectors. Both were my check"
+  after_scoping "0 formats drift. 8 mul packs ARE genuinely short of their add sibling -- 1,386 pairs across mxint8, takum8/16/32/64 and tekum8/16/32 that build_document dropped because the oracle raised, with no record in the pack of how many or why"
+  second_own_error "recomputing the _exact packs, I compared hex STRINGS. The packs are lowercase and generate_vectors.hexstr emits uppercase, so it reported 5,417 corrections against the audit's 1. Reverted and redone on integers"
+}
+
+verification "every pack in the corpus now recomputes from its own header" {
+  packs 325
+  vectors 2442533
+  value_disagreements 0
+  header_width_wrong 0
+  header_family_wrong 0
+  packs_naming_no_oracle 0
+  packs_unresolvable 0
+  reproducibility "247 of 247 still byte-identical"
+  self_tests "gf_ref, bf16_ref, ieee_ref, exact_ops, takum_ref, tekum_ref, mxfp_ref all PASS"
+}
+
+carried "needs the board, and now needs it twice" {
+  decimal "flash decimal and obtain IEEE 754-2008 3.5.2 on silicon -- 18 vectors and golden ready since pass 219"
+  compute_rerun "re-run the 25 (format, op) compute pairs against the oracle golden. Until then no compute PASS from this host means what it says. python3 conformance/compute_conformance_template.py --port <port> --fmt gf16 --op add   (--golden oracle is now the default)"
+
 resolution "pass 232's open question, answered" {
   question "which recorded Tier-E cells were scored by compute_conformance_template.py, the host whose golden was an fp32 proxy"
   answer "none that say so. Of the 75 complete-chain comments in issue #199, ZERO name that host. Sixteen name a host at all -- 12 name corona_decode_host_ax7203.py -- and the other 59 name none"
