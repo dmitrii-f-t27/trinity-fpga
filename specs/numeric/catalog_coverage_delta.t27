@@ -6653,3 +6653,13 @@ finding "no oracle self-test checked multiplication -- six of sixteen, and alway
   bf16_needed_two "it has two multiplication functions and the first patch covered only format_mul. The gate still reported afp_mul surviving, which is the gate doing its job on my own fix"
   now "16 of 16 oracles fail every mutation"
 }
+
+verification "all 247 generated packs reproduce byte for byte, in forty seconds" {
+  claim_under_test "passes 220 and 221 edited six oracle self-tests and said the packs would be unaffected. That is the kind of statement that is true until it is not"
+  narrow_result "120 packs from the six edited oracles regenerate byte-identical. The claim holds"
+  wider_result "extended to the whole corpus: 247 of 247 packs that generate_vectors produces rebuild to the same SHA-256. Zero different, zero unbuildable, 38 seconds"
+  what_that_covers "the WHOLE document -- operand pairs, header, specials legend, ordering -- not only the answers. audit_pack_vs_oracle re-derives the arithmetic; this re-derives the artefact"
+  gate "research/audit_pack_reproducibility.py, kept, so the next oracle edit is checked rather than asserted"
+  not_covered "the 40 integer-schema packs from the silicon-sprint generator (pass 189). Counted and named every run rather than omitted"
+  control "a one-byte change to a committed pack must produce a different hash, and the real file must never be written -- the lesson pass 220 paid for when an interrupted mutation left two oracles corrupted on disk"
+}
