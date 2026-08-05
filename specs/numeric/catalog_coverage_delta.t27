@@ -6880,3 +6880,41 @@ verification "pass 234" {
   unscoreable 156
   note "the 156 are bcd's None. The other 93 hosts are wider than 16 bits, name no single format, or expose no golden this can reach -- listed by --verbose"
 }
+
+finding "the wide hosts, sampled by structure, disagree in five named ways" {
+  why_structure "every defect pass 234 found sat on a boundary -- mxfp4, mxgf4 and mxgf6 at exp=all-ones, posit16 at minpos and maxpos. None of those turns up in a uniform draw over 2**32, let alone 2**128. So the sample is 0, the all-ones word, every single-bit code (minpos, the sign bit), every single-hole code (maxpos, NaR), each interesting exponent crossed with each interesting mantissa, both signs, then a fixed-seed tail"
+  scale "28 hosts, 12,173 codes, 314 disagreements"
+  classes {
+    truncation 172 "truncated where round-to-nearest was due -- binary256 with an all-ones mantissa gives 0x3F3FFFFF where the exact value rounds to 0x3F400000. Heaviest in ibm_hfp128 (79) and ibm_hfp64 (77)"
+    flush_to_zero 68 "an fp32 subnormal result returned as zero. This may be the RTL's policy; it is written down nowhere"
+    zero_sign 46 "negative zero returned as positive. decimal128 22, decimal64 16, decimal32 6 -- the pass 188 class again, now in the decimal family"
+    unclassified 20 ""
+    one_ulp 8 ""
+  }
+  confirms_pass_233 "gf24, gf32, gf48, gf64, gf96 and gf128 are clean on 359 to 567 structural codes each, against the 64 codes pass 233 sampled"
+  not_fixed "all five classes. Each one changes what a PASS means on the board for about ten hosts, and the counts are what that decision needs. Recorded, not acted on"
+}
+
+finding "six hosts are reported, not scored" {
+  which "gf256, cray_float, posit64, int32, int64, int128"
+  why "their OUTPUT DOMAIN is not established. gf256's differences look like a different layout rather than a rounding difference; cray_float returns 0.5 where the oracle returns zero; the int hosts are named *_to_fp32, so they convert rather than pass the integer through, and whether the RTL rounds or truncates a 64-bit integer into fp32 is written down nowhere"
+  principle "comparing against a domain you have not verified manufactures disagreements. That is what pass 234 did to int16 -- 65,535 of 65,536 reported wrong when the two agreed on every value"
+}
+
+resolution "a host that checks nothing can no longer read as a host that passed" {
+  what "both audits exit non-zero when a host that should have been checkable produced zero comparisons"
+  why "pass 234 found a loader bug where a load failure counted as zero raises and zero disagreements -- indistinguishable, in the output, from a clean run. Silence now fails"
+  resolver "widened from three naming conventions to six plus a *_to_fp32 suffix and a single-golden fallback. Hosts that compared nothing: 9 -> 1"
+}
+
+correction "two more of my own" {
+  arity "the widened resolver picked posit8_es2's golden_posit8_es2(code, g16) -- which borrows the posit16 decoder rather than rewriting it -- called it with one argument, caught the TypeError as 'host raised', and reported 256 of 256 wrong. The resolver now requires exactly one required positional argument, and binds g16 from the loader the host ships when that is what is missing"
+  posit8_es "with the argument bound it reported 252 of 255, which is EXACTLY the number the host's own docstring predicts for an es=0 versus es=2 comparison. My ALIAS mapped posit8_es2 onto posit_ref's posit8, which is es=0. Both sides are internally consistent; there is no es=2 posit8 in any oracle to hold it to. Which convention posit8 should be is still the open decision from pass 228"
+  wide_exponent_fourth_time "the first structural run was SIGKILLed. My analytic shortcut skipped exp=all-ones, so gf128 fell through to the oracle and asked for the exact value of 2**(2**48). Then the fixed shortcut assumed an IEEE-shaped layout and mis-scored VAX, IBM hex float and x87 -- including calling VAX's reserved operand a negative zero, which is pass 188 exactly. The shortcut now fires ONLY when the oracle cannot safely be asked"
+}
+
+verification "pass 235" {
+  narrow_audit "15 hosts, 280,329 codes, 0 disagreements, 156 unscoreable (bcd)"
+  structural_audit "28 hosts, 12,173 codes, 314 disagreements in 5 named classes, 6 hosts reported but not scored, 1 host still silent"
+  unchanged "gf_decode_golden self-test 12/12; the decode-host audit 0 raising and 0 disagreeing"
+}
