@@ -42,7 +42,14 @@ FP32_INF = 0x7F800000
 
 # host filename stem -> oracle format key, where they differ
 ALIAS = {
-    "posit8_es2": "posit8",
+    # NOT "posit8". The host is es=2 by name and by construction; posit_ref's
+    # posit8 is es=0 -- pass 228 had to retract a claim that the published pack
+    # was es=2, and es=0 is what it is. Scored against posit_ref this host
+    # reports 252 disagreements out of 255, which is exactly the number its own
+    # docstring predicts for an es=0/es=2 comparison. Both sides are internally
+    # consistent; there is simply no es=2 posit8 in any oracle to hold it to.
+    # Which convention posit8 should be is the open decision pass 228 left.
+    "posit8_es2": None,
     "mxfp8_e4m3": "mxfp8_e4m3",
     # The host named mxfp6 declares N,E,M,BIAS = 6,3,2,3 -- that is FP6 E3M2.
     # mxfp_ref's "mxfp6" is E2M3 (exp_bits=2, mant_bits=3, bias=1). OCP MX v1.0
@@ -60,7 +67,13 @@ ALIAS = {
     "any_format": None,
 }
 
-GOLDEN_NAMES = ("golden", "decode", "expected", "golden_value", "ref_decode")
+# Hosts name their golden six different ways. The resolver used to know three of
+# them, and a host whose golden it could not find was reported as "no golden
+# function found" -- which reads like a property of the host rather than of the
+# resolver. Nine hosts sat in that bucket.
+GOLDEN_NAMES = ("golden", "decode", "expected", "golden_value", "ref_decode",
+                "golden_fp32")
+GOLDEN_SUFFIXES = ("_to_fp32",)
 
 
 def oracles():
@@ -92,15 +105,62 @@ def load_host(path):
     return mod
 
 
+def _usable(mod, fn):
+    """A golden this audit can call: exactly one required positional argument.
+
+    Without this check the resolver happily picked posit8_es2's
+    `golden_posit8_es2(code, g16)` -- which borrows the posit16 decoder rather
+    than rewriting it -- called it with one argument, caught the TypeError as
+    "host raised", and reported 256 disagreements out of 256. Every one was the
+    resolver. Where the missing argument is that borrowed decoder, the host
+    ships a loader for it, so bind it and keep the coverage.
+    """
+    import inspect
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return None
+    required = [p for p in sig.parameters.values()
+                if p.default is p.empty
+                and p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)]
+    if len(required) == 1:
+        return fn
+    if len(required) == 2 and required[1].name == "g16":
+        loader = getattr(mod, "_load_posit16_golden", None)
+        if callable(loader):
+            g16 = loader()
+            return lambda code, _f=fn, _g=g16: _f(code, _g)
+    return None
+
+
 def host_golden(mod, key):
     for base in GOLDEN_NAMES:
         for cand in (base + "_" + key, base):
             fn = getattr(mod, cand, None)
             if callable(fn):
-                return cand, fn
+                usable = _usable(mod, fn)
+                if usable is not None:
+                    return cand, usable
+    for suffix in GOLDEN_SUFFIXES:
+        cand = key + suffix
+        fn = getattr(mod, cand, None)
+        if callable(fn):
+            usable = _usable(mod, fn)
+            if usable is not None:
+                return cand, usable
     # some hosts name it after the format alone
     fn = getattr(mod, key, None)
-    return (key, fn) if callable(fn) else (None, None)
+    if callable(fn) and _usable(mod, fn) is not None:
+        return key, _usable(mod, fn)
+    # last resort: a single module-level `golden_*` callable, whatever it is called
+    cands = [n for n in dir(mod)
+             if n.startswith("golden") and callable(getattr(mod, n, None))
+             and not n.startswith("_")]
+    if len(cands) == 1:
+        usable = _usable(mod, getattr(mod, cands[0]))
+        if usable is not None:
+            return cands[0], usable
+    return None, None
 
 
 def same_fp32(a, b):
