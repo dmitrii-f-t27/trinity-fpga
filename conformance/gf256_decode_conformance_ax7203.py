@@ -13,12 +13,22 @@ BIAS = (1 << (E_BITS - 1)) - 1
 EMAX = (1 << E_BITS) - 1
 
 def golden_fp32(raw):
-    """Use iverilog gf_decode_param as golden reference."""
+    """Use iverilog gf_decode_param as golden reference.
+
+    HAS_INF(0) is not optional here. gf_decode_param defaults it to 1 -- on
+    purpose, so that adding the parameter changed nothing on its own -- and this
+    testbench omitted it, so the golden treated exp=all-ones as Inf/NaN. Only
+    gf16 does that. The .t27 specs, conformance/gf_ref.py and gf_adder_param.v
+    all say the all-ones exponent is a FINITE maximum for every other GF width,
+    and corona_decode_gf256_ax7203.v -- the wrapper that actually gets
+    synthesised -- sets HAS_INF(0). The golden was modelling a core the board
+    does not contain.
+    """
     tb = f"""`timescale 1ns / 1ps
 module tb;
     reg [{N-1}:0] gf_in;
     wire [31:0] fp32_out;
-    gf_decode_param #(.N({N}), .E({E_BITS}), .M({M_BITS}), .BIAS({BIAS}), .OUT_REG(0)) u_dec (
+    gf_decode_param #(.N({N}), .E({E_BITS}), .M({M_BITS}), .BIAS({BIAS}), .HAS_INF(0), .OUT_REG(0)) u_dec (
         .gf_in(gf_in), .fp32_out(fp32_out),
         .is_nan_o(), .is_inf_o(), .is_zero_o(), .is_subnormal_o());
     initial begin

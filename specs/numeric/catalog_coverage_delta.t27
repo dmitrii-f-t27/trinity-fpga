@@ -6941,3 +6941,33 @@ verification "pass 236" {
   unchanged "narrow audit 280,329 codes 0 disagreements; decode-host audit 0 and 0; header-vs-vectors CLEAN; decimal_ref and gf_decode_golden self-tests PASS"
   still_open "truncation and flush-to-zero need the RTL. They are the two classes a board run would settle, and 172 of the 268 are the first one"
 }
+
+finding "nine synthesis wrappers did not parse, and the fix that broke them was the one that added the parameter" {
+  what "gf_decode_param #(.N(24), .E(9, .HAS_INF(0)), .M(14), .BIAS(255), .OUT_REG(1)) -- .HAS_INF(0) spliced INSIDE the .E(...) expression"
+  origin "PR #396, 'give gf_decode_param the HAS_INF parameter its sibling always had'. The parameter arrived and the nine call sites meant to use it stopped compiling"
+  verified "iverilog: 'Syntax error in parameter value assignment list'. A file that does not parse cannot be synthesised, so any bitstream for those widths predates the edit"
+  also "with the splice, HAS_INF(0) never took effect either -- the parameter defaults to 1 on purpose, so silence means Inf/NaN"
+  fixed "all nine. gf12, gf20, gf24, gf256, gf32, gf4, gf6, gf8, gf8_bfp"
+}
+
+finding "a guard for it found 24 non-parsing files out of 3,593" {
+  tool "research/audit_rtl_parses.py -- iverilog on every wrapper, plus a check that each instantiation sets HAS_INF unless its layout is gf16's"
+  class_two "14 files carry a minus inside a sized literal: 10'sd-127, which Verilog does not allow. It is -10'sd127. The whole fp32<->GF conversion wrapper family. Repaired mechanically; all 14 now parse"
+  remaining 10 "left alone, because fixing them means inventing content: uart_simple.v contains a FILESYSTEM PATH where the module should be; four files start a module inside another (missing endmodule); ternary_mac_16_tb.v has a malformed replication concat; vsa_10k_bind.v declares an integer where Verilog-2001 will not take one"
+  mxgf "corona_decode_mxgf4 and mxgf6 set no HAS_INF at all, so they defaulted to Inf/NaN -- the same convention error pass 234 fixed in their HOSTS, still live in the RTL. Both now set HAS_INF(0)"
+}
+
+finding "the decode core wraps its exponent, and its own header says not to use it this wide" {
+  header "gf_decode_param.v: 'This module MUST NOT be instantiated for N>32 decode targets requiring binary32, nor claimed as FP-decode HW for extended formats. Extended formats remain SW-only conformance'"
+  width "localparam integer EXP_CALC_W = 40, with a comment reasoning from gf32's BIAS of 2047"
+  instantiated_anyway "gf48, gf64, gf96, gf128, gf256"
+  measured "gf256 decode is correct at BIAS+0, +1, +100, +127, +128, +200, +1000 and +2**32, and WRAPS by BIAS+2**64 -- returning 0x3F800000, which is 1.0, where the value is 2**(2**64) and the fp32 answer is +Inf"
+  affected "any width whose maximum exponent offset exceeds 2**39: gf128, gf256, gf512, gf1024. gf48, gf64 and gf96 fit"
+  the_reassuring_part "ZERO of gf48, gf64, gf96, gf128, gf256, gf512, gf1024 appears in ANY of the 75 complete-chain Tier-E comments. The honesty rule in that header has been kept in the evidence, whatever the wrappers say"
+}
+
+correction "gf256's own testbench modelled a core the board does not contain" {
+  what "conformance/gf256_decode_conformance_ax7203.py builds its golden by running gf_decode_param under iverilog -- and omitted HAS_INF, which defaults to 1. So the golden treated exp=all-ones as Inf/NaN while corona_decode_gf256_ax7203.v, the wrapper that gets synthesised, sets HAS_INF(0)"
+  fixed "the testbench now sets HAS_INF(0)"
+  note "pass 235 called gf256's output domain 'not established'. It is established -- fp32, from the RTL itself. It stays unscored for a different and now measured reason: scoring it would report the RTL's 40-bit exponent path as hundreds of host defects"
+}

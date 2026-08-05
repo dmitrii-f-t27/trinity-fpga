@@ -64,7 +64,7 @@ module corona_compute_fp32_to_gf8_ax7203 (
     wire fp_inf  = (fp_exp == 8'b11111111) && (fp_mant == 0);
     wire fp_nan  = (fp_exp == 8'b11111111) && (fp_mant != 0);
     wire fp_denorm = (fp_exp == 0) && (fp_mant != 0);
-    wire signed [9:0] gf_exp_calc = $signed({2'b0, fp_exp}) + 10'sd-124;
+    wire signed [9:0] gf_exp_calc = $signed({2'b0, fp_exp}) + -10'sd124;
     wire overflow  = (gf_exp_calc > 10'sd7);
     wire underflow = (gf_exp_calc < 10'sd1);
     wire [3:0] gf_mant_trunc = fp_mant[22:19];

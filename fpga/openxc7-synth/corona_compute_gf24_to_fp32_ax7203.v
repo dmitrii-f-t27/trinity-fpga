@@ -73,7 +73,7 @@ module corona_compute_gf24_to_fp32_ax7203 (
     wire gf_nan  = 1'b0;
 
     // FP32 exp = gf_exp + -128 (= gf_exp - 255 + 127)
-    wire signed [10:0] fp32_exp_norm = $signed(gf_exp) + 11'sd-128;
+    wire signed [10:0] fp32_exp_norm = $signed(gf_exp) + -11'sd128;
     wire [22:0] fp32_mant_norm = {gf_mant, 9'b0};
 
     reg [31:0] fp32_result;
