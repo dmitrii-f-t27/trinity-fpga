@@ -6706,3 +6706,12 @@ verification "the posit encode fix moved no arithmetic, and division is witnesse
   the_entry_point_rule "SoftPosit's dedicated types carry the legacy exponent sizes -- p8 es=0, p16 es=1, p32 es=2 -- while posit_ref declares posit8 es=0, posit16 es=2, posit32 es=2. p16_div is therefore a DIFFERENT FORMAT from our posit16, which is why that comparison read 24 of 216. Matching es per width is the whole of it"
   method "twice now a bad agreement number meant the wrong entry point rather than a defect, and both times asking which side is closer to the exact quotient said so before the right comparison confirmed it"
 }
+
+verification "posit division and square root agree with SoftPosit at three widths" {
+  results "posit8 div 251/251 and sqrt 256/256; posit16 div 214/216 and sqrt 220/220; posit32 div 220/220 and sqrt 221/221. Both posit16 division differences are ours-closer-to-the-exact-quotient"
+  the_entry_point_rule "SoftPosit's dedicated types carry the older drafts' exponent sizes -- p8 es=0, p16 es=1, p32 es=2 -- while posit_ref declares posit8 es=0, posit16 es=2, posit32 es=2. So posit8 goes to p8_*, posit32 to p32_*, and posit16 to the variable-width pX2_* path. Comparing posit16 against p16_* reads 24 of 216, which is two different formats rather than a defect"
+  twice_now "a bad agreement number meant the wrong entry point and not a defect, both times. Asking which side is nearer the exact value is cheap and said so before the right comparison confirmed it, so crossval_posit_softposit.py prints that column whenever the two differ"
+  kept "research/crossval_posit_softposit.py, with its self-check asserting the es table against what posit_ref actually declares -- a comparison keyed on a stale exponent size is precisely the failure this file describes"
+  artefacts "five dumps committed under conformance/witness/ and recorded in the manifest with SoftPosit commit 17d5628. posit8_div is 702 KB, inside the repository's 1 MB rule"
+  posit8_convention "posit_ref declares posit8 with es=0, the older convention, not the Posit Standard 2022's es=2. The 251/251 agreement is with SoftPosit under that same es, so it confirms internal consistency and NOT conformance to the 2022 standard. The corpus already carries a separate posit8_es2 decode path; which one a paper cites should be stated"
+}
