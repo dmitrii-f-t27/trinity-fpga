@@ -6681,3 +6681,18 @@ resolution "exact_ops covers the NaR formats, and div/sqrt now span 17 formats" 
   self_test "the NaR path is asserted in exact_ops' own self-test -- 1/1, 1/0 = NaR rather than infinity, 0/0 = NaR, sqrt(1), sqrt(-1) = NaR -- so the branch cannot rot unnoticed"
   gates "audit_pack_vs_oracle now re-derives 307 files with no-oracle unchanged at 18; audit_pack_reproducibility counts 38 in the _exact family beside its 247"
 }
+
+correction "posit_ref rounded nonzero values to zero, against the Posit Standard" {
+  found_by "building SoftPosit from source in the scratchpad and dumping division. The library needed three fixes to compile on this machine -- three C++ default initialisers stripped from a COPY of softposit_types.h, and GCC 14's incompatible-pointer-type error demoted -- all in the copy, never the original"
+  defect "encode applied round-to-nearest-even between 0 and minpos, so a nonzero magnitude below minpos/2 became +0, losing its sign as well: encode(-1/128) returned pos_zero. Posit Standard 2022 says a nonzero value NEVER rounds to zero -- it saturates to minpos, and symmetrically never rounds to NaR"
+  fixed "the branch returns minpos with the operand's sign"
+  mattered "2 of the sampled 251 pairs have an exact quotient the old code would have zeroed, and SoftPosit returns a nonzero code for both"
+  result "posit8_div_exact now agrees with SoftPosit p8_div on 251 of 251"
+}
+
+finding "SoftPosit's variable-width division is less accurately rounded than its fixed-width one" {
+  measured "against pX2_div at n=8 the agreement was 137 of 251. Of the 114 differences, OURS is closer to the exact quotient in 113 and there is one tie -- SoftPosit is closer in none"
+  example "0x08 / 0x0c: exact 0.666667, ours 0.671875, pX2_div 0.75"
+  resolved "against p8_div, the dedicated 8-bit entry point, agreement is 251 of 251. pX2_div was the wrong reference to compare a posit8 pack against, and the accuracy measurement said so before the right comparison confirmed it"
+  method_note "the first instinct on a 137-of-251 disagreement is that one side is wrong. Asking WHICH side is closer to the exact value is cheap and answered it -- neither implementation was buggy, the entry point was"
+}
