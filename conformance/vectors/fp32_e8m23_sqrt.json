@@ -1,6 +1,18 @@
 {
   "format": "fp32_e8m23",
   "op": "sqrt",
+  "oracle": "ieee_ref.py",
+  "family": "ieee",
+  "width": 32,
+  "specials": {
+    "pos_zero": "0x00000000",
+    "neg_zero": "0x80000000",
+    "pos_inf": "0x7F800000",
+    "neg_inf": "0xFF800000",
+    "quiet_nan": "0x7F800001"
+  },
+  "note": "exact sqrt by integer bisection on the exact significand (conformance/exact_ops.py); b is ignored.",
+  "provenance": "expected values recomputed from the named oracle. They previously came from conformance/golden_conformance_vectors.py, a float32 proxy: 6,690 of 11,520 disagreed (research/audit_fp32_proxy_golden.py). Inputs and order are unchanged from the silicon sprint.",
   "count": 64,
   "vectors": [
     {
@@ -13,25 +25,25 @@
       "a": 1,
       "b": 0,
       "op": "sqrt",
-      "result": 536870912
+      "result": 439682291
     },
     {
       "a": 4294967295,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 2147483648,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2147483648
     },
     {
       "a": 2147483648,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2147483648
     },
     {
       "a": 1073741824,
@@ -43,7 +55,7 @@
       "a": 2746317213,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 1181241943,
@@ -61,7 +73,7 @@
       "a": 3163119785,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 1812140441,
@@ -85,7 +97,7 @@
       "a": 2340505846,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 946785248,
@@ -97,19 +109,19 @@
       "a": 2530876844,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 3460967357,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 2998485882,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 1461364854,
@@ -145,31 +157,31 @@
       "a": 3639960595,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 2592983555,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 3466589567,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 3134174160,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 2303082117,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 1625792787,
@@ -181,25 +193,25 @@
       "a": 2370996465,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 3701002945,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 2479708607,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 3026113008,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 433797840,
@@ -229,13 +241,13 @@
       "a": 2783290795,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 3131575764,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 701808367,
@@ -253,19 +265,19 @@
       "a": 2392080953,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 2940395823,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 3332894265,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 1354860540,
@@ -289,7 +301,7 @@
       "a": 2815087637,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 1970753705,
@@ -307,7 +319,7 @@
       "a": 2510777721,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 1715412119,
@@ -319,13 +331,13 @@
       "a": 4284391408,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 2188398760,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 470939445,
@@ -337,7 +349,7 @@
       "a": 2694860228,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 272849424,
@@ -349,25 +361,25 @@
       "a": 4278308761,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 2272528809,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 3095476665,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 2752909971,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 2139095041
     },
     {
       "a": 479112937,
