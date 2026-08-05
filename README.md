@@ -19,6 +19,17 @@ Tier-E = rigorous evidence: dedicated proof post, hardware IDCODE + run ID, bit-
 
 ## Quick Start
 
+### Clone (with submodules)
+
+The numerical core (`external/zig-golden-float`) and `external/tt-trinity-corona`
+are git submodules — a plain `git clone` leaves them empty. Fetch them too:
+
+```bash
+git clone --recursive https://github.com/gHashTag/trinity-fpga.git
+# or, in an existing clone:
+git submodule update --init --recursive
+```
+
 ### Reproduce results (no hardware required)
 
 ```bash
