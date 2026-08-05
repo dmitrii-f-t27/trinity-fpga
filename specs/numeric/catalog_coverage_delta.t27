@@ -6842,3 +6842,41 @@ correction "conformance/gf_decode_golden.py, and what it cost to get right" {
   own_error_one "my first classifier flagged 38 of 107 hosts as float-based because it matched float(, math.sqrt(, 1.0 * and 2.0 **. corona_decode_host_ax7203.py -- the most-cited host in the ledger -- was among them, and it builds its golden as raw bit patterns, (sign << 31) | (fe << 23) | fm, with no float arithmetic anywhere. It was flagged for the string 1.0 in a comment. Constructing bits by shifting is exact; only a float ROUND TRIP loses anything"
   own_error_two "the first exact_to_fp32 normalised a Fraction by halving in a loop. For a gf64 code near the top of its exponent field that is 16 million iterations over ever-growing integers, and the process was SIGKILLed by the OOM killer. Third pass to walk into the wide-exponent trap -- pass 186 named it and set MAX_SAFE_EXP, pass 229 hit it again. Now bounded by bit length before any power of two is built"
 }
+
+finding "four decode hosts disagreed with the oracle for their own format" {
+  method "every host golden held against the oracle's exact value rounded once to fp32, on EVERY code of the format. 280,073 codes across 14 hosts"
+
+  mxfp4 "its own comment reads 'saturate (OCP MX: no Inf/NaN)' and the code does not follow it: exp=all-ones was replaced by exp-1 with a full mantissa. OCP MX FP4 E2M1 has no Inf, no NaN and no reserved code -- the codebook is {0, .5, 1, 1.5, 2, 3, 4, 6} -- and saturating mapped both 4 and 6 onto 3. Codes 6, 7, 14, 15: a quarter of the format"
+  mxgf4 "returned Inf/NaN for exp=all-ones. mxgf4 has E=1, so that is HALF the code space, and the format has no Inf: {0, .5, 1, 1.5, 2, 2.5, 3, 3.5}"
+  mxgf6 "same, 16 of 64"
+  posit16 "wrong at exactly four codes -- minpos 0x0001, maxpos 0x7FFF and their negatives, the corners a conformance sweep puts first. Two off-by-ones in the regime: the leading-zero count capped at 14 where a posit16 regime can run to 15, and regime_total fell back to lzc instead of lzc+1 when it did. maxpos read as 2**54 instead of 2**56, minpos as 2**-54 instead of 2**-56. The cap carried the comment 'matches RTL default case' -- if the RTL shares it, the board will now report 4 mismatches, which is the test working"
+  fixed "all four now agree on every code. The three MX hosts route through conformance/gf_decode_golden.py; posit16's two off-by-ones are corrected in place"
+}
+
+finding "a filename claimed a family name for one of its two variants" {
+  what "conformance/mxfp6_decode_conformance_ax7203.py declares N,E,M,BIAS = 6,3,2,3, which is FP6 E3M2. mxfp_ref's 'mxfp6' is the OTHER one, E2M3 with bias 1"
+  evidence "OCP MX v1.0 defines both, and issue #199 records fp6_e2m3 and fp6_e3m2 as SEPARATE Tier-E cells. So the collision is in the one filename"
+  measured "against 'mxfp6' the host disagreed on 60 of 64 codes. Against fp8_ref's fp6_e3m2 -- the variant it actually implements -- 56 of those 60 vanished, and the remaining 8 were the all-ones-exponent convention, now fixed. 0 of 64"
+  left_alone "the filename. Renaming it would break every reference in the ledger. Its docstring now names the variant"
+}
+
+finding "bcd's host returns no answer for 156 of 256 codes" {
+  what "golden_bcd returns None for any nibble above 9. That is not a wrong answer, it is NO answer, and the host cannot score the board on 61% of the code space"
+  oracle_position "int_ref decodes them arithmetically -- 0x0a is 10, 0x9a is 100"
+  open "what the RTL returns for an invalid nibble is unknown without the board, so the host has been left as it is and the audit now counts unscoreable codes separately from disagreements. Inventing a semantics here would be worse than recording the gap"
+}
+
+correction "two of my own, and one that weakens what pass 233 reported" {
+  integer_domain "the first version compared int16's host against the fp32 ENCODING of the value and reported 65,535 disagreements out of 65,536. The host answers in integers. The two agree on every code. bcd and the lns hosts were mis-scored the same way"
+  loader "my host loader never defined __file__, so any host that resolves its own directory failed to load -- and a load failure was counted as zero raises and zero disagreements, indistinguishable from a pass"
+  weakens_pass_233 "the six wide-GF hosts pass 233 patched all use __file__. Its closing '0 raising, 0 disagreeing' therefore did not exercise them; they were load failures being read as clean. Re-run with __file__ defined, they do load and they ARE 0 and 0 -- the conclusion holds, but the evidence for it was weaker than the report claimed"
+  signed_zero "pass 233's audit carried its own exact_to_fp32 which could not take a sign, so it read every negative zero as positive and reported gf24 -- the host that gets it right -- as wrong. It now uses gf_decode_golden.fraction_to_fp32, which takes the sign explicitly"
+}
+
+verification "pass 234" {
+  hosts_compared 14
+  codes_compared 280073
+  disagreements 0
+  unscoreable 156
+  note "the 156 are bcd's None. The other 93 hosts are wider than 16 bits, name no single format, or expose no golden this can reach -- listed by --verbose"
+}

@@ -37,16 +37,30 @@ def golden_posit16(code):
     abs_val = (0x8000 - mag) if sign else mag        # 2's complement of 15-bit if negative
     regime_sign = (abs_val >> 14) & 1
     regime_bits = (abs_val ^ 0x7FFF) if regime_sign else abs_val
-    # leading-zero count on 15 bits, capped at 14 (matches RTL default case)
+    # Leading-zero count on 15 bits. The cap used to be 14, with the comment
+    # "matches RTL default case". That is one short: a posit16 magnitude of all
+    # ones (maxpos, 0x7FFF) or all zeros after the regime flip has a regime run
+    # of 15, so k reaches 14 and maxpos is useed**14 = 2**56 at es=2. The cap of
+    # 14 gave k=13 and 2**54 instead -- wrong at exactly four codes, minpos
+    # 0x0001, maxpos 0x7FFF and their negatives, which are precisely the corners
+    # a conformance sweep puts first.
+    #
+    # posit_ref, which pass 224 measured against SoftPosit, gives 2**56.
+    # If the RTL really does cap at 14, the board will now report 4 mismatches
+    # here. That is the test working, not the test breaking.
     lzc = 0
     for i in range(14, -1, -1):
         if (regime_bits >> i) & 1:
             break
         lzc += 1
     else:
-        lzc = 14
+        lzc = 15
     k = (lzc - 1) if regime_sign else (-lzc)
-    regime_total = (lzc + 1) if lzc < 14 else lzc
+    # Same off-by-one on the other side. A regime run of 14 zeros is terminated
+    # by a 1, so it occupies 15 bits, not 14 -- `else lzc` left minpos (0x0001,
+    # and 0xFFFF for the negative) reading a fraction bit that is not there, and
+    # gave 2**-54 where posit16 at es=2 has minpos 2**-56.
+    regime_total = min(lzc + 1, 15)
     after_regime = (abs_val << regime_total) & 0x7FFF
     e_field = (after_regime >> 13) & 0x3
     frac_field = (after_regime << 2) & 0x7FFF

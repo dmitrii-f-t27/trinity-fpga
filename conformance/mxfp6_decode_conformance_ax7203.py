@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""mxfp6 decode conformance — 6-bit → FP32. 2-byte frame."""
+"""FP6 **E3M2** decode conformance -- 6-bit -> FP32. 2-byte frame.
+
+The filename says mxfp6, but OCP MX v1.0 defines TWO six-bit floats and this
+host implements E3M2 (N,E,M,BIAS = 6,3,2,3). mxfp_ref's "mxfp6" is the other
+one, E2M3 with bias 1; issue #199 records fp6_e2m3 and fp6_e3m2 as separate
+Tier-E cells. Held against fp8_ref.FORMATS["fp6_e3m2"], the variant it is.
+"""
 import serial, struct, time, random, sys, argparse
 N,E,M,BIAS = 6,3,2,3
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from gf_decode_golden import decode_to_fp32
 EM = (1<<E)-1
 def decode(raw):
-    raw &= (1<<N)-1
-    s=raw>>(N-1); e=(raw>>M)&EM; m=raw&((1<<M)-1)
-    if e==EM: e=EM-1; m=(1<<M)-1  # saturate (OCP MX: no Inf/NaN)
-    if e==0:
-        if m==0: return s<<31
-        v=(m/float(1<<M))*(2.0**(1-BIAS))
-    else: v=(1+m/float(1<<M))*(2.0**(e-BIAS))
-    if abs(v)>3.4e38: return 0xFF800000 if v<0 else 0x7F800000
-    if abs(v)<1.2e-38: return s<<31
-    return struct.unpack(">I",struct.pack(">f",-v if s else v))[0]
+    # Exact golden -- conformance/gf_decode_golden.py.
+    # This used to return Inf/NaN for exp=all-ones -- 8 of 64 codes. OCP MX v1.0
+    # FP6 has neither, so the all-ones exponent is an ordinary value.
+    return decode_to_fp32(raw, N, E, M, BIAS, "fp6_e3m2")
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--port",default="/dev/cu.usbserial-1120")

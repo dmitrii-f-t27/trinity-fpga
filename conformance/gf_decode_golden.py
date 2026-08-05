@@ -120,6 +120,20 @@ def decode_to_fp32(raw, N, E, M, BIAS, name=""):
     return fp32_bits(*gf_value(raw, N, E, M, BIAS, name))
 
 
+def fraction_to_fp32(value, sign=0):
+    """Round any exact Fraction to fp32 bits, once, ties-to-even.
+
+    Same core as decode_to_fp32 -- which agrees with gf_ref.decode on all
+    1,135,952 codes of gf4 through gf20 -- so any host golden can be held to it,
+    not just the GF ones. `sign` only matters for an exact zero, where the
+    Fraction cannot carry it.
+    """
+    if value == 0:
+        return sign << 31
+    s = 1 if value < 0 else 0
+    return fp32_bits("finite", s, -value if s else value, 0)
+
+
 def _self_test():
     checks = []
     # gf16 (E=6, M=9, BIAS=31) -- the one width WITH Inf/NaN
