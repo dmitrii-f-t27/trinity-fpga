@@ -1,4 +1,7 @@
 #!/bin/bash
+# NOTE (2026-08-05): per the no-shell-scripts rule (CLAUDE.md),
+# fpga/**/*.sh is slated to migrate to `tri` subcommands / Zig.
+# Do not extend this script; disposition tracked in trinity-fpga#425.
 # Trinity FPGA Flash Script — QMTECH XC7A100T/200T via Platform Cable USB II
 # Usage: sudo bash fpga/flash.sh [bitstream.bit]
 #

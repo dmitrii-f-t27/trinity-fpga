@@ -1,4 +1,7 @@
 #!/bin/bash
+# NOTE (2026-08-05): per the no-shell-scripts rule (CLAUDE.md),
+# fpga/**/*.sh is slated to migrate to `tri` subcommands / Zig.
+# Do not extend this script; disposition tracked in trinity-fpga#425.
 # Trinity Zenodo Publisher — automated DOI minting for releases
 # Usage: ZENODO_TOKEN=xxx ./zenodo_publish.sh [version]
 # Requires: curl, python3, zip
