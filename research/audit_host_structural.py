@@ -73,6 +73,20 @@ FP32_INF = 0x7F800000
 DOMAIN_NOT_ESTABLISHED = {"gf256", "cray_float", "posit64",
                           "int32", "int64", "int128"}
 
+# (format, code) pairs where the two answers are two READINGS, not a right and a
+# wrong. Reported, never scored.
+#
+#   double_double / quad_double at the sign-bit-only code: the high limb is -0.0
+#   and every other limb is +0.0. The host returns +0, which is what IEEE addition
+#   gives for (-0) + (+0). This audit's adapter returned -0, taking the sign from
+#   the top bit -- but extended_ref hands back Fraction(0, 1), which carries no
+#   sign at all, so the -0 was the ADAPTER's opinion, not the oracle's. Which one
+#   a double-double zero should carry is a convention nobody here has written down.
+CONVENTION_OPEN = {
+    ("double_double", 1 << 127),
+    ("quad_double", 1 << 255),
+}
+
 CLASSES = (
     ("host flushes fp32 subnormal to zero",
      lambda g, w: ((w >> 23) & 0xFF) == 0 and (w & 0x7FFFFF) and (g & 0x7FFFFFFF) == 0),
@@ -287,6 +301,9 @@ def main():
                 if want is None:
                     unscoreable += 1
                     continue
+            if (key, raw) in CONVENTION_OPEN and got != want:
+                unscoreable += 1
+                continue
             checked += 1
             ok = (got == want) if integer else same_fp32(got, want)
             if not ok:

@@ -6,6 +6,7 @@
 #   special (bits[30:27]==1111): bit26=1 NaN, bit26=0 Inf.
 #   value = (-1)^s * C * 10^(E-101), RNE to binary32 (Python Decimal oracle, exact).
 import argparse, sys, struct
+WIDTH = 32
 from decimal import Decimal, ROUND_HALF_EVEN, localcontext
 
 FRAME = bytes([0xAA, 0x55])
@@ -93,7 +94,12 @@ def golden_decimal32(code):
     # itself wrong. conformance/decimal_ref.py has applied the rule since pass 185,
     # confirmed against gcc's Intel BID.
     if not _is_canonical(code):
-        return 0x00000000
+        # ...and the SIGN survives. 3.5.2 makes the coefficient zero; it says
+        # nothing about the sign field, which is a separate field and still
+        # means what it means. This returned a bare 0x00000000, so every
+        # non-canonical code with sign=1 decoded to +0 instead of -0.
+        # decimal_ref has carried the sign since pass 185; the host did not.
+        return (code >> (WIDTH - 1)) << 31
     kind = _bid32_decode(code)
     if kind[0] == 'inf':
         return (kind[1] << 31) | 0x7F800000
