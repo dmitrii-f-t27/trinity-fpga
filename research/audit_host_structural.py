@@ -58,9 +58,15 @@ FP32_INF = 0x7F800000
 # manufactures disagreements: pass 234 did exactly that to int16, reporting
 # 65,535 of 65,536 wrong when host and oracle agreed on every value.
 #
-#   gf256      624 of its comparisons land in classes that look like a whole
-#              different layout, not a rounding difference. Either the host or
-#              gf_ref's gf256 is describing another format; which needs the RTL.
+#   gf256      ESTABLISHED in pass 237, and left unscored for a different reason.
+#              Its golden shells out to iverilog running gf_decode_param.v, so it
+#              is the RTL, not a model of it -- and that module declares
+#              EXP_CALC_W = 40 with a header saying it MUST NOT be instantiated
+#              for N>32. Measured: gf256 decode is correct to BIAS+2**32 and
+#              wraps by BIAS+2**64, returning 1.0 where the value overflows fp32
+#              to +Inf. Scoring it would report the RTL's exponent width as
+#              hundreds of host defects. No gf48/64/96/128/256 cell appears in
+#              any complete-chain Tier-E comment, so nothing claims otherwise.
 #   cray_float the host returns 0.5 where the oracle returns zero, and +Inf where
 #              the oracle returns zero. Cray's exponent field is not IEEE-shaped.
 #   posit64    the host is named posit64_to_fp32, so it answers in fp32, but 62
