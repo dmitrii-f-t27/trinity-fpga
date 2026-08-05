@@ -32,4 +32,12 @@ pub fn main() !void {
     defer allocator.free(result.stderr);
 
     std.debug.print("{s}\n", .{result.stdout});
+
+    // Match the sibling railway_* tools: fail with a non-zero exit instead of
+    // silently succeeding on a failed request or a GraphQL error, so scripts
+    // and CI can detect a project that wasn't actually created.
+    if (result.term.Exited != 0) return error.RequestFailed;
+    if (std.mem.indexOf(u8, result.stdout, "\"errors\"") != null) {
+        return error.ApiError;
+    }
 }
