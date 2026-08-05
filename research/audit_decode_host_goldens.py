@@ -51,60 +51,11 @@ import gf_ref  # noqa: E402
 MAX_SAFE_EXP = 1 << 20
 FP32_WINDOW = 300          # binades either side of 2**0 that can matter for fp32
 
-
-def exact_to_fp32(value):
-    """Round an exact Fraction to fp32 bits, once, round-half-to-even.
-
-    Integer arithmetic only -- no float ever holds the intermediate, so this is
-    the answer a correct golden must produce.
-    """
-    if value == 0:
-        return 0
-    sign = 1 if value < 0 else 0
-    v = -value if value < 0 else value
-
-    # exponent e with 2**e <= v < 2**(e+1), from bit lengths rather than by
-    # halving. The estimate is exact or one too high; bound it BEFORE building
-    # any power of two, or a gf64 code near the top of its exponent field turns
-    # into an 8-million-bit integer.
-    e = v.numerator.bit_length() - v.denominator.bit_length()
-    if e > 129:
-        return (sign << 31) | (0xFF << 23)               # overflow -> Inf
-    if e < -152:
-        return sign << 31                                # underflow -> signed zero
-    if v < Fraction(2) ** e:
-        e -= 1
-    elif v >= Fraction(2) ** (e + 1):
-        e += 1
-    if e > 127:
-        return (sign << 31) | (0xFF << 23)
-    if e < -150:
-        return sign << 31
-
-    if e >= -126:
-        # normal: significand 1.f with 23 fraction bits
-        scaled = v / Fraction(2) ** e * (1 << 23)
-        exp_field = e + 127
-    else:
-        # subnormal: fixed scale 2**-149
-        scaled = v * (1 << 149)
-        exp_field = 0
-
-    num, den = scaled.numerator, scaled.denominator
-    q, r = divmod(num, den)
-    if r * 2 > den or (r * 2 == den and q & 1):
-        q += 1
-    if exp_field == 0:
-        if q >= (1 << 23):                                # rounded up into normal
-            return (sign << 31) | (1 << 23) | (q - (1 << 23))
-        return (sign << 31) | q
-    frac = q - (1 << 23)
-    if frac >= (1 << 23):                                 # rounded up to next binade
-        frac = 0
-        exp_field += 1
-        if exp_field >= 0xFF:
-            return (sign << 31) | (0xFF << 23)
-    return (sign << 31) | (exp_field << 23) | frac
+# The local exact_to_fp32 that used to live here could not carry the sign of an
+# exact zero -- a Fraction has no -0 -- so it called every negative zero a positive
+# one, and reported the one host that gets it right as the one that was wrong.
+# conformance/gf_decode_golden.fraction_to_fp32 takes the sign explicitly.
+from gf_decode_golden import fraction_to_fp32 as exact_to_fp32   # noqa: E402
 
 
 def load_host(path):
@@ -114,7 +65,8 @@ def load_host(path):
         if name not in sys.modules:
             sys.modules[name] = types.ModuleType(name)
     mod = types.ModuleType("host_" + os.path.basename(path)[:-3])
-    mod.__dict__["__name__"] = "host_under_audit"    # so `if __name__ == "__main__"` is False
+    mod.__dict__["__name__"] = "host_under_audit"
+    mod.__dict__["__file__"] = path
     exec(compile(src, path, "exec"), mod.__dict__)   # noqa: S102
     return mod
 
@@ -175,7 +127,7 @@ def main():
                     val = gf_ref.decode(fmt, raw)
                     if not isinstance(val, Fraction):
                         continue                       # a Special: sign/NaN policy is the host's
-                    want = exact_to_fp32(val)
+                    want = exact_to_fp32(val, (raw >> (N - 1)) & 1)
                     if got != want:
                         wrong += 1
                         if first_bad is None:

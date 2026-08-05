@@ -2,20 +2,16 @@
 """mxgf6 decode conformance — 6-bit → FP32. 2-byte frame."""
 import serial, struct, time, random, sys, argparse
 N,E,M,BIAS = 6,2,3,1
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from gf_decode_golden import decode_to_fp32
 EM = (1<<E)-1
 def decode(raw):
-    raw &= (1<<N)-1
-    s=raw>>(N-1); e=(raw>>M)&EM; m=raw&((1<<M)-1)
-    if e==EM:
-        if m==0: return 0xFF800000 if s else 0x7F800000
-        return 0x7FC00001
-    if e==0:
-        if m==0: return s<<31
-        v=(m/float(1<<M))*(2.0**(1-BIAS))
-    else: v=(1+m/float(1<<M))*(2.0**(e-BIAS))
-    if abs(v)>3.4e38: return 0xFF800000 if v<0 else 0x7F800000
-    if abs(v)<1.2e-38: return s<<31
-    return struct.unpack(">I",struct.pack(">f",-v if s else v))[0]
+    # Exact golden -- conformance/gf_decode_golden.py.
+    # This used to return Inf/NaN for exp=all-ones -- 16 of 64 codes. mxgf6 has no
+    # Inf; only gf16 reserves the all-ones exponent. See the .t27 specs,
+    # gf_ref.has_inf, and HAS_INF in gf_adder_param.v.
+    return decode_to_fp32(raw, N, E, M, BIAS, "mxgf6")
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--port",default="/dev/cu.usbserial-1120")
