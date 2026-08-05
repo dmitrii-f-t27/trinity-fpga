@@ -162,6 +162,10 @@ fn flashBitstream() !void {
     } else {
         std.debug.print("\n\x1b[31m❌ Flash may have failed\x1b[0m\n", .{});
         std.debug.print("Check output above for errors\n\n", .{});
+        // Signal failure with a non-zero exit so callers (`fpga-flash full`,
+        // CI, scripts) can detect it. verifyPid() already returns errors; flash
+        // silently returned success on failure, which this fixes.
+        return error.FlashFailed;
     }
 }
 
