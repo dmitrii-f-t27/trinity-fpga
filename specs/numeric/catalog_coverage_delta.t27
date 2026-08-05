@@ -6725,3 +6725,11 @@ correction "the record said the published posit8 pack is es=2; it is es=0" {
   gate "research/audit_declared_vs_encoded.py decodes the largest positive code of every posit width and compares against useed^(n-2) for the declared es. All four agree today. maxpos at es=0 and es=2 differ by 2^18 at width 8, so the landmark discriminates"
   still_open "which convention to publish. es=0 is the older draft; the 2022 standard fixes es=2 at every width, and the corpus carries a separate posit8_es2 decode path, flashed in pass 176"
 }
+
+verification "every computable format's largest finite value matches its declaration" {
+  extended_from "pass 228's posit-only landmark to the sign-exponent-mantissa families: ieee, bfloat, fp8, gf, mxfp and legacy"
+  result "41 formats checked, 0 mismatched, 10 not computable here"
+  not_computable "gf64 through gf1024 (bias near 2^60, so 2^(top-bias) is impossible rather than slow -- the bound pass 186 wrote down and this file walked into anyway), mxint8 (an integer element has no exponent landmark), and cray_float, x87_fp80, x87_48bit (an explicit integer bit means the significand is mant/2^(m-1), not 1 + mant/2^m)"
+  four_landmark_errors_of_my_own "every mismatch this check reported before the last fix was the landmark, not a format. fp8_e4m3 and mxfp8_e4m3 reserve only all-ones-exponent WITH all-ones-mantissa for NaN, so their largest finite sits one mantissa step below and the naive top code IS the NaN. IBM HFP has base 16 and no implicit leading one. The maximum significand is (2^m - 1)/2^m and I wrote (2^m)/2^m. x87 has infinities, so passing the legacy family default read its all-ones exponent as finite and decoded a NaN"
+  the_pattern "9 mismatches, then 6, then 3, then 0 -- and not one of them was ever a defect in the corpus. A landmark is only as good as the format facts it encodes, and this one needed four before it encoded them all"
+}
