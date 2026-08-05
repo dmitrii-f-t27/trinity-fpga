@@ -6987,3 +6987,28 @@ correction "the decode core's bias never fit, and 4,073 codes decoded wrong beca
   header "the module header said it MUST NOT be instantiated for N>32. That was true when written; it now says why it was true, what changed, and that a simulation witness is still not silicon"
   unchanged_rule "no gf48/64/96/128/256/512/1024 cell appears in any complete-chain Tier-E comment, and none of this is evidence that one should"
 }
+
+finding "63 compute wrappers instantiate a format other than the one in their name" {
+  example "corona_compute_binary128_add_ax7203.v is headed 'BINARY128 ADD on AX7203' and instantiates gf_adder_param #(.EXP_BITS(8), .MANT_BITS(23), .HAS_INF(1)). That is binary32. binary128 is E=15, M=112"
+  scale "of 1,340 compute wrappers with a gf_adder_param instantiation, 151 name a format with a (sign, exp, mant) shape that can be compared. 88 match. 63 do not, and ALL 63 pass E=8, M=23"
+  affected "afp, bfloat24, binary128, binary256, cray_float, fp128_e15m112, ibm_hfp32, ibm_hfp64, ibm_hfp128 and others, across add, alu and fma"
+  why_nothing_caught_it "the filename is what the ledger indexes and what a host looks up; the parameters are inside. Nothing in the flow compares the two, because the name never reaches the parameters"
+
+  the_part_that_matters "NO Tier-E claim rests on them. Every complete-chain comment for these formats is explicitly a DECODE cell -- 'Tier-E proof: binary128 (decode - IEEE 754 quad FP128)' -- and names a corona-decode-<fmt>-bitstream artifact. The compute wrappers are in the tree with names that promise a format they do not implement, and no evidence stands on them"
+  tool "research/audit_wrapper_names.py, exits non-zero on any contradiction"
+}
+
+verification "the adder, held to the oracle the same way the decoder was" {
+  tool "research/witness_gf_adder_rtl.py -- structural pairs (every corner against every corner, both signs, plus a fixed-seed tail) through the valid/ready handshake, compared with gf_ref.gf_add"
+  clean "gf4, gf6, gf8, gf10, gf12, gf14, gf16, gf20, gf24, gf32 -- 7,556 pairs, 0 disagreements"
+  pending "gf48 and wider are still simulating at the time of writing. Not claimed either way"
+  bias_default "gf_adder_param declares parameter BIAS = (1 << (EXP_BITS - 1)) - 1. Untyped, so an explicit override is NOT truncated the way the decoder's `parameter integer` was -- that defect is not repeated here. But the DEFAULT overflows: 1 is a 32-bit literal, so any format with EXP_BITS >= 33 that leaves BIAS unset gets a wrong bias"
+  systemverilog "gf_adder_param declares out_valid and out_y as `output reg` and drives both with continuous assigns. iverilog rejects that under Verilog-2001 and needs -g2012. The decoder needs no such flag, and conformance/tb_gf_adder_gf64.v additionally uses `continue`, an SV keyword -- so that testbench cannot have run under the default mode either"
+}
+
+correction "my own handshake, and 1,835 disagreements that were not there" {
+  what "my first testbench raised in_valid and immediately waited for out_valid without deasserting, so every read sampled the PREVIOUS transaction's output"
+  reported "0 + minpos = 0, and 1,835 disagreements out of 2,100, for cores carrying 65536/65536 silicon evidence"
+  how_caught "the absurdity of the first line. 0 + minpos = 0 is not a plausible defect in a core with that evidence behind it"
+  fixed "drive on negedge, deassert after one cycle, then wait for out_valid with a bounded timeout -- the sequence conformance/tb_gf_adder_gf64.v already used. 0 disagreements"
+}
