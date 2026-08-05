@@ -281,6 +281,16 @@ def _selftest():
             check(decode(fmt, one) == 1, f"{fname}: unity (0x{one:x})")
             r = format_add(fmt, one, one)
             check(decode(fmt, r) == 2, f"{fname}: 1+1=2 (got {decode(fmt, r)})")
+
+            # Multiplication was checked nowhere. Pass 221's mutation gate corrupted format_mul and
+            # this self-test did not notice, while mx*_mul.json is generated from it. Six of sixteen
+            # oracles had the same hole and every one of them was multiplication -- addition is
+            # checked everywhere, mul nowhere.
+            #
+            # Properties of the OPERATION, not of the implementation: unity is neutral and zero
+            # absorbs. Both hold in every format here regardless of width or rounding.
+            check(format_mul(fmt, one, one) == one, f"{fname}: 1*1=1")
+            check(decode(fmt, format_mul(fmt, one, fmt.pos_zero)) == 0, f"{fname}: 1*0=0")
         else:
             # mxint8: 1 + 1 SATURATES. OCP MX v1.0 gives the format an implied binary
             # point six places in, so its range is +-127/64 and 2 is not in it. The

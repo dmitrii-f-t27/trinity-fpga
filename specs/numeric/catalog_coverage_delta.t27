@@ -6643,3 +6643,13 @@ finding "fp8_ref's self-test never checked multiplication" {
   fixed "three assertions about the OPERATION rather than the implementation: unity is neutral, zero absorbs, and 2*2 is 4 -- representable at every fp8 width here"
   measured_so_far "nf4, int_ref, gfternary and fp8 fail every mutation now. The remaining twelve oracles are not yet swept: five mutations each across sixteen modules does not fit one pass, which is why --only exists"
 }
+
+finding "no oracle self-test checked multiplication -- six of sixteen, and always mul" {
+  method "the mutation gate swept all sixteen oracles, perturbing encode, decode, and each *_add and *_mul in turn"
+  result "six survive a corrupted multiplication: fp8_ref, bf16_ref (BOTH format_mul and afp_mul), mxfp_ref, tekum_ref, takum_ref and gf_ref"
+  the_pattern "it is always multiplication. Not one oracle survives a corrupted encode, decode or add. Every self-test in the corpus checks 1+1 and x+0; none checked 1*1"
+  scope "gf_ref is the flagship -- gf_mul generates every GoldenFloat mul pack, and its own self-test would not have noticed if multiplication broke"
+  fixed "two assertions per oracle, about the OPERATION and not the implementation: unity is neutral and zero absorbs. Both hold at every width and rounding mode, so they cannot go stale the way `1+1=2` did for MXINT8 in pass 214"
+  bf16_needed_two "it has two multiplication functions and the first patch covered only format_mul. The gate still reported afp_mul surviving, which is the gate doing its job on my own fix"
+  now "16 of 16 oracles fail every mutation"
+}

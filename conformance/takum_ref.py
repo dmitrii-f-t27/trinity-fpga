@@ -278,6 +278,16 @@ def _selftest():
         r = format_add(fmt, one, one)
         check(decode(fmt, r) == 2, f"{fname}: 1+1=2 (got {decode(fmt, r)})")
 
+        # Multiplication was checked nowhere. Pass 221's mutation gate corrupted format_mul and
+        # this self-test did not notice, while takum*_mul.json is generated from it. Six of sixteen
+        # oracles had the same hole and every one of them was multiplication -- addition is
+        # checked everywhere, mul nowhere.
+        #
+        # Properties of the OPERATION, not of the implementation: unity is neutral and zero
+        # absorbs. Both hold in every format here regardless of width or rounding.
+        check(format_mul(fmt, one, one) == one, f"{fname}: 1*1=1")
+        check(decode(fmt, format_mul(fmt, one, fmt.pos_zero)) == 0, f"{fname}: 1*0=0")
+
         if fmt.n <= 16:
             codes = range(0, 1 << fmt.n)
         else:
