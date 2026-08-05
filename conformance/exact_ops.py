@@ -46,11 +46,33 @@ def _is_special(mod, v):
 
 
 def _nan(fmt):
-    return fmt.quiet_nan
+    """The format's "not a number", whatever it calls it.
+
+    posit, takum and tekum have no NaN and no infinity: one code, NaR, stands for every
+    result outside the reals. Requiring quiet_nan excluded all nine of those formats from
+    div and sqrt until pass 224.
+    """
+    for attr in ("quiet_nan", "nar"):
+        v = getattr(fmt, attr, None)
+        if v is not None:
+            return v
+    raise AttributeError(f"{getattr(fmt, 'name', fmt)} has neither quiet_nan nor nar")
 
 
 def _inf(fmt, sign):
-    return fmt.neg_inf if sign else fmt.pos_inf
+    """An infinity of the given sign, or NaR for the formats that have neither.
+
+    x/0 is +/-Inf in IEEE and NaR in a posit -- the Posit Standard has no infinity at all,
+    so there is nothing else it could be. Returning NaR here is the format's own answer,
+    not a substitution.
+    """
+    try:
+        return fmt.neg_inf if sign else fmt.pos_inf
+    except AttributeError:
+        nar = getattr(fmt, "nar", None)
+        if nar is not None:
+            return nar
+        raise
 
 
 def _zero(fmt, sign):
@@ -206,6 +228,25 @@ def self_test() -> int:
                 pass
     check(bad == 0, f"sqrt is the nearest representable value for 2..59 ({bad} closer "
                     f"neighbours found)")
+
+    # The NaR path. Nine formats -- posit, takum and tekum at four widths each -- have no
+    # infinity and no NaN, only NaR, and were excluded from div and sqrt entirely until
+    # pass 224. Checked here so the branch cannot rot unnoticed.
+    for mod_name, fmt_name in (("posit_ref", "posit8"), ("takum_ref", "takum8"),
+                               ("tekum_ref", "tekum8")):
+        try:
+            m = importlib.import_module(mod_name)
+        except Exception:
+            continue
+        f = m.FORMATS[fmt_name]
+        d = make_div(m)
+        sq = make_sqrt(m)
+        one = m.encode(f, Fraction(1))
+        check(d(f, one, one) == one, f"{fmt_name}: 1/1 = 1")
+        check(d(f, one, f.pos_zero) == f.nar, f"{fmt_name}: 1/0 = NaR, not infinity")
+        check(d(f, f.pos_zero, f.pos_zero) == f.nar, f"{fmt_name}: 0/0 = NaR")
+        check(sq(f, one) == one, f"{fmt_name}: sqrt(1) = 1")
+        check(sq(f, m.encode(f, Fraction(-1))) == f.nar, f"{fmt_name}: sqrt(-1) = NaR")
 
     print(f"\nself-test: {'PASS' if not fails else 'FAIL'}")
     return 0 if not fails else 1
