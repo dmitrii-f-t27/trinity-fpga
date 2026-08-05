@@ -1,4 +1,9 @@
 #!/bin/bash
+# NOTE (2026-08-05): per the no-shell-scripts rule (CLAUDE.md),
+# fpga/**/*.sh is slated to migrate to `tri` subcommands / Zig.
+# Do not extend this script; disposition tracked in trinity-fpga#425.
+# A Zig replacement already exists: prefer `fpga-flash` (src/cli/fpga_flash.zig,
+# subcommands fxload|verify-pid|flash|uart-test|full).
 # ============================================================================
 # TRINITY FPGA: Flash uart_bridge_fixed.bit + Test UART
 # One-command flash + test sequence

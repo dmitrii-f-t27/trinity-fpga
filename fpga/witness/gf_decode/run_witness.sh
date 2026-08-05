@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# NOTE (2026-08-05): per the no-shell-scripts rule (CLAUDE.md),
+# fpga/**/*.sh is slated to migrate to `tri` subcommands / Zig.
+# Do not extend this script; disposition tracked in trinity-fpga#425.
 # Independent iverilog witness for gf_decode_param.v -- all 10 Phase-A formats.
 # Requires: iverilog (+vvp), python3. Run: bash fpga/witness/gf_decode/run_witness.sh
 # Exit 0 iff all 10 PASS (fails=0). Written to be self-contained & reproducible.
