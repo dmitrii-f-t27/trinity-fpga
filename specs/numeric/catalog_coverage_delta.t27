@@ -6696,3 +6696,13 @@ finding "SoftPosit's variable-width division is less accurately rounded than its
   resolved "against p8_div, the dedicated 8-bit entry point, agreement is 251 of 251. pX2_div was the wrong reference to compare a posit8 pack against, and the accuracy measurement said so before the right comparison confirmed it"
   method_note "the first instinct on a 137-of-251 disagreement is that one side is wrong. Asking WHICH side is closer to the exact value is cheap and answered it -- neither implementation was buggy, the entry point was"
 }
+
+verification "the posit encode fix moved no arithmetic, and division is witnessed at three widths" {
+  fallout_check "pass 225 changed posit_ref.encode, so the reproducibility gate was run first. Six packs drifted: posit8 and posit16 add, mul and sub"
+  what_actually_moved "nothing arithmetic. For posit8_add all 65536 pairs are present in both versions and ZERO expectations changed -- the bytes differ only in ordering. posit16 grew from 995 to 1036 vectors because edge codes come from encode, and of the 985 shared pairs zero expectations changed"
+  my_own_overstatement "the first count said 196,605 of 203,373 vectors moved. That compared position by position and read a reordering as a change. Comparing by (a, b) key gives zero"
+  regenerated "the six packs; 247 of 247 rebuild byte-identical again"
+  witness_by_width "posit8 251/251 against p8_div, posit32 220/220 against p32_div, posit16 214/216 against pX2_div at es=2 with both differences ours-closer-to-exact"
+  the_entry_point_rule "SoftPosit's dedicated types carry the legacy exponent sizes -- p8 es=0, p16 es=1, p32 es=2 -- while posit_ref declares posit8 es=0, posit16 es=2, posit32 es=2. p16_div is therefore a DIFFERENT FORMAT from our posit16, which is why that comparison read 24 of 216. Matching es per width is the whole of it"
+  method "twice now a bad agreement number meant the wrong entry point rather than a defect, and both times asking which side is closer to the exact quotient said so before the right comparison confirmed it"
+}
