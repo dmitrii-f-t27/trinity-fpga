@@ -2,18 +2,19 @@
 """gf48 decode conformance — GF(48,18,29) BIAS=131071 → FP32. 6-byte frame."""
 import serial, struct, time, random, sys, argparse
 N,E,M,BIAS = 48,18,29,131071
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from gf_decode_golden import decode_to_fp32
 EM = (1<<E)-1
 def decode(raw):
-    raw &= (1<<N)-1; s=raw>>(N-1); e=(raw>>M)&EM; m=raw&((1<<M)-1)
-    if e==EM:
-        if m==0: return 0xFF800000 if s else 0x7F800000
-        return 0x7FC00001
-    if e==0:
-        if m==0: return s<<31
-        v=(m/float(1<<M))*(2.0**(1-BIAS))
-    else: v=(1+m/float(1<<M))*(2.0**(e-BIAS))
-    if abs(v)>3.4e38: return 0xFF800000 if v<0 else 0x7F800000
-    return struct.unpack(">I",struct.pack(">f",-v if s else v))[0]
+    # Exact golden -- conformance/gf_decode_golden.py. This used to compute
+    #     v = (1 + m/float(1<<M)) * (2.0 ** (e - BIAS))
+    # which rounds twice (format -> double -> fp32) and, for this format's own
+    # top-of-range exponents, raised OverflowError before it could round at all.
+    # It also treated exp=all-ones as Inf/NaN, which only gf16 does: the .t27
+    # spec, conformance/gf_ref.py and fpga/openxc7-synth/gf_adder_param.v all
+    # agree that for every other GF width it is a FINITE maximum.
+    return decode_to_fp32(raw, N, E, M, BIAS, "gf48")
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--port",default="/dev/cu.usbserial-1120")

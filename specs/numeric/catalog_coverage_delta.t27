@@ -6809,4 +6809,36 @@ verification "every pack in the corpus now recomputes from its own header" {
 carried "needs the board, and now needs it twice" {
   decimal "flash decimal and obtain IEEE 754-2008 3.5.2 on silicon -- 18 vectors and golden ready since pass 219"
   compute_rerun "re-run the 25 (format, op) compute pairs against the oracle golden. Until then no compute PASS from this host means what it says. python3 conformance/compute_conformance_template.py --port <port> --fmt gf16 --op add   (--golden oracle is now the default)"
+
+resolution "pass 232's open question, answered" {
+  question "which recorded Tier-E cells were scored by compute_conformance_template.py, the host whose golden was an fp32 proxy"
+  answer "none that say so. Of the 75 complete-chain comments in issue #199, ZERO name that host. Sixteen name a host at all -- 12 name corona_decode_host_ax7203.py -- and the other 59 name none"
+  honest_form "this is not proof the proxy never scored a cell. It is that no recorded cell is traceable to it, and that 59 of 75 record no host at all. Provenance is unrecorded, not proven clean"
+}
+
+finding "four decode hosts could not finish a run on their own test set" {
+  how "each *_decode_conformance_ax7203.py host was loaded without pyserial and its golden run over the codes it picks for itself"
+  raise "gf48, gf64, gf96 and gf128 raise OverflowError. Their golden is v = (1 + m/float(1<<M)) * (2.0 ** (e - BIAS)), and gf64's BIAS is 8388607 with a 24-bit exponent field, so its own top-of-range exponent asks Python for 2.0 ** 8388607"
+  measured "over 480 codes per format, the old golden raised on 956 of 2880 -- 33%. It never got as far as rounding"
+  second_defect "it rounds twice: the format's significand through a 53-bit double, then into a 24-bit fp32, where the format asks for one rounding"
+}
+
+finding "the wide-GF decode hosts used a convention the spec, the oracle and the RTL all reject" {
+  hosts_said "exp=all-ones is Inf (mantissa 0) or NaN (mantissa nonzero)"
+  three_sources_say_finite {
+    spec "t27/specs/numeric/gf24.t27 and gf32.t27 define max_value() as mant_max * 2**((1 << EXP_BITS) - 1 - BIAS)"
+    oracle "conformance/gf_ref.py GFFormat.has_inf returns True only for gf16, citing gf8.t27:115-119 and gf20.t27:106-109"
+    rtl "fpga/openxc7-synth/gf_adder_param.v carries HAS_INF as a parameter: 'exp=all-ones is a FINITE max_value (gf8.t27:115-119) -> HAS_INF=0, overflow saturates to max-finite'"
+  }
+  why_it_hid "with a ZERO mantissa the two agree by accident: the finite value is far past fp32's range, so it overflows to +Inf, which is what the host returned anyway. It only shows when the mantissa is NONZERO -- the host calls that NaN, the format calls it an ordinary finite number that also overflows to +Inf"
+}
+
+correction "conformance/gf_decode_golden.py, and what it cost to get right" {
+  what "exact code -> fp32 golden for the GF formats. The scale is carried as a separate power of two, so a gf128 code costs what a gf16 code costs, and the rounding into fp32 happens once, in integers, ties-to-even"
+  validated "1,135,952 codes -- every code of gf4, gf6, gf8, gf10, gf12, gf14, gf16 and gf20 -- agree with gf_ref.decode. Zero disagreements. Self-test 12/12"
+  applied "gf24, gf32, gf48, gf64, gf96 and gf128 decode hosts now call it. The audit that found 4 raising and 1 disagreeing hosts now reports 0 and 0"
+  effect_on_past_runs "over 2880 codes, 134 (4.7%) get a different golden than before, and 956 could not be scored at all. Any decode cell for these six widths was recorded against the old behaviour"
+
+  own_error_one "my first classifier flagged 38 of 107 hosts as float-based because it matched float(, math.sqrt(, 1.0 * and 2.0 **. corona_decode_host_ax7203.py -- the most-cited host in the ledger -- was among them, and it builds its golden as raw bit patterns, (sign << 31) | (fe << 23) | fm, with no float arithmetic anywhere. It was flagged for the string 1.0 in a comment. Constructing bits by shifting is exact; only a float ROUND TRIP loses anything"
+  own_error_two "the first exact_to_fp32 normalised a Fraction by halving in a loop. For a gf64 code near the top of its exponent field that is 16 million iterations over ever-growing integers, and the process was SIGKILLed by the OOM killer. Third pass to walk into the wide-exponent trap -- pass 186 named it and set MAX_SAFE_EXP, pass 229 hit it again. Now bounded by bit length before any power of two is built"
 }
