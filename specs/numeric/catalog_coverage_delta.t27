@@ -6715,3 +6715,13 @@ verification "posit division and square root agree with SoftPosit at three width
   artefacts "five dumps committed under conformance/witness/ and recorded in the manifest with SoftPosit commit 17d5628. posit8_div is 702 KB, inside the repository's 1 MB rule"
   posit8_convention "posit_ref declares posit8 with es=0, the older convention, not the Posit Standard 2022's es=2. The 251/251 agreement is with SoftPosit under that same es, so it confirms internal consistency and NOT conformance to the 2022 standard. The corpus already carries a separate posit8_es2 decode path; which one a paper cites should be stated"
 }
+
+correction "the record said the published posit8 pack is es=2; it is es=0" {
+  the_line "an earlier block reads `published pack posit8, es = 2, Posit Standard 2022, maxpos 16,777,216 -- validated above against SoftPosit, 255/255`"
+  the_fact "conformance/posit_ref.py declares posit8 with es=0 in the commit that created the file, and has never declared anything else. decode(0x7f) is 64, which is maxpos at es=0; es=2 would give 16,777,216"
+  what_the_255_of_255_was_about "a scratchpad artefact -- posit8.json, 256 entries -- compared against spx8.tsv, which the pX2 dump produces at es=2. Both sides of that comparison are es=2 and it is a real result. Neither side is conformance/vectors/posit8_*.json"
+  so "two different posit8 datasets, two real validations, and a record that presents them as one. A paper citing that line for `posit8 conforms to Posit Standard 2022` would be citing data that is not in the repository"
+  pass_227_is_unaffected "251/251 against p8_div is es=0 on both sides and is about the repository packs"
+  gate "research/audit_declared_vs_encoded.py decodes the largest positive code of every posit width and compares against useed^(n-2) for the declared es. All four agree today. maxpos at es=0 and es=2 differ by 2^18 at width 8, so the landmark discriminates"
+  still_open "which convention to publish. es=0 is the older draft; the 2022 standard fixes es=2 at every width, and the corpus carries a separate posit8_es2 decode path, flashed in pass 176"
+}
