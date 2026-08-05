@@ -49,11 +49,24 @@
 // arithmetic assumed bias>=1; decode has no such assumption because it does
 // not do exponent alignment between two operands.
 //
-// EXTENDED FORMATS (gf96+, decode_target=="extended"): mantissa width M>52
-// does not fit even in binary64. This module MUST NOT be instantiated for
-// N>32 decode targets requiring binary32, nor claimed as FP-decode HW for
-// extended formats -- see honesty rule in gf_decode_lineup_spec.md. Extended
-// formats remain SW-only conformance ([open hypothesis for HW]).
+// EXTENDED FORMATS (gf96+). The line here used to read "This module MUST NOT be
+// instantiated for N>32 decode targets requiring binary32". That was true when
+// written, and pass 237 measured exactly how: BIAS was declared `parameter
+// integer`, which is 32 bits SIGNED, so every format with BIAS >= 2**31 -- gf96,
+// gf128, gf256, gf512, gf1024 -- had its bias truncated before any arithmetic
+// happened, and EXP_CALC_W was a flat 40 on top of that. gf256 decoded 2**(2**64)
+// as 1.0.
+//
+// Pass 238 gave BIAS an explicit [E:0] width and made EXP_CALC_W grow with E.
+// research/witness_gf_decode_rtl.py now runs this module under iverilog against
+// the exact golden: 94,894 codes across all 17 GF widths, 0 disagreements --
+// gf4 through gf16 EXHAUSTIVELY. The same witness on the previous version scores
+// 4,073 disagreements, all of them in gf96 and wider.
+//
+// What has NOT changed is the honesty rule in gf_decode_lineup_spec.md. A
+// simulation witness is not silicon. No gf48/64/96/128/256/512/1024 cell appears
+// in any complete-chain Tier-E comment, and this note is not evidence that one
+// should.
 //
 // Synthesis/PnR/flashing on AX7203 = [ТРЕБУЕТ ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ]. This
 // file is sandbox design output; no iverilog/yosys available here to
@@ -70,7 +83,13 @@ module gf_decode_param #(
     parameter integer N        = 16,     // total GF width (1 + E + M)
     parameter integer E        = 6,      // GF exponent width
     parameter integer M        = 9,      // GF mantissa width
-    parameter integer BIAS     = 31,     // GF exponent bias
+    // BIAS is declared with an explicit width, not `integer`. A Verilog integer
+    // is 32 bits, and gf256's bias is 2**96-1: passing it to an `integer`
+    // parameter silently truncates it. Before EXP_CALC_W was widened this hid,
+    // because exp_in - BIAS truncated both sides the same way and the error
+    // cancelled for codes near the bias; widening the working width exposed it
+    // immediately, with 1.0 decoding to +Inf.
+    parameter [E:0]   BIAS     = 31,     // GF exponent bias (E+1 bits, unsigned)
     parameter integer OUT_REG  = 0,      // 0 = pure combinational, 1 = registered output
     // HAS_INF=1 only for formats where exp=all-ones is RESERVED as SPECIAL.
     // gf16.t27 declares GF16_INF_POS 0x7E00 / GF16_INF_NEG 0xFE00 / GF16_NAN 0xFE01.
@@ -122,7 +141,18 @@ module gf_decode_param #(
     // Phase-A only, N<=32, so a 32-bit signed true_exp is always sufficient
     // (max |true_exp| for gf32: BIAS=2047, exp in [0,4094] -> true_exp in
     // [-2047,2047], comfortably inside 32 bits with huge margin).
-    localparam integer EXP_CALC_W = 40; // signed working width for exponent math
+    // Signed working width for exponent math. This was a flat 40, reasoned from
+    // gf32 (BIAS=2047, |true_exp| <= 2047) and stated as "Phase-A only, N<=32".
+    // Five wrappers instantiate this module at N = 48, 64, 96, 128 and 256, and
+    // at gf256 (E=97, BIAS=2**96-1) the exponent measurably wrapped: pass 237
+    // measured 0x3F800000 -- that is 1.0 -- for a code whose value is 2**(2**64)
+    // and whose fp32 answer is +Inf.
+    //
+    // The two producers are exp_in - BIAS and (1 - BIAS) - (lzc + 1), so the
+    // magnitude to hold is max(2**E - 1 - BIAS, BIAS + M + 1). Both are under
+    // 2**(E+1) for every lineup format, so E + 2 signed bits suffice. The 40
+    // floor keeps every existing narrow instantiation bit-identical.
+    localparam integer EXP_CALC_W = ((E + 2) > 40) ? (E + 2) : 40;
     localparam integer SIG_W = M + 2;   // implicit + M frac bits + 1 round-carry guard
 
     // ---- field extraction ----
@@ -166,12 +196,12 @@ module gf_decode_param #(
     //   true_exp   = (1-BIAS) - (lzc+1)
     //   frac_bits  = (mant_in << (lzc+1))  truncated to M bits
     wire signed [EXP_CALC_W-1:0] sub_true_exp =
-        ($signed(1) - BIAS) - (lzc_s + 32'sd1);
+        ($signed(32'sd1) - $signed({1'b0, BIAS})) - (lzc_s + 32'sd1);
     wire [M-1:0] sub_frac_bits = (mant_in << (lzc_s[7:0] + 8'd1));
 
     // GF-normal true exponent: true_exp = exp_in - BIAS, frac_bits = mant_in
     wire signed [EXP_CALC_W-1:0] norm_true_exp =
-        $signed({1'b0, exp_in}) - BIAS;
+        $signed({1'b0, exp_in}) - $signed({1'b0, BIAS});
 
     // -------------------------------------------------------------------
     // Select which (true_exp, frac_bits) pair feeds the shared FP32 packer,
