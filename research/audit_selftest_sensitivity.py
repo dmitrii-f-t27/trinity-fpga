@@ -27,8 +27,8 @@ It can be found by mutation. Perturb the module and require the self-test to fai
 
 WHAT IS MUTATED
 ---------------
-The encode-like function the module's own `format_add` routes through -- `encode` for most,
-`encode_from_log` for lns_ref -- with one bit flipped in its result. Every oracle here routes correctly-rounded values through
+Every function the module publishes that a pack depends on: the encoder its arithmetic routes
+through, `decode`, and each `*_add` / `*_mul`. One at a time, with the result perturbed. Every oracle here routes correctly-rounded values through
 encode, so a one-bit change to what it returns is the smallest edit that makes the module
 observably wrong without making it crash. A self-test that still passes is asserting
 something other than the module's behaviour.
@@ -100,12 +100,22 @@ def targets(src):
     forever -- the same blind spot in the other direction. Both are tried, and a module
     is sensitive only if BOTH mutations are caught.
     """
+    import re
     out = []
     enc = encoder_used(src)
     if f"\ndef {enc}(" in src:
         out.append(enc)
     if "\ndef decode(" in src:
         out.append("decode")
+    # The arithmetic too. encode and decode are one code path each; format_add and
+    # format_mul are where 2.4 million published vectors come from, and a self-test that
+    # never checks a sum would pass a corrupted adder forever. The names are read from
+    # the file rather than assumed, because gf_ref calls its pair gf_add / gf_mul and
+    # tekum_ref uses tekum_add / tekum_mul.
+    for m in re.finditer(r"^def (\w*_?(?:add|mul))\(", src, re.M):
+        name = m.group(1)
+        if not name.startswith("_"):
+            out.append(name)
     return out
 
 
@@ -147,10 +157,42 @@ def has_selftest(path):
     return "__main__" in src and ("SELF-TEST" in src or "self-test" in src)
 
 
-def run_selftest(path):
-    """(returncode, tail). A module with no self-test returns None."""
-    r = subprocess.run([sys.executable, path], capture_output=True, text=True,
-                       cwd=ROOT, timeout=600)
+def run_mutated(path, original, fn):
+    """Run the self-test with one function perturbed, WITHOUT touching the original.
+
+    The first version wrote the mutation into the module and restored it in a finally
+    block. Killing the run mid-flight left conformance/ieee_ref.py and
+    conformance/posit_ref.py mutated on disk -- a gate that corrupts the corpus when
+    interrupted is worse than no gate. This copies the whole conformance tree to a
+    temporary directory, mutates the copy and runs there, so the originals are never
+    opened for writing at all.
+    """
+    import shutil
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        dst = os.path.join(d, "conformance")
+        shutil.copytree(CONF, dst,
+                        ignore=shutil.ignore_patterns("vectors", "witness", "__pycache__"))
+        target = os.path.join(dst, os.path.basename(path))
+        io.open(target, "w", encoding="utf-8").write(inject(original, fn))
+        return run_selftest(target, cwd=d)
+
+
+def run_selftest(path, timeout=180, cwd=None):
+    """(returncode, tail). A module with no self-test returns None.
+
+    Bounded at three minutes per run. With five mutations per oracle across sixteen
+    oracles the total matters, and a self-test that hangs under mutation is itself worth
+    knowing about -- a timeout is reported as a failure, which is the right reading: the
+    module noticed.
+    """
+    try:
+        r = subprocess.run([sys.executable, path], capture_output=True, text=True,
+                           cwd=cwd or ROOT, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        class _R:
+            returncode, stdout, stderr = 1, "", "timed out under mutation"
+        r = _R()
     tail = (r.stdout or r.stderr).strip().split("\n")[-1][:70]
     return r.returncode, tail
 
@@ -158,6 +200,12 @@ def run_selftest(path):
 def main() -> int:
     verbose = "--verbose" in sys.argv
     oracles = sorted(glob.glob(os.path.join(CONF, "*_ref.py")))
+    # --only NAME narrows the sweep. With up to five mutations per oracle and sixteen
+    # oracles the full run is long, and a partial answer that says which oracles it
+    # covered beats a complete one nobody waits for.
+    if "--only" in sys.argv:
+        want = sys.argv[sys.argv.index("--only") + 1]
+        oracles = [o for o in oracles if want in os.path.basename(o)]
     insensitive, sensitive, skipped = [], [], []
 
     for path in oracles:
@@ -177,11 +225,7 @@ def main() -> int:
             continue
         survived = []
         for fn in fns:
-            try:
-                io.open(path, "w", encoding="utf-8").write(inject(original, fn))
-                rc, tail = run_selftest(path)
-            finally:
-                io.open(path, "w", encoding="utf-8").write(original)
+            rc, tail = run_mutated(path, original, fn)
             if rc == 0:
                 survived.append((fn, tail))
         if survived:
@@ -193,7 +237,7 @@ def main() -> int:
 
     print(f"oracles with a self-test              : "
           f"{len(sensitive) + len(insensitive)}")
-    print(f"  fail when encode AND decode perturbed: {len(sensitive)}")
+    print(f"  fail on EVERY mutation              : {len(sensitive)}")
     print(f"  survive at least one mutation       : {len(insensitive)}")
     print(f"  not assessed                        : {len(skipped)}\n")
 
@@ -227,15 +271,10 @@ def self_check() -> int:
 
     clean_rc, _ = run_selftest(target)
     print(f"  gf_ref self-test clean -> rc {clean_rc}")
-    try:
-        io.open(target, "w", encoding="utf-8").write(inject(before, encoder_used(before)))
-        rc, tail = run_selftest(target)
-    finally:
-        io.open(target, "w", encoding="utf-8").write(before)
-
+    rc, tail = run_mutated(target, before, encoder_used(before))
     restored = hash(io.open(target, encoding="utf-8").read()) == digest_before
     print(f"  with encode perturbed  -> rc {rc}  ({tail})")
-    print(f"  file restored byte-identical -> {restored}")
+    print(f"  original never written -> {restored}")
 
     ok = clean_rc == 0 and rc != 0 and restored
     print(f"\nself-check: {'PASS' if ok else 'FAIL'}")
