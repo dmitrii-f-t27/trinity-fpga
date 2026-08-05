@@ -74,6 +74,21 @@ def rebuild_all():
     return rows
 
 
+def exact_packs():
+    """The _exact packs: div and sqrt built by conformance/exact_ops.py (pass 223).
+
+    generate_vectors does not produce them, so they are outside the rebuild above --
+    but they ARE reproducible, by a recipe stated in each file's own `oracle` field.
+    Counted separately so the headline number does not silently shrink when the corpus
+    grows a family this gate cannot rebuild.
+    """
+    import glob
+    sys.path.insert(0, CONF)
+    G = importlib.import_module("generate_vectors")
+    return sorted(os.path.basename(p)[:-5]
+                  for p in glob.glob(os.path.join(G.VECTORS_DIR, "*_exact.json")))
+
+
 def uncovered():
     """Packs on disk that generate_vectors does not produce -- the integer schema."""
     import glob
@@ -102,6 +117,7 @@ def main() -> int:
     print(f"  DIFFERENT                           : {len(bad)}")
     print(f"  could not be rebuilt                : {len(err)}")
     print(f"  not covered (integer schema)        : {len(other)}")
+    print(f"  reproducible by exact_ops instead   : {len(exact_packs())}")
     print(f"  elapsed                             : {time.time() - t0:.0f}s\n")
 
     for name, _, _ in bad:
