@@ -7374,3 +7374,15 @@ finding "five of the six named conformance packs are packs" {
   proposed "generate the E8M0 pack and oracle so the count is six, or say five packs plus an independently-goldened host -- and amend the erratum sentence"
   package "item 8. Seventeen claims recomputed, nine reproduce cleanly, one sensitivity note, seven need action"
 }
+
+resolution "the missing E8M0 oracle and packs now exist" {
+  what "conformance/e8m0_ref.py plus conformance/vectors/e8m0_add.json and e8m0_mul.json, 65,536 vectors each -- the format is 8 bits, so both are EXHAUSTIVE over all 256x256 operand pairs"
+  the_format "OCP MX v1.0 shared block scale: 8 bits, exponent only. code 0x00..0xFE is 2**(code-127), code 0xFF is NaN. No sign, no mantissa, and NO ZERO -- the smallest value is 2**-127, not 0. pos_zero and neg_zero raise, which is the pattern passes 231, 236 and 242 arrived at after four formats declared a zero they did not have"
+  ops "MUL is exact and closed -- 2**a * 2**b = 2**(a+b), saturating at both ends because the format has no Inf. ADD is not closed, so it rounds to the nearest representable exponent, in the LOG domain with ties to even: the points are geometrically spaced and a linear midpoint would bias every result upward"
+  cross_checked "the self-test holds the oracle to the independent golden in conformance/e8m0_decode_conformance_ax7203.py on all 256 codes. 10/10"
+
+  no_sub_pack "E8M0 has no negation, so SUB is undefined and no e8m0_sub.json is written -- the treatment negate_raw already gave unsigned integers. Without that entry it fell to the default branch and flipped bit 7, which for an exponent-only format changes the EXPONENT. A first run wrote a 65,536-vector pack of nonsense before that was caught"
+
+  found_on_the_way "the reproducibility audit then reported three DIFFERENT packs, and they were not the new ones: gfternary_add, _mul and _sub. Pass 242 made gfternary_ref.neg_zero raise and did not regenerate the packs whose specials legend still listed one. Two passes stale, caught by a gate rather than by reading"
+  end_state "327 packs, 2,573,605 vectors, 0 header-vs-oracle disagreements. 249 rebuildable, 249 byte-identical. Zero-sign guard 30 asked, 0 lost"
+}
