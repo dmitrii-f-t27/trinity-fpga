@@ -7118,3 +7118,19 @@ verification "full synthesis sweep -- tool landed, run in flight" {
   cost_estimate_was_wrong "one representative file measured 3.4 seconds, which put the tree at half an hour on six workers. The real rate is 200 files in 11 minutes: the distribution has a long tail, and a 256-bit design takes minutes on its own. Roughly three hours, not thirty minutes"
   status "3,535 files attempted, running in the background. Not claimed either way until it finishes -- the worktree stays until then, because pass 239 killed its own background job by removing the worktree underneath it"
 }
+
+verification "the last repeating class gets a check, and the deferred decision gets its numbers" {
+  the_class "truncation where round-to-nearest was due. Counted twice -- 172 sites in pass 235's structural audit, again in pass 240's reading of the compute wrappers -- and never guarded. The zero-sign class was found FIVE times before pass 242 gave it one"
+  guard "research/audit_truncation.py. A narrowing is `wire [22:0] X = Y[hi:lo]` keeping 23 bits; rounding needs a guard bit and a sticky OR below it, so a rounding site has those signals near it and a truncating one does not"
+  inventory {
+    exact 2284 "discard nothing"
+    rounding 14 "discard bits AND round -- the codebase already knows how, in fourteen places"
+    truncating 195 "discard bits with no rounding term"
+    distribution "213 bits dropped at 13 sites (binary256), 96 at 13, 90 at 12, 89 at 24 (binary128), 40 at 12, 32 at 37, 29 at 48, 24 at 12, 16 at 12, 8 at 12"
+  }
+
+  the_numbers "research/witness_rounding.py, because pass 241 deferred this decision explicitly and left it without any"
+  correctness "over 448 structural operand cases across binary128, binary256, cray_float and x87_fp80: 160 wrong truncating, 0 wrong rounding. Every one of the four formats scores 40 of 112"
+  cost "the binary128 narrowing synthesised both ways under yosys: truncating 0 LUTs, rounding 73. Truncation is a pure slice, so it is wiring and costs no logic at all -- the comparison is 0 against 73, not a percentage"
+  not_taken "the decision. Changing the mantissa path moves EVERY result, not just the wrong ones, and 195 sites is a wide blast radius for a change nothing has yet asked for. The guard reports; it does not fail"
+}
