@@ -7226,3 +7226,15 @@ verification "the catalog paper, arXiv:2606.09686" {
 
   not_checkable_this_way "'four parameterized decode templates'. Only two files are named *_decode_param.v, and that is NOT evidence against the claim -- the templates are described by technique, not filename, and the takum16 cell is documented as a BRAM LUT rather than a _param module. Counting files would be measuring a neighbour of the claim rather than the claim, which is the mistake passes 250 and 251 each made once"
 }
+
+verification "the full synthesis sweep finished, and its biggest class was my own tooling" {
+  raw_result "3,535 synthesis sources attempted over about five hours. 3,457 synthesised, 78 failed, 10,184,307 LUTs across the ones that built"
+
+  largest_class_retracted "35 of the 78 read 'Module <name> referenced in module <name> is not part of the design' -- bf16_decode, posit8_decode, nf4_decode, fp4_decode, tf32_decode, e8m0_decode and a dozen more, plus gf_add_param in the gf10 and gf14 adders. None of them is missing"
+  where_they_are "commit 32af5c242, 'submodule: link tt-trinity-corona, remove 17 duplicate decode files', moved them into external/tt-trinity-corona. The submodule holds 23 .v files, and .github/workflows/ax7203-corona-decode.yml reads them explicitly beside the wrapper"
+  why_the_sweep_missed_them "two reasons, and the second is the durable one. My -libdir pointed at fpga/openxc7-synth only. And a GIT WORKTREE DOES NOT CARRY SUBMODULE CONTENTS -- external/tt-trinity-corona is EMPTY in every worktree I have used since pass 231, while the main tree has it populated at 314d47a"
+  confirmed "with the submodule path added, corona_decode_bf16, corona_decode_posit8, corona_decode_nf4 and corona_compute_gf10_add all synthesise"
+
+  what_survives "the readmemb class (20 files, a parameterised path whose default is not in the tree), five gf256 timeouts at 600s, and the syntax failures pass 245 already catalogued -- tqnn_layer_10k and the trinity_v2 tops, dsp48e1_ternary, uart_simple, tekum_decode_param's non-constant loop bound"
+  headline_is_a_lower_bound "3,457 synthesised is an undercount. The corrected figure is not measured here -- re-running is five hours -- and the tool now adds the submodule path and WARNS when it is empty, which is the case in any worktree"
+}

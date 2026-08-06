@@ -34,6 +34,19 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 SYNTH = os.path.join(ROOT, "fpga", "openxc7-synth")
+# The corona decode cells do not live here. Commit 32af5c242 -- "submodule: link
+# tt-trinity-corona, remove 17 duplicate decode files" -- moved them into a
+# submodule, and .github/workflows/ax7203-corona-decode.yml reads them from there:
+#   SRC="fpga/openxc7-synth/corona_decode_posit8_ax7203.v \
+#        external/tt-trinity-corona/src/rtl/posit8_decode.v"
+# Without this path yosys reports "Module `\bf16_decode' ... is not part of the
+# design" for about thirty wrappers that are perfectly buildable. The first run of
+# this sweep did exactly that.
+#
+# AND: a git worktree does NOT carry submodule contents. Run inside one, this
+# directory is empty even when the main tree has it populated -- which is how the
+# first run produced a class of failures that do not exist.
+CORONA = os.path.join(ROOT, "external", "tt-trinity-corona", "src", "rtl")
 
 MODULE = re.compile(r"^\s*module\s+(\w+)", re.M)
 ERR = re.compile(r"^(?:.*?:\d+:\s*)?ERROR:\s*(.*)$", re.M)
@@ -74,8 +87,11 @@ def run_one(path):
     top = top_of(path, src)
     if top is None:
         return path, "no module defined", None
-    script = ("read_verilog %s; hierarchy -top %s -libdir %s; "
-              "synth_xilinx -flatten -nodsp; stat" % (path, top, SYNTH))
+    libdirs = "-libdir %s" % SYNTH
+    if os.path.isdir(CORONA) and glob.glob(os.path.join(CORONA, "*.v")):
+        libdirs += " -libdir %s" % CORONA
+    script = ("read_verilog %s; hierarchy -top %s %s; "
+              "synth_xilinx -flatten -nodsp; stat" % (path, top, libdirs))
     r = subprocess.run(["yosys", "-p", script], capture_output=True, text=True,
                        timeout=600)
     out = r.stdout + r.stderr
@@ -100,6 +116,12 @@ def main():
         print("nothing to do")
         return 2
 
+    if not (os.path.isdir(CORONA) and glob.glob(os.path.join(CORONA, "*.v"))):
+        print("WARNING: %s has no Verilog." % CORONA)
+        print("         If this is a git worktree, the submodule is not populated")
+        print("         here and about thirty corona wrappers will report a missing")
+        print("         module that is not actually missing. Run from the main tree.")
+        print()
     ok, failed, luts = 0, [], 0
     done = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as ex:
