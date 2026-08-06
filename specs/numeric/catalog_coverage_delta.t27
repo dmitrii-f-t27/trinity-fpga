@@ -7277,3 +7277,12 @@ resolution "the corrections package is complete at six items" {
   each_item_has "the evidence, the verdict, and a proposed wording -- so the decision to file is a single reading rather than six investigations"
   research_PAPER_CLAIM_VERIFICATION "kept in step with the same counts"
 }
+
+finding "three of four cores in that table reproduce exactly, which is what makes the fourth mean something" {
+  controls "from research/COMPLETE_LUT_TABLE.md's additional-cores table, with the published flags: Ternary MAC-16 55 -> 55 EXACT. GF Div 207 -> 207 EXACT. GF Sqrt 128 LUT / 8 DSP -> 128 LUT / 8 DSP EXACT"
+  my_own_unfairness "GF Sqrt first measured 4818 because I forced -nodsp while the table's row lists 8 DSPs. Left to infer, it lands on the published number exactly. The row was right and the comparison was mine"
+  the_outlier "GF Quire, listed at 75 LUT and 0 DSP, measures 1063 with -nodsp and 1005 with DSP inference allowed, 0 DSP either way. Fourteen times the published figure, and not explained by flags"
+
+  what_it_settles "pass 256 said the 1067 was 'not a refutation of the 75' because a standalone module and a marginal cost are different quantities. With three standalone modules from the same table reproducing exactly, the 75 is plainly meant as standalone too -- so it IS a refutation, and I was being more cautious than the evidence required"
+  and_the_505 "505 is takum16's native MUL in that table, not GF16's; GF16's multiply is 587 there. So line 132's '580 LUT (505 multiply + 75 Quire)' uses takum16's multiply for a GF16+ MAC together with a Quire figure that does not reproduce. If the Quire is really 1063, the MAC is roughly 1650, not 580"
+}

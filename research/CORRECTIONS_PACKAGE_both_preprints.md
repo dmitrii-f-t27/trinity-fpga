@@ -21,7 +21,7 @@ is a sensitivity note rather than an error, and **five need action**.
 | 3 | "GF16 preserves 8.7× more gradient updates" | 2606.09686, abstract | **sensitivity note**, not an error |
 | 4 | "as in GF16 MUL's single-DSP multiplier" | 2606.09686, abstract + §flags | **factual** — no wrapper uses it |
 | 5 | LUT_ADD ≈ 1.63 W², R² ≥ 0.97 | 2606.05017, §cost | **does not fit** — R² = 0.937 |
-| 6 | 505 / 587 / 580 LUT | 2606.05017, lines 56 and 132 | **internally inconsistent** |
+| 6 | 505 / 587 / 580 LUT | 2606.05017, lines 56 and 132 | **traced** — 505 is takum16's, and the 75 does not reproduce |
 
 What reproduces, for context: the 2.4M vector count (2,442,533), 41 decode cells,
 10 GF compute formats, FP16 losing 5 of 11 dynamic-range values, GF16 losing 1,
@@ -115,27 +115,37 @@ ADD fit, and nothing in the repository identifies them.
 **Proposed:** report the ADD fit's actual R², or state which eleven points were
 used so the fit can be reproduced.
 
-## 6. 505 / 587 / 580 LUT — internally inconsistent
+## 6. 505 / 587 / 580 LUT — traced, and one entry does not reproduce
 
-Needs no measurement; it is internal to the text.
+The three numbers come from `research/COMPLETE_LUT_TABLE.md`'s "additional cores"
+table, and tracing them there makes the problem precise rather than merely
+inconsistent:
 
-> **line 56:** GF16 multiply-with-Quire (**505** LUT, zero-DSP) … plain GF16
-> multiply is **587** LUT
->
-> **line 132:** Total hardware cost: **580** LUT (**505** multiply + **75** Quire)
+| core | table | measured here | |
+|---|---|---|---|
+| Ternary MAC-16 | 55 LUT | **55** | exact |
+| GF Sqrt | 128 LUT, 8 DSP | **128 LUT, 8 DSP** | exact |
+| GF Div | 207 LUT | **207** | exact |
+| **GF Quire** | **75 LUT, 0 DSP** | **1063 LUT, 0 DSP** | **14×** |
+| takum16 native MUL | 505 LUT | — | |
+| GF16 | 485 ADD / 587 MUL | 490 / 602 | ordinary build drift |
 
-If a plain multiply is 587 and a multiply-*with*-Quire is 505, the Quire has
-negative area. If the multiply is 505, that contradicts 587. The three cannot all
-hold.
+Three of the four modules reproduce **exactly**, which is what makes the fourth
+meaningful. The GF Sqrt row needed DSP inference left on — forcing `-nodsp` gives
+4818 LUTs, and that was my error, not the table's.
 
-For context, with the published flags: `gf_mul_param` at E=6, M=9 synthesises to
-602 LUTs against a published 587 — ordinary for a different yosys build.
-`gf_quire_param` at E=8, M=23 synthesises to 1067 standalone, which is **not** a
-refutation of the 75: a standalone module and a marginal cost are different
-quantities, and the 75 reads as marginal.
+So:
 
-**Proposed:** state the three numbers consistently — which configuration costs
-505, which 587, and whether 75 is marginal or standalone.
+* **505 is takum16's multiply** in the source table, not GF16's. GF16's multiply
+  is 587 there.
+* Line 132's "580 LUT (505 multiply + 75 Quire)" therefore uses takum16's
+  multiply figure for a GF16+ MAC, together with a Quire figure that does not
+  reproduce.
+* Line 56's "GF16 multiply-with-Quire (505 LUT) … plain GF16 multiply is 587 LUT"
+  has a Quire with negative area under any reading.
+
+**Proposed:** re-measure `gf_quire_param` and restate the MAC total. If the Quire
+is genuinely 1063 LUTs, the GF16+ MAC is roughly 1650, not 580.
 
 ---
 
