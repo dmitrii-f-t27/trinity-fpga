@@ -4,10 +4,14 @@ Passes 231–247 changed goldens, rebuilt every vector pack, corrected oracles a
 edited 4,776 sites of RTL. Passes 248–251 asked the obvious follow-up: do the
 paper's own numbers still describe the corpus they describe?
 
-Fifteen claims have now been recomputed from the repository. **Nine reproduce
-cleanly**, one is a sensitivity note rather than an error, and five need action --
+Sixteen claims have now been recomputed from the repository. **Nine reproduce
+cleanly**, one is a sensitivity note rather than an error, and six need action --
 collected with proposed wordings in
 `research/CORRECTIONS_PACKAGE_both_preprints.md`.
+
+The sixth is the largest: six of the paper's seven named workloads exist in no
+script here, so the constraint fixing the feasible corner had never been
+checkable. `research/workload_matmul.py` now implements one of them.
 One is a wording error, and one figure is placed inside a promise the evidence
 behind it does not keep.
 

@@ -7315,3 +7315,11 @@ finding "the seven-workload harness is not in the repository, so the M>=9 constr
   metric_confound "the max-error metric is dominated by cancellation rather than precision: 184% for BF16 on uniform[-1,1] comes from output entries whose exact value is near zero"
   gf14_confound "GF14's 80% MEDIAN on mixed scale is a DYNAMIC RANGE failure -- E=5, so products underflow to zero -- not a mantissa failure. The workload conflates the two constraints the paper uses it to separate"
 }
+
+resolution "the corrections package is at seven items, and the seventh is the largest" {
+  added "'seven formats across seven workloads' -- six of the seven exist in no script in the repository. Only dynamic_range is among the four suites format_benchmark.py implements, and the paper cites that file as 'the benchmark script'"
+  why_it_is_the_largest "the abstract's central result -- GF16 as the minimum-width IEEE-style format passing all seven -- rests on it, and so does the feasible corner (E=6, M=9) and therefore the phi-ratio argument. The E>=6 half was confirmed in pass 251; the M>=9 half had no harness at all until pass 260 wrote one"
+  what_the_harness_showed "no threshold at M>=9 -- the error falls smoothly across M=7,8,9,10. BF16's 1.5-10% holds only where cancellation is possible; on positive-only inputs it is about 1.0%. And the metric conflates the two constraints the paper uses it to separate: BF16's 184% is cancellation, GF14's 80% median is E=5 underflow"
+  totals "sixteen claims recomputed. Nine reproduce cleanly, one is a sensitivity note, six need action"
+  proposed "commit the seven-workload harness, or state which of the seven are measured and which are argued"
+}

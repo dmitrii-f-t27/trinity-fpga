@@ -11,8 +11,8 @@ against the 226 comments of gHashTag/trinity-fpga#199.
 
 ## Summary
 
-Fifteen quantitative claims have been recomputed. **Nine reproduce cleanly**, one
-is a sensitivity note rather than an error, and **five need action**.
+Sixteen quantitative claims have been recomputed. **Nine reproduce cleanly**, one
+is a sensitivity note rather than an error, and **six need action**.
 
 | # | claim | paper | verdict |
 |---|---|---|---|
@@ -22,6 +22,7 @@ is a sensitivity note rather than an error, and **five need action**.
 | 4 | "as in GF16 MUL's single-DSP multiplier" | 2606.09686, abstract + §flags | **factual** — no wrapper uses it |
 | 5 | LUT_ADD ≈ 1.63 W², R² ≥ 0.97 | 2606.05017, §cost | **no subset fits** — c is a window, not a constant |
 | 6 | 505 / 587 / 580 LUT | 2606.05017, lines 56 and 132 | **traced** — 505 is takum16's, and the 75 does not reproduce |
+| 7 | "seven formats across seven workloads" | 2606.05017, abstract | **not reproducible** — six of the seven workloads exist in no script |
 
 What reproduces, for context: the 2.4M vector count (2,442,533), 41 decode cells,
 10 GF compute formats, FP16 losing 5 of 11 dynamic-range values, GF16 losing 1,
@@ -165,6 +166,45 @@ So:
 
 **Proposed:** re-measure `gf_quire_param` and restate the MAC total. If the Quire
 is genuinely 1063 LUTs, the GF16+ MAC is roughly 1650, not 580.
+
+## 7. "Seven formats across seven workloads" — six of the workloads are not here
+
+The abstract's central result is that GF16 is *the minimum-width IEEE-style format
+that passes all seven tests*. The seven are named as four ML — matrix multiply,
+gradient accumulation, dynamic range, attention softmax — and three hold-out —
+convolution, polynomial evaluation, linear solve.
+
+`research/format_benchmark.py`, which the paper cites as "the benchmark script",
+implements **four suites**: `arithmetic`, `dynamic_range`, `cancellation`,
+`edge_cases`. Only `dynamic_range` is one of the seven.
+
+**Matrix multiply, gradient accumulation, attention softmax, convolution,
+polynomial evaluation and linear solve appear in no script in the repository.**
+
+### What implementing one of them showed
+
+`research/workload_matmul.py` (pass 260) implements the matrix-multiply workload:
+exact `Fraction` product against an in-format product with every multiply and
+accumulation rounded through the oracle. 6×6, 8 trials, max/median relative error:
+
+| distribution | BF16 (M=7) | GF14 (M=8) | GF16 (M=9) | FP16 (M=10) |
+|---|---|---|---|---|
+| uniform[-1,1] | 184.55 / 7.36 | 55.01 / 6.06 | 9.07 / 2.27 | 4.88 / 1.05 |
+| uniform[0,1] | 1.02 / 0.73 | 0.47 / 0.35 | 0.20 / 0.17 | 0.11 / 0.08 |
+| mixed scale | 6.49 / 2.48 | **84.85 / 80.34** | 3.28 / 0.22 | 1.32 / 0.15 |
+
+* **No threshold at M ≥ 9.** The error falls smoothly — medians 7.36, 6.06, 2.27,
+  1.05 across M = 7, 8, 9, 10. Nothing separates "borderline" from "robust".
+* **BF16's 1.5–10% holds only where cancellation is possible.** On positive-only
+  inputs it is ≈1.0%.
+* **The metric conflates the two constraints the paper uses it to separate.**
+  BF16's 184% comes from output entries near zero — cancellation, not precision.
+  GF14's 80% median on mixed scale is E=5 letting products underflow — dynamic
+  range, not mantissa.
+
+**Proposed:** commit the seven-workload harness, or state which of the seven are
+measured and which are argued. The feasible corner (E=6, M=9), and with it the
+φ-ratio result, rests on the M ≥ 9 half of this.
 
 ---
 
