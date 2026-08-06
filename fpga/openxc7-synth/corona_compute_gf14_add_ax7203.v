@@ -56,7 +56,8 @@ module corona_compute_gf14_add_ax7203 (
 
     reg [13:0] a_reg, b_reg; reg comp_trigger;
     wire comp_in_ready, comp_out_valid; wire [13:0] comp_result;
-    gf_add_param #(.EXP_BITS(5), .MANT_BITS(8), .HAS_INF(0)) u_comp (
+    gf_adder_param #(  // was gf_add_param, a module that never existed in any commit
+                     .EXP_BITS(5), .MANT_BITS(8), .HAS_INF(0)) u_comp (
         .clk(mclk), .rst(rst),
         .in_valid(comp_trigger), .in_a(a_reg), .in_b(b_reg), .in_ready(comp_in_ready),
         .out_valid(comp_out_valid), .out_y(comp_result), .out_ready(1'b1)
