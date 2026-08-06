@@ -7263,3 +7263,17 @@ finding "the scaling law reproduces for MUL and not for ADD, and the 505 figure 
 
   measured_for_context "gf_mul_param at E=6, M=9 synthesises to 602 LUTs against a published 587, which is ordinary for a different yosys build. gf_quire_param at E=8, M=23 synthesises to 1067 standalone. That is NOT a refutation of the 75: a standalone module and a marginal cost are different quantities, and the paper's 75 reads as marginal"
 }
+
+resolution "the corrections package is complete at six items" {
+  added "the ADD scaling law, which does not fit at the claimed R^2, and the 505/587/580 triple, which contradicts itself inside the text"
+  totals "fifteen claims recomputed. Nine reproduce cleanly, one is a sensitivity note rather than an error, five need action"
+  five {
+    gf64 "evidential -- no complete four-link chain"
+    flushed_to_zero "wording -- the body is right, the abstract is not"
+    gf16_dsp "factual -- no wrapper instantiates the DSP multiplier"
+    add_scaling "c = 1.588 with R^2 = 0.9371 against a claimed 1.63 and 0.97. An intercept reaches 0.9722 but moves c to 1.390. The paper cites eleven measured points and the tables give nine, which is the open uncertainty"
+    lut_505 "if a plain multiply is 587 and a multiply-with-Quire is 505, the Quire has negative area; if the multiply is 505, that contradicts 587"
+  }
+  each_item_has "the evidence, the verdict, and a proposed wording -- so the decision to file is a single reading rather than six investigations"
+  research_PAPER_CLAIM_VERIFICATION "kept in step with the same counts"
+}

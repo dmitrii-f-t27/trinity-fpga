@@ -11,8 +11,8 @@ against the 226 comments of gHashTag/trinity-fpga#199.
 
 ## Summary
 
-Eleven quantitative claims were recomputed. **Nine reproduce.** Four items below
-need action, and only two of them are errors.
+Fifteen quantitative claims have been recomputed. **Nine reproduce cleanly**, one
+is a sensitivity note rather than an error, and **five need action**.
 
 | # | claim | paper | verdict |
 |---|---|---|---|
@@ -20,6 +20,8 @@ need action, and only two of them are errors.
 | 2 | "5/11 values flushed to zero" | 2606.05017, abstract + contributions | **wording** — body is correct |
 | 3 | "GF16 preserves 8.7× more gradient updates" | 2606.09686, abstract | **sensitivity note**, not an error |
 | 4 | "as in GF16 MUL's single-DSP multiplier" | 2606.09686, abstract + §flags | **factual** — no wrapper uses it |
+| 5 | LUT_ADD ≈ 1.63 W², R² ≥ 0.97 | 2606.05017, §cost | **does not fit** — R² = 0.937 |
+| 6 | 505 / 587 / 580 LUT | 2606.05017, lines 56 and 132 | **internally inconsistent** |
 
 What reproduces, for context: the 2.4M vector count (2,442,533), 41 decode cells,
 10 GF compute formats, FP16 losing 5 of 11 dynamic-range values, GF16 losing 1,
@@ -90,6 +92,50 @@ and inconsistent with GF16 MUL being the example of explicit DSP instantiation.
 **Proposed:** either cite `gf_mul_dsp_param` as an available-but-unused path, or
 drop "as in GF16 MUL" and keep the general statement that DSP48E1 is used only
 when explicitly instantiated.
+
+---
+
+## 5. LUT_ADD ≈ 1.63 W² with R² ≥ 0.97 — does not fit
+
+Fitted through the origin to the paper's own published tables
+(`CI_LUT_REPORT.md`, `COMPLETE_LUT_TABLE.md`), nine GF widths in W=4–24:
+
+| | c | R² | claim |
+|---|---|---|---|
+| **MUL** | 2.089 | 0.9770 | c=2.09, R²≥0.97 — **reproduces exactly** |
+| **ADD** | 1.588 | 0.9371 | c=1.63, R²≥0.97 — **below** |
+
+With an intercept the ADD fit reaches R² = 0.9722, but then the coefficient is
+1.390, not 1.63. Neither standard form gives both.
+
+**One uncertainty:** the paper says **eleven** measured points in W=4–24; the
+published tables give **nine** GF widths there. Two further points could move the
+ADD fit, and nothing in the repository identifies them.
+
+**Proposed:** report the ADD fit's actual R², or state which eleven points were
+used so the fit can be reproduced.
+
+## 6. 505 / 587 / 580 LUT — internally inconsistent
+
+Needs no measurement; it is internal to the text.
+
+> **line 56:** GF16 multiply-with-Quire (**505** LUT, zero-DSP) … plain GF16
+> multiply is **587** LUT
+>
+> **line 132:** Total hardware cost: **580** LUT (**505** multiply + **75** Quire)
+
+If a plain multiply is 587 and a multiply-*with*-Quire is 505, the Quire has
+negative area. If the multiply is 505, that contradicts 587. The three cannot all
+hold.
+
+For context, with the published flags: `gf_mul_param` at E=6, M=9 synthesises to
+602 LUTs against a published 587 — ordinary for a different yosys build.
+`gf_quire_param` at E=8, M=23 synthesises to 1067 standalone, which is **not** a
+refutation of the 75: a standalone module and a marginal cost are different
+quantities, and the 75 reads as marginal.
+
+**Proposed:** state the three numbers consistently — which configuration costs
+505, which 587, and whether 75 is marginal or standalone.
 
 ---
 
