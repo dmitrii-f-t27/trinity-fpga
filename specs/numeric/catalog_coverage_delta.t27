@@ -7020,3 +7020,21 @@ verification "the adder witness finished: gf48 and gf64 are clean too" {
   why_not_the_rtl "they errored with 'shell-init: error retrieving current directory: getcwd: cannot access parent directories'. I removed the git worktree the background job was running in, while it was still running. The five failures are my cleanup, not the adder"
   note "so the adder is now witnessed over exactly the range the decoder's bias defect did NOT touch. gf96 and up -- where the decoder's `parameter integer BIAS` truncated and where the adder's DEFAULT bias would overflow -- remain the untested part in both directions"
 }
+
+retraction "pass 239 said the wrappers instantiate the wrong format. They do not" {
+  what_I_said "63 compute wrappers instantiate a format other than the one in their name, and corona_compute_binary128_add_ax7203.v is a binary32 adder"
+  what_is_true "it carries 128-bit operands -- reg [127:0] a_r, b_r -- splits them as binary128 correctly (sign, 15-bit exponent, 112-bit mantissa, bias 16383), NARROWS each operand to fp32, adds in fp32, and widens the fp32 result back to 128 bits by zero-padding. The name is truthful about the INTERFACE. What it does not say is the PRECISION"
+  how_I_got_it_wrong "I read the gf_adder_param instantiation and stopped. The narrowing is thirty lines above it and the widening thirty below"
+  corrected_count "63 wrappers have an arithmetic core narrower than the format they carry, and 60 of those carry the format's full width at the interface"
+}
+
+finding "what the narrow core actually costs, measured from the datapath as written" {
+  truncation "the mantissa is cut, not rounded: b128_mant_a[111:89] keeps 23 bits and discards 89. binary256 discards 213, ms_mbf64 32, cray_float 24. So every result carries about 2**-24 relative precision where binary128's format promises about 2**-113"
+  exponent_wrap "b128_exp32_a = b128_exp32_s_a[7:0] truncates a signed 16-bit intermediate to 8 bits. Outside fp32's window that WRAPS instead of saturating: 32,510 of binary128's own exponents land outside it, and the same for cray_float. A value far above fp32's maximum comes back an ordinary finite number instead of +Inf"
+  same_class_as_238 "the decoder wrap pass 238 fixed, in a different module"
+  zero_pad "widening back is a zero-pad, so the low 89 mantissa bits of every binary128 result are zero by construction"
+  audit_limits "the mantissa slice was found by regex in 5 of the 63; the other files name their wires differently and the dropped-bit count reads as '-' rather than being guessed"
+
+  unchanged_from_239 "no Tier-E claim rests on any of these. Every complete-chain comment for these formats is a DECODE cell naming a corona-decode-<fmt>-bitstream artifact"
+  tool "research/audit_compute_precision.py. research/audit_wrapper_names.py is marked superseded and says why"
+}
