@@ -7398,3 +7398,14 @@ verification "the sweep's remaining missing-module failures, and a claim I nearl
   what_saved_it "reading the workflow instead of assuming the filename. The wrapper named after the cell is not the wrapper the cell was built from, and every previous pass in this series would have concluded from the name"
   pattern_holds "eight passes of RTL findings, and still nothing that a Tier-E claim rests on. This is the closest it has come"
 }
+
+correction "the 3,203 compute wrappers are not dead, and my scan could not have seen that" {
+  the_question "pass 267 asked whether the corona_compute_* wrappers in openxc7-synth are used by anything, because if not, the 4,766 sites passes 241-243 edited were work on a tree nobody builds"
+  my_scan "matched .v filenames in workflows and found ONE of 3,203. That number was meaningless: .github/workflows/build-matrix.yml constructs the target from dispatch inputs -- DESIGN=corona_compute_${FMT}_${OP}_ax7203 -- so no filename appears in the file at all"
+  the_answer "they are live. build-matrix.yml is a consolidated workflow_dispatch job that replaces the per-design permutation workflows, and for a compute target it reads gf_adder_param.v, gf_mul_param.v and ${DESIGN}.v from fpga/openxc7-synth. Any of the 3,203 can be built by dispatching a format and an op. The passes 241-243 edits are in the files it builds"
+
+  residual_finding "corona_compute_gf10_add and gf14_add instantiated gf_add_param, which git log -S shows was never defined in any commit. Under build-matrix they would fail; under the dedicated ax7203-gf10-add.yml, which reads fpga/vivado/gf10_add_ax7203.v, they succeed. Two build paths for one cell, one of them broken since the file was generated"
+  fixed "renamed to gf_adder_param, whose parameters the wrappers already matched -- EXP_BITS 3 and MANT_BITS 6 for gf10, 5 and 8 for gf14, exactly gf_ref's values. Both now synthesise under build-matrix's own source list and flags"
+
+  the_flags_match_the_paper "build-matrix uses -flatten -abc9 -nocarry -arch xc7 and adds -nodsp only when op is mul, which is what the paper states"
+}
