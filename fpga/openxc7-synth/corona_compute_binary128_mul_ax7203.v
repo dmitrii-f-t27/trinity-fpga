@@ -89,9 +89,17 @@ module corona_compute_binary128_mul_ax7203 (
     wire [22:0] b128_mant32_a = b128_mant_a[111:89];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(b128_zero_a) fp32_a=32'h00000000;
+        if(b128_zero_a) fp32_a={b128_sign_a, 31'b0};
         else if(b128_nan_a) fp32_a=32'h7FC00000;
         else if(b128_inf_a) fp32_a={b128_sign_a, 8'hFF, 23'b0};
+        // Saturate instead of wrapping. b128_exp32_a is b128_exp32_s_a truncated to 8
+        // bits, and b128_exp32_s_a is a SIGNED 16-bit intermediate, so an exponent
+        // outside fp32's window used to come back as some other exponent
+        // entirely -- a value far above fp32's maximum arrived as an
+        // ordinary finite number instead of +Inf. Pass 240 counted 32,510
+        // of binary128's own exponents landing outside that window.
+        else if(b128_exp32_s_a > 16'sd254) fp32_a={b128_sign_a, 8'hFF, 23'b0};
+        else if(b128_exp32_s_a < 16'sd1) fp32_a={b128_sign_a, 8'd0, 23'b0};
         else fp32_a={b128_sign_a, b128_exp32_a, b128_mant32_a};
     end
     wire b128_sign_b = fmt_b[127];
@@ -105,9 +113,17 @@ module corona_compute_binary128_mul_ax7203 (
     wire [22:0] b128_mant32_b = b128_mant_b[111:89];
     reg [31:0] fp32_b;
     always @(*) begin
-        if(b128_zero_b) fp32_b=32'h00000000;
+        if(b128_zero_b) fp32_b={b128_sign_b, 31'b0};
         else if(b128_nan_b) fp32_b=32'h7FC00000;
         else if(b128_inf_b) fp32_b={b128_sign_b, 8'hFF, 23'b0};
+        // Saturate instead of wrapping. b128_exp32_b is b128_exp32_s_b truncated to 8
+        // bits, and b128_exp32_s_b is a SIGNED 16-bit intermediate, so an exponent
+        // outside fp32's window used to come back as some other exponent
+        // entirely -- a value far above fp32's maximum arrived as an
+        // ordinary finite number instead of +Inf. Pass 240 counted 32,510
+        // of binary128's own exponents landing outside that window.
+        else if(b128_exp32_s_b > 16'sd254) fp32_b={b128_sign_b, 8'hFF, 23'b0};
+        else if(b128_exp32_s_b < 16'sd1) fp32_b={b128_sign_b, 8'd0, 23'b0};
         else fp32_b={b128_sign_b, b128_exp32_b, b128_mant32_b};
     end
     wire comp_irdy, comp_ovld; wire [31:0] comp_result;
