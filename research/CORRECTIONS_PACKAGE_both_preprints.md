@@ -181,30 +181,47 @@ implements **four suites**: `arithmetic`, `dynamic_range`, `cancellation`,
 **Matrix multiply, gradient accumulation, attention softmax, convolution,
 polynomial evaluation and linear solve appear in no script in the repository.**
 
-### What implementing one of them showed
+### What implementing them showed
 
-`research/workload_matmul.py` (pass 260) implements the matrix-multiply workload:
-exact `Fraction` product against an in-format product with every multiply and
-accumulation rounded through the oracle. 6×6, 8 trials, max/median relative error:
+All seven are now runnable: `research/workload_matmul.py` (matrix multiply),
+`research/workload_suite.py` (gradient accumulation, attention softmax,
+convolution, polynomial evaluation, linear solve), and `dynamic_range` in
+`format_benchmark.py`.
 
-| distribution | BF16 (M=7) | GF14 (M=8) | GF16 (M=9) | FP16 (M=10) |
+The first numbers I produced were wrong, and the correction matters more than the
+original. Dividing the error by the exact **result** makes it explode wherever a
+sum of products cancels — matrix multiply reported BF16 at 184%, and convolution
+reported ≈54% for BF16, GF14 and GF16 *alike*, three formats sharing one number
+that belonged to the inputs. Dividing instead by the **scale of the work**,
+`Σ|a·b|`, is the standard normwise form and separates conditioning from precision.
+
+Normwise, worst trial / median trial:
+
+| workload | BF16 (M=7) | GF14 (M=8) | GF16 (M=9) | FP16 (M=10) |
 |---|---|---|---|---|
-| uniform[-1,1] | 184.55 / 7.36 | 55.01 / 6.06 | 9.07 / 2.27 | 4.88 / 1.05 |
-| uniform[0,1] | 1.02 / 0.73 | 0.47 / 0.35 | 0.20 / 0.17 | 0.11 / 0.08 |
-| mixed scale | 6.49 / 2.48 | **84.85 / 80.34** | 3.28 / 0.22 | 1.32 / 0.15 |
+| matmul, uniform[-1,1] | 0.71 / 0.49 | 0.31 / 0.26 | 0.14 / 0.12 | 0.06 / 0.06 |
+| matmul, normal(0,1) | 1.16 / 0.52 | 0.43 / 0.27 | 0.25 / 0.14 | 0.09 / 0.06 |
+| convolution | 0.84 / 0.54 | 0.30 / 0.24 | 0.17 / 0.12 | 0.07 / 0.06 |
+| gradient accumulation | 2.68 / 1.93 | 1.98 / 0.79 | 1.15 / 0.44 | 0.74 / 0.19 |
+| attention softmax | 2.57 / 1.46 | 0.92 / 0.59 | 0.44 / 0.30 | 0.30 / 0.16 |
+| polynomial | 1.04 / 0.29 | 0.72 / 0.17 | 0.23 / 0.05 | 0.19 / 0.09 |
+| linear solve | 14.76 / 1.11 | 8.31 / 0.68 | **0.93** / 0.45 | **1.10** / 0.26 |
 
-* **No threshold at M ≥ 9.** The error falls smoothly — medians 7.36, 6.06, 2.27,
-  1.05 across M = 7, 8, 9, 10. Nothing separates "borderline" from "robust".
-* **BF16's 1.5–10% holds only where cancellation is possible.** On positive-only
-  inputs it is ≈1.0%.
-* **The metric conflates the two constraints the paper uses it to separate.**
-  BF16's 184% comes from output entries near zero — cancellation, not precision.
-  GF14's 80% median on mixed scale is E=5 letting products underflow — dynamic
-  range, not mantissa.
+**The error halves per mantissa bit** — 0.71, 0.31, 0.14, 0.06 across M = 7, 8, 9,
+10. That is 2⁻ᴹ, and it is what precision looks like once conditioning is removed.
 
-**Proposed:** commit the seven-workload harness, or state which of the seven are
-measured and which are argued. The feasible corner (E=6, M=9), and with it the
-φ-ratio result, rests on the M ≥ 9 half of this.
+**There is no threshold at M ≥ 9.** The curve is smooth. A threshold exists only
+once someone fixes an error budget, and none is published — so "M ≥ 9" is a choice
+of budget presented as a property of the workload.
+
+Two results survive as genuine, and both are about **range**, not mantissa:
+GF14 scores 84.85% on mixed-scale matmul because E=5 lets products underflow; and
+linear solve has GF16 beating FP16 on the worst case, 0.93 against 1.10, despite
+one fewer mantissa bit, because E=6 beats E=5.
+
+**Proposed:** commit the seven-workload harness, and state the error budget that
+turns a smooth 2⁻ᴹ curve into the threshold M ≥ 9. The feasible corner (E=6, M=9),
+and with it the φ-ratio result, rests on that budget being stated.
 
 ---
 

@@ -7353,3 +7353,13 @@ correction "the metric was measuring conditioning, not precision -- and fixing i
   and_the_constraint "there is still no threshold at M >= 9, and now the reason is clearer rather than muddier. The error is a smooth 2**-M law. A threshold exists only once someone fixes an error budget, and the paper does not publish one -- so 'M >= 9' is a choice of budget presented as a property of the workload"
   my_own_error "pass 260 called the metric confound a limitation of the workload. It was a limitation of the metric I chose, and two passes' worth of numbers had to be recomputed to see it"
 }
+
+correction "the corrections package carried numbers I had already refuted" {
+  what "item 7 quoted the componentwise figures from pass 260 -- BF16 at 184% on matmul, about 54% for three formats alike on convolution -- which pass 263 showed were a property of the metric rather than of any format"
+  why_it_matters "a document whose purpose is to correct someone else's numbers cannot carry numbers its own author has already retracted. That is worse than having no document"
+  now "item 7 carries the normwise table for all seven workloads, and the retraction is stated in it rather than left in the commit history"
+
+  the_conclusion_got_stronger "the componentwise numbers made the M>=9 threshold look absent because the metric was noisy. The normwise numbers make it absent because the curve is SMOOTH: the error halves per mantissa bit, 0.71 / 0.31 / 0.14 / 0.06 across M=7,8,9,10, which is 2**-M. A threshold exists only once an error budget is fixed, and none is published"
+  proposed_wording_updated "from 'state which of the seven are measured' to 'state the error budget that turns a smooth 2**-M curve into the threshold M >= 9'. That is the thing actually missing"
+  kept "GF14's 84.85% on mixed-scale matmul stays, because it survives the metric change -- it is a dynamic-range failure at E=5, and the normwise form is what proved it"
+}
