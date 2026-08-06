@@ -7252,4 +7252,14 @@ resolution "one corrections package instead of four scattered findings" {
   balance "nine of eleven claims reproduce, and the package says so first -- a corrections document that lists only faults misrepresents the work it corrects"
 
   also "the corrected synthesis sweep is running from a worktree with the submodule initialised, which is the fix pass 254 needed. 3,535 files, roughly five hours"
+
+finding "the scaling law reproduces for MUL and not for ADD, and the 505 figure contradicts itself" {
+  scaling_law "'LUT_ADD ~ 1.63 W^2, LUT_MUL ~ 2.09 W^2, validated across W=4 to 24, 11 measured points, R^2 >= 0.97'"
+  mul "fit to the paper's OWN published table, through the origin: c = 2.089, R^2 = 0.9770. Reproduces the claim exactly"
+  add "c = 1.588, R^2 = 0.9371 -- below the claimed 0.97. With an intercept the fit reaches R^2 = 0.9722, but then the coefficient is 1.390, not 1.63. Neither standard form gives BOTH c near 1.63 and R^2 above 0.97"
+  caveat "the paper says ELEVEN measured points in W=4..24; the published tables give NINE GF widths in that range (GF4, 6, 8, 10, 12, 14, 16, 20, 24). Two more points, whatever they are, could move the ADD fit, and this is the main uncertainty in the finding"
+
+  the_505_triple "three statements in the paper cannot all hold. Line 56: 'GF16 multiply-with-Quire (505 LUT, zero-DSP) ... plain GF16 multiply is 587 LUT'. Line 132: 'Total hardware cost: 580 LUT (505 multiply + 75 Quire)'. If a plain multiply is 587 and a multiply-with-Quire is 505, the Quire has negative area; if the multiply is 505, that contradicts 587. This needs no measurement -- it is internal to the text"
+
+  measured_for_context "gf_mul_param at E=6, M=9 synthesises to 602 LUTs against a published 587, which is ordinary for a different yosys build. gf_quire_param at E=8, M=23 synthesises to 1067 standalone. That is NOT a refutation of the 75: a standalone module and a marginal cost are different quantities, and the paper's 75 reads as marginal"
 }
