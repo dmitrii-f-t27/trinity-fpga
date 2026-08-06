@@ -7090,3 +7090,21 @@ verification "yosys has now seen it, and found what iverilog structurally could 
   out_of_scope "place-and-route. nextpnr-xilinx is not installed here, and the changes risk elaboration and synthesis rather than routing"
   unmoved "zero-sign guard 30 asked / 0 lost / 0 RTL sites; narrowing witness 55 wrong before, 0 after; gf16 decode witness 65,536 codes 0 disagreements; parse guard still its 10 pre-existing failures"
 }
+
+verification "all 3,594 files through the yosys front end, not eight" {
+  why "pass 244 checked eight files with yosys and found a class of thirty. That is an argument for asking the same question of everything"
+  cost "read_verilog is about 40ms a file, so the whole tree is minutes. Full synth_xilinx is two seconds and up, which is why research/synth_check.py does that only for what a change touched"
+  tool "research/audit_yosys_reads.py, errors grouped by class rather than listed one per line -- a tree this size fails in classes"
+
+  result "22 SYNTHESIS SOURCES yosys cannot read, of 3,594 files. 35 testbenches also fail, and that is not a defect: $display, $fopen and $readmemb are what testbenches are FOR. Counting those would have made the number mostly false, which is how a guard stops being read"
+  classes {
+    syntax_5 "dsp48e1_ternary, hslm_ternary_mac, sacred_constants_unit, vsa_phi_bind, vsa_pipeline_256"
+    module_inside_module_5 "tqnn_layer_10k and the four trinity_v2 tops -- the same files iverilog already flags"
+    readmemb_5 "embedding_lookup, embedding_lookup_512, ternary_attention, ternary_matvec_bram, tmu. The memory-init path is a parameter with a default, and the default file is not in the tree"
+    syntax_4 "tf3_minimal, uart_command_decoder, uart_simple, vsa_10k_bind. uart_simple.v is the one that contains a filesystem PATH where the module should be -- pass 237 found it and it is still there"
+    other_3 "trinity_v1_morse (OP_CAST), tf3_simple ($display at elaboration), and tekum_decode_param"
+  }
+
+  the_one_that_matters "tekum_decode_param.v:204 -- `for (k = 0; k < pbits; k = k + 1)` with pbits a VARIABLE. yosys needs a constant loop bound, so this core cannot be synthesised at all. It is the sibling of gf_decode_param and is instantiated by tekum16_adder.v"
+  and_the_check_on_it "tekum appears in ZERO of the 75 complete-chain Tier-E comments. The takum cells that do exist name corona-decode-takum16-bitstream, a BRAM-LUT decode, not this module. Nothing claims it -- the same shape as every RTL defect found since pass 237"
+}
