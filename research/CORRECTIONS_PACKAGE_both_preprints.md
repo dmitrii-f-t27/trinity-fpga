@@ -19,7 +19,7 @@ one is a sensitivity note rather than an error, and **seven need action**.
 | 1 | GF64 reaches 70.1% (359/512) | 2606.05017, and repeated in the catalog draft | **evidential** — no complete chain |
 | 2 | "5/11 values flushed to zero" | 2606.05017, abstract + contributions | **wording** — body is correct |
 | 3 | "GF16 preserves 8.7× more gradient updates" | 2606.09686, abstract | **sensitivity note**, not an error |
-| 4 | "as in GF16 MUL's single-DSP multiplier" | 2606.09686, abstract + §flags | **factual** — no wrapper uses it |
+| 4 | "DSP48E1 only when explicitly instantiated" | 2606.09686, abstract + §flags | **factual** — no wrapper uses it, and 915 targets infer it |
 | 5 | LUT_ADD ≈ 1.63 W², R² ≥ 0.97 | 2606.05017, §cost | **no subset fits** — c is a window, not a constant |
 | 6 | 505 / 587 / 580 LUT | 2606.05017, lines 56 and 132 | **traced** — 505 is takum16's, and the 75 does not reproduce |
 | 7 | "seven formats across seven workloads" | 2606.05017, abstract | **not reproducible** — six of the seven workloads exist in no script |
@@ -81,7 +81,11 @@ denominator, which is the smaller and noisier of the two numbers.
 **Proposed:** nothing is wrong. If a revision is being made anyway, "roughly 8×"
 is more robust than "8.7×" to the seed and step count.
 
-## 4. "as in GF16 MUL's single-DSP multiplier" — factual
+## 4. "DSP48E1 is used only when explicitly instantiated" — it is inferred, 915 times
+
+Two separate problems with one sentence.
+
+### 4a. The cited example does not use a DSP
 
 `fpga/openxc7-synth/gf_mul_dsp_param.v` exists and does instantiate `DSP48E1`.
 **No wrapper instantiates it.** The only two files referencing it are itself and a
@@ -89,13 +93,45 @@ comment in `gf_mul_param.v` saying the DSP mapping lives elsewhere.
 
 `corona_compute_gf16_mul_ax7203.v` instantiates `gf_mul_param` — the LUT-only
 version. That is consistent with `-nodsp` and with the 586/602 LUT measurement,
-and inconsistent with GF16 MUL being the example of explicit DSP instantiation.
+and inconsistent with GF16 MUL being *the example* of explicit DSP instantiation.
 
-**Proposed:** either cite `gf_mul_dsp_param` as an available-but-unused path, or
-drop "as in GF16 MUL" and keep the general statement that DSP48E1 is used only
-when explicitly instantiated.
+### 4b. The flag rule lets DSPs be inferred anyway
 
----
+`.github/workflows/build-matrix.yml` adds `-nodsp` **only when the op is `mul`**.
+Measured under those exact flags:
+
+| target | LUT | DSP |
+|---|---|---|
+| gf16 **sqrt** | 334 | **8** |
+| gf16 **fma** | 992 | **1** |
+| gf16 **alu** | 952 | **1** |
+| gf16 add / div / quire / mul | 625 / 430 / 107 / 742 | 0 |
+
+The rule catches the one op that does not need it and misses three that do.
+**915 of the 3,203 compute targets** have an op ending in sqrt, fma or alu, and
+every one of them would infer DSP48E1 on dispatch — the block Project X-Ray
+documents as only partially reverse-engineered, which is the stated reason for
+`-nodsp` in the first place.
+
+No Tier-E cell is affected: **zero** complete-chain cells carry op SQRT, FMA or
+ALU.
+
+### Why this is reported and not fixed
+
+Extending `-nodsp` is a resource trade, not a bug fix:
+
+| target | as CI builds it | with `-nodsp` |
+|---|---|---|
+| gf16 sqrt | 334 LUT, 8 DSP | **3,566 LUT**, 0 DSP |
+| gf16 fma | 992 LUT, 1 DSP | 1,242 LUT, 0 DSP |
+| gf16 alu | 952 LUT, 1 DSP | 1,238 LUT, 0 DSP |
+
+Eight DSPs against three thousand LUTs on a part with 134,600 of them is a
+judgement about which resource is scarce and which is trustworthy.
+
+**Proposed:** say that DSP48E1 is disabled for MUL and inferred elsewhere, or
+extend the rule and accept the LUT cost. As written the sentence describes neither
+the code nor the flow.
 
 ## 5. The W² cost model — the coefficient is a window, not a constant
 

@@ -7430,3 +7430,11 @@ finding "the -nodsp rule covers mul, and three other ops infer DSPs anyway" {
   not_changed "the rule. Same call as the rounding decision in pass 247: the measurement is mine to make, the trade is not"
   connects_to "item 4 of the corrections package, which found that no wrapper instantiates gf_mul_dsp_param. This is the sharper form: the paper says DSP is used only when explicitly instantiated, and the flag rule lets 915 targets infer it implicitly"
 }
+
+resolution "item 4 of the package now carries the measurement, not just the absence" {
+  before "'no wrapper instantiates gf_mul_dsp_param' -- true, and it only showed that the cited EXAMPLE was wrong"
+  after "the sentence has two problems. 4a: the example does not use a DSP, and the GF16 MUL cell instantiates the LUT-only gf_mul_param. 4b: the flag rule adds -nodsp only for mul, so sqrt infers 8 DSP48E1, fma 1 and alu 1 -- 915 of 3,203 targets would infer the block that -nodsp exists to avoid"
+  why_it_matters_more "4a says one example is misattributed. 4b says the flow does the opposite of what the sentence claims, at scale"
+  balance_kept "zero complete-chain Tier-E cells carry op SQRT, FMA or ALU, and the package says so. And the trade is stated with both columns -- gf16 sqrt is 334 LUT with 8 DSP or 3,566 LUT with none -- because a corrections document that presents a resource trade as a defect is doing the same thing it is correcting"
+  package_state "eight items. Seventeen claims recomputed: nine reproduce cleanly, one sensitivity note, seven need action, one of those now closed by code (E8M0)"
+}
