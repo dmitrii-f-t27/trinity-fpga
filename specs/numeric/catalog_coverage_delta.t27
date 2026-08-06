@@ -7181,3 +7181,17 @@ verification "the published LUT numbers reproduce as a method, not as values" {
   own_error "I first synthesised the UART WRAPPERS -- 1281 LUTs for gf16_mul, 90 for gf16_quire -- and nearly compared those against core numbers. The wrappers carry STARTUPE2, the UART state machines and the framing. Measuring the wrong thing is how a 24x discrepancy appears out of nothing"
   tool "research/audit_lut_table.py"
 }
+
+retraction "the LUT drift I reported an hour ago was my own parser" {
+  what_I_published "PR #463, pass 250: 'the published LUT numbers reproduce as a method, not as values', with a table of deltas growing from +4 LUTs at GF4 to +456 at GF20 -- roughly +22% to +79% -- attributed to the toolchain build"
+  what_is_true "there is no systematic drift. With correct counting the published numbers reproduce well: GF4 MUL exact, GF8 within 2, and the largest single deviation across twelve measurements is 56 LUTs"
+
+  the_bug "yosys `stat` prints THREE blocks after a synth run -- `=== top ===`, `=== design hierarchy ===`, and `=== top ===` again from the explicit stat. My counter took 'the last half of all LUT lines', which spans a block boundary and adds part of one block to part of another"
+  how_it_surfaced "the same binary with the same flags reported the GF16 multiply at 812 in one script and 841 in another. I first suspected abc non-determinism; five identical invocations gave 841 every time, spread 0. Determinism is what pointed at the parser"
+
+  corrected_table "ADD published/here: GF4 18/15, GF8 172/171, GF12 296/283, GF14 398/382, GF16 434/490, GF20 627/647. MUL: 7/7, 157/159, 407/365, 470/451, 586/602, 877/852"
+  also_wrong "pass 244's absolute LUT figures, from the same parser. The gf_decode_param before/after comparison there reported 302/345/524/694/916; corrected they are 221/260/342/451/572. Its CONCLUSION survives -- before and after are still identical at every width, because the same parser ran on both sides -- but the numbers it printed were not LUT counts"
+  fixed "research/audit_lut_table.py and research/synth_check.py both parse the last `=== <name> ===` block only, and say why in the code"
+
+  what_stands "the method reproduces AND the values reproduce. The remark that the container image belongs in the table header is still reasonable practice, but it is no longer supported by evidence of drift, because there is none"
+}

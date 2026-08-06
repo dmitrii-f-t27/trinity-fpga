@@ -49,6 +49,25 @@ DECODER_CASES = [
 # a synthesis regression would move, and it does not depend on how buffers and
 # I/O cells happen to be counted.
 LUTS = re.compile(r"^\s+(\d+)\s+LUT[1-6]\s*$", re.M)
+BLOCK = re.compile(r"^=== (.+?) ===$", re.M)
+
+
+def luts(out):
+    """Sum LUTs inside the LAST `=== <name> ===` block only.
+
+    yosys `stat` prints THREE blocks after a synth run -- `=== top ===`,
+    `=== design hierarchy ===`, and `=== top ===` again from the explicit stat.
+    The first version of this took "the last half of all LUT lines", which spans
+    a block boundary and sums part of one block with part of another. It reported
+    the GF16 multiply at 812 and then 841 across two runs of the same binary, and
+    produced a table of deltas that looked like a systematic +22% to +79% drift
+    against the published numbers. There was no drift; there was a bad parser.
+    """
+    starts = [m.start() for m in BLOCK.finditer(out)]
+    if not starts:
+        return None
+    return sum(int(x) for x in LUTS.findall(out[starts[-1]:]))
+
 
 
 def yosys(script):
@@ -65,12 +84,10 @@ def cell_count(path, top, params=None):
     if rc != 0:
         first = next((l for l in out.splitlines() if "ERROR" in l), out.strip()[:150])
         return None, first
-    got = LUTS.findall(out)
-    if not got:
-        return None, "synthesised but no LUTs in stat"
-    # the table is printed twice (once per `stat`); take the last full set
-    half = len(got) // 2 or len(got)
-    return sum(int(x) for x in got[-half:]), ""
+    n = luts(out)
+    if n is None:
+        return None, "synthesised but no stat block"
+    return n, ""
 
 
 def decoder_before_after():
@@ -135,14 +152,13 @@ def main():
         top = base[:-2]
         rc, out = yosys("read_verilog %s %s %s; hierarchy -top %s; "
                         "synth_xilinx -flatten -nodsp; stat" % (path, core, adder, top))
-        got = LUTS.findall(out)
+        n_luts = luts(out)
         if rc != 0:
             first = next((l for l in out.splitlines() if "ERROR" in l), "")
             print("%-44s FAIL  %s" % (base[:44], first.strip()[:70]))
             fails += 1
         else:
-            half = len(got) // 2 or len(got)
-            n = sum(int(x) for x in got[-half:]) if got else "?"
+            n = n_luts if n_luts is not None else "?"
             print("%-44s ok    %6s LUTs   (%s)" % (base[:44], n, why))
     print()
     print("cases where the narrow decoder moved : %d" % moved)

@@ -38,6 +38,25 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 SYNTH = os.path.join(ROOT, "fpga", "openxc7-synth")
 LUT = re.compile(r"^\s+(\d+)\s+LUT[1-6]\s*$", re.M)
+BLOCK = re.compile(r"^=== (.+?) ===$", re.M)
+
+
+def luts(out):
+    """Sum LUTs inside the LAST `=== <name> ===` block only.
+
+    yosys `stat` prints THREE blocks after a synth run -- `=== top ===`,
+    `=== design hierarchy ===`, and `=== top ===` again from the explicit stat.
+    The first version of this took "the last half of all LUT lines", which spans
+    a block boundary and sums part of one block with part of another. It reported
+    the GF16 multiply at 812 and then 841 across two runs of the same binary, and
+    produced a table of deltas that looked like a systematic +22% to +79% drift
+    against the published numbers. There was no drift; there was a bad parser.
+    """
+    starts = [m.start() for m in BLOCK.finditer(out)]
+    if not starts:
+        return None
+    return sum(int(x) for x in LUT.findall(out[starts[-1]:]))
+
 FLAGS = "synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7"
 
 # (format, E, M, published ADD, published MUL) from research/CI_LUT_REPORT.md
@@ -71,9 +90,7 @@ endmodule
         r = subprocess.run(["yosys", "-p", s], capture_output=True, text=True)
         if r.returncode:
             return None
-        g = LUT.findall(r.stdout + r.stderr)
-        k = len(g) // 2 or len(g)
-        return sum(int(x) for x in g[-k:]) if g else 0
+        return luts(r.stdout + r.stderr) or 0
 
 
 def main():
