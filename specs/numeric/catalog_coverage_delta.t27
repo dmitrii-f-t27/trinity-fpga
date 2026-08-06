@@ -7419,3 +7419,14 @@ finding "36 compute targets could not be dispatched, because the workflow's sour
   tool "research/audit_build_matrix_path.py, which now reads the core list OUT OF THE WORKFLOW rather than hard-coding it. Hard-coding would let the audit pass while the workflow fails, which is the failure mode this series keeps meeting: pass 244's parse guard could not see what yosys rejects, pass 254's sweep could not see the submodule, pass 268's scan could not see a path built from dispatch inputs"
   smoke "60 targets: 56 built and 4 failed before, 60 built and 0 failed after"
 }
+
+finding "the -nodsp rule covers mul, and three other ops infer DSPs anyway" {
+  the_rule "build-matrix.yml adds -nodsp only when the op is mul, and the repo's rationale is that Project X-Ray documents DSP48E1 as partially reverse-engineered, so inference is a routing risk in this flow. The paper states it as 'DSP48E1 is used only when explicitly instantiated'"
+  measured "under the workflow's own flags, gf16 sqrt infers 8 DSP48E1, fma infers 1, alu infers 1. add, div, quire and mul infer none. So the rule catches the one op that does not need it and misses three that do"
+  scale "915 of 3,203 compute targets have an op ending in sqrt, fma or alu"
+  nothing_rests_on_it "zero complete-chain Tier-E cells carry op SQRT, FMA or ALU. Ninth pass of RTL findings, still nothing a claim depends on"
+
+  the_trade_has_numbers_now "extending -nodsp is not obviously right. gf16 sqrt goes from 334 LUT and 8 DSP to 3,566 LUT and 0 -- more than ten times the logic. fma goes 992 to 1,242, alu 952 to 1,238, both about a quarter more. Trading eight DSPs for three thousand LUTs on a part with 134,600 of them is a judgement about which resource is scarce and which is trustworthy, not a bug fix"
+  not_changed "the rule. Same call as the rounding decision in pass 247: the measurement is mine to make, the trade is not"
+  connects_to "item 4 of the corrections package, which found that no wrapper instantiates gf_mul_dsp_param. This is the sharper form: the paper says DSP is used only when explicitly instantiated, and the flag rule lets 915 targets infer it implicitly"
+}
