@@ -20,7 +20,7 @@ is a sensitivity note rather than an error, and **five need action**.
 | 2 | "5/11 values flushed to zero" | 2606.05017, abstract + contributions | **wording** — body is correct |
 | 3 | "GF16 preserves 8.7× more gradient updates" | 2606.09686, abstract | **sensitivity note**, not an error |
 | 4 | "as in GF16 MUL's single-DSP multiplier" | 2606.09686, abstract + §flags | **factual** — no wrapper uses it |
-| 5 | LUT_ADD ≈ 1.63 W², R² ≥ 0.97 | 2606.05017, §cost | **does not fit** — R² = 0.937 |
+| 5 | LUT_ADD ≈ 1.63 W², R² ≥ 0.97 | 2606.05017, §cost | **no subset fits** — c is a window, not a constant |
 | 6 | 505 / 587 / 580 LUT | 2606.05017, lines 56 and 132 | **traced** — 505 is takum16's, and the 75 does not reproduce |
 
 What reproduces, for context: the 2.4M vector count (2,442,533), 41 decode cells,
@@ -95,25 +95,44 @@ when explicitly instantiated.
 
 ---
 
-## 5. LUT_ADD ≈ 1.63 W² with R² ≥ 0.97 — does not fit
+## 5. The W² cost model — the coefficient is a window, not a constant
 
-Fitted through the origin to the paper's own published tables
-(`CI_LUT_REPORT.md`, `COMPLETE_LUT_TABLE.md`), nine GF widths in W=4–24:
+Fitted through the origin to the paper's own published tables:
 
-| | c | R² | claim |
+| set | n | c | R² |
 |---|---|---|---|
-| **MUL** | 2.089 | 0.9770 | c=2.09, R²≥0.97 — **reproduces exactly** |
-| **ADD** | 1.588 | 0.9371 | c=1.63, R²≥0.97 — **below** |
+| ADD, GF4–GF24 (the stated range) | 9 | 1.588 | 0.9371 |
+| ADD, GF4–GF32 | 10 | 1.350 | 0.9272 |
+| **ADD, GF4–GF48** | **11** | 1.245 | 0.9815 |
+| ADD, all measured | 14 | 0.928 | 0.9951 |
+| MUL, GF4–GF24 | 9 | **2.089** | **0.9770** |
 
-With an intercept the ADD fit reaches R² = 0.9722, but then the coefficient is
-1.390, not 1.63. Neither standard form gives both.
+**No set reproduces c_ADD = 1.63 with R² ≥ 0.97.** The only set with exactly
+eleven points — the count the paper cites — gives c = 1.245.
 
-**One uncertainty:** the paper says **eleven** measured points in W=4–24; the
-published tables give **nine** GF widths there. Two further points could move the
-ADD fit, and nothing in the repository identifies them.
+The reason is visible in the per-point ratio LUT/W², which falls monotonically
+rather than holding constant:
 
-**Proposed:** report the ADD fit's actual R², or state which eleven points were
-used so the fit can be reproduced.
+| W | 4 | 6 | 8 | 12 | 16 | **20** | 24 | 32 | 64 | 128 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| c | 0.94 | 2.78 | 2.67 | 1.97 | 1.90 | **1.61** | 1.42 | 1.21 | 1.05 | 0.91 |
+
+**1.63 is approximately the value at W = 20**, not a property of the family.
+
+With a free exponent, `LUT = a·W^b`:
+
+| | a | b | R² |
+|---|---|---|---|
+| ADD, all 14 measured | 3.194 | **1.754** | 0.9746 |
+| MUL, GF4–GF32 | 0.791 | **2.361** | 0.9044 |
+
+ADD is **sub-quadratic** over the measured range and MUL is **super-quadratic**.
+A shared W² model with a single coefficient is a compromise between them rather
+than a fit to either.
+
+**Proposed:** state the fitting window with the coefficient, or report the fitted
+exponents. As written, "1.63 W², R² ≥ 0.97, 11 measured points" does not
+correspond to any subset of the published table.
 
 ## 6. 505 / 587 / 580 LUT — traced, and one entry does not reproduce
 

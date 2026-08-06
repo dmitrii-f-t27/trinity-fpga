@@ -7286,3 +7286,14 @@ finding "three of four cores in that table reproduce exactly, which is what make
   what_it_settles "pass 256 said the 1067 was 'not a refutation of the 75' because a standalone module and a marginal cost are different quantities. With three standalone modules from the same table reproducing exactly, the 75 is plainly meant as standalone too -- so it IS a refutation, and I was being more cautious than the evidence required"
   and_the_505 "505 is takum16's native MUL in that table, not GF16's; GF16's multiply is 587 there. So line 132's '580 LUT (505 multiply + 75 Quire)' uses takum16's multiply for a GF16+ MAC together with a Quire figure that does not reproduce. If the Quire is really 1063, the MAC is roughly 1650, not 580"
 }
+
+finding "the W^2 cost coefficient is a fitting window, not a constant" {
+  question_asked "which eleven measured points give c_ADD = 1.63 at R^2 >= 0.97. The published tables give nine GF widths in the stated W=4..24"
+  answer "none of them. GF4-GF24 gives c=1.588 R^2=0.9371. GF4-GF32 gives 1.350 and 0.9272. GF4-GF48 -- the only set with EXACTLY eleven points -- gives 1.245 and 0.9815. All fourteen measured widths give 0.928 and 0.9951"
+
+  why "the per-point ratio LUT/W^2 falls monotonically instead of holding: 2.78 at W=6, 1.90 at W=16, 1.61 at W=20, 1.21 at W=32, 0.91 at W=128. The published 1.63 is approximately its value at W=20 -- a point on the curve, not a property of the family"
+  free_exponent "fitting LUT = a*W^b instead: ADD over all fourteen widths is b=1.754 at R^2=0.9746, MUL over GF4-GF32 is b=2.361 at R^2=0.9044. ADD is SUB-quadratic and MUL is SUPER-quadratic, so a shared W^2 model with one coefficient is a compromise between them rather than a fit to either"
+  mul_caveat "MUL over the narrow GF4-GF24 window does reach c=2.089 at R^2=0.9770, which is why that half of the claim reproduced in pass 256. R^2 is generous for monotone data -- forcing b=2 and fitting c can look good while the free exponent is 2.5"
+
+  entirely_from_their_numbers "no synthesis was run for this. Every figure above comes from research/CI_LUT_REPORT.md and COMPLETE_LUT_TABLE.md"
+}
