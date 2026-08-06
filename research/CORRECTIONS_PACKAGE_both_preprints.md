@@ -23,7 +23,7 @@ one is a sensitivity note rather than an error, and **seven need action**.
 | 5 | LUT_ADD ≈ 1.63 W², R² ≥ 0.97 | 2606.05017, §cost | **no subset fits** — c is a window, not a constant |
 | 6 | 505 / 587 / 580 LUT | 2606.05017, lines 56 and 132 | **traced** — 505 is takum16's, and the 75 does not reproduce |
 | 7 | "seven formats across seven workloads" | 2606.05017, abstract | **not reproducible** — six of the seven workloads exist in no script |
-| 8 | "six conformance packs", including E8M0 | 2606.09686 abstract, and its erratum | **five of six** — E8M0 has a host, not a pack |
+| 8 | "six conformance packs", including E8M0 | 2606.09686 abstract, and its erratum | **closed** — the E8M0 oracle and packs now exist |
 
 What reproduces, for context: the 2.4M vector count (2,442,533), 41 decode cells,
 10 GF compute formats, FP16 losing 5 of 11 dynamic-range values, GF16 losing 1,
@@ -248,9 +248,21 @@ This also touches the existing erratum,
 
 There is no pack file to remain in force.
 
-**Proposed:** either generate the E8M0 pack and oracle so the count is six, or say
-five packs plus an independently-goldened conformance host — and amend the
-erratum's sentence, which reaffirms something absent.
+**Closed in pass 266.** `conformance/e8m0_ref.py` is the missing oracle and
+`conformance/vectors/e8m0_add.json` and `e8m0_mul.json` are the missing packs,
+65,536 vectors each — the format is 8 bits, so both are exhaustive over all
+256×256 operand pairs. The oracle's self-test holds it to the host's independent
+golden on all 256 codes and passes 10/10.
+
+No `e8m0_sub.json`: E8M0 has no sign bit and no zero, so negation does not exist
+and SUB is undefined. `negate_raw` now says so, the same way it already did for
+unsigned integers. Without that it fell through to the default branch, flipped
+bit 7 — which for E8M0 changes the *exponent* — and produced a 65,536-vector pack
+of nonsense, which is what a first run actually wrote before it was caught.
+
+**Still proposed:** amend the erratum's sentence. It said a pack "remains in
+force" when none existed; now one does, but the sentence was not true when
+written.
 
 ---
 

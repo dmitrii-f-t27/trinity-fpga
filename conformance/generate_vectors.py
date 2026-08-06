@@ -77,6 +77,10 @@ MODULES = [
     ("nf4_ref",       "format_add",  "format_mul",  "nf4"),
     ("gfternary_ref", "format_add",  "format_mul",  "gfternary"),
     ("extended_ref",  "format_add",  "format_mul",  "extended"),
+    # Added in pass 266. E8M0 is the OCP MX shared block scale: 8 bits, exponent
+    # only, no sign, no mantissa, no zero. The 2606.09686 abstract counted it
+    # among six conformance packs and it was the one with a host but no pack.
+    ("e8m0_ref",      "format_add",  "format_mul",  "e8m0"),
 ]
 
 # (op_tag, mode)
@@ -238,6 +242,14 @@ def negate_raw(fmt, mod, family, raw, mask):
         if not getattr(fmt, "signed", False):
             return None                     # unsigned: SUB not defined
         return (0 - raw) & mask             # two's complement (modular)
+
+    if family == "e8m0":
+        # E8M0 is exponent-only: no sign bit, no zero, every code a positive power
+        # of two. Negation does not exist, so SUB is undefined and no _sub.json is
+        # written -- the same treatment unsigned integers get above. Without this
+        # the default branch flips bit 7, which for E8M0 changes the EXPONENT and
+        # silently produces a 65,536-vector pack of nonsense.
+        return None
 
     if family == "posit":
         return (0 - raw) & mask             # posit negate = 2's complement of word
