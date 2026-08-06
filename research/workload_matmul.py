@@ -75,8 +75,21 @@ def q(mod, fmt, x):
     return v
 
 
-def matmul_error(mod, fmt, A, B, n, k):
-    """Max relative error of an in-format matmul against the exact product."""
+def matmul_error(mod, fmt, A, B, n, k, normwise=False):
+    """Max error of an in-format matmul against the exact product.
+
+    Two denominators, and the choice is the whole point.
+
+      componentwise  |computed - exact| / |exact|
+      normwise       |computed - exact| / sum |a_t * b_t|
+
+    The componentwise form is what pass 260 measured, and it explodes wherever
+    the exact result is near zero: BF16 scored 184% on uniform[-1,1] because a
+    few output entries cancelled almost completely, which says nothing about the
+    format's precision. The normwise form divides by the SCALE OF THE WORK
+    instead of the size of the answer, which is the standard way numerical
+    analysis separates conditioning from precision.
+    """
     worst = Fraction(0)
     overflowed = 0
     for i in range(n):
@@ -93,14 +106,21 @@ def matmul_error(mod, fmt, A, B, n, k):
             if bad or acc is None:
                 overflowed += 1
                 continue
-            if exact == 0:
+            denom = (sum(abs(A[i][t] * B[t][j]) for t in range(k))
+                     if normwise else abs(exact))
+            if denom == 0:
                 continue
-            rel = abs(Fraction(acc) - exact) / abs(exact)
+            rel = abs(Fraction(acc) - exact) / denom
             worst = max(worst, rel)
     return float(worst), overflowed
 
 
+NORMWISE = False
+
+
 def main():
+    global NORMWISE
+    NORMWISE = "--normwise" in sys.argv
     n = 8
     trials = 20
     if "--n" in sys.argv:
@@ -110,7 +130,9 @@ def main():
     k = n
 
     print("matrix multiply, %dx%d, %d trials per distribution" % (n, n, trials))
-    print("max relative error over output entries, worst trial / median trial")
+    print("error metric: %s" % ("NORMWISE, divided by sum|a*b|"
+                                if NORMWISE else "componentwise, divided by |exact|"))
+    print("max over output entries, worst trial / median trial")
     print()
     header = "%-14s" % "distribution"
     for label, _m, _f, M in FORMATS:
@@ -128,7 +150,7 @@ def main():
                      for _ in range(n)]
                 B = [[Fraction(draw(r)).limit_denominator(10 ** 9) for _ in range(n)]
                      for _ in range(k)]
-                e, ov = matmul_error(mod, fmt, A, B, n, k)
+                e, ov = matmul_error(mod, fmt, A, B, n, k, normwise=NORMWISE)
                 worst.append(e)
                 overflows += ov
             row += " %7.2f%% /%6.2f%%%s" % (

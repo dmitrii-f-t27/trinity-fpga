@@ -107,7 +107,14 @@ def attention_softmax(mod, fmt, r, n=32):
 
 
 def convolution(mod, fmt, r, n=64, k=5):
-    """1-D convolution, valid region. Exact reference."""
+    """1-D convolution, valid region. Exact reference, NORMWISE error.
+
+    Divided by sum|s*k| rather than by |exact|. With the componentwise form this
+    workload reported about 54% for BF16, GF14 and GF16 alike -- three formats,
+    one number, because a few output taps cancelled almost completely. That is
+    conditioning, not precision, and dividing by the scale of the work separates
+    them.
+    """
     sig = [Fraction(r.uniform(-1, 1)).limit_denominator(10 ** 9) for _ in range(n)]
     ker = [Fraction(r.uniform(-1, 1)).limit_denominator(10 ** 9) for _ in range(k)]
     worst = Fraction(0)
@@ -117,9 +124,9 @@ def convolution(mod, fmt, r, n=64, k=5):
         for t in range(k):
             p = q(mod, fmt, sig[i + t] * ker[t])
             acc = q(mod, fmt, acc + p) if (acc is not None and p is not None) else None
-        e = rel(acc, exact)
-        if e is not None:
-            worst = max(worst, e)
+        denom = sum(abs(sig[i + t] * ker[t]) for t in range(k))
+        if acc is not None and denom != 0:
+            worst = max(worst, abs(Fraction(acc) - exact) / denom)
     return worst
 
 
