@@ -7108,3 +7108,13 @@ verification "all 3,594 files through the yosys front end, not eight" {
   the_one_that_matters "tekum_decode_param.v:204 -- `for (k = 0; k < pbits; k = k + 1)` with pbits a VARIABLE. yosys needs a constant loop bound, so this core cannot be synthesised at all. It is the sibling of gf_decode_param and is instantiated by tekum16_adder.v"
   and_the_check_on_it "tekum appears in ZERO of the 75 complete-chain Tier-E comments. The takum cells that do exist name corona-decode-takum16-bitstream, a BRAM-LUT decode, not this module. Nothing claims it -- the same shape as every RTL defect found since pass 237"
 }
+
+verification "full synthesis sweep -- tool landed, run in flight" {
+  why "pass 245 asked whether yosys can READ each file and found 22 it cannot. Reading is the front end. Synthesis is where unreachable logic, inferred latches, widths that disagree at elaboration and missing submodules turn up, and none of those show in a parse"
+  tool "research/audit_yosys_synth.py -- synth_xilinx -flatten -nodsp per file, with hierarchy -libdir so a submodule instantiated by name is resolved rather than left a black box. Top is the module matching the filename, else the last one defined"
+  excluded "testbenches, on pass 245's reasoning, and *_mock.v -- those exist so IVERILOG can elaborate a design instantiating a Xilinx primitive, and yosys ships its own cells_sim.v, so reading a mock beside it is a re-definition rather than a defect"
+
+  smoke "40 files: 38 synthesised, 2 failed, and both failures were the mocks -- which is what led to excluding them"
+  cost_estimate_was_wrong "one representative file measured 3.4 seconds, which put the tree at half an hour on six workers. The real rate is 200 files in 11 minutes: the distribution has a long tail, and a 256-bit design takes minutes on its own. Roughly three hours, not thirty minutes"
+  status "3,535 files attempted, running in the background. Not claimed either way until it finishes -- the worktree stays until then, because pass 239 killed its own background job by removing the worktree underneath it"
+}
