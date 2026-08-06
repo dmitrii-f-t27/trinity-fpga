@@ -7386,3 +7386,15 @@ resolution "the missing E8M0 oracle and packs now exist" {
   found_on_the_way "the reproducibility audit then reported three DIFFERENT packs, and they were not the new ones: gfternary_add, _mul and _sub. Pass 242 made gfternary_ref.neg_zero raise and did not regenerate the packs whose specials legend still listed one. Two passes stale, caught by a gate rather than by reading"
   end_state "327 packs, 2,573,605 vectors, 0 header-vs-oracle disagreements. 249 rebuildable, 249 byte-identical. Zero-sign guard 30 asked, 0 lost"
 }
+
+verification "the sweep's remaining missing-module failures, and a claim I nearly got backwards" {
+  final_sweep "3,535 sources, 3,481 synthesised, 54 failed, 10,081,116 LUTs -- against pass 254's lower bound of 3,457. Classes: 20 missing $readmemb data files, 10 missing modules, 6 gf256 timeouts at 600s, 15 syntax errors already catalogued in pass 245, 1 port mismatch, 1 non-constant loop bound in tekum_decode_param"
+
+  the_alarming_one "two of the ten missing-module failures are corona_compute_gf10_add_ax7203.v and corona_compute_gf14_add_ax7203.v, which instantiate gf_add_param. That module is defined NOWHERE -- not in fpga/openxc7-synth, not in the tt-trinity-corona submodule, and `git log -S` over all history finds no commit that ever defined it. And gf10-add and gf14-add BOTH carry complete-chain Tier-E cells, with CI run ids and full SHA-256s. That would have been the first non-building wrapper behind a real claim"
+
+  it_is_not "the CI job says otherwise. .github/workflows/ax7203-gf10-add.yml reads fpga/vivado/gf10_add_ax7203.v together with fpga/openxc7-synth/gf_adder_param.v -- a DIFFERENT wrapper, in a different directory, instantiating the module that does exist. Both fpga/vivado wrappers synthesise cleanly here"
+  so "the corona_compute_gf10_add and gf14_add files are dead: bulk-generated in commit af5588534 ('308 CI workflows ... 222 compute'), referencing a module that never existed, and used by nothing. The Tier-E cells are sound"
+
+  what_saved_it "reading the workflow instead of assuming the filename. The wrapper named after the cell is not the wrapper the cell was built from, and every previous pass in this series would have concluded from the name"
+  pattern_holds "eight passes of RTL findings, and still nothing that a Tier-E claim rests on. This is the closest it has come"
+}
