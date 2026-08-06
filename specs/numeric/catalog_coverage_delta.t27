@@ -7153,3 +7153,15 @@ verification "the paper's own numbers, checked against the corpus they describe"
   own_error "my first count of GF compute widths said 13. The ledger writes the same width two ways, GF(2^16) in some comments and gf16 in others, and keeping them as separate keys counted three widths twice. Normalised, 10"
   notation_finding "with GF(2^k) read as a k-BIT format, one comment reads as gf2 -- and the narrowest GF format in the corpus is gf4. The count of distinct widths is unaffected; which format that comment means is not settled by the notation"
 }
+
+correction "the GF64 figure is supported -- by evidence that does not carry the chain claimed for it" {
+  refines "pass 248, which reported 'zero complete-chain comments mention gf64'. True, and framed in a way that reads as the number being unsupported. It is supported"
+  what_is_behind_it "seventeen comments in #199 mention GF64, several of them a careful self-correcting investigation -- one is titled 'RETRACTION: fp32 M=23 boundary was WRONG'. The 70.1% comes from a comment reporting iverilog 6/6, Python bit-model 1544/1544, silicon 359/512, and attributing the gap to the wrapper rather than the core, which is what the paper's 'timing-closure issue' restates"
+
+  problem_one "no single GF64 comment carries all four links. The closest, 'Tier-E smoke: GF64 + GF128 ADD', has the CI URL, a full 64-hex SHA and the IDCODE but no HW RESULT line. The one carrying the quoted figure has a TRUNCATED SHA and a build number instead of a URL"
+  problem_two "359/512 is the highest of four silicon results spanning 19.2% to 70.1%, and it comes from the build the next comment's own table labels 'shift-reg (buggy)'. Every build with that path FIXED scored lower -- 49.4%, 19.2%, 48.9%"
+  where_it_sits "inside an item ending 'Each ships with a full evidence chain: CI synthesis -> bitstream SHA-256 -> JTAG flash -> UART verify'"
+
+  draft "research/ERRATUM_arXiv_2606.05017_gf64_claim.md, modelled on the existing 84->83 erratum. DRAFT IN REPOSITORY, submitted nowhere -- whether to file it is the author's decision, and the file exists so that decision can be made from facts"
+  unchanged "the 41 decode cells, the 10 GF compute formats and the 2.4M vector count all hold exactly. The GF64 investigation is sound work; the issue is only where its number is placed"
+}
