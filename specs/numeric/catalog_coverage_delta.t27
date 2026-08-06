@@ -7165,3 +7165,19 @@ correction "the GF64 figure is supported -- by evidence that does not carry the 
   draft "research/ERRATUM_arXiv_2606.05017_gf64_claim.md, modelled on the existing 84->83 erratum. DRAFT IN REPOSITORY, submitted nowhere -- whether to file it is the author's decision, and the file exists so that decision can be made from facts"
   unchanged "the 41 decode cells, the 10 GF compute formats and the 2.4M vector count all hold exactly. The GF64 investigation is sound work; the issue is only where its number is placed"
 }
+
+verification "the published LUT numbers reproduce as a method, not as values" {
+  what "research/CI_LUT_REPORT.md and COMPLETE_LUT_TABLE.md give per-format LUT counts, and the paper quotes several -- 587 for a GF16 multiply, 505 in the zero-DSP regime, 75 for the Quire. Both reports document their method fully, which makes the numbers testable"
+  method_reproduced "the wrapper .github/workflows/lut-report.yml generates -- a `top` instantiating the parametric core with explicit TOTAL and BIAS and HAS_INF(0) at EVERY width, gf16 included -- and the documented flags, synth_xilinx -flatten -abc9 -nocarry -nodsp -arch xc7"
+
+  ruled_out {
+    rtl_drift "no commit touches gf_adder_param.v after 2026-07-14, and the table is dated 2026-07-15"
+    hierarchy "the CI script omits `hierarchy -top`. Adding it changes nothing: GF8 ADD is 256 either way, GF16 ADD 777 either way"
+    flags "the first attempt used only -flatten -nodsp and was far off -- 1198 for the GF16 multiply against 587. With the documented flags it lands at 812. The flags were mine, not theirs"
+  }
+  what_remains "the toolchain BUILD. Homebrew yosys 0.63 against the regymm/openxc7 container's. Counts come out systematically higher and the gap grows with width: +4 LUTs at GF4, +396 at GF20 -- roughly +22% to +79%"
+
+  the_point "for a paper whose argument rests on an open-source flow, 'yosys 0.63' is not enough to reproduce these numbers. The image is part of the measurement and belongs in the table header beside the flags"
+  own_error "I first synthesised the UART WRAPPERS -- 1281 LUTs for gf16_mul, 90 for gf16_quire -- and nearly compared those against core numbers. The wrappers carry STARTUPE2, the UART state machines and the framing. Measuring the wrong thing is how a 24x discrepancy appears out of nothing"
+  tool "research/audit_lut_table.py"
+}
