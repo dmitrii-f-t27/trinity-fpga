@@ -109,15 +109,45 @@ def hosts_check(verbose):
     return lost, checked, skipped
 
 
-def rtl_check():
-    hits = []
+RTL_NAME = re.compile(r"corona_(?:compute|decode)_(?:fp32_to_)?(?P<fmt>.+?)"
+                      r"(?:_(?:add|sub|mul|div|alu|fma|cmp|sqrt|quire|to_fp32|decode))?"
+                      r"_ax7203\.v$")
+
+
+def rtl_check(mods):
+    """Only report a bare zero where the format HAS a sign to lose.
+
+    The first version reported every `if (zero) X = 32'h0;` with any sign wire in
+    the module and counted 4,874. Most were correct code: posit, the integer
+    formats, lns, takum and mxint8 have ONE zero, so there is no sign to carry and
+    a bare zero is the right answer. Reporting those forever would train the eye
+    to ignore the number, which is how a guard stops being one.
+    """
+    hits, exempt = [], 0
     for path in sorted(glob.glob(os.path.join(SYNTH, "*.v"))):
         src = open(path, encoding="utf-8", errors="replace").read()
         if not RTL_SIGN.search(src):
             continue
-        for m in RTL_ZERO.finditer(src):
-            hits.append((os.path.basename(path), m.group(1), m.group(0)))
-    return hits
+        found = list(RTL_ZERO.finditer(src))
+        if not found:
+            continue
+        base = os.path.basename(path)
+        m = RTL_NAME.search(base)
+        signed = None
+        if m:
+            _oname, _mod, fmt = find_format(ALIAS.get(m.group("fmt"), m.group("fmt")), mods)
+            if fmt is not None:
+                try:
+                    fmt.neg_zero
+                    signed = True
+                except Exception:                     # noqa: BLE001
+                    signed = False
+        for mm in found:
+            if signed is False:
+                exempt += 1
+                continue
+            hits.append((base, mm.group(1), mm.group(0), signed))
+    return hits, exempt
 
 
 def main():
@@ -133,17 +163,21 @@ def main():
         for fn, key, why in skipped:
             print("     %-46s %-12s %s" % (fn[:46], key, why))
     print()
-    hits = rtl_check()
-    print("RTL (lint, not proof)")
-    print("  `if (zero) X = 32'h0...;` in a module with a sign wire : %d" % len(hits))
-    for base, sig, snippet in hits[:20]:
+    hits, exempt = rtl_check(oracles())
+    unknown = [h for h in hits if h[3] is None]
+    real = [h for h in hits if h[3] is True]
+    print("RTL")
+    print("  bare zero where the format HAS a negative zero  : %d" % len(real))
+    for base, sig, snippet, _s in real[:20]:
         print("     %-46s %s" % (base[:46], snippet.strip()))
-    if len(hits) > 20:
-        print("     ... and %d more" % (len(hits) - 20))
+    print("  format has ONE zero -- a bare zero is correct   : %d (exempt)" % exempt)
+    print("  format could not be resolved from the filename  : %d" % len(unknown))
+    for base, sig, snippet, _s in unknown[:10]:
+        print("     %-46s %s" % (base[:46], snippet.strip()))
     print()
     print("A format WITHOUT a negative zero is not a failure here -- the oracles")
     print("record which 36 of them there are, and those goldens are not asked.")
-    return 1 if lost else 0
+    return 1 if (lost or real) else 0
 
 
 if __name__ == "__main__":

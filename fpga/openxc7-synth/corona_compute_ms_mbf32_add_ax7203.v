@@ -86,7 +86,7 @@ module corona_compute_ms_mbf32_add_ax7203 (
     reg [31:0] q_result;
     always @(*) begin
         if(q_nan) q_result=32'h7FC00000;
-        else if(q_zero) q_result=32'h0;
+        else if(q_zero) q_result={q_sign, 31'b0};
         else if(q_exp==0) q_result={q_sign,8'd3,23'b0};
         else if(q_exp>=8'd253) q_result={q_sign,8'hFF,q_mant};
         else q_result={q_sign,q_exp+8'd2,q_mant};
