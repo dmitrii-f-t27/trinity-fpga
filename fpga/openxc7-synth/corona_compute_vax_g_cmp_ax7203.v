@@ -72,7 +72,15 @@ module corona_compute_vax_g_cmp_ax7203 (
     wire [22:0] vg_mant32_a = vg_mant_a[51:29];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(vg_zero_a) fp32_a=32'h00000000;
+        if(vg_zero_a) fp32_a={vg_sign_a, 31'b0};
+        // Saturate instead of wrapping -- see the note in the sibling
+        // wrappers. vg_exp32_s_a is a SIGNED 16-bit intermediate and vg_exp32_a is
+        // its low 8 bits, so an exponent outside fp32's window used to
+        // come back as some other exponent entirely. This format has no
+        // Inf encoding of its own, so overflow saturates to fp32 +Inf on
+        // the narrowed operand, which is what the adder downstream reads.
+        else if(vg_exp32_s_a > 16'sd254) fp32_a={vg_sign_a, 8'hFF, 23'b0};
+        else if(vg_exp32_s_a < 16'sd1) fp32_a={vg_sign_a, 8'd0, 23'b0};
         else fp32_a={vg_sign_a, vg_exp32_a, vg_mant32_a};
     end
     wire vg_sign_b = fmt_b[63];
@@ -84,7 +92,15 @@ module corona_compute_vax_g_cmp_ax7203 (
     wire [22:0] vg_mant32_b = vg_mant_b[51:29];
     reg [31:0] fp32_b;
     always @(*) begin
-        if(vg_zero_b) fp32_b=32'h00000000;
+        if(vg_zero_b) fp32_b={vg_sign_b, 31'b0};
+        // Saturate instead of wrapping -- see the note in the sibling
+        // wrappers. vg_exp32_s_b is a SIGNED 16-bit intermediate and vg_exp32_b is
+        // its low 8 bits, so an exponent outside fp32's window used to
+        // come back as some other exponent entirely. This format has no
+        // Inf encoding of its own, so overflow saturates to fp32 +Inf on
+        // the narrowed operand, which is what the adder downstream reads.
+        else if(vg_exp32_s_b > 16'sd254) fp32_b={vg_sign_b, 8'hFF, 23'b0};
+        else if(vg_exp32_s_b < 16'sd1) fp32_b={vg_sign_b, 8'd0, 23'b0};
         else fp32_b={vg_sign_b, vg_exp32_b, vg_mant32_b};
     end
     wire ce=(fp32_a==fp32_b); wire cl=(fp32_a<fp32_b); wire cd=cl|ce;

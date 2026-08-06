@@ -7038,3 +7038,16 @@ finding "what the narrow core actually costs, measured from the datapath as writ
   unchanged_from_239 "no Tier-E claim rests on any of these. Every complete-chain comment for these formats is a DECODE cell naming a corona-decode-<fmt>-bitstream artifact"
   tool "research/audit_compute_precision.py. research/audit_wrapper_names.py is marked superseded and says why"
 }
+
+correction "the narrowing wrapped where it had to saturate -- 36 wrappers, 66 blocks" {
+  what "the compute wrappers narrow an operand to fp32 with `wire [7:0] X_exp32 = X_exp32_s[7:0];`, taking the low 8 bits of a SIGNED 16-bit intermediate. Any exponent outside fp32's window came back as some other exponent entirely -- a value far above fp32's maximum arrived as an ordinary finite number instead of +Inf"
+  distinction "unlike the mantissa truncation, this is not a cost/precision trade. Saturating is one comparison. Wrapping is a wrong answer"
+  fixed "66 blocks across 36 files gained two branches: exp32_s > 254 -> +/-Inf, exp32_s < 1 -> +/-0. The mantissa is deliberately left truncated -- that is a separate decision"
+
+  second_defect_found_by_the_witness "the zero branch was a hard 32'h00000000, so a NEGATIVE zero narrowed to +0. The pass 188 class for the fourth time -- VAX, then takum/tekum/mxint8, then the decimal hosts, now these wrappers. Fixed in the same 66 blocks: {sign, 31'b0}"
+
+  witness "research/witness_narrowing.py lifts the expressions out of a wrapper verbatim and runs the old and new versions side by side under iverilog, because the wrappers cannot elaborate on their own -- they instantiate STARTUPE2"
+  measured "104 structural cases: 55 wrong before, 0 after"
+  own_over_strictness "my first model demanded a negative NaN for a negative operand. IEEE 754 mandates no NaN sign or payload, so the model now compares NaN by class -- and the sign of ZERO exactly, which is what found the second defect"
+  unchanged "the parse guard still reports the same 10 pre-existing failures; gf16's decode witness is still 65,536 codes and 0 disagreements"
+}
