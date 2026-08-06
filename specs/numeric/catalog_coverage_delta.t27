@@ -7461,3 +7461,12 @@ verification "all seven workloads across all seven formats the paper compares" {
   what_it_does_bear_on "the abstract's 'no single format dominates across arithmetic, dynamic-range, and cancellation suites'. On these seven workloads as implemented here, posit16 dominates GF16 on all seven"
   caveats_stated "no pass/fail threshold is applied, because the paper's are not published; and these are my implementations of the workloads, not the paper's, which are not in the repository"
 }
+
+resolution "the package is at ten items, and item 10 is the only one that contradicts a headline" {
+  item_10 "'no single format dominates across arithmetic, dynamic-range, and cancellation suites' appears in both abstracts. With all seven of the paper's formats through all seven of its named workloads, posit16 has lower error than GF16 on every one of the six error workloads and loses fewer dynamic-range values. takum16 beats GF16 on four of six"
+  narrowness_matters "the paper's OTHER headline -- GF16 as the minimum-width IEEE-STYLE format passing all seven -- survives, because posit and takum are tapered and outside that class by construction. Among the IEEE-style entrants GF16 is best. So the correction is to one sentence, not to the argument"
+  proposed "scope the dominance sentence to the IEEE-style family, which is what the surrounding argument is about"
+
+  package_state "ten items. Eighteen claims recomputed: nine reproduce cleanly, one sensitivity note, eight need action -- of which one is a submission defect rather than a claim, and one is already closed by code"
+  still_open_and_untried "whether the cited competitor figures are fair -- PERI's 3507 LUTs, the takum codec's -38% and -50%. WebSearch and WebFetch have been unavailable for three consecutive passes, so this stays untried rather than guessed"
+}
