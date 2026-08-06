@@ -4,7 +4,10 @@ Passes 231–247 changed goldens, rebuilt every vector pack, corrected oracles a
 edited 4,776 sites of RTL. Passes 248–251 asked the obvious follow-up: do the
 paper's own numbers still describe the corpus they describe?
 
-Eleven claims have now been recomputed from the repository. **Nine reproduce.**
+Fifteen claims have now been recomputed from the repository. **Nine reproduce
+cleanly**, one is a sensitivity note rather than an error, and five need action --
+collected with proposed wordings in
+`research/CORRECTIONS_PACKAGE_both_preprints.md`.
 One is a wording error, and one figure is placed inside a promise the evidence
 behind it does not keep.
 
