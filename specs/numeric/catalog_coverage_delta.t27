@@ -7363,3 +7363,14 @@ correction "the corrections package carried numbers I had already refuted" {
   proposed_wording_updated "from 'state which of the seven are measured' to 'state the error budget that turns a smooth 2**-M curve into the threshold M >= 9'. That is the thing actually missing"
   kept "GF14's 84.85% on mixed-scale matmul stays, because it survives the metric change -- it is a dynamic-range failure at E=5, and the normwise form is what proved it"
 }
+
+finding "five of the six named conformance packs are packs" {
+  claim "the 2606.09686 abstract names six: GF16, MXFP4 element, BF16, FP8 E4M3, FP8 E5M2, E8M0 block scale"
+  found "five are in conformance/vectors/. No file there matches e8m0, and no oracle in conformance/*_ref.py carries an e8m0 format key"
+  what_e8m0_does_have "a conformance host, conformance/e8m0_decode_conformance_ax7203.py, whose header states its golden is 're-implemented from the E8M0 spec, NOT copied from the RTL' -- plus RTL wrappers and a complete-chain Tier-E decode cell"
+  so "the HARDWARE claim stands. What is missing is the pack and the oracle, not the evidence"
+
+  touches_the_existing_erratum "research/ERRATUM_arXiv_2606.09686_catalog_count.md says 'the presence of a conformance pack for E8M0 is correct and remains in force -- the pack covers the block-scale component'. There is no pack file to remain in force. That erratum was written to correct a count and reaffirmed something absent while doing it"
+  proposed "generate the E8M0 pack and oracle so the count is six, or say five packs plus an independently-goldened host -- and amend the erratum sentence"
+  package "item 8. Seventeen claims recomputed, nine reproduce cleanly, one sensitivity note, seven need action"
+}

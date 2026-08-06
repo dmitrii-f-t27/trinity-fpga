@@ -11,8 +11,8 @@ against the 226 comments of gHashTag/trinity-fpga#199.
 
 ## Summary
 
-Sixteen quantitative claims have been recomputed. **Nine reproduce cleanly**, one
-is a sensitivity note rather than an error, and **six need action**.
+Seventeen quantitative claims have been recomputed. **Nine reproduce cleanly**,
+one is a sensitivity note rather than an error, and **seven need action**.
 
 | # | claim | paper | verdict |
 |---|---|---|---|
@@ -23,6 +23,7 @@ is a sensitivity note rather than an error, and **six need action**.
 | 5 | LUT_ADD ≈ 1.63 W², R² ≥ 0.97 | 2606.05017, §cost | **no subset fits** — c is a window, not a constant |
 | 6 | 505 / 587 / 580 LUT | 2606.05017, lines 56 and 132 | **traced** — 505 is takum16's, and the 75 does not reproduce |
 | 7 | "seven formats across seven workloads" | 2606.05017, abstract | **not reproducible** — six of the seven workloads exist in no script |
+| 8 | "six conformance packs", including E8M0 | 2606.09686 abstract, and its erratum | **five of six** — E8M0 has a host, not a pack |
 
 What reproduces, for context: the 2.4M vector count (2,442,533), 41 decode cells,
 10 GF compute formats, FP16 losing 5 of 11 dynamic-range values, GF16 losing 1,
@@ -222,6 +223,34 @@ one fewer mantissa bit, because E=6 beats E=5.
 **Proposed:** commit the seven-workload harness, and state the error budget that
 turns a smooth 2⁻ᴹ curve into the threshold M ≥ 9. The feasible corner (E=6, M=9),
 and with it the φ-ratio result, rests on that budget being stated.
+
+## 8. "Six conformance packs" — five of them are packs
+
+The 2606.09686 abstract names six: GF16, MXFP4 element, BF16, FP8 E4M3, FP8 E5M2,
+and E8M0 block scale. Five are present in `conformance/vectors/`. **E8M0 is not.**
+
+No file matches `e8m0` there, and no oracle in `conformance/*_ref.py` carries an
+`e8m0` format key.
+
+What E8M0 *does* have is a conformance **host**,
+`conformance/e8m0_decode_conformance_ax7203.py`, whose header states its golden is
+*"re-implemented from the E8M0 spec, NOT copied from the RTL"* — plus RTL wrappers
+and a complete-chain Tier-E decode cell.
+
+**So the hardware claim stands.** What is missing is the pack and the oracle, not
+the evidence.
+
+This also touches the existing erratum,
+`research/ERRATUM_arXiv_2606.09686_catalog_count.md`, which says:
+
+> the presence of a conformance pack for E8M0 is correct and remains in force —
+> the pack covers the block-scale component
+
+There is no pack file to remain in force.
+
+**Proposed:** either generate the E8M0 pack and oracle so the count is six, or say
+five packs plus an independently-goldened conformance host — and amend the
+erratum's sentence, which reaffirms something absent.
 
 ---
 
