@@ -224,7 +224,7 @@ module corona_compute_ibm_hfp32_fma_ax7203 (
     always @(posedge mclk or posedge rst) begin
         if(rst) begin result_reg<=0;result_ready<=0; end
         else begin result_ready<=add_ovld;
-            if(add_ovld) result_reg<={0'b0,q_result};
+            if(add_ovld) result_reg<=q_result;
         end
     end
     assign led[2]=|result_reg;

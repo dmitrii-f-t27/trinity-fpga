@@ -7077,3 +7077,16 @@ resolution "the zero-sign class is closed for every format the oracles know" {
 
   open_question "ms_mbf32. legacy_ref gives it neg_zero = 0x80000000 and decodes that to zero, so following the oracle is consistent. But Microsoft Binary Format treats exponent=0 as zero with the rest ignored, which would make 0x80000000 just another zero encoding rather than a NEGATIVE zero. Whether MBF distinguishes signed zeros at all is a spec question this repo has not answered, and the RTL now matches the oracle rather than the question"
 }
+
+verification "yosys has now seen it, and found what iverilog structurally could not" {
+  why "passes 237-243 changed 4,776 sites of RTL plus the decoder's parameter declarations, and every check behind them was iverilog. iverilog elaborates; it does not synthesise. Until yosys had seen it, 'fixed' meant 'fixed in simulation'"
+  tool "research/synth_check.py -- synth_xilinx -flatten -nodsp. The -nodsp is not optional: the repo's own note records DSP48E1 inference on the GF multiplier turning into a routing failure"
+
+  new_defect_class "30 files carry a zero-width literal -- `result_reg <= {0'b0, q_result};`. yosys: 'ERROR: Illegal integer constant size of zero (IEEE 1800-2012, 5.7)'. iverilog accepts it silently, so the pass 237 parse guard passed all 30 while none of them could be synthesised. A concatenation with a zero-width value is a no-op, so the fix is to drop it"
+  the_lesson "the parse guard gave assurance it could not give. Two tools, two languages accepted -- and the one the flow actually uses was the one nobody ran"
+
+  pass_238_claim_now_tested "that pass widened EXP_CALC_W and redeclared BIAS with a floor chosen so narrow instantiations stay bit-identical. Before and after, at the widths the Tier-E evidence rests on: gf4 302 LUTs, gf8 345, gf16 524, gf24 694, gf32 916 -- identical in every case. That was an assertion; it is now a measurement"
+  wrappers "all eight subjects synthesise: corona_decode_gf24 800 LUTs, gf256 4953, mxgf4 444, compute_binary128_add 2814, cray_float_add 2570, ibm_hfp32_add 770, decimal32_add 1135, afp_add 421"
+  out_of_scope "place-and-route. nextpnr-xilinx is not installed here, and the changes risk elaboration and synthesis rather than routing"
+  unmoved "zero-sign guard 30 asked / 0 lost / 0 RTL sites; narrowing witness 55 wrong before, 0 after; gf16 decode witness 65,536 codes 0 disagreements; parse guard still its 10 pre-existing failures"
+}
