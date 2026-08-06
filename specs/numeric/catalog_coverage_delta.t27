@@ -7447,3 +7447,17 @@ finding "three citation keys resolve to nothing" {
 
   what_I_could_not_do "check whether the cited competitor FIGURES are represented fairly -- PERI's 3507 LUTs on Artix-7, the takum codec's -38% latency and -50% LUT. That needs the publications, and both WebSearch and WebFetch were unavailable in this session. Recorded as open rather than guessed at, and it is the one part of 'research the competitors' this series has never actually done"
 }
+
+verification "all seven workloads across all seven formats the paper compares" {
+  before "the harnesses covered four formats -- BF16, GF14, GF16, FP16. The paper compares SEVEN: GF16, GF12, posit(16,1), MXFP8 E4M3, BF16, FP16, takum16"
+  now "both harnesses carry all seven, from their own oracles"
+
+  matmul_normwise_median "uniform[-1,1]: posit16 0.03, takum16 0.06, FP16 0.07, GF16 0.12, GF12 0.62, BF16 0.62, MXFP8 8.22. mixed scale: GF16 0.12, posit16 0.21, takum16 0.33, BF16 0.59, and GF12 and MXFP8 both ~99.7 -- a range collapse, not a precision one"
+  suite_median "gradient accum: posit16 0.17, takum16 0.13, GF16 0.27, FP16 0.20, BF16 1.93, GF12 5.33, MXFP8 78.95. softmax: posit16 0.13, FP16 0.15, takum16 0.27, GF16 0.29, BF16 1.34, GF12 48.02, MXFP8 100. convolution: posit16 0.03, takum16 0.04, FP16 0.06, GF16 0.11. polynomial: posit16 0.04, GF16 0.07, takum16 0.08, FP16 0.09. linear solve: posit16 0.09, takum16 0.30, FP16 0.33, GF16 0.65"
+  dynamic_range "values lost of eleven: posit16 0, BF16 0, takum16 0, GF16 1, GF12 3, MXFP8 4, FP16 5"
+
+  the_result "posit16 has LOWER error than GF16 on every one of the six error workloads, and loses fewer dynamic-range values. takum16 beats GF16 on four of six"
+  what_it_does_not_refute "the paper's claim is about the minimum-width IEEE-STYLE format, and posit and takum are tapered rather than IEEE-style, so they sit outside the class by construction. Within the IEEE-style entrants -- GF16, GF12, BF16, FP16, MXFP8 -- GF16 does come out best: BF16 loses no range values but carries higher error everywhere, FP16 loses five, GF12 and MXFP8 collapse"
+  what_it_does_bear_on "the abstract's 'no single format dominates across arithmetic, dynamic-range, and cancellation suites'. On these seven workloads as implemented here, posit16 dominates GF16 on all seven"
+  caveats_stated "no pass/fail threshold is applied, because the paper's are not published; and these are my implementations of the workloads, not the paper's, which are not in the repository"
+}

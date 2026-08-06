@@ -42,13 +42,21 @@ sys.path.insert(0, os.path.join(ROOT, "conformance"))
 import bf16_ref      # noqa: E402
 import gf_ref        # noqa: E402
 import ieee_ref      # noqa: E402
+import mxfp_ref      # noqa: E402
+import posit_ref     # noqa: E402
+import takum_ref     # noqa: E402
 
-# (label, module, format, mantissa bits)
+# The seven formats the paper compares, in its own order. The last column is
+# mantissa bits where the format has a fixed one; posit and takum are tapered, so
+# theirs varies with the exponent and is marked "~".
 FORMATS = [
-    ("BF16", bf16_ref, bf16_ref.FORMATS["bfloat16"], 7),
-    ("GF14", gf_ref, gf_ref.FORMATS["gf14"], 8),
-    ("GF16", gf_ref, gf_ref.FORMATS["gf16"], 9),
-    ("FP16", ieee_ref, ieee_ref.FORMATS["binary16"], 10),
+    ("GF16", gf_ref, gf_ref.FORMATS["gf16"], "9"),
+    ("GF12", gf_ref, gf_ref.FORMATS["gf12"], "7"),
+    ("posit16", posit_ref, posit_ref.FORMATS["posit16"], "~"),
+    ("MXFP8", mxfp_ref, mxfp_ref.FORMATS["mxfp8_e4m3"], "3"),
+    ("BF16", bf16_ref, bf16_ref.FORMATS["bfloat16"], "7"),
+    ("FP16", ieee_ref, ieee_ref.FORMATS["binary16"], "10"),
+    ("takum16", takum_ref, takum_ref.FORMATS["takum16"], "~"),
 ]
 
 DISTRIBUTIONS = {
@@ -136,7 +144,7 @@ def main():
     print()
     header = "%-14s" % "distribution"
     for label, _m, _f, M in FORMATS:
-        header += " %-18s" % ("%s (M=%d)" % (label, M))
+        header += " %-14s" % ("%s(M%s)" % (label, M))
     print(header)
 
     for dname, draw in DISTRIBUTIONS.items():
@@ -153,7 +161,7 @@ def main():
                 e, ov = matmul_error(mod, fmt, A, B, n, k, normwise=NORMWISE)
                 worst.append(e)
                 overflows += ov
-            row += " %7.2f%% /%6.2f%%%s" % (
+            row += " %6.2f/%-6.2f%s" % (
                 100 * max(worst), 100 * statistics.median(worst),
                 ("*%d" % overflows) if overflows else "  ")
         print(row)
