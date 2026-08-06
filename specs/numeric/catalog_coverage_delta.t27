@@ -7339,3 +7339,17 @@ verification "all seven workloads are now runnable, and the mantissa ordering is
   same_confound_as_matmul "convolution's worst case is about 54 percent for BF16, GF14 and GF16 alike -- cancellation in a sum of products near zero, not precision. The same metric problem pass 260 found in matrix multiply"
   what_is_not_claimed "no pass/fail threshold is applied, because the paper's thresholds are not published. So this neither confirms nor refutes 'GF16 passes all seven'; it makes the seven runnable and reports what they give"
 }
+
+correction "the metric was measuring conditioning, not precision -- and fixing it changes the conclusion" {
+  the_problem "passes 260 and 262 divided the error by the exact RESULT. Where a sum of products cancels, that denominator goes to zero and the ratio explodes: matrix multiply gave BF16 184% on uniform[-1,1], and convolution gave about 54% for BF16, GF14 and GF16 ALIKE -- three formats, one number, because the number belonged to the inputs rather than the format"
+  the_fix "divide by the scale of the work, sum|a*b|, instead of the size of the answer. That is the standard normwise-versus-componentwise distinction, and it separates conditioning from precision"
+
+  matmul_normwise "uniform[-1,1] BF16 0.71/0.49, GF14 0.31/0.26, GF16 0.14/0.12, FP16 0.06/0.06. normal(0,1) 1.16/0.52, 0.43/0.27, 0.25/0.14, 0.09/0.06. The 184% and the 68% are gone"
+  convolution_normwise "BF16 0.843/0.537, GF14 0.302/0.235, GF16 0.170/0.117, FP16 0.072/0.056. The 54% was entirely cancellation"
+  now_monotone "every workload is monotone in M except one, and the errors HALVE per mantissa bit -- 0.71, 0.31, 0.14, 0.06 across M=7,8,9,10. That is 2**-M, which is what precision should look like once conditioning is out of the way"
+
+  what_survives_as_real "GF14 still scores 84.85% on mixed-scale matmul under the normwise metric, and that isolates it as a genuine DYNAMIC RANGE failure -- E=5 letting products underflow -- rather than a mantissa one. Linear solve still has GF16 (0.927 worst) beating FP16 (1.101) despite one fewer mantissa bit, for the same reason in reverse: E=6 against E=5"
+
+  and_the_constraint "there is still no threshold at M >= 9, and now the reason is clearer rather than muddier. The error is a smooth 2**-M law. A threshold exists only once someone fixes an error budget, and the paper does not publish one -- so 'M >= 9' is a choice of budget presented as a property of the workload"
+  my_own_error "pass 260 called the metric confound a limitation of the workload. It was a limitation of the metric I chose, and two passes' worth of numbers had to be recomputed to see it"
+}
