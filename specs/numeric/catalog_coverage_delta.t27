@@ -7470,3 +7470,14 @@ resolution "the package is at ten items, and item 10 is the only one that contra
   package_state "ten items. Eighteen claims recomputed: nine reproduce cleanly, one sensitivity note, eight need action -- of which one is a submission defect rather than a claim, and one is already closed by code"
   still_open_and_untried "whether the cited competitor figures are fair -- PERI's 3507 LUTs, the takum codec's -38% and -50%. WebSearch and WebFetch have been unavailable for three consecutive passes, so this stays untried rather than guessed"
 }
+
+verification "every gate run at once, for the first time" {
+  why "forty passes have left 65 audit and witness scripts here, each written to answer one question and then mostly never run again. Twice that cost something: pass 242 left three gfternary packs stale for two passes, caught by accident; pass 250's LUT parser produced a published table of deviations that did not exist, and survived a pass. Both would have been caught by running everything"
+  tool "research/run_all_gates.py"
+
+  result "62 run, and ZERO crashed or errored. 45 ran clean, 11 reported findings by design, 4 need an argument, 2 timed out at 400s"
+  no_regressions "the crash count is the only category that means one, and it is zero"
+
+  the_trap_avoided "my first version flattened every exit code into pass/fail and reported 20 FAILURES out of 62. Most were inventories that exit 1 because they found something -- audit_compute_precision reporting 63 narrow cores, audit_paper_claims reporting the GF64 item -- and four were tools that need a URL or a .tex path. A gate report that is mostly false is the exact failure this series has criticised three times, and it nearly shipped here. The runner now separates crashed, timed out, needs input, has findings, and clean"
+  incidental "audit_paper_claims now says 85 oracle format keys rather than 84 -- pass 266 added e8m0. The count moved because the corpus did, which is what it should do"
+}
