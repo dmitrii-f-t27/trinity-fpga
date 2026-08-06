@@ -7438,3 +7438,12 @@ resolution "item 4 of the package now carries the measurement, not just the abse
   balance_kept "zero complete-chain Tier-E cells carry op SQRT, FMA or ALU, and the package says so. And the trade is stated with both columns -- gf16 sqrt is 334 LUT with 8 DSP or 3,566 LUT with none -- because a corrections document that presents a resource trade as a defect is doing the same thing it is correcting"
   package_state "eight items. Seventeen claims recomputed: nine reproduce cleanly, one sensitivity note, seven need action, one of those now closed by code (E8M0)"
 }
+
+finding "three citation keys resolve to nothing" {
+  what "paper.tex uses 21 distinct \\cite keys; paper.bib defines 18. ufp4, quest and paramgolf2026 are defined NOWHERE in the repository -- not in any .bib, not in any .tex bibitem"
+  load_bearing "none of the three is decorative. ufp4 and quest anchor a NEGATIVE result -- 'Following UFP4 and QuEST, we tested Random Hadamard Transform ... neither technique improves results' -- and a reader cannot check what was followed. paramgolf2026 anchors the claim that an outside competition independently reached the same INT6 conclusion"
+  effect "the built PDF would carry three [?] marks"
+  offline "this needed no network: it is a set difference between two files in the repository"
+
+  what_I_could_not_do "check whether the cited competitor FIGURES are represented fairly -- PERI's 3507 LUTs on Artix-7, the takum codec's -38% latency and -50% LUT. That needs the publications, and both WebSearch and WebFetch were unavailable in this session. Recorded as open rather than guessed at, and it is the one part of 'research the competitors' this series has never actually done"
+}
