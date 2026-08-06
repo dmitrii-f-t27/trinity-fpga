@@ -7323,3 +7323,19 @@ resolution "the corrections package is at seven items, and the seventh is the la
   totals "sixteen claims recomputed. Nine reproduce cleanly, one is a sensitivity note, six need action"
   proposed "commit the seven-workload harness, or state which of the seven are measured and which are argued"
 }
+
+verification "all seven workloads are now runnable, and the mantissa ordering is not clean" {
+  what "research/workload_suite.py implements gradient accumulation, attention softmax, convolution, polynomial evaluation and linear solve. With workload_matmul.py (pass 260) and dynamic_range (already in format_benchmark.py) that is all seven"
+  method "each computation run twice -- once as a reference, once with every intermediate rounded into the format through its own oracle. Exact rational reference everywhere except attention softmax, where exp forces float64: 2**-53 against a 16-bit format's 2**-10, three orders of headroom, stated rather than hidden"
+
+  results "worst trial / median trial, relative error, 6 trials"
+  gradient_accum "BF16 2.678/1.931  GF14 1.975/0.789  GF16 1.152/0.438  FP16 0.741/0.189"
+  attention_softmax "BF16 2.571/1.457  GF14 0.920/0.594  GF16 0.440/0.303  FP16 0.295/0.158"
+  convolution "BF16 53.842/30.521  GF14 53.842/8.082  GF16 51.797/10.625  FP16 13.848/4.781"
+  polynomial "BF16 1.035/0.294  GF14 0.719/0.171  GF16 0.228/0.048  FP16 0.193/0.086"
+  linear_solve "BF16 14.763/1.105  GF14 8.311/0.683  GF16 0.927/0.453  FP16 1.101/0.264"
+
+  the_finding "more mantissa is NOT uniformly better. Convolution's median is WORSE for GF16 (10.625) than for GF14 (8.082). Linear solve's worst case is BETTER for GF16 (0.927) than for FP16 (1.101), despite FP16 having one more mantissa bit -- because GF16 has E=6 against FP16's E=5 and range matters there too"
+  same_confound_as_matmul "convolution's worst case is about 54 percent for BF16, GF14 and GF16 alike -- cancellation in a sum of products near zero, not precision. The same metric problem pass 260 found in matrix multiply"
+  what_is_not_claimed "no pass/fail threshold is applied, because the paper's thresholds are not published. So this neither confirms nor refutes 'GF16 passes all seven'; it makes the seven runnable and reports what they give"
+}
