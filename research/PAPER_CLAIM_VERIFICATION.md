@@ -4,7 +4,7 @@ Passes 231–247 changed goldens, rebuilt every vector pack, corrected oracles a
 edited 4,776 sites of RTL. Passes 248–251 asked the obvious follow-up: do the
 paper's own numbers still describe the corpus they describe?
 
-Nine claims have now been recomputed from the repository. **Eight reproduce.**
+Eleven claims have now been recomputed from the repository. **Nine reproduce.**
 One is a wording error, and one figure is placed inside a promise the evidence
 behind it does not keep.
 
@@ -74,6 +74,44 @@ The abstract and the contributions list say *flushed to zero*. The body says
 Two of the five flush to zero. Three fail at the opposite end of the range. The
 count is correct in both places; only the mechanism is misstated, and only in the
 abstract and contributions list.
+
+---
+
+## arXiv:2606.09686 — the catalog paper
+
+Checked from `research/CATALOG_PAPER_DRAFT.md`.
+
+### Follows from the paper's own numbers
+
+> GF16 preserves **8.7×** more gradient updates than BF16
+
+63.9 / 7.3 = **8.75×**, which rounds to 8.7. With the numbers pass 251 measured
+from the oracles, 63.7 / 7.9 = **8.06×**. Both are true statements about their
+own inputs; the ratio is sensitive to the BF16 denominator, which is the smaller
+and noisier of the two.
+
+### Does not hold
+
+> MUL designs add `-nodsp` (DSP48E1 is used only when explicitly instantiated,
+> **as in GF16 MUL's single-DSP multiplier**)
+
+`fpga/openxc7-synth/gf_mul_dsp_param.v` exists and does instantiate `DSP48E1`.
+**No wrapper instantiates it.** The only two files that reference it are itself
+and a comment in `gf_mul_param.v` saying the DSP mapping lives elsewhere.
+
+`corona_compute_gf16_mul_ax7203.v` instantiates `gf_mul_param` — the LUT-only
+version. That is consistent with `-nodsp` and with the 586/602 LUT measurement,
+and inconsistent with GF16 MUL being the example of explicit DSP instantiation.
+
+### Not checkable this way
+
+> reached through **four parameterized decode templates** (algebraic, table-2^x,
+> transcendental-exp-via-tables, truncated-multiply)
+
+Only two files are named `*_decode_param.v`. That is not evidence against the
+claim: the templates are described by technique, not by filename, and the takum16
+cell is documented as a BRAM LUT rather than a `_param` module. Counting files
+would be measuring a neighbour of the claim rather than the claim.
 
 ---
 
