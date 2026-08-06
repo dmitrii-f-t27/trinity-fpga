@@ -7195,3 +7195,15 @@ retraction "the LUT drift I reported an hour ago was my own parser" {
 
   what_stands "the method reproduces AND the values reproduce. The remark that the container image belongs in the table header is still reasonable practice, but it is no longer supported by evidence of drift, because there is none"
 }
+
+verification "the arithmetic claims, recomputed from the oracles" {
+  why "these need no toolchain at all -- just the format definitions and a random number generator -- so they are the cheapest claims in the paper to check, and had never been checked"
+
+  dynamic_range_body "'FP16 (E=5) loses 5/11 values across 10^-10 to 10^10, while GF16 (E=6) loses only 1/11'. Verified against ieee_ref and gf_ref: FP16 loses exactly 5, GF16 exactly 1. Correct"
+  dynamic_range_abstract "the abstract and the contributions list say '5/11 values FLUSHED TO ZERO'. The count is right and the mechanism is wrong for three of the five: 1e-10 and 1e-8 flush to zero, while 1e6, 1e8 and 1e10 overflow to INFINITY -- the opposite end of the range. The paper contradicts itself between abstract and body, and the body is the correct one"
+
+  noise_floor "'BF16 preserves only 7.3% of gradient updates, GF16 63.9%'. With the paper's own protocol -- 2000 sequential steps from w=0.5, updates from N(1e-4, 1e-3), re-quantised every step -- the oracles give 7.9% and 63.7%, averaged over five seeds. Both reproduce"
+
+  own_error "my first run held the weight fixed at 0.5 and drew independent updates. That gives 17.2% and 71.6%, and it is a different experiment: the walk drifts upward, the ulp grows with the weight, and later updates survive less often than earlier ones. I caught it by reading the method rather than assuming one -- the same lesson as pass 250's UART wrappers, one pass later"
+  tool "research/audit_arithmetic_claims.py"
+}
