@@ -91,7 +91,7 @@ jobs:
             if [ "$TYPE" = "decode" ]; then
               READS="corona_decode_${FMT}_ax7203.v /github/external/tt-trinity-corona/src/rtl/${FMT}_decode.v"
             else
-              READS="gf_adder_param.v gf_mul_param.v ${DESIGN}.v"
+              READS="gf_adder_param.v gf_mul_param.v gf_div_param.v gf_quire_param.v gf_sqrt_param.v ${DESIGN}.v"
             fi
             # Synthesis flags: -abc9 is REQUIRED (Wave 3: removal = 70%→19% regression)
             # -nocarry: carry chains break routing on this part
