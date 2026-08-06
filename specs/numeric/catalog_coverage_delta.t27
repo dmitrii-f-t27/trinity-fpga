@@ -7409,3 +7409,13 @@ correction "the 3,203 compute wrappers are not dead, and my scan could not have 
 
   the_flags_match_the_paper "build-matrix uses -flatten -abc9 -nocarry -arch xc7 and adds -nodsp only when op is mul, which is what the paper states"
 }
+
+finding "36 compute targets could not be dispatched, because the workflow's source list was short" {
+  the_path "pass 268 established that build-matrix.yml is what builds the 3,203 corona_compute_* wrappers, and that it reads exactly three files -- READS=gf_adder_param.v gf_mul_param.v ${DESIGN}.v -- with no -libdir, and adds -nodsp only when the op is mul. That is a different recipe from the one research/audit_yosys_synth.py used, and the difference matters"
+  what_it_found "36 of 3,203 targets instantiate a core the list does not supply: 16 need gf_div_param, 10 need gf_quire_param, 10 need gf_sqrt_param. Every div, quire and sqrt target fails at elaboration with 'Module ... is not part of the design'. Nothing was wrong with the wrappers"
+  verified "bf16_div, gf16_quire and bf16_sqrt all synthesise once the three cores are on the list, under the workflow's own flags"
+  fixed "research/apply_build_matrix_reads.py adds them. Adding unused cores is already the established pattern there -- the list supplies gf_mul_param to ADD targets that do not use it"
+
+  tool "research/audit_build_matrix_path.py, which now reads the core list OUT OF THE WORKFLOW rather than hard-coding it. Hard-coding would let the audit pass while the workflow fails, which is the failure mode this series keeps meeting: pass 244's parse guard could not see what yosys rejects, pass 254's sweep could not see the submodule, pass 268's scan could not see a path built from dispatch inputs"
+  smoke "60 targets: 56 built and 4 failed before, 60 built and 0 failed after"
+}
