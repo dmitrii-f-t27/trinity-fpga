@@ -12,7 +12,13 @@ against the 226 comments of gHashTag/trinity-fpga#199.
 ## Summary
 
 Seventeen quantitative claims have been recomputed. **Nine reproduce cleanly**,
-one is a sensitivity note rather than an error, and **seven need action**.
+one is a sensitivity note rather than an error, and **seven need action** — plus
+one submission defect (item 9) that is not a claim at all.
+
+**Not attempted:** whether the cited competitor figures are represented fairly —
+PERI's 3507 LUTs, the takum codec's −38% latency and −50% LUT. That needs the
+publications themselves, and both web tools were unavailable in the session that
+would have checked them. It stays open rather than being guessed at.
 
 | # | claim | paper | verdict |
 |---|---|---|---|
@@ -24,6 +30,7 @@ one is a sensitivity note rather than an error, and **seven need action**.
 | 6 | 505 / 587 / 580 LUT | 2606.05017, lines 56 and 132 | **traced** — 505 is takum16's, and the 75 does not reproduce |
 | 7 | "seven formats across seven workloads" | 2606.05017, abstract | **not reproducible** — six of the seven workloads exist in no script |
 | 8 | "six conformance packs", including E8M0 | 2606.09686 abstract, and its erratum | **closed** — the E8M0 oracle and packs now exist |
+| 9 | three `\cite` keys resolve to nothing | 2606.05017, §§ on RHT/LSQ and Parameter Golf | **submission defect** — `[?]` in the built PDF |
 
 What reproduces, for context: the 2.4M vector count (2,442,533), 41 decode cells,
 10 GF compute formats, FP16 losing 5 of 11 dynamic-range values, GF16 losing 1,
@@ -299,6 +306,29 @@ of nonsense, which is what a first run actually wrote before it was caught.
 **Still proposed:** amend the erratum's sentence. It said a pack "remains in
 force" when none existed; now one does, but the sentence was not true when
 written.
+
+## 9. Three citations resolve to nothing
+
+`research/arxiv_submission/paper.tex` uses 21 distinct `\cite` keys.
+`research/arxiv_submission/paper.bib` defines 18. Three are defined **nowhere in
+the repository**:
+
+| key | cited at | what it supports |
+|---|---|---|
+| `ufp4` | §Hadamard rotation | prior work whose technique the paper tests |
+| `quest` | §Hadamard rotation | the same |
+| `paramgolf2026` | §Cross-validation | the OpenAI Parameter Golf result used as external corroboration |
+
+All three are load-bearing rather than decorative. The first two anchor a
+**negative result** — *"Following UFP4 and QuEST, we tested Random Hadamard
+Transform … neither technique improves results"* — and a reader cannot check what
+was followed. The third anchors the claim that an outside competition
+independently reached the same INT6 conclusion.
+
+As it stands the built PDF would carry three `[?]` marks.
+
+**Proposed:** add the three entries to `paper.bib`, or drop the sentences that
+depend on them.
 
 ---
 
