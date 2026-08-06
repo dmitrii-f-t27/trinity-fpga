@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
-"""Does each compute wrapper instantiate the format it is named for?
+"""SUPERSEDED by research/audit_compute_precision.py. Read that one.
+
+The finding this script reported -- "instantiates a format other than the one in
+its name" -- was wrong in its most quotable form. corona_compute_binary128_add
+does not contain a binary32 adder wearing a binary128 label: it carries 128-bit
+operands, splits them as binary128 correctly, NARROWS each to fp32, adds, and
+widens back. The name is truthful about the interface. What it does not say is
+the precision.
+
+The parameter-versus-name comparison below is still a useful signal, so it stays;
+its wording was the error, not its arithmetic.
+
+Original docstring follows.
+
+Does each compute wrapper instantiate the format it is named for?
 
 corona_compute_binary128_add_ax7203.v is headed "BINARY128 ADD on AX7203" and
 instantiates
