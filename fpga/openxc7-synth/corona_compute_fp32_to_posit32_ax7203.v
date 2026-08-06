@@ -122,7 +122,7 @@ module corona_compute_fp32_to_posit32_ax7203 (
     always @(posedge mclk or posedge rst) begin
         if(rst) begin result_reg<=0;result_ready<=0; end
         else begin result_ready<=conv_trigger;
-            if(conv_trigger) result_reg<={0'b0,q_result};
+            if(conv_trigger) result_reg<=q_result;
         end
     end
     assign led[2]=|result_reg;
