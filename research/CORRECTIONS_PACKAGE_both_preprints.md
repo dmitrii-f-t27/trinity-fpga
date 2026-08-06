@@ -11,11 +11,12 @@ against the 226 comments of gHashTag/trinity-fpga#199.
 
 ## Summary
 
-Seventeen quantitative claims have been recomputed. **Nine reproduce cleanly**,
-one is a sensitivity note rather than an error, and **seven need action** — plus
-one submission defect (item 9) that is not a claim at all.
+Eighteen quantitative claims have been recomputed. **Nine reproduce cleanly**, one
+is a sensitivity note rather than an error, and **eight need action** — one of
+those (item 9) is a submission defect rather than a claim, and one (item 8) is
+already closed by code in this repository.
 
-**Not attempted:** whether the cited competitor figures are represented fairly —
+**Still not attempted:** whether the cited competitor figures are represented fairly —
 PERI's 3507 LUTs, the takum codec's −38% latency and −50% LUT. That needs the
 publications themselves, and both web tools were unavailable in the session that
 would have checked them. It stays open rather than being guessed at.
@@ -31,6 +32,7 @@ would have checked them. It stays open rather than being guessed at.
 | 7 | "seven formats across seven workloads" | 2606.05017, abstract | **not reproducible** — six of the seven workloads exist in no script |
 | 8 | "six conformance packs", including E8M0 | 2606.09686 abstract, and its erratum | **closed** — the E8M0 oracle and packs now exist |
 | 9 | three `\cite` keys resolve to nothing | 2606.05017, §§ on RHT/LSQ and Parameter Golf | **submission defect** — `[?]` in the built PDF |
+| 10 | "no single format dominates" | 2606.05017 + 2606.09686, abstracts | **contradicted** — posit16 dominates GF16 on all seven |
 
 What reproduces, for context: the 2.4M vector count (2,442,533), 41 decode cells,
 10 GF compute formats, FP16 losing 5 of 11 dynamic-range values, GF16 losing 1,
@@ -329,6 +331,47 @@ As it stands the built PDF would carry three `[?]` marks.
 
 **Proposed:** add the three entries to `paper.bib`, or drop the sentences that
 depend on them.
+
+## 10. "No single format dominates" — posit16 does, on all seven
+
+Both abstracts say a head-to-head comparison *"shows that no single format
+dominates across arithmetic, dynamic-range, and cancellation suites"*.
+
+With all seven of the paper's own formats run through all seven of its own named
+workloads — median relative error, normwise where the workload is a sum of
+products:
+
+| workload | GF16 | GF12 | **posit16** | MXFP8 | BF16 | FP16 | takum16 |
+|---|---|---|---|---|---|---|---|
+| matmul u[-1,1] | 0.12 | 0.62 | **0.03** | 8.22 | 0.62 | 0.07 | 0.06 |
+| matmul mixed | **0.12** | 99.67 | 0.21 | 99.71 | 0.59 | 0.07 | 0.33 |
+| gradient accum | 0.27 | 5.33 | 0.17 | 78.95 | 1.93 | 0.20 | **0.13** |
+| attention softmax | 0.29 | 48.02 | **0.13** | 100.00 | 1.34 | 0.15 | 0.27 |
+| convolution | 0.11 | 0.53 | **0.03** | 8.26 | 0.53 | 0.06 | 0.04 |
+| polynomial | 0.07 | 0.20 | **0.04** | 1.18 | 0.20 | 0.09 | 0.08 |
+| linear solve | 0.65 | 1.18 | **0.09** | 17.86 | 1.18 | 0.33 | 0.30 |
+| dynamic range, lost of 11 | 1 | 3 | **0** | 4 | **0** | 5 | **0** |
+
+**posit16 has lower error than GF16 on all six error workloads and loses fewer
+dynamic-range values.** takum16 beats GF16 on four of six.
+
+### What this does not touch
+
+The paper's *other* claim — that GF16 is the minimum-width **IEEE-style** format
+passing all seven — survives, and its own wording is why. posit and takum are
+tapered, outside that class by construction. Among the IEEE-style entrants GF16
+does come out best: BF16 loses no range values but carries higher error
+everywhere, FP16 loses five, GF12 and MXFP8 collapse.
+
+So the correction is narrow: the dominance sentence is contradicted, the
+minimum-width sentence is not.
+
+**Caveats:** no pass/fail threshold is applied, because the paper's are not
+published; and these are reimplementations of the workloads, since the paper's
+harness is not in the repository (item 7).
+
+**Proposed:** replace "no single format dominates" with a statement scoped to the
+IEEE-style family, which is what the surrounding argument is actually about.
 
 ---
 
