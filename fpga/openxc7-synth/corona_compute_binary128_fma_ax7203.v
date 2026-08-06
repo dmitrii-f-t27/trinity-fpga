@@ -153,7 +153,7 @@ module corona_compute_binary128_fma_ax7203 (
     wire [22:0] b128_mant32_c = b128_mant_c[111:89];
     reg [31:0] fp32_c;
     always @(*) begin
-        if(b128_zero_c) fp32_c=32'h00000000;
+        if(b128_zero_c) fp32_c={b128_sign_c, 31'b0};
         else if(b128_nan_c) fp32_c=32'h7FC00000;
         else if(b128_inf_c) fp32_c={b128_sign_c, 8'hFF, 23'b0};
         else fp32_c={b128_sign_c, b128_exp32_c, b128_mant32_c};

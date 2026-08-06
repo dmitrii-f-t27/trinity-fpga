@@ -59,7 +59,7 @@ module corona_compute_afp_to_fp32_ax7203 (
     wire [22:0] afp_m32_a = afp_sub_a ? {afp_mant_a,16'b0} : {afp_mant_a,16'b0};
     reg [31:0] fp32_a;
     always @(*) begin
-        if(afp_zero_a) fp32_a=32'h0;
+        if(afp_zero_a) fp32_a={afp_sign_a, 31'b0};
         else if(afp_nan_a) fp32_a=32'h7FC00000;
         else if(afp_inf_a) fp32_a={afp_sign_a,8'hFF,23'b0};
         else fp32_a={afp_sign_a,afp_e32_a,afp_m32_a};

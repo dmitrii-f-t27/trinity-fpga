@@ -160,7 +160,7 @@ module corona_compute_int128_add_ax7203 (
     end
     reg [31:0] fp32_a;
     always @(*) begin
-        if(i128_zero_a) fp32_a=32'h00000000;
+        if(i128_zero_a) fp32_a={i128_sign_a, 31'b0};
         else fp32_a={i128_sign_a, i128_exp32_a, i128_mant32_a};
     end
     wire i128_sign_b = fmt_b[127];
@@ -245,7 +245,7 @@ module corona_compute_int128_add_ax7203 (
     end
     reg [31:0] fp32_b;
     always @(*) begin
-        if(i128_zero_b) fp32_b=32'h00000000;
+        if(i128_zero_b) fp32_b={i128_sign_b, 31'b0};
         else fp32_b={i128_sign_b, i128_exp32_b, i128_mant32_b};
     end
     wire comp_irdy, comp_ovld; wire [31:0] comp_result;

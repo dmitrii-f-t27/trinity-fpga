@@ -57,7 +57,7 @@ module corona_compute_pdp11_float_mul_ax7203 (
     wire pdp_inf_a = (pdp_exp_a==8'hFF)&&(pdp_mant_a==0);
     reg [31:0] fp32_a;
     always @(*) begin
-        if(pdp_zero_a) fp32_a=32'h0;
+        if(pdp_zero_a) fp32_a={pdp_sign_a, 31'b0};
         else if(pdp_nan_a) fp32_a=32'h7FC00000;
         else if(pdp_inf_a) fp32_a={pdp_sign_a,8'hFF,23'b0};
         else if(pdp_exp_a<=8'd1) fp32_a={pdp_sign_a,31'b0};
@@ -72,7 +72,7 @@ module corona_compute_pdp11_float_mul_ax7203 (
     wire pdp_inf_b = (pdp_exp_b==8'hFF)&&(pdp_mant_b==0);
     reg [31:0] fp32_b;
     always @(*) begin
-        if(pdp_zero_b) fp32_b=32'h0;
+        if(pdp_zero_b) fp32_b={pdp_sign_b, 31'b0};
         else if(pdp_nan_b) fp32_b=32'h7FC00000;
         else if(pdp_inf_b) fp32_b={pdp_sign_b,8'hFF,23'b0};
         else if(pdp_exp_b<=8'd1) fp32_b={pdp_sign_b,31'b0};

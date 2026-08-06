@@ -56,7 +56,7 @@ module corona_compute_mxfp4_to_fp32_ax7203 (
     wire [22:0] m4_mant32_a = {m4_mant_a, 22'b0};
     reg [31:0] fp32_a;
     always @(*) begin
-        if(m4_zero_a) fp32_a=32'h00000000;
+        if(m4_zero_a) fp32_a={m4_sign_a, 31'b0};
         else fp32_a={m4_sign_a, m4_exp32_a, m4_mant32_a};
     end
     always @(posedge mclk or posedge rst) begin

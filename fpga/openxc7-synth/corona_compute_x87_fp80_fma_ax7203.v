@@ -135,7 +135,7 @@ module corona_compute_x87_fp80_fma_ax7203 (
     wire [22:0] x80_mant32_c = x80_mant_c[62:40];
     reg [31:0] fp32_c;
     always @(*) begin
-        if(x80_zero_c) fp32_c=32'h00000000;
+        if(x80_zero_c) fp32_c={x80_sign_c, 31'b0};
         else if(x80_nan_c) fp32_c=32'h7FC00000;
         else if(x80_inf_c) fp32_c={x80_sign_c, 8'hFF, 23'b0};
         else fp32_c={x80_sign_c, x80_exp32_c, x80_mant32_c};

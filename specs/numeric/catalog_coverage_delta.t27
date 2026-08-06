@@ -7051,3 +7051,18 @@ correction "the narrowing wrapped where it had to saturate -- 36 wrappers, 66 bl
   own_over_strictness "my first model demanded a negative NaN for a negative operand. IEEE 754 mandates no NaN sign or payload, so the model now compares NaN by class -- and the sign of ZERO exactly, which is what found the second defect"
   unchanged "the parse guard still reports the same 10 pre-existing failures; gf16's decode witness is still 65,536 codes and 0 disagreements"
 }
+
+resolution "the zero-sign class now has a check, and the class was far wider than four instances" {
+  history "found four times, four unrelated places, each by a different accident: VAX at its reserved operand (188), takum/tekum/mxint8 at NaR and reserved codes (231), the decimal hosts on non-canonical codes (236), the compute wrappers' narrowing (241). Four times is a missing check, not coincidence"
+  ground_truth "the oracles already hold it. Pass 231 made neg_zero raise for formats that have none, so the corpus knows which 69 have a negative zero and which 36 do not"
+  tool "research/audit_zero_sign.py -- host goldens asked for their own format's negative-zero code must set bit 31, plus an RTL lint for the shape that produced the 241 defect"
+
+  fifth_instance "gfternary_ref declared neg_zero = 0x0 with the comment 'ternary has single zero code'. pos_zero is also 0x0 -- the comment was right and the code contradicted it, declaring two zeros at ONE code. Now raises"
+  scale_in_rtl "the 241 fix matched two block shapes and reached 66 sites. The guard found 4,766 more, across 2,393 files -- every `if(X_zero_a) fp32_a=32'h0;` with a same-operand sign wire in scope. All now carry {X_sign_a, 31'b0}"
+
+  found_on_the_way "corona_compute_decimal32_*.v pack their result as {1'b0, q_d32_exp, q_mant} -- sign hardcoded to zero for EVERY value, not just zero. BID bit 31 is the sign, so every negative decimal32 result came back positive. Five files fixed"
+  not_touched "35 more files pack {1'b0, ...} for posit, int128 and mxint8. Those are two's complement -- the sign lives in the magnitude bits, so a leading zero there is not a dropped sign, and deciding needs per-format reasoning rather than a regex"
+  respected "double_double and quad_double stay reported-not-failed: pass 236 settled them as a convention question, and re-litigating a settled call in a new guard would be the guard lying"
+
+  end_state "30 goldens asked, 0 lost the sign. RTL lint 4,874 -> 103, all of them the result-packing side. Parse guard unchanged at its 10 pre-existing failures. narrowing witness still 55 wrong before / 0 after; header-vs-vectors CLEAN; host-vs-oracle 0 disagreements"
+}

@@ -87,7 +87,7 @@ module corona_compute_ibm_hfp32_to_fp32_ax7203 (
     wire [9:0] ibm_fp32_exp_a = ibm_exp2_a + 10'd127;
     reg [31:0] fp32_a;
     always @(*) begin
-        if(ibm_zero_a) fp32_a=32'h0;
+        if(ibm_zero_a) fp32_a={ibm_sign_a, 31'b0};
         else if(ibm_fp32_exp_a[9]||ibm_fp32_exp_a>=10'd255) fp32_a={ibm_sign_a,8'hFE,23'h7FFFFF};
         else fp32_a={ibm_sign_a,ibm_fp32_exp_a[7:0],ibm_norm_a[22:0]};
     end

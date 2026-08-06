@@ -62,7 +62,7 @@ module corona_compute_gf_lns_hybrid_cmp_ax7203 (
     wire [22:0] gl_mant32_a = {gl_mant_a, 14'b0};
     reg [31:0] fp32_a;
     always @(*) begin
-        if(gl_zero_a) fp32_a=32'h00000000;
+        if(gl_zero_a) fp32_a={gl_sign_a, 31'b0};
         else if(gl_nan_a) fp32_a=32'h7FC00000;
         else if(gl_inf_a) fp32_a={gl_sign_a, 8'hFF, 23'b0};
         else fp32_a={gl_sign_a, gl_exp32_a, gl_mant32_a};
@@ -78,7 +78,7 @@ module corona_compute_gf_lns_hybrid_cmp_ax7203 (
     wire [22:0] gl_mant32_b = {gl_mant_b, 14'b0};
     reg [31:0] fp32_b;
     always @(*) begin
-        if(gl_zero_b) fp32_b=32'h00000000;
+        if(gl_zero_b) fp32_b={gl_sign_b, 31'b0};
         else if(gl_nan_b) fp32_b=32'h7FC00000;
         else if(gl_inf_b) fp32_b={gl_sign_b, 8'hFF, 23'b0};
         else fp32_b={gl_sign_b, gl_exp32_b, gl_mant32_b};

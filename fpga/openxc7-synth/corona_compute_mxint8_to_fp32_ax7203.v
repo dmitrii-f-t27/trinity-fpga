@@ -79,7 +79,7 @@ module corona_compute_mxint8_to_fp32_ax7203 (
     end
     reg [31:0] fp32_a;
     always @(*) begin
-        if(mx_zero_a) fp32_a=32'h00000000;
+        if(mx_zero_a) fp32_a={mx_sign_a, 31'b0};
         else if(mx_res_a) fp32_a=32'h7FC00000;
         else fp32_a={mx_sign_a,mx_exp_a,mx_mant_a};
     end

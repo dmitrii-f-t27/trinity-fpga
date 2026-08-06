@@ -56,7 +56,7 @@ module corona_compute_ms_mbf32_fma_ax7203 (
     wire mbf_zero_a = (mbf_val_a==32'h0);
     reg [31:0] fp32_a;
     always @(*) begin
-        if(mbf_zero_a) fp32_a=32'h0;
+        if(mbf_zero_a) fp32_a={mbf_sign_a, 31'b0};
         else if(mbf_exp_a<=8'd2) fp32_a={mbf_sign_a,31'b0};
         else fp32_a={mbf_sign_a,mbf_exp_a-8'd2,mbf_mant_a};
     end
@@ -67,7 +67,7 @@ module corona_compute_ms_mbf32_fma_ax7203 (
     wire mbf_zero_b = (mbf_val_b==32'h0);
     reg [31:0] fp32_b;
     always @(*) begin
-        if(mbf_zero_b) fp32_b=32'h0;
+        if(mbf_zero_b) fp32_b={mbf_sign_b, 31'b0};
         else if(mbf_exp_b<=8'd2) fp32_b={mbf_sign_b,31'b0};
         else fp32_b={mbf_sign_b,mbf_exp_b-8'd2,mbf_mant_b};
     end
@@ -78,7 +78,7 @@ module corona_compute_ms_mbf32_fma_ax7203 (
     wire mbf_zero_c = (mbf_val_c==32'h0);
     reg [31:0] fp32_c;
     always @(*) begin
-        if(mbf_zero_c) fp32_c=32'h0;
+        if(mbf_zero_c) fp32_c={mbf_sign_c, 31'b0};
         else if(mbf_exp_c<=8'd2) fp32_c={mbf_sign_c,31'b0};
         else fp32_c={mbf_sign_c,mbf_exp_c-8'd2,mbf_mant_c};
     end

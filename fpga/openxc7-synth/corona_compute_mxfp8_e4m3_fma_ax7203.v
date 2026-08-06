@@ -58,7 +58,7 @@ module corona_compute_mxfp8_e4m3_fma_ax7203 (
     wire [22:0] m8_mant32_a = {m8_mant_a, 20'b0};
     reg [31:0] fp32_a;
     always @(*) begin
-        if(m8_zero_a) fp32_a=32'h00000000;
+        if(m8_zero_a) fp32_a={m8_sign_a, 31'b0};
         else fp32_a={m8_sign_a, m8_exp32_a, m8_mant32_a};
     end
     wire m8_sign_b = fmt_b[7];
@@ -70,7 +70,7 @@ module corona_compute_mxfp8_e4m3_fma_ax7203 (
     wire [22:0] m8_mant32_b = {m8_mant_b, 20'b0};
     reg [31:0] fp32_b;
     always @(*) begin
-        if(m8_zero_b) fp32_b=32'h00000000;
+        if(m8_zero_b) fp32_b={m8_sign_b, 31'b0};
         else fp32_b={m8_sign_b, m8_exp32_b, m8_mant32_b};
     end
     wire m8_sign_c = fmt_c[7];
@@ -82,7 +82,7 @@ module corona_compute_mxfp8_e4m3_fma_ax7203 (
     wire [22:0] m8_mant32_c = {m8_mant_c, 20'b0};
     reg [31:0] fp32_c;
     always @(*) begin
-        if(m8_zero_c) fp32_c=32'h00000000;
+        if(m8_zero_c) fp32_c={m8_sign_c, 31'b0};
         else fp32_c={m8_sign_c, m8_exp32_c, m8_mant32_c};
     end
     wire mul_irdy,mul_ovld; wire [31:0] mul_result;

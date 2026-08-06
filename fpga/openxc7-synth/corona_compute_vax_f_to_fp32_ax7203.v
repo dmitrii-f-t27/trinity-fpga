@@ -54,7 +54,7 @@ module corona_compute_vax_f_to_fp32_ax7203 (
     wire vax_zero_a = (vax_val_a==32'h0);
     reg [31:0] fp32_a;
     always @(*) begin
-        if(vax_zero_a) fp32_a=32'h0;
+        if(vax_zero_a) fp32_a={vax_sign_a, 31'b0};
         else if(vax_exp_a<=8'd1) fp32_a={vax_sign_a,31'b0};
         else fp32_a={vax_sign_a,vax_exp_a-8'd1,vax_mant_a};
     end

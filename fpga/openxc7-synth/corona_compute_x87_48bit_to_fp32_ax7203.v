@@ -60,7 +60,7 @@ module corona_compute_x87_48bit_to_fp32_ax7203 (
     wire [22:0] x87_mant32_a = x87_mant_a[38:16];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(x87_zero_a) fp32_a=32'h00000000;
+        if(x87_zero_a) fp32_a={x87_sign_a, 31'b0};
         else fp32_a={x87_sign_a, x87_exp32_a, x87_mant32_a};
     end
     always @(posedge mclk or posedge rst) begin

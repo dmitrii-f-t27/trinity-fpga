@@ -83,7 +83,7 @@ module corona_compute_ibm_hfp64_add_ax7203 (
     wire [22:0] ib_mant32_a = ib_shifted_a[54:32];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(ib_zero_a) fp32_a=32'h00000000;
+        if(ib_zero_a) fp32_a={ib_sign_a, 31'b0};
         else fp32_a={ib_sign_a, ib_exp32_a, ib_mant32_a};
     end
     wire ib_sign_b = fmt_b[63];
@@ -107,7 +107,7 @@ module corona_compute_ibm_hfp64_add_ax7203 (
     wire [22:0] ib_mant32_b = ib_shifted_b[54:32];
     reg [31:0] fp32_b;
     always @(*) begin
-        if(ib_zero_b) fp32_b=32'h00000000;
+        if(ib_zero_b) fp32_b={ib_sign_b, 31'b0};
         else fp32_b={ib_sign_b, ib_exp32_b, ib_mant32_b};
     end
     wire comp_irdy, comp_ovld; wire [31:0] comp_result;
