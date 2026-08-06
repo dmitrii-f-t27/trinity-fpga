@@ -119,7 +119,7 @@ module corona_compute_vax_g_fma_ax7203 (
     wire [22:0] vg_mant32_c = vg_mant_c[51:29];
     reg [31:0] fp32_c;
     always @(*) begin
-        if(vg_zero_c) fp32_c=32'h00000000;
+        if(vg_zero_c) fp32_c={vg_sign_c, 31'b0};
         else fp32_c={vg_sign_c, vg_exp32_c, vg_mant32_c};
     end
     wire mul_irdy,mul_ovld; wire [31:0] mul_result;

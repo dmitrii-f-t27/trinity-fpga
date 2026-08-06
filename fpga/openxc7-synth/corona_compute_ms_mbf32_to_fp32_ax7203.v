@@ -54,7 +54,7 @@ module corona_compute_ms_mbf32_to_fp32_ax7203 (
     wire mbf_zero_a = (mbf_val_a==32'h0);
     reg [31:0] fp32_a;
     always @(*) begin
-        if(mbf_zero_a) fp32_a=32'h0;
+        if(mbf_zero_a) fp32_a={mbf_sign_a, 31'b0};
         else if(mbf_exp_a<=8'd2) fp32_a={mbf_sign_a,31'b0};
         else fp32_a={mbf_sign_a,mbf_exp_a-8'd2,mbf_mant_a};
     end

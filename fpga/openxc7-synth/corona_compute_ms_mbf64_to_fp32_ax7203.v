@@ -62,7 +62,7 @@ module corona_compute_ms_mbf64_to_fp32_ax7203 (
     wire [22:0] mb_mant32_a = mb_mant_a[54:32];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(mb_zero_a) fp32_a=32'h00000000;
+        if(mb_zero_a) fp32_a={mb_sign_a, 31'b0};
         else fp32_a={mb_sign_a, mb_exp32_a, mb_mant32_a};
     end
     always @(posedge mclk or posedge rst) begin

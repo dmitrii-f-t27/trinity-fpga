@@ -243,7 +243,7 @@ module corona_compute_posit128_fma_ax7203 (
     wire [9:0] pos_fp32_exp_a = {1'b0,8'd127} + {{1{pos_exp2_a[9]}},pos_exp2_a[8:0]};
     reg [31:0] fp32_a;
     always @(*) begin
-        if(pos_zero_a) fp32_a=32'h00000000;
+        if(pos_zero_a) fp32_a={pos_sign_a, 31'b0};
         else if(pos_nar_a) fp32_a=32'h7FC00000;
         else fp32_a={pos_sign_a,pos_fp32_exp_a[7:0],pos_frac_a[122:100]};
     end
@@ -396,7 +396,7 @@ module corona_compute_posit128_fma_ax7203 (
     wire [9:0] pos_fp32_exp_b = {1'b0,8'd127} + {{1{pos_exp2_b[9]}},pos_exp2_b[8:0]};
     reg [31:0] fp32_b;
     always @(*) begin
-        if(pos_zero_b) fp32_b=32'h00000000;
+        if(pos_zero_b) fp32_b={pos_sign_b, 31'b0};
         else if(pos_nar_b) fp32_b=32'h7FC00000;
         else fp32_b={pos_sign_b,pos_fp32_exp_b[7:0],pos_frac_b[122:100]};
     end
@@ -549,7 +549,7 @@ module corona_compute_posit128_fma_ax7203 (
     wire [9:0] pos_fp32_exp_c = {1'b0,8'd127} + {{1{pos_exp2_c[9]}},pos_exp2_c[8:0]};
     reg [31:0] fp32_c;
     always @(*) begin
-        if(pos_zero_c) fp32_c=32'h00000000;
+        if(pos_zero_c) fp32_c={pos_sign_c, 31'b0};
         else if(pos_nar_c) fp32_c=32'h7FC00000;
         else fp32_c={pos_sign_c,pos_fp32_exp_c[7:0],pos_frac_c[122:100]};
     end

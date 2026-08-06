@@ -83,7 +83,7 @@ module corona_compute_ibm_hfp128_to_fp32_ax7203 (
     wire [22:0] ih_mant32_a = ih_shifted_a[118:96];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(ih_zero_a) fp32_a=32'h00000000;
+        if(ih_zero_a) fp32_a={ih_sign_a, 31'b0};
         else fp32_a={ih_sign_a, ih_exp32_a, ih_mant32_a};
     end
     always @(posedge mclk or posedge rst) begin

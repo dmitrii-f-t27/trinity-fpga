@@ -71,7 +71,7 @@ module corona_compute_lns8_mul_ax7203 (
     wire [22:0] lns_fp32_mant_a = (frac_lut_a - 9'd256) << 14;
     reg [31:0] fp32_a;
     always @(*) begin
-        if(lns_zero_a) fp32_a=32'h00000000;
+        if(lns_zero_a) fp32_a={lns_sign_a, 31'b0};
         else fp32_a={lns_sign_a,lns_fp32_exp_a,lns_fp32_mant_a[22:0]};
     end
     wire [7:0] lns_val_b = fmt_b;
@@ -97,7 +97,7 @@ module corona_compute_lns8_mul_ax7203 (
     wire [22:0] lns_fp32_mant_b = (frac_lut_b - 9'd256) << 14;
     reg [31:0] fp32_b;
     always @(*) begin
-        if(lns_zero_b) fp32_b=32'h00000000;
+        if(lns_zero_b) fp32_b={lns_sign_b, 31'b0};
         else fp32_b={lns_sign_b,lns_fp32_exp_b,lns_fp32_mant_b[22:0]};
     end
     wire comp_irdy, comp_ovld; wire [31:0] comp_result;

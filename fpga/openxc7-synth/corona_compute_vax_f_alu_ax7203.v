@@ -56,7 +56,7 @@ module corona_compute_vax_f_alu_ax7203 (
     wire vax_zero_a = (vax_val_a==32'h0);
     reg [31:0] fp32_a;
     always @(*) begin
-        if(vax_zero_a) fp32_a=32'h0;
+        if(vax_zero_a) fp32_a={vax_sign_a, 31'b0};
         else if(vax_exp_a<=8'd1) fp32_a={vax_sign_a,31'b0};
         else fp32_a={vax_sign_a,vax_exp_a-8'd1,vax_mant_a};
     end
@@ -67,7 +67,7 @@ module corona_compute_vax_f_alu_ax7203 (
     wire vax_zero_b = (vax_val_b==32'h0);
     reg [31:0] fp32_b;
     always @(*) begin
-        if(vax_zero_b) fp32_b=32'h0;
+        if(vax_zero_b) fp32_b={vax_sign_b, 31'b0};
         else if(vax_exp_b<=8'd1) fp32_b={vax_sign_b,31'b0};
         else fp32_b={vax_sign_b,vax_exp_b-8'd1,vax_mant_b};
     end

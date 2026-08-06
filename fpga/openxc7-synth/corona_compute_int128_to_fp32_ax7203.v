@@ -144,7 +144,7 @@ module corona_compute_int128_to_fp32_ax7203 (
     end
     reg [31:0] fp32_a;
     always @(*) begin
-        if(i128_zero_a) fp32_a=32'h00000000;
+        if(i128_zero_a) fp32_a={i128_sign_a, 31'b0};
         else fp32_a={i128_sign_a, i128_exp32_a, i128_mant32_a};
     end
     always @(posedge mclk or posedge rst) begin

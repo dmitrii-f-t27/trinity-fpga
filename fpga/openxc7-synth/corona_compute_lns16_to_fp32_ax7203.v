@@ -127,7 +127,7 @@ module corona_compute_lns16_to_fp32_ax7203 (
     wire [8:0] lns_exp32_a = {1'b0, {1'b0,lns_int_a[6:0]}} + 9'd127;
     reg [31:0] fp32_a;
     always @(*) begin
-        if(lns_zero_a) fp32_a=32'h00000000;
+        if(lns_zero_a) fp32_a={lns_sign_a, 31'b0};
         else fp32_a={lns_sign_a,lns_exp32_a[7:0],lns_fm_a};
     end
     always @(posedge mclk or posedge rst) begin

@@ -56,8 +56,8 @@ module corona_compute_fp32_to_decimal32_ax7203 (
     reg [31:0] q_result;
     always @(*) begin
         if(q_nan) q_result=32'h0;
-        else if(q_zero) q_result=32'h0;
-        else q_result={1'b0, q_d32_exp, q_mant};
+        else if(q_zero) q_result={q_sign, 31'b0};
+        else q_result={q_sign, q_d32_exp, q_mant};
     end
     always @(posedge mclk or posedge rst) begin
         if(rst) begin a_reg<=0;conv_trigger<=0; end

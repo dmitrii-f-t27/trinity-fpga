@@ -58,7 +58,7 @@ module corona_compute_gf8_bfp_to_fp32_ax7203 (
     wire [22:0] gf_mant32_a = {gf_mant_a, 19'b0};
     reg [31:0] fp32_a;
     always @(*) begin
-        if(gf_zero_a) fp32_a=32'h00000000;
+        if(gf_zero_a) fp32_a={gf_sign_a, 31'b0};
         else if(gf_nan_a) fp32_a=32'h7FC00000;
         else if(gf_inf_a) fp32_a={gf_sign_a, 8'hFF, 23'b0};
         else fp32_a={gf_sign_a, gf_exp32_a, gf_mant32_a};

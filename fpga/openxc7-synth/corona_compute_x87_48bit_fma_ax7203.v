@@ -72,7 +72,7 @@ module corona_compute_x87_48bit_fma_ax7203 (
     wire [22:0] x87_mant32_a = x87_mant_a[38:16];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(x87_zero_a) fp32_a=32'h00000000;
+        if(x87_zero_a) fp32_a={x87_sign_a, 31'b0};
         else fp32_a={x87_sign_a, x87_exp32_a, x87_mant32_a};
     end
     wire x87_sign_b = fmt_b[47];
@@ -83,7 +83,7 @@ module corona_compute_x87_48bit_fma_ax7203 (
     wire [22:0] x87_mant32_b = x87_mant_b[38:16];
     reg [31:0] fp32_b;
     always @(*) begin
-        if(x87_zero_b) fp32_b=32'h00000000;
+        if(x87_zero_b) fp32_b={x87_sign_b, 31'b0};
         else fp32_b={x87_sign_b, x87_exp32_b, x87_mant32_b};
     end
     wire x87_sign_c = fmt_c[47];
@@ -94,7 +94,7 @@ module corona_compute_x87_48bit_fma_ax7203 (
     wire [22:0] x87_mant32_c = x87_mant_c[38:16];
     reg [31:0] fp32_c;
     always @(*) begin
-        if(x87_zero_c) fp32_c=32'h00000000;
+        if(x87_zero_c) fp32_c={x87_sign_c, 31'b0};
         else fp32_c={x87_sign_c, x87_exp32_c, x87_mant32_c};
     end
     wire mul_irdy,mul_ovld; wire [31:0] mul_result;

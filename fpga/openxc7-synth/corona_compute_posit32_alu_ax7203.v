@@ -98,7 +98,7 @@ module corona_compute_posit32_alu_ax7203 (
     wire [9:0] pos_fp32_exp_a = {1'b0,8'd127} + {{1{pos_exp2_a[7]}},pos_exp2_a};
     reg [31:0] fp32_a;
     always @(*) begin
-        if(pos_zero_a) fp32_a=32'h00000000;
+        if(pos_zero_a) fp32_a={pos_sign_a, 31'b0};
         else if(pos_nar_a) fp32_a=32'h7FC00000;
         else fp32_a={pos_sign_a,pos_fp32_exp_a[7:0],pos_frac_a[28:6]};
     end
@@ -151,7 +151,7 @@ module corona_compute_posit32_alu_ax7203 (
     wire [9:0] pos_fp32_exp_b = {1'b0,8'd127} + {{1{pos_exp2_b[7]}},pos_exp2_b};
     reg [31:0] fp32_b;
     always @(*) begin
-        if(pos_zero_b) fp32_b=32'h00000000;
+        if(pos_zero_b) fp32_b={pos_sign_b, 31'b0};
         else if(pos_nar_b) fp32_b=32'h7FC00000;
         else fp32_b={pos_sign_b,pos_fp32_exp_b[7:0],pos_frac_b[28:6]};
     end

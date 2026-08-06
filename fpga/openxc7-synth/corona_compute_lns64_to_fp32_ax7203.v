@@ -133,7 +133,7 @@ module corona_compute_lns64_to_fp32_ax7203 (
     wire [9:0] l64_exp32_a = {1'b0, {1'b0, l64_int_a[6:0]}} + 10'd127;
     reg [31:0] fp32_a;
     always @(*) begin
-        if(l64_zero_a) fp32_a=32'h00000000;
+        if(l64_zero_a) fp32_a={l64_sign_a, 31'b0};
         else fp32_a={l64_sign_a, l64_exp32_a[7:0], l64_fm_a};
     end
     always @(posedge mclk or posedge rst) begin

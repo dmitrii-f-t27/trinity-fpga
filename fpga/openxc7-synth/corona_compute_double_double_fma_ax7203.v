@@ -153,7 +153,7 @@ module corona_compute_double_double_fma_ax7203 (
     wire [22:0] dd_mant32_c = dd_mant_c[51:29];
     reg [31:0] fp32_c;
     always @(*) begin
-        if(dd_zero_c) fp32_c=32'h00000000;
+        if(dd_zero_c) fp32_c={dd_sign_c, 31'b0};
         else if(dd_nan_c) fp32_c=32'h7FC00000;
         else if(dd_inf_c) fp32_c={dd_sign_c, 8'hFF, 23'b0};
         else fp32_c={dd_sign_c, dd_exp32_c, dd_mant32_c};
