@@ -217,7 +217,7 @@ module corona_compute_ibm_hfp32_fma_ax7203 (
     reg [31:0] q_result;
     always @(*) begin
         if(q_nan) q_result=32'h7FC00000;
-        else if(q_zero) q_result=32'h0;
+        else if(q_zero) q_result={q_sign, 31'b0};
         else q_result={q_sign,q_ibm_exp[6:0],q_ibm_frac};
     end
     reg [31:0] result_reg; reg result_ready;

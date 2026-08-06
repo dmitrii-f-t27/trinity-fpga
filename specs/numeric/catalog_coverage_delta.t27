@@ -7066,3 +7066,14 @@ resolution "the zero-sign class now has a check, and the class was far wider tha
 
   end_state "30 goldens asked, 0 lost the sign. RTL lint 4,874 -> 103, all of them the result-packing side. Parse guard unchanged at its 10 pre-existing failures. narrowing witness still 55 wrong before / 0 after; header-vs-vectors CLEAN; host-vs-oracle 0 disagreements"
 }
+
+resolution "the zero-sign class is closed for every format the oracles know" {
+  what_was_left "pass 242 closed 4,766 operand-narrowing sites and left 103 on the result-packing side, saying they needed per-format reasoning rather than a regex. They did -- and the reasoning was already in the corpus"
+  the_split "of the 30 files, 20 sites are formats with ONE zero -- posit, the integer formats, lns, mxint8 -- where a bare zero is the CORRECT answer and there is no sign to carry. 10 are ibm_hfp32 and ms_mbf32, which both declare neg_zero = 0x80000000, exactly {sign, 31'b0}"
+  fixed "those 10. Their non-zero packing already carried the sign -- {q_sign, q_ibm_exp[6:0], q_ibm_frac} -- so only the zero branch was dropping it"
+
+  guard_upgraded "the lint used to report every bare zero with any sign wire in the module and counted 4,874, most of them correct code. A number that is mostly false trains the eye to ignore it, which is how a guard stops being one. It now resolves the format from the filename and reports only where the format HAS a negative zero"
+  end_state "0 real sites. 56 exempt because the format has one zero. 37 in formats no oracle carries -- q_format and friends -- reported as unresolved rather than claimed either way"
+
+  open_question "ms_mbf32. legacy_ref gives it neg_zero = 0x80000000 and decodes that to zero, so following the oracle is consistent. But Microsoft Binary Format treats exponent=0 as zero with the rest ignored, which would make 0x80000000 just another zero encoding rather than a NEGATIVE zero. Whether MBF distinguishes signed zeros at all is a spec question this repo has not answered, and the RTL now matches the oracle rather than the question"
+}
