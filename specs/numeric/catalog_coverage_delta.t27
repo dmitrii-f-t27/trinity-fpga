@@ -7012,3 +7012,11 @@ correction "my own handshake, and 1,835 disagreements that were not there" {
   how_caught "the absurdity of the first line. 0 + minpos = 0 is not a plausible defect in a core with that evidence behind it"
   fixed "drive on negedge, deassert after one cycle, then wait for out_valid with a bounded timeout -- the sequence conformance/tb_gf_adder_gf64.v already used. 0 disagreements"
 }
+
+verification "the adder witness finished: gf48 and gf64 are clean too" {
+  supersedes "the pass 239 entry above, which said gf48 and wider were still simulating and claimed nothing either way. The background run has since finished"
+  clean "gf4, gf6, gf8, gf10, gf12, gf14, gf16, gf20, gf24, gf32, gf48, gf64 -- 9,156 structural pairs, 0 disagreements against gf_ref.gf_add"
+  still_unmeasured "gf96, gf128, gf256, gf512, gf1024"
+  why_not_the_rtl "they errored with 'shell-init: error retrieving current directory: getcwd: cannot access parent directories'. I removed the git worktree the background job was running in, while it was still running. The five failures are my cleanup, not the adder"
+  note "so the adder is now witnessed over exactly the range the decoder's bias defect did NOT touch. gf96 and up -- where the decoder's `parameter integer BIAS` truncated and where the adder's DEFAULT bias would overflow -- remain the untested part in both directions"
+}
