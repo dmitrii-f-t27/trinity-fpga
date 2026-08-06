@@ -7297,3 +7297,21 @@ finding "the W^2 cost coefficient is a fitting window, not a constant" {
 
   entirely_from_their_numbers "no synthesis was run for this. Every figure above comes from research/CI_LUT_REPORT.md and COMPLETE_LUT_TABLE.md"
 }
+
+finding "the seven-workload harness is not in the repository, so the M>=9 constraint had never been checkable" {
+  the_headline "'seven formats across seven workloads -- four ML (matrix multiply, gradient accumulation, dynamic range, attention softmax) and three hold-out (convolution, polynomial evaluation, linear solve)', and GF16 is the minimum-width IEEE-style format passing all seven"
+  what_is_here "research/format_benchmark.py implements FOUR suites -- arithmetic, dynamic_range, cancellation, edge_cases -- and the paper cites it as 'the benchmark script'. Matrix multiply, gradient accumulation, attention softmax, convolution, polynomial evaluation and linear solve appear in NO script in the repository"
+  so "the constraint that fixes the second coordinate of the feasible corner -- 'matrix-multiply precision requires M >= 9' -- could not be checked at all. research/workload_matmul.py now implements it: exact Fraction product against an in-format product with every multiply and accumulation rounded through the oracle"
+
+  measured "6x6, 8 trials, max/median relative error over output entries"
+  uniform_pm1 "BF16 184.55/7.36, GF14 55.01/6.06, GF16 9.07/2.27, FP16 4.88/1.05"
+  uniform_01 "BF16 1.02/0.73, GF14 0.47/0.35, GF16 0.20/0.17, FP16 0.11/0.08"
+  normal "BF16 68.46/3.58, GF14 6.41/1.15, GF16 5.24/1.08, FP16 0.87/0.29"
+  lognormal "BF16 1.03/0.75, GF14 0.45/0.36, GF16 0.20/0.16, FP16 0.14/0.10"
+  mixed_scale "BF16 6.49/2.48, GF14 84.85/80.34, GF16 3.28/0.22, FP16 1.32/0.15 with 32 overflows"
+
+  no_threshold "the error falls SMOOTHLY with M. There is no step between GF14 (M=8) and GF16 (M=9) that would make one 'borderline' and the other 'robust' -- on uniform[-1,1] the medians run 7.36, 6.06, 2.27, 1.05 across M=7,8,9,10"
+  bf16_range "the paper's 1.5-10% for BF16 reproduces only where CANCELLATION is possible. With positive-only inputs -- uniform[0,1] and lognormal -- BF16's max error is about 1.0%, below the stated range"
+  metric_confound "the max-error metric is dominated by cancellation rather than precision: 184% for BF16 on uniform[-1,1] comes from output entries whose exact value is near zero"
+  gf14_confound "GF14's 80% MEDIAN on mixed scale is a DYNAMIC RANGE failure -- E=5, so products underflow to zero -- not a mantissa failure. The workload conflates the two constraints the paper uses it to separate"
+}
