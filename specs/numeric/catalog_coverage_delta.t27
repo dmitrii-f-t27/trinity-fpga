@@ -7218,3 +7218,11 @@ resolution "one document for what the paper claims and what the corpus says" {
 
   own_errors_recorded "both of mine are in the document, not omitted from it. The LUT parser that invented a +22% to +79% drift, and the noise-floor protocol I substituted for the paper's. Same mistake twice: measuring a reasonable-sounding neighbour of the thing the method describes"
 }
+
+verification "the catalog paper, arXiv:2606.09686" {
+  ratio "'GF16 preserves 8.7x more gradient updates than BF16'. From the paper's own numbers 63.9/7.3 = 8.75x, which rounds to 8.7. From the numbers pass 251 measured, 63.7/7.9 = 8.06x. Both are true about their own inputs; the ratio is sensitive to the BF16 denominator, the smaller and noisier of the two"
+
+  dsp "'MUL designs add -nodsp (DSP48E1 is used only when explicitly instantiated, as in GF16 MUL's single-DSP multiplier)'. fpga/openxc7-synth/gf_mul_dsp_param.v exists and does instantiate DSP48E1 -- and NO wrapper instantiates it. The only two files referencing it are itself and a comment in gf_mul_param.v saying the DSP mapping lives elsewhere. corona_compute_gf16_mul_ax7203.v instantiates gf_mul_param, the LUT-only version, which is consistent with -nodsp and with the 586/602 LUT measurement and inconsistent with GF16 MUL being the example of explicit DSP instantiation"
+
+  not_checkable_this_way "'four parameterized decode templates'. Only two files are named *_decode_param.v, and that is NOT evidence against the claim -- the templates are described by technique, not filename, and the takum16 cell is documented as a BRAM LUT rather than a _param module. Counting files would be measuring a neighbour of the claim rather than the claim, which is the mistake passes 250 and 251 each made once"
+}
