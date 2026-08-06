@@ -7207,3 +7207,14 @@ verification "the arithmetic claims, recomputed from the oracles" {
   own_error "my first run held the weight fixed at 0.5 and drew independent updates. That gives 17.2% and 71.6%, and it is a different experiment: the walk drifts upward, the ulp grows with the weight, and later updates survive less often than earlier ones. I caught it by reading the method rather than assuming one -- the same lesson as pass 250's UART wrappers, one pass later"
   tool "research/audit_arithmetic_claims.py"
 }
+
+resolution "one document for what the paper claims and what the corpus says" {
+  why "passes 248-251 checked nine claims and left the results scattered across four SSOT entries and four PR bodies. A reader deciding whether to act on any of them had to reconstruct the picture from fragments"
+  what "research/PAPER_CLAIM_VERIFICATION.md. Every row names the tool that produced it, so the table can be regenerated rather than trusted"
+
+  reproduce_8 "vectors 2.4M -> 2,442,533. Decode cells ~41 -> 41. GF compute formats 10 -> 10. FP16 dynamic range loses 5 of 11 -> 5. GF16 loses 1 -> 1. BF16 noise floor 7.3% -> 7.9%. GF16 63.9% -> 63.7%. The LUT table across twelve measurements, largest deviation 56 LUTs"
+  does_not_reproduce_2 "the GF64 figure, which has its own erratum draft; and 'flushed to zero' in the abstract and contributions list, where two of the five flush to zero and three overflow to infinity -- the body's 'loses 5/11' is correct"
+  not_checkable_1 "'72 of 83 formats carry an oracle' needs formats_catalog.t27 from the t27 repository, which is not here"
+
+  own_errors_recorded "both of mine are in the document, not omitted from it. The LUT parser that invented a +22% to +79% drift, and the noise-floor protocol I substituted for the paper's. Same mistake twice: measuring a reasonable-sounding neighbour of the thing the method describes"
+}
