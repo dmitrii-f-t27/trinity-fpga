@@ -118,9 +118,21 @@ Measured under those exact flags:
 
 The rule catches the one op that does not need it and misses three that do.
 **915 of the 3,203 compute targets** have an op ending in sqrt, fma or alu, and
-every one of them would infer DSP48E1 on dispatch — the block Project X-Ray
-documents as only partially reverse-engineered, which is the stated reason for
-`-nodsp` in the first place.
+every one of them is synthesised with DSP inference left on — the block Project
+X-Ray documents as only partially reverse-engineered, which is the stated reason
+for `-nodsp` in the first place.
+
+> **Softened in pass 285.** This sentence previously said every one of the 915
+> *would infer* a DSP. That was generalised from three gf16 targets.
+> `research/audit_dsp_inference.py` verifies the count exactly — 10 sqrt + 452 fma
+> + 453 alu = 915 — and samples the inference across the width range rather than at
+> one width, because DSP mapping depends on operand width. **13 of 15 sampled
+> targets inferred one; two did not**, both `afp`, which is variable-width and
+> whose ALU and FMA come out at 189 and 426 LUTs with zero DSPs. Every sampled
+> `sqrt` took 8 DSPs regardless of width, down to `gf4`. So the defensible claim is
+> that the rule leaves DSPs *possible* on 915 targets and most of them take one —
+> which is enough to contradict "only when explicitly instantiated" without
+> overstating the reach.
 
 No Tier-E cell is affected: **zero** complete-chain cells carry op SQRT, FMA or
 ALU.
