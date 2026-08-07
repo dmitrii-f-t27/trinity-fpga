@@ -7526,3 +7526,30 @@ finding "a live decode core that yosys could not read at all, and the adder that
 
   a_trap_hit_on_the_way "the first equivalence run used iverilog -P to override the testbench width and reported three passes at N=8, 12 and 20. The override silently did not take and all three were N=16. It was caught only because the testbench prints its own N -- a run that reports the parameter it actually used, rather than the one it was asked for"
 }
+
+correction "the gate's own number folded three different things into one" {
+  gate "research/audit_yosys_reads.py"
+  reported "22 synthesis sources yosys cannot read"
+  true_of "yosys's exit code"
+  false_about "the tree"
+
+  actually "15 parse defects + 5 files whose $readmemb could not open a .mem + 1 file that ran $finish in an elaboration-time initial block. Only the first is a defect in the Verilog"
+  why_it_matters "the folded number moves whenever someone relocates a weights file, and a gate whose number moves for reasons unrelated to its subject stops being read. That is how pass 250's LUT table survived a pass and how pass 275's runner nearly shipped 20 failures that were mostly inventories"
+  now "the three are counted separately and only a parse defect fails the gate"
+  after_the_tekum_fix "15, down from 16"
+
+  liveness_checked "none of the 15 is instantiated or built by anything. Three names appear elsewhere and all three are inert: a comment in trinity_v2.xdc naming a .vibee spec, a workflow COMMENT mentioning trinity_v1_morse.v, and uart_simple.xdc -- which is a single line containing its own absolute path from another machine and another user, /Users/playra/trinity-w1/..., and is a separate small defect of its own"
+}
+
+retraction "pass 146 cited an experiment that could not have run" {
+  where ".github/workflows/narrow-register-gate.yml, header"
+  said "pass 146 confirmed that by running yosys over trinity_v1_morse.v, which compared a 25-bit register against 1,500,000,000 and produced zero warnings"
+
+  fact "yosys has NEVER been able to read trinity_v1_morse.v. Line 113 is a SystemVerilog assignment pattern -- reg [2:0] morse_sequence [0:37] = '{...} -- rejected as OP_CAST in plain mode AND under -sv. The revision preceding pass 146's own edit fails at the same construct"
+  therefore "zero warnings is what a REFUSED READ produces. A claim of silence that was really a claim of failure"
+  checked_before_asserting "-sv was tried on all 15 unreadable files and rescues none, so this is not a frontend-mode mistake on my part"
+
+  the_claim_is_still_true "it is a fact about the language, not about that file, and it now has evidence. research/witness_narrow_register_silence.py exercises five narrowings -- comparison, assignment, slice, port connection, dead control branch -- on minimal modules yosys can actually read. Silence on 5 of 5. The one warning emitted anywhere was not width-related"
+  gate_unaffected "narrow-register-gate.yml runs research/audit_narrow_register.py, which is its own analysis and never invoked yosys. The 15 defects it found stand. Only the provenance sentence was wrong"
+  applied_via "research/apply_narrow_gate_provenance.py -- comment lines only, zero non-comment lines changed"
+}

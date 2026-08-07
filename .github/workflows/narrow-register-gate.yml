@@ -1,9 +1,19 @@
 name: Narrow register gate
 
 # A register narrower than the constant it is compared against, or than the slice
-# assigned into it, is legal Verilog and silent in yosys -- pass 146 confirmed that by
-# running yosys over trinity_v1_morse.v, which compared a 25-bit register against
-# 1,500,000,000 and produced zero warnings. Fifteen real defects were found this way,
+# assigned into it, is legal Verilog and silent in yosys. Established by
+# research/witness_narrow_register_silence.py, which exercises five narrowings --
+# comparison, assignment, slice, port connection, dead control branch -- on minimal
+# modules and gets no width warning on any of them.
+#
+# This header used to cite pass 146 running yosys over trinity_v1_morse.v and seeing
+# zero warnings. yosys has never been able to read that file: line 113 is a
+# SystemVerilog assignment pattern rejected as OP_CAST, in plain mode and under -sv,
+# and the revision that preceded pass 146's own edit fails at the same construct.
+# Zero warnings is what a refused read produces. The claim was right; the evidence
+# for it was a failure misread as a silence. Corrected in pass 278.
+#
+# Fifteen real defects were found this way,
 # including a UART frame counter that terminated on the wrong count and six GF8 decode
 # wrappers whose exponent slice dropped its top bit.
 #
