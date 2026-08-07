@@ -57,6 +57,32 @@ It sits inside an item ending *"Each ships with a full evidence chain."*
 **Proposed:** drop the aside, or restate it as an open timing-closure problem
 rather than a cell. Suggested wording in the erratum file.
 
+> **Mechanised in pass 285.** `research/audit_gf64_chain.py` replaces the reading
+> with a check. It takes every comment mentioning GF64 by any spelling — **17**,
+> matching the seventeen described above — and counts the four links in each one
+> individually, rather than trusting the absence of `gf64` from
+> `verify_tier_e.py`'s cell list, which groups by a parsed name and could have hidden
+> a comment in its `?` bucket.
+>
+> **Zero of the 17 carry all four.** And the picture is sharper than that number:
+>
+> * The **359/512 figure and the evidence are in different comments.** It originates
+>   in [#4965993162](https://github.com/gHashTag/trinity-fpga/issues/199#issuecomment-4965993162),
+>   which records an IDCODE and a flash (`openocd 500kHz, 156s`) but carries **no CI
+>   URL, no SHA-256 and no UART line at all**. Two later comments tabulate it and
+>   both label its build *"shift-reg (buggy)"*.
+> * The closest thing to a complete chain is
+>   [#4958733671](https://github.com/gHashTag/trinity-fpga/issues/199#issuecomment-4958733671),
+>   which has the CI URL, the SHA-256, the IDCODE **and a genuine board reading** —
+>   `HW RESULT: GF64 ADD smoke 0+0=0x0000000000000000 @160000 IDCODE=0x13636093`.
+>   That is a **one-vector smoke test**, not an N/N conformance count, and its score
+>   is 4/4. Real silicon, not the 512-vector run the 70.1% describes.
+>
+> So the accurate statement is not that GF64 was never on the board. It was. What
+> does not exist is a single comment tying the 359/512 number to a CI run, a
+> bitstream hash and a conformance read — and the one comment with a board reading
+> reports a different, much smaller test.
+
 ## 2. "5/11 values flushed to zero" — wording
 
 Verified with `research/audit_arithmetic_claims.py` against `ieee_ref` and
