@@ -6,6 +6,19 @@ passes 248-287 and never once run together -- which is precisely the state pass 
 found the 65 gates in, and the state that let pass 250's retracted LUT table and
 three stale gfternary packs survive.
 
+Pass 289 gave items 2,3 and 7,10 real verdicts. They used to run and print without
+being able to say "still true", and were counted apart so the HOLDS number stayed
+honest. What each now asserts is the CLAIM rather than the digits:
+
+    2      the dynamic-range counts, exactly -- 5 of 11 and 1 of 11 are integers
+    3      that the recomputed ratio stays clearly below the published 8.7x. The
+           finding is the GAP, not 8.06 or 8.10, which move with the seed
+    10     that posit16's median error stays at or below GF16's on every workload.
+           The ordering is the claim; the medians move with the trial count
+
+Bands and orderings, never equalities, so a check fails on the finding and not on
+the sampling.
+
 EXIT CODES MEAN OPPOSITE THINGS HERE
 ------------------------------------
 This is the whole reason the runner is not a for-loop over `subprocess.run`.
@@ -45,8 +58,8 @@ ROOT = os.path.dirname(HERE)
 ITEMS = [
     ("1", "GF64 has no complete Tier-E chain",
      ["research/audit_gf64_chain.py"], 0, False),
-    ("2,3", "the arithmetic claims recompute",
-     ["research/audit_arithmetic_claims.py"], None, False),
+    ("2,3", "counts exact, noise floor in band, 8.1x",
+     ["research/audit_arithmetic_claims.py"], 0, False),
     ("4", "the flag rule leaves DSPs inferable",
      ["research/audit_dsp_inference.py", "--per-op", "2", "--timeout", "300"],
      1, True),
@@ -54,8 +67,8 @@ ITEMS = [
      ["research/audit_cost_model.py"], 0, False),
     ("6", "GF Quire does not reproduce",
      ["research/audit_additional_cores.py"], 1, True),
-    ("7,10", "seven workloads, seven formats",
-     ["research/workload_suite.py"], None, False),
+    ("7,10", "posit16 still beats GF16 on all five",
+     ["research/workload_suite.py"], 0, False),
     ("8", "the E8M0 oracle and packs exist",
      ["conformance/e8m0_ref.py"], 0, False),
     ("9", "three cite keys resolve to nothing",
@@ -119,8 +132,11 @@ def main():
 
     print()
     print("items whose finding still HOLDS : %d   (a declared verdict)" % len(holds))
-    print("items that ran, no verdict to give : %d   (not falsifiable -- 2,3 and 7,10)"
-          % len(informational))
+    # Zero since pass 289. Kept because the category is real: an item can lose its
+    # verdict again, and a runner that silently drops the row would report a
+    # smaller denominator without saying so.
+    print("items that ran, no verdict to give : %d   (every item declares one "
+          "since pass 289)" % len(informational))
     print("items reported WITHDRAWN        : %d   <- the package needs editing"
           % len(withdrawn))
     print("checks BROKEN                   : %d   <- says nothing about the item"

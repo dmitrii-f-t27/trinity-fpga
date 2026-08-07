@@ -234,6 +234,7 @@ def main():
     for label, _m, _f, M in FORMATS:
         head += " %-14s" % ("%s(M%s)" % (label, M))
     print(head)
+    medians = {}
     for wname, fn in WORKLOADS:
         row = "%-18s" % wname
         for label, mod, fmt, M in FORMATS:
@@ -246,13 +247,49 @@ def main():
             if not vals:
                 row += " %-14s" % "n/a"
             else:
-                row += " %6.2f/%-7.2f" % (100 * max(vals), 100 * statistics.median(vals))
+                med = statistics.median(vals)
+                medians[(wname, label)] = med
+                row += " %6.2f/%-7.2f" % (100 * max(vals), 100 * med)
         print(row)
     print()
     print("Reference is exact rational arithmetic except for attention softmax,")
     print("where exp forces float64 -- 2**-53 against a 16-bit format's 2**-10.")
     print("No pass/fail threshold is applied: the paper's are not published, and")
     print("inventing one would be inventing the result.")
+    print()
+
+    # Item 10 of the corrections package. Both abstracts say "no single format
+    # dominates"; the finding is that posit16 does, over GF16, on every error
+    # workload here.
+    #
+    # What gets asserted is the ORDERING, not the digits. The medians move with the
+    # seed and the trial count; the ordering is the claim, and pinning 0.15 against
+    # 0.29 would make the check fail on sampling rather than on the finding. This is
+    # the same distinction pass 289 drew for item 3, where the finding is the gap
+    # between 8.1x and 8.7x rather than either figure.
+    print("ITEM 10 -- does posit16 still beat GF16 on every workload here?")
+    beaten, lost = [], []
+    for wname, _ in WORKLOADS:
+        p16 = medians.get((wname, "posit16"))
+        g16 = medians.get((wname, "GF16"))
+        if p16 is None or g16 is None:
+            continue
+        (beaten if p16 <= g16 else lost).append(
+            (wname, 100 * p16, 100 * g16))
+    for wname, a, b in beaten:
+        print("  %-18s posit16 %6.2f  <=  GF16 %6.2f" % (wname, a, b))
+    for wname, a, b in lost:
+        print("  %-18s posit16 %6.2f   >   GF16 %6.2f   <<< GF16 WINS HERE"
+              % (wname, a, b))
+    print()
+    print("  posit16 lower on %d of %d, higher on %d"
+          % (len(beaten), len(beaten) + len(lost), len(lost)))
+    if lost:
+        print("  Item 10 says posit16 dominates. It no longer does on every")
+        print("  workload here -- the item needs narrowing to the ones it still wins.")
+        return 1
+    print("  Item 10 holds. Note this covers the workloads in THIS file; the two")
+    print("  matmul rows live in research/workload_matmul.py and are not counted here.")
     return 0
 
 

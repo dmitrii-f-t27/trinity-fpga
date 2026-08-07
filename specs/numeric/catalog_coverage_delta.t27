@@ -7779,3 +7779,18 @@ verification "all ten corrections items re-checked at once, for the first time" 
 
   what_holding_means "the discrepancy is still there. It does NOT mean anything has been submitted, accepted or fixed. The package remains a draft in this repository, submitted nowhere"
 }
+
+verification "every corrections item now declares a verdict, and all eight hold" {
+  from "pass 288 -- 6 items HOLD, 2 ran with no verdict to give. Those two were the last soft spot in the package"
+  fixed "items 2,3 and 7,10 now assert. All eight rows HOLD, none WITHDRAWN, none BROKEN"
+
+  what_they_assert "the CLAIM, never the digits"
+  item_2 "the dynamic-range counts exactly -- 5 of 11 and 1 of 11 are integers and cannot drift"
+  item_3 "that the recomputed ratio stays clearly below the published 8.7x. The finding IS the gap; 8.06 and 8.10 both move with the seed, so pinning either would make the check fail on sampling rather than on the finding. Band: ratio < 8.5"
+  item_10 "that posit16's median error stays at or below GF16's on every workload. The ordering is the claim; the medians move with the trial count. 5 of 5 here -- the two matmul rows live in workload_matmul.py and are NOT counted, which the output says rather than quietly folding them in"
+  noise_floor "bands 5-11% for bfloat16 and 58-70% for gf16, wide enough to absorb five-seed sampling and far too narrow to absorb a changed oracle"
+
+  the_empty_category_kept "'items that ran, no verdict to give' now reads 0 and is still printed. An item can lose its verdict again, and a runner that silently drops the row would report a smaller denominator without saying so"
+
+  standing_caveat "HOLDS means the discrepancy is still there. It does not mean anything has been submitted, accepted or fixed. The package remains a draft in this repository, submitted nowhere"
+}
