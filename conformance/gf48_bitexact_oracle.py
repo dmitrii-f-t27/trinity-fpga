@@ -30,6 +30,7 @@ Author: Vasilev (gHashTag), ORCID 0009-0008-4294-6159, admin@t27.ai.
 """
 from fractions import Fraction
 import struct
+import os
 import sys
 
 N, E, M, BIAS = 48, 18, 29, 131071
@@ -277,10 +278,16 @@ def main():
     print(f"WITNESS CROSS-CHECK (A exact-Fraction vs B integer-construct): "
           f"{len(codes)-mism_ab}/{len(codes)} agree (mismatch={mism_ab})")
     # write vectors for iverilog tb: hex raw (48-bit, 12 nybbles) + expected 64-bit
-    with open("/home/user/workspace/trinity-fpga/conformance/gf48_vectors.hex", "w") as f:
+    # Next to this file, not /home/user/workspace/... . The absolute path was
+    # from the machine this was first run on, so the script crashed with
+    # FileNotFoundError anywhere else -- AFTER printing its cross-check result,
+    # so a reader saw the good news and then a traceback.
+    out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "gf48_vectors.hex")
+    with open(out_path, "w") as f:
         for raw, exp in dump:
             f.write(f"{raw:012x} {exp:016x}\n")
-    print(f"Wrote {len(dump)} vectors to gf48_vectors.hex")
+    print(f"Wrote {len(dump)} vectors to {out_path}")
     return 0 if mism_ab == 0 else 1
 
 

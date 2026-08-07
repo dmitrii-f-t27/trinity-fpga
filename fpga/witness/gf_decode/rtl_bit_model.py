@@ -40,7 +40,12 @@ struct, round-to-nearest-even нативного float, обосновано в 
 import sys
 import struct
 
-sys.path.insert(0, "/home/user/workspace/wave_audit/gf_decode")
+import os
+# Next to this file. The absolute path here was from the machine this was
+# first run on; it only ever worked because Python puts the script's own
+# directory on sys.path anyway, so the insert was a no-op that looked load-
+# bearing. It would have started mattering the moment gf_decode_ref.py moved.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gf_decode_ref as G
 
 
