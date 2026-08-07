@@ -29,6 +29,7 @@ import concurrent.futures
 import glob
 import os
 import re
+import signal
 import subprocess
 import sys
 
@@ -75,14 +76,35 @@ def run_one(path):
     flags = ("-flatten -abc9 -nocarry -nodsp -arch xc7" if op == "mul"
              else "-flatten -abc9 -nocarry -arch xc7")
     script = "read_verilog %s %s; synth_xilinx %s" % (CORES, base, flags)
+    # Popen with a process GROUP, not subprocess.run.
+    #
+    # subprocess.run(timeout=...) kills only the DIRECT child on timeout and then
+    # calls communicate() a second time with NO timeout to drain the pipes. yosys
+    # spawns yosys-abc, which inherits those pipes; when yosys is killed but abc
+    # survives, that second communicate() blocks forever. The signature is a live
+    # parent with zero yosys children and no output -- which is exactly how this
+    # sweep sat for three hours looking like slow progress.
+    #
+    # Killing the whole group reaps abc too, so the pipes close and the drain
+    # returns.
+    proc = subprocess.Popen(["yosys", "-p", script], cwd=SYNTH,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True, start_new_session=True)
     try:
-        r = subprocess.run(["yosys", "-p", script], cwd=SYNTH,
-                           capture_output=True, text=True, timeout=300)
+        so, se = proc.communicate(timeout=300)
     except subprocess.TimeoutExpired:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            proc.kill()
+        try:
+            so, se = proc.communicate(timeout=60)
+        except subprocess.TimeoutExpired:
+            return base, "timed out after 300s, and its pipes did not drain"
         return base, "timed out after 300s"
-    if r.returncode == 0:
+    if proc.returncode == 0:
         return base, None
-    out = r.stdout + r.stderr
+    out = so + se
     hits = ERR.findall(out)
     return base, (hits[0].strip() if hits else out.strip().splitlines()[-1][:120])
 
@@ -96,15 +118,38 @@ def main():
     if "--limit" in sys.argv:
         files = files[:int(sys.argv[sys.argv.index("--limit") + 1])]
     ok, failed, done = 0, [], 0
+    stall = 900
+    if "--stall" in sys.argv:
+        stall = int(sys.argv[sys.argv.index("--stall") + 1])
+    stalled = False
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as ex:
-        for base, err in ex.map(run_one, files):
-            done += 1
-            if err:
-                failed.append((base, err))
-            else:
-                ok += 1
-            if done % 200 == 0:
-                print("  ... %d/%d" % (done, len(files)), flush=True)
+        pending = set(ex.submit(run_one, f) for f in files)
+        while pending:
+            # wait() with a timeout, so a wedge is DETECTED rather than waited on.
+            # ex.map yields in submission order and offers no way to tell "nothing
+            # has finished for hours" from "the next one is slow".
+            batch = concurrent.futures.wait(
+                pending, timeout=stall,
+                return_when=concurrent.futures.FIRST_COMPLETED)
+            if not batch.done:
+                stalled = True
+                print("\nSTALLED: no target completed in %ds, %d outstanding."
+                      % (stall, len(pending)), flush=True)
+                print("Reporting %d results and stopping, rather than waiting "
+                      "silently." % done, flush=True)
+                for f in pending:
+                    f.cancel()
+                break
+            for f in batch.done:
+                pending.discard(f)
+                base, err = f.result()
+                done += 1
+                if err:
+                    failed.append((base, err))
+                else:
+                    ok += 1
+                if done % 200 == 0:
+                    print("  ... %d/%d" % (done, len(files)), flush=True)
 
     buckets = collections.defaultdict(list)
     for base, err in failed:
@@ -112,9 +157,20 @@ def main():
 
     print()
     print("cores from build-matrix.yml : %s" % CORES)
-    print("compute targets attempted : %d" % len(files))
-    print("would BUILD on dispatch   : %d" % ok)
-    print("would FAIL                : %d" % len(failed))
+    # "attempted 3, would fail 0" after a stall reads as good news and is not.
+    # Report what was actually MEASURED, and say plainly when the rest was not.
+    print("compute targets in the tree : %d" % len(files))
+    print("targets measured            : %d" % done)
+    print("would BUILD on dispatch     : %d" % ok)
+    print("would FAIL                  : %d" % len(failed))
+    if done < len(files):
+        print()
+        print("NOT MEASURED                : %d  <- %s"
+              % (len(files) - done,
+                 "the run stalled and stopped" if stalled else "run was limited"))
+        print("Those targets have not been shown to build. An unmeasured target is")
+        print("not a passing one, and the counts above describe only the %d measured."
+              % done)
     print()
     if buckets:
         print("%6s  %s" % ("count", "class"))
