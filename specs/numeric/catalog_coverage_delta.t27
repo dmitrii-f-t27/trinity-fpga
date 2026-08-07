@@ -7720,3 +7720,20 @@ verification "corrections item 6 now has a script, and four of five cores reprod
 
   a_trap_hit_and_caught "the first run reported all three cores at 0 LUT. yosys prints stat as COUNT then NAME and the regex expected name-then-count, so it matched nothing. Three cores at exactly zero is the signature of a broken parser, not of three empty designs. The tool now refuses to report a measurement when stat yields no cell counts at all"
 }
+
+verification "the 915 is exact; 'every one of them' was not" {
+  claim_under_test "corrections item 4b -- 915 of 3,203 compute targets have an op ending in sqrt, fma or alu, and EVERY ONE would infer DSP48E1 on dispatch"
+  tool "research/audit_dsp_inference.py"
+
+  count_exact "10 sqrt + 452 fma + 453 alu = 915. Arithmetic on filenames, and it matches"
+  rule_confirmed_from_the_workflow "build-matrix.yml really does apply -nodsp only under [ \"$OP\" = \"mul\" ], read from the file rather than taken on item 4's word"
+
+  generalisation_sampled "the 'every one' came from measuring THREE gf16 targets. DSP mapping is a function of operand width, so the sample is stratified across the width range rather than taken at one width"
+  result "13 of 15 measured targets inferred a DSP. TWO DID NOT -- corona_compute_afp_alu at 189 LUT/0 DSP and corona_compute_afp_fma at 426 LUT/0 DSP, both the variable-width afp format"
+  sqrt_is_uniform "every sampled sqrt took 8 DSPs at every width, down to gf4 at 211 LUTs. The eight is not a wide-format effect"
+
+  restated "the rule leaves DSPs POSSIBLE on 915 targets and most of them take one. That is enough to contradict 'only when explicitly instantiated' without overstating the reach, and item 4b now says it that way"
+  timeouts_not_counted_as_zero "a target that did not finish was not measured. Calling it zero would bias the answer toward the comfortable direction; none occurred in this sample, but the tool reports the category regardless"
+
+  my_own_false_alarm "the tool's rule-detector searched for `op == \"mul\"` and the workflow uses shell test syntax, [ \"$OP\" = \"mul\" ]. It printed 'NO -- re-read the workflow' against a workflow that says exactly what item 4 says it does. A detector that cries wolf about its own regex is worse than no detector"
+}
