@@ -7664,3 +7664,31 @@ finding "scripts that announce success with no way to fail" {
   incidental "research/verify_tier_e.py carried an invalid escape sequence in a docstring quoting an old regex. Harmless today, a SyntaxError in a future Python. The docstring is now raw"
   limit_stated "one vacuous assert passes this gate. It finds files with no brakes; audit_selftest_sensitivity finds brakes connected to nothing. Neither subsumes the other"
 }
+
+verification "all gates re-run, eight passes and five new gates later" {
+  from "pass 275 ran 65 scripts and found 0 crashed. Since then gate_cache, audit_absolute_paths, audit_unconditional_pass, audit_cache_honesty and audit_cost_model were added, two gates were reclassified and one mutation operator was rewritten. The 45-clean number was stale"
+  result "70 scripts found, 4 skipped, 66 run. CRASHED 0. Timed out 1. Need an argument 4. Findings by design 12. Clean 49"
+  no_regressions "the crash count is still the only category that means one, and it is still zero"
+  the_one_timeout "audit_selftest_sensitivity, because this worktree was seeded with the yosys_reads cache and not the sensitivity one. A cold mutation sweep is the 20-minute run pass 282 did deliberately; inside a 500s budget it is a timeout, correctly reported as one rather than as a failure"
+  cache_carried_again "yosys_reads: seeded from another checkout, and the gate finished in 0.6 seconds"
+}
+
+correction "our own correction mixed two R-squared conventions under one heading" {
+  where "research/CORRECTIONS_PACKAGE_both_preprints.md item 5, the free-exponent table"
+  fault "it reported LOG-SPACE R^2 in a table sitting directly beneath quadratic fits whose R^2 is LINEAR-SPACE, with nothing saying they were different statistics -- in an argument whose entire subject is an R^2 threshold"
+  size_of_the_gap "MUL reads 0.9044 in log space and 0.6254 against the raw counts. ADD reads 0.9746 and 0.9913"
+  neither_is_wrong "fitting on logs weights the small formats far more heavily, which is often what a scaling law wants; measuring against the raw counts is what R^2 >= 0.97 means when a paper says it about LUT counts. Reporting one under the other's heading was the error"
+  conclusion_unaffected "every quadratic fit is linear-space and none reproduces c = 1.63 with R^2 >= 0.97. Item 5 stands"
+
+  root_cause "the numbers were computed in a session and typed into markdown with no script behind them. A correction with no tool to regenerate it has the same defect it complains about"
+  now "research/audit_cost_model.py refits from the measured rows of COMPLETE_LUT_TABLE.md and reports BOTH conventions. All five quadratic fits reproduce to three decimals; both power fits reproduce in both conventions"
+  circularity_avoided "the tilde rows are excluded -- they were produced BY the scaling law under test, and feeding them back in would be circular"
+  exits_non_zero_if "a subset ever DOES reproduce the claim, i.e. if the correction stops being true and needs withdrawing"
+}
+
+correction "item 7's verdict contradicted its own section" {
+  table_said "not reproducible -- six of the seven workloads exist in no script"
+  section_said "All seven are now runnable, and gave the normwise results for four formats across seven workloads"
+  cause "passes 260 to 273 implemented the workloads and updated the body. The summary row -- the line a reader actually scans -- was left behind"
+  now "reimplemented -- the cited script has four suites, one of them one of the seven; all seven now runnable here"
+}
