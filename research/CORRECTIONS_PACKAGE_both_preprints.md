@@ -7,6 +7,23 @@ evidence, instead of four times from memory.
 **Verified:** passes 248–254, by scripts in this directory, against the corpus and
 against the 226 comments of gHashTag/trinity-fpga#199.
 
+**As of pass 287 every one of the ten items has an executable check.** Items 5, 6,
+4, 1 and 9 acquired theirs in passes 283–287; before that their numbers were
+computed in a session and typed into markdown, which is the same defect several of
+them complain about. The tools are named in each section and all of them exit
+non-zero if the finding stops being true:
+
+| item | tool |
+|---|---|
+| 1 GF64 chain | `research/audit_gf64_chain.py` |
+| 2, 3 arithmetic claims | `research/audit_arithmetic_claims.py` |
+| 4 DSP inference | `research/audit_dsp_inference.py` |
+| 5 W² cost model | `research/audit_cost_model.py` |
+| 6 additional cores | `research/audit_additional_cores.py` |
+| 7, 10 workloads | `research/workload_suite.py`, `research/workload_matmul.py` |
+| 8 E8M0 packs | `conformance/e8m0_ref.py` self-test |
+| 9 cite keys | `research/audit_cite_keys.py` |
+
 ---
 
 ## Summary
@@ -31,7 +48,7 @@ would have checked them. It stays open rather than being guessed at.
 | 6 | 505 / 587 / 580 LUT | 2606.05017, lines 56 and 132 | **traced** — 505 is takum16's, and the 75 does not reproduce |
 | 7 | "seven formats across seven workloads" | 2606.05017, abstract | **reimplemented** — the cited script has four suites, one of them one of the seven; all seven now runnable here |
 | 8 | "six conformance packs", including E8M0 | 2606.09686 abstract, and its erratum | **closed** — the E8M0 oracle and packs now exist |
-| 9 | three `\cite` keys resolve to nothing | 2606.05017, §§ on RHT/LSQ and Parameter Golf | **submission defect** — `[?]` in the built PDF |
+| 9 | three `\cite` keys resolve to nothing | 2606.05017, §§ on RHT/LSQ and Parameter Golf | **submission defect** — `[?]` in the built PDF; confirmed from source, 21 cited / 18 defined |
 | 10 | "no single format dominates" | 2606.05017 + 2606.09686, abstracts | **contradicted** — posit16 dominates GF16 on all seven |
 
 What reproduces, for context: the 2.4M vector count (2,442,533), 41 decode cells,
@@ -384,6 +401,26 @@ was followed. The third anchors the claim that an outside competition
 independently reached the same INT6 conclusion.
 
 As it stands the built PDF would carry three `[?]` marks.
+
+> **Mechanised in pass 287.** `research/audit_cite_keys.py` collects every `\cite`
+> key from the source and every key defined by a `@entry` in the `.bib` *or* a
+> `\bibitem` in the `.tex` — both, since a paper can carry a manual
+> `thebibliography` and a `.bib` at once, and checking one alone would report keys
+> as missing that resolve perfectly well. It confirms the count exactly: **21 cited,
+> 18 defined, 3 unresolved**, and **zero defined-but-uncited**, so the bibliography
+> has not drifted in the other direction.
+>
+> One of the three is different in kind. **`paramgolf2026` is a self-citation** —
+> Parameter Golf is this project's own work, present here as
+> `parameter_golf_gf8_ablation/`, `research/PARAMETER_GOLF_PLAN.md` and
+> `research/PARAMETER_GOLF_RESULTS.md`. It is resolvable without leaving the
+> repository, unlike `ufp4` and `quest`, which name external publications and need
+> those publications to resolve — the same thing blocked for the competitor-figure
+> check.
+>
+> The tool deliberately stops at naming the keys. Inventing a plausible-looking
+> bibliography entry for a paper nobody has read would be a worse defect than the
+> missing entry.
 
 **Proposed:** add the three entries to `paper.bib`, or drop the sentences that
 depend on them.

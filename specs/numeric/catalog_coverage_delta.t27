@@ -7752,3 +7752,15 @@ verification "the GF64 claim, checked by script instead of by reading" {
 
   a_check_i_nearly_got_wrong "my strict pattern HW RESULT: N/N bit-exact matched none of the 17, and I was one step from reporting 'no GF64 comment has a board reading at all'. Two contain the string HW RESULT -- one a smoke test, one a table column header. The strict pattern excludes both correctly, but the report would have understated what is there. Smoke readings are now their own category, folded into neither side"
 }
+
+verification "the corrections package is now fully mechanised" {
+  milestone "as of pass 287 every one of the ten items has an executable check that exits non-zero if the finding stops being true"
+  acquired_late "items 5, 6, 4, 1 and 9 got theirs in passes 283 to 287. Before that their numbers were computed in a session and typed into markdown -- the same defect several of them complain about"
+
+  item_9 "research/audit_cite_keys.py. 21 keys cited, 18 defined, 3 unresolved: paramgolf2026, quest, ufp4. Zero defined-but-uncited, so the bibliography has not drifted the other way"
+  both_definition_sources "a key counts as defined by a @entry in the .bib OR a \\bibitem in the .tex. Checking one alone would report keys as missing that resolve perfectly well"
+
+  one_of_the_three_is_different "paramgolf2026 is a SELF-CITATION. Parameter Golf is this project's own work, present as parameter_golf_gf8_ablation/, research/PARAMETER_GOLF_PLAN.md and research/PARAMETER_GOLF_RESULTS.md. It is resolvable without leaving the repository. ufp4 and quest name external publications and need those publications -- the same thing blocked for the competitor-figure check"
+
+  where_the_tool_stops "at naming the keys. Inventing a plausible-looking bibliography entry for a paper nobody has read would be a worse defect than the missing entry, and this campaign has spent forty passes on numbers that looked right"
+}
