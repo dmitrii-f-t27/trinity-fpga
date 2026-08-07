@@ -7581,3 +7581,29 @@ finding "a conformance oracle that was right and unreproducible at the same time
 
   a_trap_hit_inside_the_gate_itself "the first version line-scanned every non-Python file and counted .t27 records as executable code. It reported 15 defects of which 15 were records -- script_tree_sweep.t27 holds eleven /home/user/workspace paths because that is its ENTIRE SUBJECT. A number that is mostly false, in the gate written to stop numbers being mostly false, two passes after the same failure was split out of audit_yosys_reads. Caught before it shipped, but only just"
 }
+
+finding "the one oracle the blindness gate could not assess was blind" {
+  from "pass 279's honesty run reported audit_selftest_sensitivity: 17 sensitive, 2 not assessed, one of them gf16_plus_ref with 'no encode or decode to mutate'"
+  irony "an oracle that has never been tested for blindness is exactly what the gate exists to find, so it must not be the one case the gate skips"
+
+  why_it_was_skipped "targets() looked for encode, decode, *_add and *_mul. gf16_plus_ref imports decode, encode and gf_mul FROM gf_ref and defines none of them. Its own functions are gf16_to_binary64, binary64_to_gf16, gf16_plus_mac and gf16_plus_flush, which match nothing"
+  fix "fall back to every public function the module DEFINES itself, only when the primary list is empty. The 17 already-assessed oracles keep exactly the targets they had, so no existing verdict moves"
+
+  what_it_then_found "gf16_plus_flush survives mutation. The self-test never called it -- it exercises the OP_FLUSH branch of gf16_plus_mac instead -- and nothing else in the tree calls it either. A public function with zero callers and zero coverage, corruptible at will"
+  no_claim_affected "nothing depends on it. This is a hole in what the oracle VERIFIES, not an error in what it computes"
+
+  fixed_by_covering_not_deleting "Test 5 pins the property worth having: the standalone wrapper and the inline OP_FLUSH branch must be the same function of the accumulator, checked on 10 states. Two code paths that must agree are worth more than either checked alone. The gate now reports gf16_plus_ref sensitive to every mutation"
+
+  also "the self-test's closing line printed `gf16_to_binary64(out) and 3.0` labelled '3x1.0 flush'. That expression cannot disagree with itself: 3.0 whenever the decode is truthy, and `out` at that point is Test 4's EMPTY flush, not the 3.0 case. A constant dressed as a measurement"
+}
+
+correction "my own cache key missed the gate that produces the value" {
+  where "research/audit_selftest_sensitivity.py, the key built in pass 276"
+  covered "the oracle's bytes and its conformance import closure"
+  missed "the gate's OWN source -- targets() and the mutation logic, which is what turns those inputs into a verdict"
+  bite "pass 280 changed targets(). Every cached entry would have reported the old gate's answer under the new gate's name"
+
+  rule "the key covers whatever determines the CACHED VALUE, not the presentation around it"
+  applied_here "this gate now hashes itself into the key"
+  deliberately_not_applied_to "audit_yosys_reads, whose cached value is yosys's own output for one file. Pass 278 rewrote how those strings are counted and could not have changed one of them. Hashing that gate would invalidate 3,594 units for a cosmetic edit and teach everyone to pass --no-cache, which is how a cache stops being used"
+}

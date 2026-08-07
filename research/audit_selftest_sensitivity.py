@@ -119,6 +119,25 @@ def targets(src):
         name = m.group(1)
         if not name.startswith("_"):
             out.append(name)
+    if out:
+        return out
+
+    # Nothing matched the usual names. That does NOT mean there is nothing to
+    # mutate -- gf16_plus_ref.py imports decode, encode and gf_mul from gf_ref and
+    # defines none of them, so this returned empty and the oracle was reported as
+    # "not assessed" for as long as this gate has existed. An oracle that has never
+    # been tested for blindness is precisely what the gate is for, so a module that
+    # names its functions differently must not be the one case it skips.
+    #
+    # Fall back to every public function the module DEFINES itself. Imported names
+    # belong to the module they came from and are mutated when that module's turn
+    # comes; underscore-prefixed helpers are excluded, since a self-test is not
+    # obliged to pin private internals.
+    #
+    # Only a fallback. The 17 oracles already assessed keep exactly the targets
+    # they had, so no existing verdict moves.
+    for m in re.finditer(r"^def ([a-zA-Z]\w*)\(", src, re.M):
+        out.append(m.group(1))
     return out
 
 
@@ -222,11 +241,27 @@ def main() -> int:
     cache = gate_cache.Cache("selftest_sensitivity",
                              enabled="--no-cache" not in sys.argv)
     pyver = "py%d.%d" % sys.version_info[:2]
+    # THIS FILE is part of the key, and audit_yosys_reads' key deliberately is not.
+    # The rule is: the key covers whatever determines the CACHED VALUE, not the
+    # presentation around it.
+    #
+    #   here          the cached value is a verdict produced by targets() and the
+    #                 mutation logic. Change either and the verdict can change, so
+    #                 a stale entry would report the old gate's answer under the new
+    #                 gate's name. Pass 280 changed targets() and would have done
+    #                 exactly that.
+    #
+    #   yosys_reads   the cached value is yosys's own output for one file. Pass 278
+    #                 rewrote how those strings are counted and could not have
+    #                 changed one of them. Hashing that gate would invalidate 3,594
+    #                 units for a cosmetic edit and teach everyone to pass
+    #                 --no-cache, which is how a cache stops being used.
+    mine = gate_cache.sha_files([os.path.abspath(__file__)])
 
     for path in oracles:
         base = os.path.basename(path)
         closure = gate_cache.python_imports_under(path, CONF)
-        key = (gate_cache.sha_files(closure) + "|" + pyver) if closure else None
+        key = (gate_cache.sha_files(closure) + "|" + pyver + "|" + mine) if closure else None
         hit = cache.get(base, key)
         if hit is not None:
             v = hit["value"]
