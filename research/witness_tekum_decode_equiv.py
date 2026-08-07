@@ -37,7 +37,33 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 REL = "fpga/openxc7-synth/tekum_decode_param.v"
-FIXED_AT = "e0e4e0f"      # the commit that changed the loop bound; ^ is the before
+OLD_LOOP = "k < pbits; k"           # what the pre-fix file contains
+NEW_LOOP = "k < PAYLOAD_BITS; k"    # what the current file must contain
+
+
+def find_prefix_revision():
+    """The newest revision of REL, on any ref, that still has the old loop.
+
+    Deliberately NOT a pinned SHA. This repo squash-merges, so the commit that
+    made the change does not survive on main under its own hash, and a witness
+    pinned to it would start reporting "cannot read the pre-fix version" the
+    moment its branch was tidied up -- which reads like the witness broke rather
+    than like the history moved.
+
+    Returns None if no such revision is reachable. The caller must then refuse to
+    run, not fabricate a "before": a hand-written pre-fix file that differs from
+    the real one proves nothing, which is the entire point of this witness.
+    """
+    r = subprocess.run(["git", "log", "--all", "--format=%H", "--", REL],
+                       cwd=ROOT, capture_output=True, text=True)
+    if r.returncode != 0:
+        return None
+    for sha in r.stdout.split():
+        got = subprocess.run(["git", "show", "%s:%s" % (sha, REL)],
+                             cwd=ROOT, capture_output=True, text=True)
+        if got.returncode == 0 and OLD_LOOP in got.stdout:
+            return sha, got.stdout
+    return None
 
 TB = r"""
 `timescale 1ns/1ps
@@ -86,20 +112,20 @@ def main():
         widths = [int(x) for x in sys.argv[sys.argv.index("--widths") + 1].split(",")]
 
     new_src = open(os.path.join(ROOT, REL), encoding="utf-8").read()
-    r = subprocess.run(["git", "show", "%s^:%s" % (FIXED_AT, REL)],
-                       cwd=ROOT, capture_output=True, text=True)
-    if r.returncode != 0:
-        print("cannot read the pre-fix version from git (%s^)." % FIXED_AT)
-        print("Without a real 'before' there is nothing to compare -- not guessing one.")
+    if NEW_LOOP not in new_src:
+        print("the current file does not contain the fixed loop -- nothing to witness.")
         return 2
-    old_src = r.stdout
 
-    if "k < pbits; k" not in old_src:
-        print("the pre-fix file does not contain the loop this witness is about.")
+    found = find_prefix_revision()
+    if not found:
+        print("no revision of %s reachable from any ref still contains the pre-fix" % REL)
+        print("loop. Without a real 'before' there is nothing to compare, and this")
+        print("witness will not guess one. Fetch the branch that carried the fix.")
         return 2
-    if "k < PAYLOAD_BITS; k" not in new_src:
-        print("the current file does not contain the fixed loop.")
-        return 2
+    sha, old_src = found
+    print("pre-fix revision : %s" % sha[:12])
+    print("post-fix         : working tree")
+    print()
 
     total, bad_total = 0, 0
     with tempfile.TemporaryDirectory() as d:
