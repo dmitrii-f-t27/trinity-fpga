@@ -28,9 +28,15 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 WF = os.path.join(ROOT, ".github", "workflows", "build-matrix.yml")
 
-OLD = 'READS="gf_adder_param.v gf_mul_param.v ${DESIGN}.v"'
-NEW = ('READS="gf_adder_param.v gf_mul_param.v gf_div_param.v '
+# Pass 284 measured the full sweep and found 37 targets in this class, not 36.
+# The three cores below fix 36 of them. The 37th,
+# corona_compute_gf16_plus_mac_ax7203, instantiates gf16_plus_mac -- which exists
+# as fpga/openxc7-synth/gf16_plus_mac.v and was simply never listed. Adding it
+# makes that target build too, verified under the workflow's own flags.
+OLD = ('READS="gf_adder_param.v gf_mul_param.v gf_div_param.v '
        'gf_quire_param.v gf_sqrt_param.v ${DESIGN}.v"')
+NEW = ('READS="gf_adder_param.v gf_mul_param.v gf_div_param.v '
+       'gf_quire_param.v gf_sqrt_param.v gf16_plus_mac.v ${DESIGN}.v"')
 
 
 def main():

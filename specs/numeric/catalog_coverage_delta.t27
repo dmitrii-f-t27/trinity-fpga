@@ -7692,3 +7692,31 @@ correction "item 7's verdict contradicted its own section" {
   cause "passes 260 to 273 implemented the workloads and updated the body. The summary row -- the line a reader actually scans -- was left behind"
   now "reimplemented -- the cited script has four suites, one of them one of the seven; all seven now runnable here"
 }
+
+verification "the build-matrix sweep finished, sixteen passes after it started" {
+  tool "research/audit_build_matrix_path.py, launched pass 268 in worktree wt117"
+  result "3,203 compute targets attempted. 3,138 would build on dispatch. 65 would not: 37 missing a module, 28 timed out at 300s on wide formats (binary64, gf128) -- slow, not broken"
+
+  the_premise_expired_mid_run "the copy running in wt117 hard-coded READS as gf_adder_param.v gf_mul_param.v. PR #483 added gf_div_param, gf_quire_param and gf_sqrt_param to the workflow WHILE THE SWEEP WAS RUNNING. So the 37 were measured against a source list the workflow had already stopped using"
+  main_was_already_right "the version on main parses the READS line out of build-matrix.yml -- workflow_cores(). Only the sixteen-pass run was stale, not the tool"
+
+  re_measured "all 37 re-synthesised under the CURRENT list, with the workflow's own per-op flags. 36 build. PR #483 estimated 36 and fixed exactly 36"
+  the_thirty_seventh "corona_compute_gf16_plus_mac_ax7203 instantiates gf16_plus_mac, which exists as fpga/openxc7-synth/gf16_plus_mac.v and was simply never listed. Adding it makes the target build -- verified, 1,209 LUTs under the workflow's flags"
+  applied "research/apply_build_matrix_reads.py, comment-free one-line change to the READS list. Direct edits to .github are refused at tool level; the script is the established route"
+
+  what_a_stale_measurement_was_still_worth "a sweep measuring an expired premise still found the one target the fix missed. Its 37 was right about the tree even while being wrong about the workflow"
+  symmetry "the same GF16+ MAC whose ORACLE was found blind in pass 280 -- gf16_plus_flush with zero callers and zero coverage -- is the one whose RTL wrapper could not be dispatched. Two independent holes around one feature, found five passes apart by unrelated gates"
+}
+
+verification "corrections item 6 now has a script, and four of five cores reproduce" {
+  debt "like item 5 before pass 283, item 6's measurements were made in a session and typed into markdown with no tool behind them"
+  tool "research/audit_additional_cores.py"
+
+  result "Ternary MAC 55/0 exact. GF Sqrt 128 LUT/8 DSP exact. GF Div 207/0 exact. takum16 native MUL 495 against 505, 2% drift. GF Quire 1,063 against 75 -- 14.17x"
+  new_datum "takum16_native_mul measures 495, which item 6 never had. It reinforces the tracing: 505 is takum16's multiply in the source table, not GF16's, whose multiply is 587 there"
+  therefore "the paper's 580 = 505 + 75 uses takum16's multiply figure for a GF16+ MAC, plus a Quire figure that is off by fourteen times. If the Quire is 1,063 the MAC is roughly 1,650"
+
+  flags_are_per_core "GF Sqrt is measured WITHOUT -nodsp because the table records 8 DSPs for it. Pass 258 forced -nodsp onto that row, got 4,818 against 128, and reported the table as wrong. The table was right and the flag was mine. DSP count is now compared alongside LUTs, which is exactly how that error would have been caught a pass earlier"
+
+  a_trap_hit_and_caught "the first run reported all three cores at 0 LUT. yosys prints stat as COUNT then NAME and the regex expected name-then-count, so it matched nothing. Three cores at exactly zero is the signature of a broken parser, not of three empty designs. The tool now refuses to report a measurement when stat yields no cell counts at all"
+}
