@@ -7812,3 +7812,17 @@ verification "item 10 is now checked on all seven workloads, not five" {
   registered "the package runner now carries 7,10a and 7,10b as separate rows, so a regression in either half is visible rather than averaged"
   same_discipline "the ORDERING is asserted, never the medians, which move with the trial count"
 }
+
+verification "which checks is no runner looking at -- asked mechanically" {
+  from "pass 290 found sixteen verify_ scripts outside every sweep BY LOOKING. A prefix is a bad way to decide what runs, and spotting the next missing prefix by eye is worse"
+  tool "research/audit_runner_coverage.py"
+
+  result "291 runnable checks, 0 reachable from no runner, 79 reached ONLY by a bare *.py wildcard"
+  the_distinction_that_matters "a bare wildcard covers everything and therefore distinguishes nothing -- its count cannot drop when a check is added, so it cannot warn about one. audit_script_tree and audit_reproducibility both glob *.py, and between them they make every file 'covered'. The 79 are the files no PURPOSEFUL runner has ever been taught about"
+
+  three_wrong_numbers_before_the_right_one "this file was wrong three times, each in a way this campaign has already named"
+  first "189 uncovered -- it looked only at the three aggregate runners and missed that audit_selftest_sensitivity globs and EXECUTES conformance/*_ref.py. A gate that discovers its own inputs covers them. Mostly false"
+  second "0 uncovered -- coverage was a substring search over the whole source, so a filename MENTIONED IN A DOCSTRING counted. This file names verify_tier_e.py in its own opening paragraph, so it covered that script by talking about it. A check that could not fail, which is exactly what pass 282's audit_unconditional_pass exists to find"
+  third "0 again -- every audit_/witness_/verify_ script counted as an executor, and several of them, INCLUDING THIS ONE, glob *.py in order to READ files. It declared itself a runner and covered the corpus by scanning it"
+  fix "an executor must EXECUTE: sys.executable in a subprocess call. Reading a file is not running it, and this file excludes itself outright"
+}
