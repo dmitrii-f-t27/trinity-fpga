@@ -7864,3 +7864,25 @@ verification "the invariant sweep, with both remaining exclusions justified" {
 
   scope "measured through gf6 at the time of writing; the sweep is still running. Formats past that are unmeasured, which is not the same as clean"
 }
+
+finding "the sweep asked x+0 without knowing where zero was" {
+  where "research/verify_arithmetic_invariants.py"
+  fault "`zero = 0` was hardcoded. The zero CODE is not the literal 0 in every format"
+  cases "nf4 puts zero at code 7 and decodes code 0 to MINUS ONE. lns8 puts it at 64 and decodes code 0 to ONE. lns16 puts it at 16384"
+  consequence "the sweep computed x + (-1) for nf4 and x + 1 for the LNS family and reported the result as 'x + 0'. That is where nf4's 14/14 and every LNS row came from -- all artefacts of asking the wrong question"
+  fix "ask the format where its zero is: getattr(fmt, 'pos_zero', 0)"
+  effect "violations fall from 7 formats to 2. nf4 and all four LNS formats clear completely"
+
+  what_survives "bcd 7/7 and cray_float 1/1, both in legacy_ref, both value-changing rather than re-encodings. The cray_float case is the denormal-versus-flush inconsistency pass 293 recorded and did not guess at"
+}
+
+verification "the invariant sweep finishes, and reports what it could not reach" {
+  before "it stopped at gf6 with no summary and exit 0, so 24 of 85 oracles read as the whole corpus -- the coverage-smaller-than-corpus shape pass 291 named"
+  cause "not a hang. It was still working on gf64, and had been for hours: these oracles compute in exact rationals and a wide exponent field makes Fractions with tens of thousands of digits"
+  wrong_axis "capping on WIDTH was wrong -- gf64 is 64 bits and intractable, int64 is 64 bits and trivial. The cost is the EXPONENT RANGE, so the cap is now exp_bits > 15"
+
+  result "72 of 85 measured. 4 skipped as intractable WITH THE REASON PRINTED -- gf48, gf64, gf96, gf128, exponent fields of 18 to 49 bits. 9 not measured and named"
+  commutativity "OK on all 72. comm+ and comm* are the two laws that admit no design-choice defence, and nothing violates them"
+  heartbeat_added "each format is announced BEFORE it is measured. Without that the only evidence of work is the absence of the next line, which is also what a dead process looks like"
+  not_measured_is_not_clean "the summary says so in those words, because 9 formats absent from the table have had no law checked against them"
+}
