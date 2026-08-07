@@ -137,8 +137,30 @@ def _selftest():
     _, out = gf16_plus_mac(0.0, one, one, OP_FLUSH)
     assert out == GF16.pos_zero, f"empty flush -> {out:#06x}"
 
-    print(f"SELF-TEST: PASS  (3x1.0 flush = {gf16_to_binary64(out) and 3.0}; "
-          f"MAC/MACSUB/FLUSH ops OK)")
+    # --- Test 5: the standalone flush wrapper agrees with the OP_FLUSH path ---
+    # gf16_plus_flush had no caller anywhere in the tree and no coverage here, so
+    # it could be corrupted arbitrarily and this self-test still passed. Pass 279's
+    # mutation gate could not see that either: it looked for encode/decode/*_add/
+    # *_mul, and this module imports all of those from gf_ref and defines none of
+    # them, so it was reported "not assessed" rather than "unchecked".
+    #
+    # The property worth pinning is that the wrapper and the inline OP_FLUSH branch
+    # are the same function of the accumulator. Two code paths that must agree are
+    # worth more than either checked alone.
+    for probe in (0.0, 1.0, -1.0, 3.0, 6.0, 0.5, -0.125, 1024.0, 1e-5, 65504.0):
+        _, via_op = gf16_plus_mac(probe, one, one, OP_FLUSH)
+        via_wrapper = gf16_plus_flush(probe)
+        assert via_wrapper == via_op, (
+            f"flush disagreement at state {probe}: "
+            f"wrapper {via_wrapper:#06x} != OP_FLUSH {via_op:#06x}")
+
+    # Was: `{gf16_to_binary64(out) and 3.0}`, labelled "3x1.0 flush". That
+    # expression cannot disagree with itself -- it yields 3.0 whenever the decode is
+    # truthy and the decoded value otherwise, so it reported 3.0 for a correct
+    # result and 0.0 for `out`, which by this point is Test 4's empty flush, not the
+    # 3.0 case at all. A line that prints a constant dressed as a measurement.
+    print(f"SELF-TEST: PASS  (5 tests; flush wrapper agrees with OP_FLUSH on "
+          f"10 states; MAC/MACSUB/FLUSH ops OK)")
 
 
 if __name__ == "__main__":
