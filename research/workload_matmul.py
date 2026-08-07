@@ -147,6 +147,7 @@ def main():
         header += " %-14s" % ("%s(M%s)" % (label, M))
     print(header)
 
+    medians = {}
     for dname, draw in DISTRIBUTIONS.items():
         row = "%-14s" % dname
         for label, mod, fmt, M in FORMATS:
@@ -161,8 +162,10 @@ def main():
                 e, ov = matmul_error(mod, fmt, A, B, n, k, normwise=NORMWISE)
                 worst.append(e)
                 overflows += ov
+            med = statistics.median(worst)
+            medians[(dname, label)] = med
             row += " %6.2f/%-6.2f%s" % (
-                100 * max(worst), 100 * statistics.median(worst),
+                100 * max(worst), 100 * med,
                 ("*%d" % overflows) if overflows else "  ")
         print(row)
 
@@ -171,6 +174,37 @@ def main():
     print()
     print("The claim under test: BF16 (M=7) shows 1.5-10% max error depending on")
     print("input distribution, GF14 (M=8) is borderline, GF16 (M=9) is robust.")
+    print()
+
+    # Item 10's other half. research/workload_suite.py checks the five non-matmul
+    # workloads; these matmul rows were the two the corrections table quotes and
+    # the only part of the item with nothing asserting it. Pass 289 said so
+    # explicitly rather than letting 5 of 7 read as the whole claim.
+    #
+    # The ORDERING is asserted, not the medians, for the same reason as there: the
+    # medians move with the trial count and the ordering is what item 10 says.
+    print("ITEM 10 -- does posit16 still beat GF16 on every distribution here?")
+    beaten, lost = [], []
+    for dname in DISTRIBUTIONS:
+        p16 = medians.get((dname, "posit16"))
+        g16 = medians.get((dname, "GF16"))
+        if p16 is None or g16 is None:
+            continue
+        (beaten if p16 <= g16 else lost).append((dname, 100 * p16, 100 * g16))
+    for dname, a, b in beaten:
+        print("  %-14s posit16 %7.2f  <=  GF16 %7.2f" % (dname, a, b))
+    for dname, a, b in lost:
+        print("  %-14s posit16 %7.2f   >   GF16 %7.2f   <<< GF16 WINS HERE"
+              % (dname, a, b))
+    print()
+    print("  posit16 lower or equal on %d of %d, higher on %d"
+          % (len(beaten), len(beaten) + len(lost), len(lost)))
+    if lost:
+        print("  Item 10 says posit16 dominates. It no longer does on every")
+        print("  distribution -- the item needs narrowing to the ones it still wins.")
+        return 1
+    print("  Item 10 holds on the matmul half. With workload_suite's five, the")
+    print("  claim is now checked across all seven of the paper's named workloads.")
     return 0
 
 
