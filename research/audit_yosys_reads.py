@@ -30,6 +30,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gate_cache                                                  # noqa: E402
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 SYNTH = os.path.join(ROOT, "fpga", "openxc7-synth")
@@ -77,12 +80,42 @@ def main():
         print("no Verilog under %s" % SYNTH)
         return 2
 
+    # 3,594 files at ~40ms each is past run_all_gates.py's budget, so this gate
+    # timed out rather than ran -- and a gate that does not run is not a gate.
+    # `read_verilog <file>` takes no include path and no libdir, so that file's
+    # bytes plus the yosys version ARE the whole input, and a verdict keyed on
+    # them cannot go stale. --no-cache re-derives everything; the two must agree,
+    # which research/audit_cache_honesty.py checks.
+    cache = gate_cache.Cache("yosys_reads", enabled="--no-cache" not in sys.argv)
+    ver = gate_cache.tool_version(["yosys", "-V"])
+
+    todo, results = [], {}
+    for p in files:
+        key = gate_cache.sha_files([p]) + "|" + ver
+        # Unit is the basename, not the absolute path: every file here lives in one
+        # directory so basenames are unique, and a cache keyed on absolute paths is
+        # useless the moment the tree is checked out anywhere else. It is still
+        # per-checkout in practice -- .gate_cache/ is ignored, so a fresh worktree
+        # starts cold -- but nothing about the key stops it being carried.
+        hit = cache.get(os.path.basename(p), key)
+        if hit is None:
+            todo.append((p, key))
+        else:
+            results[p] = hit["value"]
+
     failed, tb_failed = [], []
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as ex:
-        for path, err in ex.map(read_one, files):
-            if err:
-                (tb_failed if is_testbench(path) else failed).append(
-                    (os.path.basename(path), err))
+        for path, err in ex.map(read_one, [p for p, _ in todo]):
+            results[path] = err
+    for p, key in todo:
+        cache.put(os.path.basename(p), key, results[p])
+    cache.save()
+
+    for path in files:
+        err = results.get(path)
+        if err:
+            (tb_failed if is_testbench(path) else failed).append(
+                (os.path.basename(path), err))
 
     buckets = collections.defaultdict(list)
     for base, err in failed:
@@ -91,6 +124,7 @@ def main():
     tbs = sum(1 for f in files if is_testbench(f))
     print("files under fpga/openxc7-synth : %d  (%d of them testbenches)"
           % (len(files), tbs))
+    print("%s" % cache.summary())
     print("SYNTHESIS SOURCES yosys cannot read : %d" % len(failed))
     print("testbenches it cannot read          : %d  (not a defect -- reported for completeness)"
           % len(tb_failed))

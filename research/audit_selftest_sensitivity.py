@@ -52,6 +52,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 CONF = os.path.join(ROOT, "conformance")
 
+sys.path.insert(0, HERE)
+import gate_cache                                                  # noqa: E402
+
 MUTATION = '''
 # --- injected by research/audit_selftest_sensitivity.py; removed after the run ---
 _orig_{fn} = {fn}
@@ -208,20 +211,48 @@ def main() -> int:
         oracles = [o for o in oracles if want in os.path.basename(o)]
     insensitive, sensitive, skipped = [], [], []
 
+    # Sixteen oracles, up to five mutations each, a self-test run per mutation:
+    # past run_all_gates.py's budget, so this timed out rather than ran. The
+    # verdict for one oracle depends on its own bytes AND on every conformance
+    # module its self-test imports, so the key covers that closure -- asked of the
+    # interpreter, not inferred from `import` lines, because deferred and
+    # conditional imports are exactly what a regex misses and a missed input is a
+    # stale verdict wearing a green light. An oracle that will not import gets no
+    # key and is never cached.
+    cache = gate_cache.Cache("selftest_sensitivity",
+                             enabled="--no-cache" not in sys.argv)
+    pyver = "py%d.%d" % sys.version_info[:2]
+
     for path in oracles:
         base = os.path.basename(path)
+        closure = gate_cache.python_imports_under(path, CONF)
+        key = (gate_cache.sha_files(closure) + "|" + pyver) if closure else None
+        hit = cache.get(base, key)
+        if hit is not None:
+            v = hit["value"]
+            {"sensitive": sensitive, "insensitive": insensitive,
+             "skipped": skipped}[v["bucket"]].append(
+                base if v["bucket"] == "sensitive" else (base, v["note"]))
+            continue
+
+        def record(bucket, note=""):
+            cache.put(base, key, {"bucket": bucket, "note": note})
+
         if not has_selftest(path):
             skipped.append((base, "no self-test"))
+            record("skipped", "no self-test")
             continue
         clean_rc, clean_tail = run_selftest(path)
         if clean_rc != 0:
             skipped.append((base, f"self-test already failing: {clean_tail}"))
+            record("skipped", f"self-test already failing: {clean_tail}")
             continue
 
         original = io.open(path, encoding="utf-8").read()
         fns = targets(original)
         if not fns:
             skipped.append((base, "no encode or decode to mutate"))
+            record("skipped", "no encode or decode to mutate")
             continue
         survived = []
         for fn in fns:
@@ -229,11 +260,16 @@ def main() -> int:
             if rc == 0:
                 survived.append((fn, tail))
         if survived:
-            insensitive.append((base, "; ".join(f"{fn} survives" for fn, _ in survived)))
+            note = "; ".join(f"{fn} survives" for fn, _ in survived)
+            insensitive.append((base, note))
+            record("insensitive", note)
         else:
             sensitive.append(base)
+            record("sensitive")
         if verbose:
             print(f"  {base:<20} clean rc=0, mutated rc={rc}")
+    cache.save()
+    print(cache.summary())
 
     print(f"oracles with a self-test              : "
           f"{len(sensitive) + len(insensitive)}")

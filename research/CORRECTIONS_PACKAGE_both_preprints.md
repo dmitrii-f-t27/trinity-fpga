@@ -305,9 +305,11 @@ unsigned integers. Without that it fell through to the default branch, flipped
 bit 7 — which for E8M0 changes the *exponent* — and produced a 65,536-vector pack
 of nonsense, which is what a first run actually wrote before it was caught.
 
-**Still proposed:** amend the erratum's sentence. It said a pack "remains in
-force" when none existed; now one does, but the sentence was not true when
-written.
+**Amended in pass 276.** `research/ERRATUM_arXiv_2606.09686_catalog_count.md` no
+longer says a pack "remains in force". The claim is dropped from the note and the
+history recorded beneath it: the sentence was untrue when written, the hardware
+claim was never affected, and pass 266 built what was missing. Item 8 is closed
+in both directions — the gap and the sentence that papered over it.
 
 ## 9. Three citations resolve to nothing
 

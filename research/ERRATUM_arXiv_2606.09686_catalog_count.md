@@ -25,7 +25,9 @@ Of the 6 conformance packs listed in the abstract (GF16, MXFP4 element, BF16, FP
 
 The most likely reason for the number 84 in v1 is counting E8M0 block scale as a separate format on equal footing with the element formats. The canonical SSOT treats E8M0 as a component of microscaling, so the canonical number = **83**.
 
-> Note: the presence of a conformance pack for E8M0 is correct and remains in force — the pack covers the block-scale component. This does not cancel the pack; it only clarifies that E8M0 is not counted as a separate catalog row.
+> Note: E8M0 has a conformance pack covering the block-scale component. Nothing here cancels it; this only clarifies that E8M0 is not counted as a separate catalog row.
+
+**Correction to this erratum, pass 276.** The sentence above previously read "the presence of a conformance pack for E8M0 is correct and **remains in force**". It was not true when written: on the day this erratum was drafted no `e8m0` pack existed in `conformance/vectors/` and no oracle in `conformance/*_ref.py` carried an `e8m0` format key. Only a decode *host* existed, plus RTL wrappers and a Tier-E decode cell — which is why the hardware claim was never affected. Pass 266 built the missing pieces: `conformance/e8m0_ref.py`, and `e8m0_add.json` / `e8m0_mul.json` at 65,536 vectors each, exhaustive over all 256×256 operand pairs. There is deliberately no `e8m0_sub.json` — E8M0 has no sign bit and no zero, so negation is undefined for it. The sentence is now true; it is corrected here rather than quietly edited because it was written as a reassurance about something nobody had checked, and that is the kind of sentence worth leaving a mark on.
 
 ## 3. Corrections (v1 → v2)
 
