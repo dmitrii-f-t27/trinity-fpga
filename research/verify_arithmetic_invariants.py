@@ -34,6 +34,25 @@ CONF = os.path.join(REPO, "conformance")
 K = 24          # codes sampled per format -> K*K ordered pairs
 
 
+def k_for(width):
+    """Sample size, scaled by width.
+
+    A flat K=24 gives 576 ordered pairs, and on a 64-bit format each operation is
+    exact rational arithmetic over denominators like 1.67e47. The sweep did not
+    hang at gf6 -- it was still working on gf64, and had been for hours. It printed
+    nothing while doing so, so a slow format and a dead process looked identical,
+    and 24 of 85 oracles read as the whole corpus.
+
+    Narrow formats keep the dense sample; wide ones get a smaller one, which is a
+    weaker check than K=24 and an infinitely stronger one than never finishing.
+    """
+    if width <= 32:
+        return K
+    if width <= 64:
+        return 10
+    return 8
+
+
 def arithmetic_of(mod):
     """Find (add, mul) under any naming convention used in this tree.
 
@@ -158,15 +177,36 @@ def main() -> int:
           flush=True)
 
     violations = {}
+    measured = []
+    unmeasurable = []
     for name in sorted(oracles):
         mod, fmt = oracles[name]
         f_add, f_mul = arithmetic_of(mod)
         if f_add is None or f_mul is None:
             continue
         width = width_of(fmt, name)
-        if width == 0 or width > 64:
+        if width == 0 or width > 128:
             continue
-        codes = sample_codes(width)
+        # The real cost is the EXPONENT RANGE, not the width. These oracles compute
+        # in exact rationals, so a format whose exponent reaches 2**16000 produces
+        # Fractions with tens of thousands of digits, and one multiply can take
+        # minutes. gf128 with only 8 sampled codes ran for a quarter of an hour
+        # without finishing a single row.
+        #
+        # Capping on width was the wrong axis: gf64 is 64 bits and intractable,
+        # int64 is 64 bits and trivial. Cap on what actually explodes, and SAY the
+        # format was skipped rather than letting it read as clean.
+        ebits = getattr(fmt, "exp_bits", None) or getattr(fmt, "E", 0)
+        if isinstance(ebits, int) and ebits > 15:
+            unmeasurable.append((name, "exponent field %d bits -- exact rational "
+                                       "arithmetic is intractable" % ebits))
+            continue
+        k = k_for(width)
+        codes = sample_codes(width, k)
+        # Announce BEFORE measuring. Without this the only evidence a format is
+        # being worked on is the absence of the next line, which is also what a
+        # dead process looks like.
+        print(f"  ... {name} (w={width}, k={k})", end="\r", flush=True)
 
         bad = {"comm_add": 0, "comm_mul": 0, "id_add": 0, "id_mul": 0,
                "ann_mul": 0, "reenc": 0}
@@ -174,7 +214,16 @@ def main() -> int:
         has_zero = name.lower() not in NO_ZERO
 
         # identity / annihilator need the codes for 0 and 1
-        zero = 0
+        #
+        # The zero CODE is not the literal 0 in every format. nf4 puts zero at code
+        # 7 and decodes code 0 to -1; lns8 puts it at 64 and decodes code 0 to 1;
+        # lns16 puts it at 16384. With `zero = 0` hardcoded, the sweep was computing
+        # x + (-1) for nf4 and x + 1 for the LNS family and calling the result
+        # "x + 0". That is where nf4's 14/14 and the LNS rows came from: every one
+        # an artefact of asking the wrong question.
+        #
+        # Ask the format where its zero is.
+        zero = getattr(fmt, "pos_zero", 0)
         one = None
         if hasattr(mod, "encode"):
             try:
@@ -260,15 +309,31 @@ def main() -> int:
         def cell(k):
             return "OK" if bad[k] == 0 else str(bad[k])
 
+        print(" " * 40, end="\r")          # clear the progress line
         zcell = "n/a" if not has_zero else cell('ann_mul')
         print(f"{name:<14}{pairs:>7}  {cell('comm_add'):<7}{cell('comm_mul'):<7}"
               f"{('n/a' if not has_zero else cell('id_add')):<7}"
               f"{cell('id_mul'):<7}{zcell:<7}"
               f"{(str(bad['reenc']) if bad['reenc'] else '-'):<7}", flush=True)
-        real = {k: v for k, v in bad.items() if k != "reenc"}
+        real = {kk: vv for kk, vv in bad.items() if kk != "reenc"}
         if any(real.values()):
             violations[name] = dict(bad)
+        measured.append(name)
 
+    print()
+    print()
+    print(f"formats measured : {len(measured)} of {len(oracles)} oracles loaded")
+    if unmeasurable:
+        print("skipped as intractable, with the reason:")
+        for n, why in unmeasurable:
+            print("    %-14s %s" % (n, why))
+        print()
+    skipped = sorted(set(oracles) - set(measured) - {n for n, _ in unmeasurable})
+    if skipped:
+        print(f"not measured     : {len(skipped)}  ({', '.join(skipped[:8])}"
+              f"{' ...' if len(skipped) > 8 else ''})")
+        print("  Not measured is NOT clean. A format absent from the table above")
+        print("  has had no law checked against it.")
     print()
     if violations:
         print(f"VIOLATIONS in {len(violations)} format(s):")
