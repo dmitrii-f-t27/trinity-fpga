@@ -111,6 +111,31 @@ def is_special(mod, fmt, raw) -> bool:
     return f != f or abs(f) == float("inf")
 
 
+# E8M0 (OCP MX v1.0) is exponent-only: 2**(code-127), 0xFF is NaN, and there is
+# NO ZERO and no sign. Pass 266 established that when building its oracle and
+# deliberately wrote no e8m0_sub pack for the same reason. The zero-based laws are
+# not violated by it, they are undefined for it -- and the loop below hardcodes
+# `zero = 0`, which for E8M0 names the code for 2**-127, not zero at all. Asking
+# was a category error and it produced 2 and 9.
+NO_ZERO = {"e8m0"}
+
+
+def same_value(mod, fmt, a, b):
+    """Do two codes decode to the same value, whatever their encodings?"""
+    try:
+        return mod.decode(fmt, a) == mod.decode(fmt, b)
+    except Exception:
+        return False
+
+
+def is_zero_value(mod, fmt, raw):
+    try:
+        v = mod.decode(fmt, raw)
+        return getattr(v, "kind", None) is None and v == 0
+    except Exception:
+        return False
+
+
 def sample_codes(width, k=K):
     span = 1 << width
     if span <= k:
@@ -125,8 +150,12 @@ def sample_codes(width, k=K):
 def main() -> int:
     oracles = load_oracles()
     print(f"{'format':<14}{'pairs':>7}  {'comm+':<7}{'comm*':<7}"
-          f"{'x+0':<7}{'x*1':<7}{'x*0':<7}", flush=True)
-    print("-" * 62, flush=True)
+          f"{'x+0':<7}{'x*1':<7}{'x*0':<7}{'reenc':<7}", flush=True)
+    print("-" * 69, flush=True)
+    print("reenc = value preserved, encoding changed. Not a violation: IEEE",
+          flush=True)
+    print("754-2008 gives decimal a preferred exponent. n/a = format has no zero.",
+          flush=True)
 
     violations = {}
     for name in sorted(oracles):
@@ -139,8 +168,10 @@ def main() -> int:
             continue
         codes = sample_codes(width)
 
-        bad = {"comm_add": 0, "comm_mul": 0, "id_add": 0, "id_mul": 0, "ann_mul": 0}
+        bad = {"comm_add": 0, "comm_mul": 0, "id_add": 0, "id_mul": 0,
+               "ann_mul": 0, "reenc": 0}
         pairs = 0
+        has_zero = name.lower() not in NO_ZERO
 
         # identity / annihilator need the codes for 0 and 1
         zero = 0
@@ -189,15 +220,37 @@ def main() -> int:
             #   cross-validator, surviving here because nobody ran the file.
             #
             # Stated correctly, both are real constraints and any violation is one.
+            if not has_zero:
+                continue
             is_neg_zero = (a == getattr(fmt, "neg_zero", None))
             try:
-                if not is_neg_zero and f_add(fmt, a, zero) != a:
-                    bad["id_add"] += 1
+                # By VALUE, not by code. IEEE 754-2008 gives decimal arithmetic a
+                # PREFERRED EXPONENT: x + 0 preserves the value and may change the
+                # encoding, so bit-equality is simply the wrong comparison for that
+                # family and reported decimal32 3, decimal64 7, bcd 13. Pass 185
+                # already had to pull the same bit-for-bit assertion out of the
+                # decimal cross-validator; this is its second appearance.
+                #
+                # A re-encoding is counted apart, under `reenc`, because it is worth
+                # seeing and is not a violation. A changed VALUE is the violation.
+                if not is_neg_zero:
+                    got = f_add(fmt, a, zero)
+                    if got != a:
+                        if same_value(mod, fmt, got, a):
+                            bad["reenc"] += 1
+                        else:
+                            bad["id_add"] += 1
                 prod = f_mul(fmt, a, zero)
-                if prod not in (zero, getattr(fmt, "neg_zero", zero)):
+                if prod not in (zero, getattr(fmt, "neg_zero", zero)) \
+                        and not is_zero_value(mod, fmt, prod):
                     bad["ann_mul"] += 1
-                if one is not None and f_mul(fmt, a, one) != a:
-                    bad["id_mul"] += 1
+                if one is not None:
+                    got1 = f_mul(fmt, a, one)
+                    if got1 != a:
+                        if same_value(mod, fmt, got1, a):
+                            bad["reenc"] += 1
+                        else:
+                            bad["id_mul"] += 1
             except Exception:
                 pass
 
@@ -207,9 +260,13 @@ def main() -> int:
         def cell(k):
             return "OK" if bad[k] == 0 else str(bad[k])
 
+        zcell = "n/a" if not has_zero else cell('ann_mul')
         print(f"{name:<14}{pairs:>7}  {cell('comm_add'):<7}{cell('comm_mul'):<7}"
-              f"{cell('id_add'):<7}{cell('id_mul'):<7}{cell('ann_mul'):<7}", flush=True)
-        if any(bad.values()):
+              f"{('n/a' if not has_zero else cell('id_add')):<7}"
+              f"{cell('id_mul'):<7}{zcell:<7}"
+              f"{(str(bad['reenc']) if bad['reenc'] else '-'):<7}", flush=True)
+        real = {k: v for k, v in bad.items() if k != "reenc"}
+        if any(real.values()):
             violations[name] = dict(bad)
 
     print()

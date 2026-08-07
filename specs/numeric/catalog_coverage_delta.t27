@@ -7849,3 +7849,18 @@ verification "the widened sweep, with sixteen scripts included for the first tim
   of_the_sixteen_new "14 clean, 1 reporting findings by design (verify_legacy_by_construction), 1 timing out (verify_arithmetic_invariants) -- and that timeout is what this pass then opened"
   no_regressions "the crash count is still the only category that means one, and it is still zero"
 }
+
+verification "the invariant sweep, with both remaining exclusions justified" {
+  from "pass 292 fixed two laws and left four formats unexplained: bcd 13/13, cray_float 5/5, decimal32 3/3, decimal64 7/7, plus e8m0 2/9"
+
+  exclusion_1 "E8M0 has NO ZERO. Pass 266 established that when building its oracle and deliberately wrote no e8m0_sub pack for the same reason. The loop hardcoded `zero = 0`, which for E8M0 names the code for 2**-127 -- not zero at all. The zero-based laws are not violated by E8M0, they are undefined for it, and the column now reads n/a"
+
+  exclusion_2 "IEEE 754-2008 gives decimal arithmetic a PREFERRED EXPONENT: x + 0 preserves the VALUE and may change the ENCODING. Bit-equality is the wrong comparison for that family -- pass 185 already pulled the identical assertion out of the decimal cross-validator, and this was its second appearance. The laws now compare decoded VALUES, and a re-encoding is counted in its own column rather than as a violation"
+  result "decimal32 and decimal64 go fully clean, with 6 and 14 re-encodings. bcd falls from 13/13 to 7/7 with 12 re-encodings. cray_float falls from 5/5 to 1/1 with 8"
+
+  a_real_residual "cray_float code 0x1 decodes to Fraction(1, 1.674e47) -- a tiny denormal, NOT zero -- and add(0x1, 0) returns 0x0, exact zero. The VALUE changes. decode says that code represents a nonzero denormal; add says it is zero. The two cannot both be right"
+  not_guessed "a Cray-1 had no gradual underflow and flushed denormals, so either decode invents denormals the hardware never had, or add flushes when it should not. Settling it needs a Cray reference and the web tools have been unavailable for thirteen passes. Recorded as an inconsistency INSIDE legacy_ref, not as a verdict on which side is wrong"
+  my_own_misreading "the first probe printed both sides as 0.000000e+00 and I nearly called it a false positive. float() of 1/1.674e47 rounds to 0.0 -- the PRINTING lost the distinction the comparison had correctly kept"
+
+  scope "measured through gf6 at the time of writing; the sweep is still running. Formats past that are unmeasured, which is not the same as clean"
+}
