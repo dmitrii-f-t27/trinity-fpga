@@ -70,6 +70,43 @@ def {fn}(*a, **k):                 # noqa: F811
         return r
     if isinstance(r, int):
         return r ^ 1
+    # Containers, before the scalar path. `r != 0` on a numpy array yields an array
+    # and `if` on it raises, so every array-returning function fell through to the
+    # field-bump branch, found no fields on an ndarray, and was returned UNCHANGED.
+    # The gate then reported the self-test as surviving a mutation that never
+    # happened -- gf_mx_ref's dequantize_block, quantize_tensor, mx_mul_matrix and
+    # compute_quantization_error, four "insensitive" verdicts that were all false.
+    # Exactly the trap pass 234 hit from the other direction, recorded in this
+    # file's own docstring: the mutation was blind, not the module.
+    try:
+        import numpy as _np
+        if isinstance(r, _np.ndarray):
+            c = r.copy()
+            if c.size:
+                flat = c.reshape(-1)
+                flat[0] = flat[0] + 1 if flat[0] == 0 else flat[0] * 2
+            return c
+    except Exception:
+        pass
+    if isinstance(r, dict):
+        c = dict(r)
+        for k, v in c.items():
+            if isinstance(v, bool) or not isinstance(v, (int, float)):
+                continue
+            c[k] = v + 1 if v == 0 else v * 2
+            return c
+        return c
+    if isinstance(r, (list, tuple)):
+        seq = list(r)
+        for i, v in enumerate(seq):
+            if isinstance(v, bool):
+                continue
+            try:
+                seq[i] = v + 1 if v == 0 else v * 2
+                return type(r)(seq)
+            except Exception:
+                continue
+        return r
     try:
         return r * 2 if r != 0 else r.__class__(1)
     except Exception:
@@ -175,8 +212,16 @@ def inject(src, fn="encode"):
 
 
 def has_selftest(path):
+    """Case-insensitively, because it was not.
+
+    This matched "SELF-TEST" and "self-test" exactly. conformance/gf_mx_ref.py says
+    "Self-Test", so it was reported "no self-test" and skipped -- and behind that
+    skip sat the only oracle in the corpus whose self-test asserted nothing at all
+    and ended with an unconditional print of "ALL TESTS PASS". One capital letter
+    kept the worst case out of the gate built to find it.
+    """
     src = io.open(path, encoding="utf-8", errors="replace").read()
-    return "__main__" in src and ("SELF-TEST" in src or "self-test" in src)
+    return "__main__" in src and "self-test" in src.lower()
 
 
 def run_mutated(path, original, fn):

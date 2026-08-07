@@ -88,8 +88,16 @@ def python_imports_under(module_path, root):
         "import importlib.util,os,sys,json\n"
         "p=sys.argv[1]; root=os.path.realpath(sys.argv[2])\n"
         "sys.path.insert(0, os.path.dirname(p))\n"
-        "s=importlib.util.spec_from_file_location('_probe', p)\n"
+        "name=os.path.splitext(os.path.basename(p))[0]\n"
+        "s=importlib.util.spec_from_file_location(name, p)\n"
         "m=importlib.util.module_from_spec(s)\n"
+        # sys.modules FIRST, then exec. @dataclass resolves its annotations via
+        # sys.modules[cls.__module__].__dict__, so a module executed without being
+        # registered dies with "'NoneType' object has no attribute '__dict__'" --
+        # a failure of the probe that looks exactly like a failure of the module.
+        # It cost a false claim in pass 276: takum_log_ref was reported as "will not
+        # import" and held up as the safe branch working. It imports fine.
+        "sys.modules[name]=m\n"
         "s.loader.exec_module(m)\n"
         "out=[p]\n"
         "for mod in list(sys.modules.values()):\n"
@@ -194,7 +202,21 @@ if __name__ == "__main__":
         if python_imports_under(os.path.join(d, "bad.py"), d) is not None:
             fails.append("a module that will not import must return None, not a key")
 
-    print("SELF-TEST gate_cache: %s" % ("FAIL" if fails else "6/6 pass"))
+        # Regression for pass 276's false claim. A module defining a @dataclass
+        # imports fine normally and dies under a probe that execs it without
+        # registering it in sys.modules -- which is what happened to
+        # conformance/takum_log_ref.py, reported as "will not import" when it does.
+        # Every oracle in this corpus uses dataclasses, so the probe was one
+        # ordering mistake away from refusing to key any of them.
+        dc = os.path.join(d, "dc.py")
+        io.open(dc, "w").write(
+            "from dataclasses import dataclass\n"
+            "@dataclass\nclass F:\n    n: int = 1\n")
+        if python_imports_under(dc, d) is None:
+            fails.append("a module defining a @dataclass must import -- the probe "
+                         "is failing where the module does not")
+
+    print("SELF-TEST gate_cache: %s" % ("FAIL" if fails else "7/7 pass"))
     for f in fails:
         print("  %s" % f)
     sys.exit(1 if fails else 0)

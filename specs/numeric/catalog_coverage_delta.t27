@@ -7607,3 +7607,38 @@ correction "my own cache key missed the gate that produces the value" {
   applied_here "this gate now hashes itself into the key"
   deliberately_not_applied_to "audit_yosys_reads, whose cached value is yosys's own output for one file. Pass 278 rewrote how those strings are counted and could not have changed one of them. Hashing that gate would invalidate 3,594 units for a cosmetic edit and teach everyone to pass --no-cache, which is how a cache stops being used"
 }
+
+finding "a self-test that printed ALL TESTS PASS unconditionally" {
+  file "conformance/gf_mx_ref.py -- the second oracle pass 279 reported as not assessed"
+  what_was_there "five sections of printed numbers, ZERO assertions, ending with print(\"ALL TESTS PASS\")"
+  therefore "the oracle could decode every code to zero and still print a checkmark and the words ALL TESTS PASS. The purest form of the failure this campaign keeps finding: a claim of passing that is a constant"
+
+  why_it_was_never_caught "has_selftest() matched 'SELF-TEST' or 'self-test' case-sensitively. The file says 'Self-Test'. ONE CAPITAL LETTER kept the only oracle with no real self-test out of the gate built to find exactly that"
+
+  now "an asserting _selftest() returning an exit code. Round-trip bound, sign preservation, uniform blocks, the zero block, sub-GF14 range, scale placement in BOTH directions, quantize_tensor, compute_quantization_error, mx_mul_matrix, and stochastic rounding. Every bound derived from the format, never from what the code prints"
+  observed "worst round-trip relative error 1.937e-3 at 256.503, against a derived bound of 2**-8 = 3.906e-3 -- consistent with an 8-bit mantissa rounded to nearest"
+}
+
+correction "a dead feature that had never existed" {
+  where "conformance/gf_mx_ref.py, quantize_block(stochastic=True)"
+  was "the branch computed det_raw with added noise and then appended gf14_encode(val) anyway. The stochastic result was discarded, so stochastic=True was byte-identical to stochastic=False"
+  scope "nothing outside that file calls it, so nothing downstream was ever wrong. The feature simply did not exist"
+  now "the branch is used, and the self-test requires 20 runs on a block engineered to sit between representable points to produce more than one result"
+}
+
+correction "my own mutation operator was blind to arrays and dicts" {
+  where "research/audit_selftest_sensitivity.py, MUTATION"
+  fault "`r != 0` on a numpy array yields an array and `if` on it raises, so every array-returning function fell through to the field-bump branch, found no fields on an ndarray, and was returned UNCHANGED"
+  consequence "the gate reported four INSENSITIVE verdicts for gf_mx_ref -- dequantize_block, quantize_tensor, mx_mul_matrix, compute_quantization_error -- against a mutation that never happened. All four false"
+  echo "exactly the trap pass 234 hit from the other direction, recorded in this file's own docstring: the mutation was blind, not the module. It has now been hit twice from opposite sides"
+  now "containers are handled before the scalar path"
+}
+
+retraction "takum_log_ref imports fine -- pass 276 blamed a module for my probe's bug" {
+  claimed_in_pass_276 "takum_log_ref will not import, so it gets no key and is never cached. A unit whose inputs cannot be determined must not be remembered"
+  presented_as "the safe branch working as designed"
+  truth "the module imports without complaint. gate_cache's probe exec'd it WITHOUT registering it in sys.modules first, and @dataclass resolves annotations via sys.modules[cls.__module__].__dict__ -- so it died with 'NoneType object has no attribute __dict__', a failure of the probe wearing the module's name"
+  severity "every oracle in this corpus uses dataclasses. The probe was one ordering mistake away from refusing to key any of them"
+  now "sys.modules registration before exec, plus a self-test case that defines a @dataclass and requires the probe to succeed. 7/7. All 19 oracles get a key; previously 18"
+  the_safe_branch_is_still_right "refusing to cache a unit whose inputs cannot be determined remains correct. Only the example was mine"
+}
