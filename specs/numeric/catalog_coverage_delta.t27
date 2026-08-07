@@ -7642,3 +7642,25 @@ retraction "takum_log_ref imports fine -- pass 276 blamed a module for my probe'
   now "sys.modules registration before exec, plus a self-test case that defines a @dataclass and requires the probe to succeed. 7/7. All 19 oracles get a key; previously 18"
   the_safe_branch_is_still_right "refusing to cache a unit whose inputs cannot be determined remains correct. Only the example was mine"
 }
+
+verification "the whole corpus re-assessed under the fixed mutator" {
+  why "pass 281 taught the mutation operator to perturb numpy arrays, dicts, lists and tuples. The 17 oracles assessed BEFORE that were judged by an operator blind to array returns, so their verdicts were owed a re-run. That is a debt I incurred, not a finding"
+  run "research/audit_selftest_sensitivity.py --no-cache --verbose, all 19"
+  result "oracles with a self-test 19; fail on EVERY mutation 19; survive at least one 0; not assessed 0"
+  reading "no verdict moved. Every one of the 17 re-confirms, and the two that pass 280 and 281 repaired -- gf16_plus_ref and gf_mx_ref -- join them"
+  still_true "mutation bounds a check from below and never from above. This says the self-tests notice a corrupted return; it does not say their assertions are the right ones"
+}
+
+finding "scripts that announce success with no way to fail" {
+  generalizes "pass 281's gf_mx_ref, which printed ALL TESTS PASS unconditionally"
+  question "not 'does it print PASS' but 'can this file's main path report failure at all'. A file that announces success and has no mechanism to announce anything else is printing a constant, not reporting a result"
+  gate "research/audit_unconditional_pass.py -- AST, not grep. Counts assert, raise, a non-zero exit, and `return 1 if fails else 0`, which is the accumulator pattern this repo's own gates use and must not be flagged for"
+
+  found "conformance/gen_sw_conformance.py counted its failures, PRINTED them, and then exited 0 regardless. Any CI step running it passed while reporting its own failures in the line above. It now exits non-zero when failed > 0"
+  swept "301 Python files, 96 announce success, 0 now cannot report failure"
+
+  my_own_false_positive "the first version flagged conformance/golden_ruler.py for printing '✓ RECOMMENDED: ...' -- a recommendation, not a verdict. Half the findings were false, in a gate about announcements that are not verdicts. A bare check mark now counts only alongside a word that claims a pass, and PASS/FAIL as an outcome space is excluded"
+
+  incidental "research/verify_tier_e.py carried an invalid escape sequence in a docstring quoting an old regex. Harmless today, a SyntaxError in a future Python. The docstring is now raw"
+  limit_stated "one vacuous assert passes this gate. It finds files with no brakes; audit_selftest_sensitivity finds brakes connected to nothing. Neither subsumes the other"
+}

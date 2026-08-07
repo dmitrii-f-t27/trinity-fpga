@@ -104,3 +104,10 @@ if __name__ == "__main__":
             else:
                 failed += 1
     print(f"\nSW Conformance: {passed}/{passed+failed} PASS")
+    # The count of failures was printed and then thrown away: this script
+    # exited 0 whatever happened, so any CI step running it passed while
+    # reporting its own failures in the line above. Found by
+    # research/audit_unconditional_pass.py.
+    if failed:
+        print(f"SW Conformance FAILED: {failed} of {passed+failed}")
+    sys.exit(1 if failed else 0)

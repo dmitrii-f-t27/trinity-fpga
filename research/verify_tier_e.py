@@ -35,7 +35,7 @@ LINKS = {
 
 
 def _cell_pattern():
-    """Format names taken from the oracles, not from a list written by hand.
+    r"""Format names taken from the oracles, not from a list written by hand.
 
     The pattern here used to be an allow-list:
 
