@@ -18,9 +18,27 @@ touched.
 Errors are grouped by their message rather than listed one per line, because a
 tree this size fails in classes, not individually.
 
-Usage:  python3 research/audit_yosys_reads.py [--verbose] [--jobs N]
+WHAT "CANNOT READ" MEANS, AND WHAT IT DOES NOT
+----------------------------------------------
+This gate first reported a single number: 22 sources yosys cannot read. That was
+true of yosys's exit code and false about the tree. Three different things were in
+it:
 
-Exits non-zero if any file yosys cannot read.
+    15   a real parse defect -- yosys cannot read the Verilog
+     5   $readmemb could not open a .mem file. The design parsed fine; a weights
+         file is absent, or named relative to a directory yosys was not run from
+     1   the file executed $finish in an elaboration-time initial block, which is
+         what a self-checking file does. A testbench the name heuristic missed
+
+Only the first is a defect, and only the first fails this gate. A number that
+folds the other two in changes whenever someone moves a .mem file, and a gate
+whose number moves for reasons unrelated to its subject stops being read -- which
+is how pass 250's LUT table survived a pass and how pass 275's runner nearly
+shipped "20 failures" that were mostly inventories.
+
+Usage:  python3 research/audit_yosys_reads.py [--verbose] [--jobs N] [--no-cache]
+
+Exits non-zero only on a parse defect.
 """
 import collections
 import concurrent.futures
@@ -54,6 +72,33 @@ def classify(msg):
 # Counting those as failures would make the number mostly false, which is the way
 # a guard stops being read -- the same trap pass 243 had to pull the zero-sign
 # lint out of.
+# Not every refusal is a defect in the Verilog.
+#
+#   $readmemb cannot open its file   the design parsed. A weights file is absent or
+#                                    is named relative to a directory yosys was not
+#                                    run from. Nothing about the RTL is wrong, and
+#                                    counting it as a parse defect means the number
+#                                    changes when someone moves a .mem.
+#
+#   $finish / $stop executed         the file ran an elaboration-time initial block
+#                                    and halted on purpose. That is what a
+#                                    self-checking file DOES; it is a testbench whose
+#                                    name the heuristic below did not match.
+#
+# Both were in the 22 this gate reported as "sources yosys cannot read" -- a number
+# that was true of yosys's exit code and false about the tree.
+DATA_ERR = re.compile(r"Can not open file .* for .?\$readmem", re.I)
+HALT_ERR = re.compile(r"System task .?\$(finish|stop).? executed", re.I)
+
+
+def kind_of(err):
+    if DATA_ERR.search(err):
+        return "data"
+    if HALT_ERR.search(err):
+        return "halt"
+    return "defect"
+
+
 def is_testbench(path):
     b = os.path.basename(path)
     return (b.endswith("_tb.v") or b.startswith("tb_") or "_testbench" in b
@@ -111,26 +156,40 @@ def main():
         cache.put(os.path.basename(p), key, results[p])
     cache.save()
 
+    defects, missing_data, halted, tb_failed = [], [], [], []
     for path in files:
         err = results.get(path)
-        if err:
-            (tb_failed if is_testbench(path) else failed).append(
-                (os.path.basename(path), err))
+        if not err:
+            continue
+        row = (os.path.basename(path), err)
+        if is_testbench(path):
+            tb_failed.append(row)
+        else:
+            kind = kind_of(err)
+            {"defect": defects, "data": missing_data, "halt": halted}[kind].append(row)
 
     buckets = collections.defaultdict(list)
-    for base, err in failed:
+    for base, err in defects:
         buckets[classify(err)].append(base)
 
     tbs = sum(1 for f in files if is_testbench(f))
     print("files under fpga/openxc7-synth : %d  (%d of them testbenches)"
           % (len(files), tbs))
     print("%s" % cache.summary())
-    print("SYNTHESIS SOURCES yosys cannot read : %d" % len(failed))
-    print("testbenches it cannot read          : %d  (not a defect -- reported for completeness)"
-          % len(tb_failed))
+    print()
+    # One number for "yosys cannot read it" put a parse defect, an absent data file
+    # and a self-halting file in the same bucket, and the first version of this gate
+    # reported all 22 as though they were the same thing. They are not: only the
+    # first is a defect in the Verilog. Reporting them together is the
+    # number-that-is-mostly-true failure this campaign keeps finding in its own
+    # tools -- pass 250's LUT table, pass 275's gate runner.
+    print("PARSE DEFECTS -- yosys cannot read the Verilog  : %d" % len(defects))
+    print("absent $readmem data file (design is fine)      : %d" % len(missing_data))
+    print("file halts itself at elaboration ($finish/$stop): %d" % len(halted))
+    print("testbenches, any cause (not synthesis targets)  : %d" % len(tb_failed))
     print()
     if buckets:
-        print("%6s  %s" % ("count", "class of error"))
+        print("%6s  %s" % ("count", "class of parse defect"))
         for cls, names in sorted(buckets.items(), key=lambda kv: -len(kv[1])):
             print("%6d  %s" % (len(names), cls))
             show = names if verbose else names[:3]
@@ -139,8 +198,19 @@ def main():
             if not verbose and len(names) > 3:
                 print("          ... and %d more" % (len(names) - 3))
     else:
-        print("every file reads.")
-    return 1 if failed else 0
+        print("every synthesis source parses.")
+    for label, rows in (("absent data file", missing_data),
+                        ("halts at elaboration", halted)):
+        if rows:
+            print()
+            print("%s:" % label)
+            for base, err in rows:
+                print("    %-32s %s" % (base, err[:70]))
+    # Only a parse defect fails this gate. A missing .mem is a data question and a
+    # self-halting file is a testbench wearing the wrong name; neither says the
+    # Verilog is wrong, and counting them here would make the exit code mean less
+    # every time someone deleted a weights file.
+    return 1 if defects else 0
 
 
 if __name__ == "__main__":
