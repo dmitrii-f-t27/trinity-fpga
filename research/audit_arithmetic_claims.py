@@ -93,16 +93,47 @@ def main():
 
     print("NOISE FLOOR -- 2000 sequential steps from w=0.5, N(1e-4, 1e-3)")
     print("%-12s %-5s %12s %12s" % ("format", "M", "preserved", "paper"))
+    # Bands, not equalities. These are means over five seeds of a 2,000-step
+    # random walk, so demanding an exact figure would make the check fail on the
+    # seed rather than on the finding. The bands are wide enough to absorb the
+    # sampling and far too narrow to absorb a changed oracle: bfloat16 sits near
+    # 8% and gf16 near 64%, and nothing that preserves the finding moves either by
+    # a third.
+    BANDS = {"bfloat16": (5.0, 11.0), "gf16": (58.0, 70.0)}
+    measured = {}
+    ok_nf = True
     for name, mod, fmt, M, claim in (
             ("bfloat16", bf16_ref, bf16_ref.FORMATS["bfloat16"], 7, 7.3),
             ("gf16", gf_ref, gf_ref.FORMATS["gf16"], 9, 63.9)):
         got = statistics.mean(walk(mod, fmt, seed=s) for s in range(5))
-        print("%-12s M=%-3d %11.1f%% %11.1f%%" % (name, M, got, claim))
+        measured[name] = got
+        lo, hi = BANDS[name]
+        out = not (lo <= got <= hi)
+        ok_nf &= not out
+        print("%-12s M=%-3d %11.1f%% %11.1f%%%s"
+              % (name, M, got, claim, "   <<< OUTSIDE %.0f-%.0f%%" % (lo, hi) if out else ""))
     print()
     print("  Both reproduce. Holding the weight fixed instead of walking it")
     print("  gives 17.2%% and 71.6%% -- the walk drifts upward and the ulp grows")
     print("  with it, so the protocol is not a detail.")
-    return 0 if ok_dr else 1
+    print()
+
+    # Item 3's whole content is that the RATIO is sensitive to the bfloat16
+    # denominator: the paper's own numbers give 63.9/7.3 = 8.75, and recomputing
+    # from the oracles gives about 8.06. The finding is not a number, it is that
+    # the two differ materially. Asserting 8.06 exactly would pin the seed; this
+    # asserts that the recomputed ratio stays clearly below the published 8.7,
+    # which is the claim, and flags it if the gap ever closes.
+    ratio = measured["gf16"] / measured["bfloat16"]
+    ok_ratio = ratio < 8.5
+    print("RATIO -- item 3")
+    print("  paper      63.9 / 7.3  = 8.75, printed as 8.7x")
+    print("  recomputed %4.1f / %3.1f  = %.2fx%s"
+          % (measured["gf16"], measured["bfloat16"], ratio,
+             "" if ok_ratio else "   <<< no longer below 8.5 -- item 3 needs re-reading"))
+    print("  The finding is the GAP, not either number. 'roughly 8x' is robust to")
+    print("  the seed and the step count; '8.7x' is not.")
+    return 0 if (ok_dr and ok_nf and ok_ratio) else 1
 
 
 if __name__ == "__main__":
