@@ -7481,3 +7481,29 @@ verification "every gate run at once, for the first time" {
   the_trap_avoided "my first version flattened every exit code into pass/fail and reported 20 FAILURES out of 62. Most were inventories that exit 1 because they found something -- audit_compute_precision reporting 63 narrow cores, audit_paper_claims reporting the GF64 item -- and four were tools that need a URL or a .tex path. A gate report that is mostly false is the exact failure this series has criticised three times, and it nearly shipped here. The runner now separates crashed, timed out, needs input, has findings, and clean"
   incidental "audit_paper_claims now says 85 oracle format keys rather than 84 -- pass 266 added e8m0. The count moved because the corpus did, which is what it should do"
 }
+
+resolution "the two gates that timed out now finish, and the cache that lets them is checked against itself" {
+  from "pass 275 -- audit_yosys_reads and audit_selftest_sensitivity exceeded run_all_gates' 400s budget"
+  measured "audit_yosys_reads cold: 426 seconds over 3,594 files. Warm: 0.78 seconds. Same report both times -- 22 unreadable synthesis sources, 35 unreadable testbenches, same error classes"
+
+  mechanism "research/gate_cache.py -- a verdict per unit, keyed on a digest of every input"
+  the_only_thing_that_matters "the key. A key that misses an input reports last pass's verdict as this pass's, which is worse than the timeout it replaces, because a timeout is visibly a timeout and a stale green light is not"
+
+  key_for_yosys "the file's own bytes plus the yosys version. `read_verilog <file>` takes no include path and no libdir, so that is the whole input"
+  key_for_sensitivity "the oracle's bytes AND the transitive closure of its conformance-local imports, obtained by importing the module in a subprocess and asking sys.modules which files loaded -- not by matching import lines, since deferred and conditional imports are what a regex misses"
+
+  invalidation_tested_not_assumed "gf16_plus_ref imports gf_ref. Appending one comment to gf_ref -- the DEPENDENCY, never the oracle -- turned a hit into a miss. That is the property the whole design rests on, so it is exercised rather than argued"
+  safe_branch "takum_log_ref will not import, so it gets no key and is never cached. A unit whose inputs cannot be determined must not be remembered"
+
+  honesty_gate "research/audit_cache_honesty.py runs each cached gate cold and warm and requires identical output. It is slower than both gates together, which is the correct shape: a fast path earns its speed by being compared against the slow one somewhere"
+  limit_stated "the cache lives in research/.gate_cache/ and is gitignored, so a fresh worktree starts cold. The win is within a checkout, across repeated runs -- not across machines"
+}
+
+correction "an erratum sentence that reassured about something nobody had checked" {
+  where "research/ERRATUM_arXiv_2606.09686_catalog_count.md"
+  said "the presence of a conformance pack for E8M0 is correct and remains in force"
+  truth "on the day it was written no e8m0 pack existed in conformance/vectors/ and no oracle carried an e8m0 format key. Only a decode host, RTL wrappers and a Tier-E decode cell -- which is why the hardware claim was never touched"
+  now "pass 266 built conformance/e8m0_ref.py and the two 65,536-vector packs. The sentence is true today"
+  action "the claim is dropped from the note and the history recorded beneath it rather than quietly edited, because a sentence written as reassurance about an unchecked thing is worth leaving a mark on"
+  closes "corrections package item 8, in both directions -- the gap, and the sentence that papered over it"
+}

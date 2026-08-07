@@ -36,6 +36,11 @@ SKIP = {
     "audit_build_matrix_path.py": "hours of synthesis -- run it deliberately",
     "witness_gf_adder_rtl.py": "minutes per format under iverilog",
     "run_all_gates.py": "this script",
+    # Runs two gates three times each, twice of them cold, on purpose. It is the
+    # check on the cache that lets those two gates finish here at all, and it is
+    # slower than both of them put together -- which is correct: the fast path
+    # earns its speed by being compared against the slow one somewhere.
+    "audit_cache_honesty.py": "runs the cached gates cold to compare -- run it deliberately",
 }
 
 

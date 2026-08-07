@@ -414,3 +414,4 @@ apps/queen/Trinity.app/
 # Receipt keys — per-node secrets, never committed
 trinet-keys.txt
 *.trinet-keys
+research/.gate_cache/
