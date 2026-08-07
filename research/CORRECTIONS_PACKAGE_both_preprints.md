@@ -29,7 +29,7 @@ would have checked them. It stays open rather than being guessed at.
 | 4 | "DSP48E1 only when explicitly instantiated" | 2606.09686, abstract + §flags | **factual** — no wrapper uses it, and 915 targets infer it |
 | 5 | LUT_ADD ≈ 1.63 W², R² ≥ 0.97 | 2606.05017, §cost | **no subset fits** — c is a window, not a constant |
 | 6 | 505 / 587 / 580 LUT | 2606.05017, lines 56 and 132 | **traced** — 505 is takum16's, and the 75 does not reproduce |
-| 7 | "seven formats across seven workloads" | 2606.05017, abstract | **not reproducible** — six of the seven workloads exist in no script |
+| 7 | "seven formats across seven workloads" | 2606.05017, abstract | **reimplemented** — the cited script has four suites, one of them one of the seven; all seven now runnable here |
 | 8 | "six conformance packs", including E8M0 | 2606.09686 abstract, and its erratum | **closed** — the E8M0 oracle and packs now exist |
 | 9 | three `\cite` keys resolve to nothing | 2606.05017, §§ on RHT/LSQ and Parameter Golf | **submission defect** — `[?]` in the built PDF |
 | 10 | "no single format dominates" | 2606.05017 + 2606.09686, abstracts | **contradicted** — posit16 dominates GF16 on all seven |
@@ -168,14 +168,30 @@ rather than holding constant:
 
 With a free exponent, `LUT = a·W^b`:
 
-| | a | b | R² |
-|---|---|---|---|
-| ADD, all 14 measured | 3.194 | **1.754** | 0.9746 |
-| MUL, GF4–GF32 | 0.791 | **2.361** | 0.9044 |
+| | a | b | R² (linear) | R² (log) |
+|---|---|---|---|---|
+| ADD, all 14 measured | 3.194 | **1.754** | 0.9913 | 0.9746 |
+| MUL, GF4–GF32 | 0.791 | **2.361** | 0.6254 | 0.9044 |
 
 ADD is **sub-quadratic** over the measured range and MUL is **super-quadratic**.
 A shared W² model with a single coefficient is a compromise between them rather
 than a fit to either.
+
+> **Both R² conventions, corrected in pass 283.** This table previously showed one
+> R² column, holding the log-space values, directly beneath the quadratic table
+> whose R² is linear-space — two different statistics under one heading, in an
+> argument whose entire subject is an R² threshold. The gap is wide: MUL reads
+> 0.9044 in log space and 0.6254 against the raw counts. Neither is wrong. Fitting
+> on logs weights the small formats far more heavily, which is often what one wants
+> from a scaling law; measuring against the raw counts is what "R² ≥ 0.97" means
+> when a paper says it about LUT counts. Reporting one under the other's heading
+> was the error. **The conclusion is unaffected** — every quadratic fit above is
+> linear-space and none reproduces c = 1.63 with R² ≥ 0.97.
+
+All of the above regenerates from `research/audit_cost_model.py`, which reads the
+measured rows of `research/COMPLETE_LUT_TABLE.md` and refits. The extrapolated
+(`~`) rows are excluded: they were produced *by* the scaling law under test, and
+feeding them back in would be circular.
 
 **Proposed:** state the fitting window with the coefficient, or report the fitted
 exponents. As written, "1.63 W², R² ≥ 0.97, 11 measured points" does not
