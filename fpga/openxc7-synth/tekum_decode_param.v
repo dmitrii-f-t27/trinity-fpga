@@ -201,8 +201,16 @@ module tekum_decode_param #(
         begin
             pack_implicit_mant = {N{1'b0}};
             pack_implicit_mant[pbits] = 1'b1;            // implicit leading bit
-            for (k = 0; k < pbits; k = k + 1)
-                pack_implicit_mant[k] = mu[k];           // M_u fraction bits
+            // Constant bound with a guard, not `k < pbits`. pbits is a runtime
+            // input, and yosys rejects a non-constant procedural for-loop bound
+            // outright -- "2nd expression of procedural for-loop is not constant"
+            // -- so the whole file could not be read, and with it tekum16_adder.v,
+            // which instantiates this module. iverilog accepts it, which is why a
+            // parse guard built on iverilog never saw it. This is the same
+            // constant-bound-plus-condition idiom extract_C_u already uses above.
+            for (k = 0; k < PAYLOAD_BITS; k = k + 1)
+                if (k < pbits)
+                    pack_implicit_mant[k] = mu[k];       // M_u fraction bits
         end
     endfunction
 

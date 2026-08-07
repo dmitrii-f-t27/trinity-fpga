@@ -7507,3 +7507,22 @@ correction "an erratum sentence that reassured about something nobody had checke
   action "the claim is dropped from the note and the history recorded beneath it rather than quietly edited, because a sentence written as reassurance about an unchecked thing is worth leaving a mark on"
   closes "corrections package item 8, in both directions -- the gap, and the sentence that papered over it"
 }
+
+finding "a live decode core that yosys could not read at all, and the adder that depends on it" {
+  found_by "research/audit_yosys_reads.py -- which pass 276 made fast enough to actually finish, and which then reported 22 unreadable synthesis sources in 0.78 seconds"
+  file "fpga/openxc7-synth/tekum_decode_param.v"
+  error "2nd expression of procedural for-loop is not constant"
+  cause "pack_implicit_mant looped `for (k = 0; k < pbits; ...)` where pbits is a runtime input to the function"
+
+  not_dead_code "fpga/openxc7-synth/tekum16_adder.v instantiates this module, so the adder could not be synthesised either. Nothing else in the tree references it"
+  why_it_survived "iverilog accepts a non-constant loop bound; yosys does not. The parse guard built in pass 237 runs on iverilog, so this was invisible to it for thirty-nine passes -- the same blind spot that let 30 files carrying a zero-width literal through until pass 244"
+
+  fix "constant bound plus a guard: `for (k = 0; k < PAYLOAD_BITS; ...) if (k < pbits)`. Not invented -- extract_C_u, ten lines above in the same file, already does exactly this"
+
+  equivalence_witnessed "research/witness_tekum_decode_equiv.py instantiates the pre-fix and post-fix modules side by side and drives every code at four widths. 256 + 4,096 + 65,536 + 1,048,576 = 1,118,464 codes, EXHAUSTIVE at each, comparing sign, exponent, mantissa, implicit-bit index, all three classification flags and the FP32 view. Zero differ"
+  before_read_from_git "not reconstructed by hand -- a hand-written 'before' that differs from the real one proves nothing"
+
+  scope "no published claim rests on this. tekum16 has no Tier-E entry, and the file could never have been synthesised, so no bitstream ever contained it. This is a defect in what the tree CAN build, not in anything it has built"
+
+  a_trap_hit_on_the_way "the first equivalence run used iverilog -P to override the testbench width and reported three passes at N=8, 12 and 20. The override silently did not take and all three were N=16. It was caught only because the testbench prints its own N -- a run that reports the parameter it actually used, rather than the one it was asked for"
+}
