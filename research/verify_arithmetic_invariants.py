@@ -172,10 +172,29 @@ def main() -> int:
             # apply.
             if is_special(mod, fmt, a):
                 continue
+            # Both remaining laws were stated too strongly, and the sign of zero is
+            # why. This file was outside every sweep until pass 290 widened
+            # run_all_gates' glob, so nothing had ever read its output.
+            #
+            #   ANNIH_MUL was `mul(x, +0) == pos_zero`. For NEGATIVE finite x the
+            #   correct result is NEGATIVE zero -- gf16 encodes -1.5 * (+0) as
+            #   0x8000, not 0x0000 -- so every negative operand in the sample was
+            #   counted a violation. That is roughly 9 per format across 40-odd
+            #   formats, all of them correct arithmetic. The same sign-of-zero class
+            #   that made pass 193's witness report 2,471 disagreements of its own.
+            #
+            #   IDENT_ADD was `add(x, +0) == x`. False for x = -0: IEEE 754 gives
+            #   (-0) + (+0) = +0 under round-to-nearest, so the code changes. This is
+            #   the identical false law pass 185 had to pull out of the decimal
+            #   cross-validator, surviving here because nobody ran the file.
+            #
+            # Stated correctly, both are real constraints and any violation is one.
+            is_neg_zero = (a == getattr(fmt, "neg_zero", None))
             try:
-                if f_add(fmt, a, zero) != a:
+                if not is_neg_zero and f_add(fmt, a, zero) != a:
                     bad["id_add"] += 1
-                if f_mul(fmt, a, zero) != zero:
+                prod = f_mul(fmt, a, zero)
+                if prod not in (zero, getattr(fmt, "neg_zero", zero)):
                     bad["ann_mul"] += 1
                 if one is not None and f_mul(fmt, a, one) != a:
                     bad["id_mul"] += 1
