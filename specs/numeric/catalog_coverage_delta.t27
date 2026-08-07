@@ -7794,3 +7794,21 @@ verification "every corrections item now declares a verdict, and all eight hold"
 
   standing_caveat "HOLDS means the discrepancy is still there. It does not mean anything has been submitted, accepted or fixed. The package remains a draft in this repository, submitted nowhere"
 }
+
+finding "sixteen verify_ scripts had never been in any sweep" {
+  where "research/run_all_gates.py"
+  cause "it globbed audit_*.py and witness_*.py. Nothing named verify_*"
+  scale "16 scripts, including verify_tier_e.py -- the check on the strongest claim in either paper, that every Tier-E cell ships a four-link evidence chain"
+  shape "the runner reported '70 scripts found' against a corpus of 86 and said nothing about the difference. A coverage number smaller than the corpus, silently -- the same shape as a gate that does not run, which is what this runner was built in pass 275 to stop"
+  fixed "the glob now includes verify_*"
+
+  one_exclusion_added "verify_corrections_package.py is skipped inside the sweep. It re-runs six of the gates in that very sweep, two of them synthesising, and reads their exit codes by a DIFFERENT convention -- HOLDS/WITHDRAWN rather than clean/findings. Two conventions in one number is the fold this series keeps splitting apart"
+}
+
+verification "item 10 is now checked on all seven workloads, not five" {
+  gap "pass 289 gave workload_suite.py a verdict on its five workloads and said in its own output that the two matmul rows were NOT counted. That was honest and still left the item verified on 5 of 7"
+  now "research/workload_matmul.py asserts the same ordering across its five distributions"
+  result "posit16 lower or equal on 5 of 5 -- uniform[-1,1] 1.42 against 5.20, uniform[0,1] 0.05 against 0.20, normal(0,1) 0.88 against 2.46, lognormal 0.09 against 0.22, mixed scale 0.61 against 0.61, a tie"
+  registered "the package runner now carries 7,10a and 7,10b as separate rows, so a regression in either half is visible rather than averaged"
+  same_discipline "the ORDERING is asserted, never the medians, which move with the trial count"
+}

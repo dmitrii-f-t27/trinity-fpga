@@ -41,6 +41,11 @@ SKIP = {
     # slower than both of them put together -- which is correct: the fast path
     # earns its speed by being compared against the slow one somewhere.
     "audit_cache_honesty.py": "runs the cached gates cold to compare -- run it deliberately",
+    # Re-runs six of the gates in this very sweep, two of them synthesising. Inside
+    # the sweep it would duplicate them and treat their exit codes by a DIFFERENT
+    # convention -- HOLDS/WITHDRAWN rather than clean/findings. Two conventions in
+    # one number is the fold this whole series keeps splitting apart.
+    "verify_corrections_package.py": "re-runs six gates under a different exit-code convention",
 }
 
 
@@ -76,8 +81,14 @@ def main():
     if "--jobs" in sys.argv:
         jobs = int(sys.argv[sys.argv.index("--jobs") + 1])
 
+    # verify_* too. The first version globbed audit_* and witness_* only, so
+    # SIXTEEN verify_* scripts -- including verify_tier_e.py, which is the check on
+    # the strongest claim in either paper -- had never been in any sweep. The
+    # runner reported "70 scripts found" against a corpus of 86 and said nothing
+    # about the difference, which is the same shape as a gate that does not run.
     paths = sorted(glob.glob(os.path.join(HERE, "audit_*.py"))
-                   + glob.glob(os.path.join(HERE, "witness_*.py")))
+                   + glob.glob(os.path.join(HERE, "witness_*.py"))
+                   + glob.glob(os.path.join(HERE, "verify_*.py")))
     todo = [p for p in paths if os.path.basename(p) not in SKIP]
 
     results = []
