@@ -7886,3 +7886,15 @@ verification "the invariant sweep finishes, and reports what it could not reach"
   heartbeat_added "each format is announced BEFORE it is measured. Without that the only evidence of work is the absence of the next line, which is also what a dead process looks like"
   not_measured_is_not_clean "the summary says so in those words, because 9 formats absent from the table have had no law checked against them"
 }
+
+finding "the build-matrix sweep was not slow, it was wedged on a pipe" {
+  symptom "last output 21:13, checked 23:58. Parent process alive, ZERO yosys children, no progress. Pass 294 killed it. Across the campaign this measurement has consumed roughly twenty-five passes of waiting"
+
+  cause "subprocess.run(timeout=...) kills only the DIRECT child on timeout and then calls communicate() A SECOND TIME WITH NO TIMEOUT to drain the pipes. yosys spawns yosys-abc, which inherits those pipes. When yosys is killed and abc survives, that second drain blocks forever. A live parent with no children and no output is the exact signature"
+
+  fix_1 "Popen with start_new_session=True, and on timeout kill the whole PROCESS GROUP so abc is reaped and the pipes close. The drain is then bounded too"
+  fix_2 "concurrent.futures.wait with a timeout instead of ex.map. ex.map yields in submission order and offers no way to distinguish 'nothing has finished for hours' from 'the next one is slow'. A stall is now DETECTED, announced, and the run stops"
+  both_exercised "the stall detector was fired deliberately with --stall 1 rather than argued for. It reports and stops"
+
+  a_defect_in_the_first_fix "after a stall the summary read 'attempted 3, would BUILD 0, would FAIL 0'. A reader takes 'would FAIL 0' as good news. It now reports targets MEASURED separately from targets in the tree, and says in words that an unmeasured target has not been shown to build. Caught before commit"
+}
