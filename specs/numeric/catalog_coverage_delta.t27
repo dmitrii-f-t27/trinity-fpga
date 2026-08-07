@@ -7737,3 +7737,18 @@ verification "the 915 is exact; 'every one of them' was not" {
 
   my_own_false_alarm "the tool's rule-detector searched for `op == \"mul\"` and the workflow uses shell test syntax, [ \"$OP\" = \"mul\" ]. It printed 'NO -- re-read the workflow' against a workflow that says exactly what item 4 says it does. A detector that cries wolf about its own regex is worse than no detector"
 }
+
+verification "the GF64 claim, checked by script instead of by reading" {
+  item "corrections package item 1 -- the last major item with no tool behind it"
+  tool "research/audit_gf64_chain.py"
+  why_not_the_existing_tool "verify_tier_e.py reports 49 cells with a complete chain and gf64 is not among them. That is suggestive and not sufficient: it groups by a cell name PARSED from each comment, and unparsed names land in a '?' bucket. A GF64 comment hiding there would make the absence an artefact of the parser. Silence from an aggregate is not evidence"
+
+  result "17 comments mention GF64 -- matching the seventeen the package describes -- and ZERO carry all four Tier-E links"
+
+  sharper_than_the_number "the 359/512 figure and the evidence are in DIFFERENT comments. It originates in 4965993162, which records an IDCODE and a flash (openocd 500kHz, 156s) but carries no CI URL, no SHA-256 and no UART line at all. Two later comments tabulate it and both label its build 'shift-reg (buggy)'"
+  the_closest_chain "4958733671 has CI URL, SHA-256, IDCODE and a GENUINE board reading: HW RESULT: GF64 ADD smoke 0+0=0x0000000000000000 @160000 IDCODE=0x13636093. That is a ONE-VECTOR SMOKE TEST scoring 4/4, not the 512-vector run the 70.1% describes"
+
+  accurate_statement "GF64 was on the board. What does not exist is a single comment tying 359/512 to a CI run, a bitstream hash and a conformance read -- and the one comment with a board reading reports a different, much smaller test"
+
+  a_check_i_nearly_got_wrong "my strict pattern HW RESULT: N/N bit-exact matched none of the 17, and I was one step from reporting 'no GF64 comment has a board reading at all'. Two contain the string HW RESULT -- one a smoke test, one a table column header. The strict pattern excludes both correctly, but the report would have understated what is there. Smoke readings are now their own category, folded into neither side"
+}
