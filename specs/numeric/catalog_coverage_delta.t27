@@ -7826,3 +7826,26 @@ verification "which checks is no runner looking at -- asked mechanically" {
   third "0 again -- every audit_/witness_/verify_ script counted as an executor, and several of them, INCLUDING THIS ONE, glob *.py in order to READ files. It declared itself a runner and covered the corpus by scanning it"
   fix "an executor must EXECUTE: sys.executable in a subprocess call. Reading a file is not running it, and this file excludes itself outright"
 }
+
+finding "a never-run check stated two laws too strongly, and the sign of zero is why" {
+  file "research/verify_arithmetic_invariants.py"
+  how_it_surfaced "pass 290 widened run_all_gates' glob to verify_*. The widened sweep found 91 scripts against 70, ran 86, and CRASHED 0. This file appeared as a TIMEOUT -- so its output had never been read by anything"
+
+  law_1_wrong "ANNIH_MUL was mul(x, +0) == pos_zero. For NEGATIVE finite x the correct result is NEGATIVE zero: gf16 encodes -1.5 * (+0) as 0x8000, not 0x0000. Every negative operand in the sample counted as a violation -- roughly 9 per format. The same sign-of-zero class that made pass 193's witness report 2,471 disagreements of its own"
+  law_2_wrong "IDENT_ADD was add(x, +0) == x. False for x = -0: IEEE 754 gives (-0) + (+0) = +0 under round-to-nearest, so the code changes. The IDENTICAL false law pass 185 pulled out of the decimal cross-validator, surviving here because nobody ran the file"
+
+  what_was_never_wrong "commutativity. comm+ and comm* are OK on every format measured, before and after. A correctly-rounded binary operation is commutative because rounding applies to one exact result, and nothing here contradicts that"
+
+  effect_of_the_fix "the entire GF family, the IEEE binaries and fp4/fp6/fp8 go from violations on x*0 to clean on all five laws. 24 formats measured this run"
+  not_a_bug_anywhere "no oracle was wrong. The laws were"
+
+  still_open "bcd 13/13, cray_float 5/5, decimal32 3/3, decimal64 7/7 on x+0 and x*1 -- almost certainly the IEEE 754-2008 preferred-exponent rule, which pass 185 already named: x+0 preserves the VALUE and changes the ENCODING, so bit-equality is the wrong comparison for the decimal family. And e8m0 2/9, which HAS NO ZERO at all -- pass 266 established that -- so the zero-based laws do not apply to it and asking is a category error"
+  scope_of_this_run "the sweep was cut short at gf6 and printed no summary. 24 formats measured, not the full corpus. The corrected laws are verified on those; the rest are unmeasured, not clean"
+}
+
+verification "the widened sweep, with sixteen scripts included for the first time" {
+  from "pass 290 -- run_all_gates globbed audit_ and witness_ only"
+  result "91 scripts found against 70 before. 5 skipped, 86 run. CRASHED 0. Timed out 3. Need an argument 4. Findings by design 15. Clean 64"
+  of_the_sixteen_new "14 clean, 1 reporting findings by design (verify_legacy_by_construction), 1 timing out (verify_arithmetic_invariants) -- and that timeout is what this pass then opened"
+  no_regressions "the crash count is still the only category that means one, and it is still zero"
+}
