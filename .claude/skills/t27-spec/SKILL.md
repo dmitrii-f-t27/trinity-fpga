@@ -1621,3 +1621,59 @@ the edges — the worst possible distribution for a safety interlock.
 The wider habit: **before keying safety logic off an existing signal, read its definition
 rather than its name.** `busy`, `ready`, `done`, `active` are all names that invite the
 assumption that someone maintained them as state.
+
+## An interlock that names one of two mutually exclusive activities is half an interlock
+
+A DMA and a compute engine shared a buffer and must never run together. The guard written
+for it blocked the DMA while compute was active — and nothing blocked compute while the DMA
+was active. A host starting the DMA and *then* requesting inference walked straight through.
+
+Mutual exclusion is symmetric by definition, and a guard for it is naturally written from
+whichever side you were thinking about when the hazard occurred to you. **Write the second
+direction at the same time as the first, or the guard encodes the order in which you
+happened to imagine the failure.**
+
+The test is mechanical: for a guard of the form "A may not start while B runs", ask whether
+"B may not start while A runs" exists. If both activities are host-triggerable through
+writable registers, both directions are reachable.
+
+## When a change invalidates a property, ask whether it becomes two
+
+Adding an interlock broke a property asserting `start == reg_ctrl[0]` — correct before,
+and now deliberately false whenever the interlock fires. The options that come to mind are
+delete it or relax it to match the new behaviour.
+
+Neither is best. It became **two** properties:
+
+```verilog
+// the new behaviour
+assert (start == (reg_ctrl[0] && !dma_busy));
+// ...and the interlock is the ONLY thing that may suppress a start
+always @(posedge clk) if (rst_n && !dma_busy)
+    assert (start == reg_ctrl[0]);
+```
+
+The second is the one that would otherwise have been thrown away: it pins down that the
+change did *exactly* what was intended and nothing more. Relaxing the original to the new
+form silently permits any *future* condition to suppress a start too.
+
+**A property invalidated by an intentional change usually splits into "the new behaviour"
+and "nothing else changed".** The second half is free to write, and it is the half that
+catches the next unintended broadening.
+
+## Two fixes, neither sufficient — report that, not the last one
+
+Two genuine defects were fixed against one failing property: a state signal that was
+actually a decode, and a one-directional guard on a symmetric constraint. The property still
+refutes.
+
+The temptation is to describe the wave by its last action, or to keep going until something
+turns green. Neither serves. What is *true* is: the property is the sole remaining failure
+(confirmed by neutralising it alone and watching everything else pass), the residual cause
+is bounded to a timing relationship rather than a missing guard, and both landed fixes are
+independently worth having.
+
+**A partially-closed gap, precisely bounded, is a better deliverable than an
+unbounded-but-green one.** Say how far it moved, what remains, and how you know the
+remainder is what you say it is — "neutralising this one assertion makes every other pass"
+is a stronger statement about scope than any amount of narrative.
