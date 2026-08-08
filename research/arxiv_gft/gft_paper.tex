@@ -137,6 +137,63 @@ reading. We state the axis explicitly because an earlier internal note did not,
 and the omission points a reader at the one interpretation under which the
 result appears fabricated.
 
+
+\section{The 16-bit field}\label{sec:field}
+
+Comparing against one incumbent invites the objection that the incumbent was
+chosen. Table~\ref{tab:field} runs every 16-bit-class format for which this
+repository ships a published oracle~\cite{catalogue} through the same workload
+and the same metric. Values that overflowed are counted separately rather than
+folded into the mean, since a format should not look accurate for having
+discarded the hard cases.
+
+\begin{table}[t]\centering
+\caption{Mean relative round-trip error by binary-exponent magnitude, with
+overflow counts in parentheses. 6{,}000 values, $2^{-38}\ldots2^{38}$, random
+sign, one seed.}
+\label{tab:field}
+\begin{tabular}{lrrr}
+\toprule
+format & $|e|<8$ & $|e|\,8$--$20$ & $|e|\,20$--$38$ \\
+\midrule
+\textbf{GF-T16}    & $3.56\mathrm{e}{-4}$ & $3.52\mathrm{e}{-4}$ & $\mathbf{3.53\mathrm{e}{-4}}$ \\
+GF16 ($\varphi$)   & $3.56\mathrm{e}{-4}$ & $3.52\mathrm{e}{-4}$ & $6.76\mathrm{e}{-3}$ (478) \\
+takum16 / tekum16  & $3.27\mathrm{e}{-4}$ & $1.00\mathrm{e}{-3}$ & $1.95\mathrm{e}{-3}$ \\
+posit16            & $\mathbf{1.36\mathrm{e}{-4}}$ & $8.31\mathrm{e}{-4}$ & $1.43\mathrm{e}{-2}$ \\
+IEEE binary16      & $1.76\mathrm{e}{-4}$ & $1.28\mathrm{e}{-3}$ (299) & $1.57\mathrm{e}{-1}$ (2479) \\
+bfloat16           & $1.45\mathrm{e}{-3}$ & $1.38\mathrm{e}{-3}$ & $1.41\mathrm{e}{-3}$ \\
+LNS16              & $8.39\mathrm{e}{-4}$ (1324) & $7.63\mathrm{e}{-4}$ (1808) & $6.66\mathrm{e}{-4}$ (2849) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]\centering
+\includegraphics[width=0.92\textwidth]{gft_competition.pdf}
+\caption{The same data. Scissors mark values that overflowed.}
+\label{fig:field}
+\end{figure}
+
+Three readings, including the one that goes against us.
+
+\paragraph{GF-T16 is flat, and alone in being flat without clipping.} Its error
+is $3.5\mathrm{e}{-4}$ at every magnitude in the workload and it discards
+nothing. bfloat16 is also flat and clip-free, at roughly four times the error.
+Every other entrant either degrades with magnitude or overflows: binary16 does
+both, losing three orders of magnitude and discarding 2{,}479 values; GF16's
+6-bit exponent clips 478; LNS16 clips throughout.
+
+\paragraph{Near unity we lose.} posit16 at $1.36\mathrm{e}{-4}$ and binary16 at
+$1.76\mathrm{e}{-4}$ are more accurate than GF-T16 there, by a factor of two and
+a half and of two. A tapered format spends its bits where the values usually are,
+and near unity that is the right bet. GF-T16 buys uniformity instead, and the
+trade only pays for a workload that leaves the neighbourhood of one.
+
+\paragraph{takum16 and tekum16 are indistinguishable here.} The two produce
+identical figures on every bin, which says the reconstruction our tekum oracle
+implements does not capture whatever separates tekum from its parent. The
+comparison in Section~\ref{sec:accuracy} should therefore be read as against
+takum16 as reconstructed; we say this rather than let the reader discover it.
+
 \section{Hardware}\label{sec:hardware}
 
 Synthesis with Yosys~0.65~\cite{yosys}, place and route with
@@ -266,7 +323,8 @@ the reference that is correct and disagrees with the one that truncates.
 
 \begin{enumerate}[leftmargin=*]
 \item \textbf{The accuracy comparison is against a structural model of tekum, not
-tekum itself.} tekum~\cite{tekum} is a descendant of takum~\cite{takum} adapted for balanced
+tekum itself, and that model behaves as takum.} Table~\ref{tab:field} shows the
+two producing identical figures on every bin. tekum~\cite{tekum} is a descendant of takum~\cite{takum} adapted for balanced
 ternary. Our
 oracle reconstructs it from takum's field scheme; the full per-trit
 specification requires the tekum paper. The ratios are as good as that model.
@@ -333,13 +391,15 @@ L.~Hunhold.
 
 \bibitem{goldenfloat}
 D.~Vasilev.
-\newblock GoldenFloat: $\varphi$-structured floating-point arithmetic.
-\newblock arXiv:2606.05017.
+\newblock GoldenFloat: a $\varphi$-derived static-split floating-point family
+from GF4 to GF1024 with a Lucas-exact integer identity.
+\newblock arXiv:2606.05017v3, 2026.
 
 \bibitem{catalogue}
 D.~Vasilev.
-\newblock A bit-exact conformance catalogue for 83 numeric formats.
-\newblock arXiv:2606.09686.
+\newblock An 83-format numeric catalog with bit-exact conformance vectors: a
+vendor-neutral reference for FP8, BF16, MXFP4, and microscaling formats.
+\newblock arXiv:2606.09686v2, 2026.
 
 \bibitem{yosys}
 C.~Wolf.
