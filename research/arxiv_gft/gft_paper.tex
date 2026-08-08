@@ -1107,14 +1107,82 @@ spends 8 bits on the exponent and holds $7$ bits flat everywhere --- better than
 the square-root code beyond $|e| \approx 30$ and worse below it, which is the
 taper trade in miniature.
 
-So the gap is not empty because its occupants are dominated; they are not. We
-conjecture it is empty because of decode cost. Both occupied classes decode with
-the same piece of hardware, a leading-zero counter: unary reads the run directly,
-and a length-prefixed regime reads the run as a length. An intermediate growth
-rate requires an integer square root or equivalent, which is a multi-cycle
-structure or a table, and no accuracy gain in Table~\ref{tab:codes} is large
-enough to pay for one. We have not built the hardware to test this, and mark it as
-a conjecture rather than a finding.
+So the gap is not empty because its occupants are dominated; they are not. Our
+first explanation was decode cost, and building the hardware refutes it.
+
+\subsection{What a regime costs in silicon}\label{sec:regimecost}
+
+We wrote three regime codecs to one interface --- a 16-bit word in, an exponent
+and a mantissa shift out, and the mirror encoder --- and synthesised each under a
+single harness on XC7A200T with Yosys and nextpnr-xilinx, hard multipliers
+disabled. These are structural models of the three classes, not reproductions of
+the published posit or takum codecs; what they compare is a run-scanned regime
+against a length-prefixed one, which is the structural difference the taxonomy
+names.
+
+\begin{table}[t]\centering
+\caption{Regime codec cost by class, post-route on XC7A200T under one harness,
+no DSP. The round-trip column is decode plus encode.}
+\label{tab:regimecost}
+\begin{tabular}{lrrrrr}
+\toprule
+class & \multicolumn{2}{c}{decode} & \multicolumn{2}{c}{encode} & round trip \\
+      & LUTs & $F_{\max}$ & LUTs & $F_{\max}$ & LUTs \\
+\midrule
+unary, $\ell \propto |e|$ (posit)          & $403$ & $36.8$\,MHz  & $83$  & $211.2$\,MHz & $486$ \\
+$\ell \propto \log_2|e|$ (takum)           & $\mathbf{30}$ & $\mathbf{805.8}$\,MHz & $\mathbf{58}$ & $\mathbf{285.1}$\,MHz & $\mathbf{88}$ \\
+$\ell = \lceil\sqrt{|e|}\rceil$            & $417$ & $33.1$\,MHz  & $147$ & $96.4$\,MHz  & $564$ \\
+\midrule
+fixed field (GF, GF-T)                     & $0$   & ---          & $0$   & ---          & $\mathbf{0}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The conjecture said the square-root code would be too expensive to be worth
+building. It is not: it costs $16\%$ more than the unary regime round trip, and
+the unary regime ships in production. What the measurement does show is that the
+expense lies somewhere else than we assumed, and this has a closed form.
+
+\begin{theorem}[Decode cost is set by the scan, not by the staircase]
+\label{thm:scan}
+A regime whose codeword length is delimited by a run must examine up to $N-1$
+positions to decode, giving cost $\Theta(N)$. A regime whose length is carried in
+a fixed field of $b$ bits requires no scan and a shift of at most $2^{b}-1$,
+giving cost $\Theta(1)$ in $N$. The two costs are independent of the growth rate
+of $\ell$, and therefore of the staircase form.
+\end{theorem}
+
+Theorem~\ref{thm:scan} predicts the table exactly. The unary and square-root codes
+share the same 15-position scan and cost $403$ and $417$ LUTs, a difference of
+$3.5\%$ that is the squarer and nothing else; the length-prefixed code has no scan
+and costs $30$. The square-root code is geometrically intermediate and structurally
+identical to the unary one, which is the point: \emph{the staircase form and the
+decode cost are independent axes}, and a taxonomy of one does not predict the
+other.
+
+\begin{corollary}[The logarithmic regime is not a trade]
+\label{cor:takumwins}
+Against the unary regime the length-prefixed one is better on every axis measured:
+asymptotically optimal by Theorem~\ref{thm:floor}, $5.5\times$ smaller round trip,
+and $22\times$ faster to decode. The published bounded-regime posit
+variants~\cite{positgap}, which cap the regime field precisely to avoid the scan,
+are the same conclusion reached from the other direction.
+\end{corollary}
+
+\begin{corollary}[The measured price of unbounded range]
+\label{cor:price}
+A fixed field has no regime codec at all. The dichotomy of
+Theorem~\ref{thm:dichotomy} therefore has a hardware statement: unbounded range
+costs $88$ LUTs at best and $486$ at worst on this device, against $0$ for a
+format that declines it. This is the cost GF-T does not pay, and it is separate
+from --- and larger than --- the accuracy advantage of
+Section~\ref{sec:accuracy}.
+\end{corollary}
+
+We are left without an explanation for the empty gap. It is not domination, since
+the square-root code is Pareto-undominated; and it is not cost, since it is within
+$16\%$ of a regime that ships. Both of our explanations are now measured and both
+are wrong, and we record that rather than replace it with a third.
 
 \section{Limitations}\label{sec:limits}
 
@@ -1242,6 +1310,7 @@ D.~Shah et al.
 \bibitem{goldberg1991} D.~Goldberg, ``What Every Computer Scientist Should Know About Floating-Point Arithmetic,'' \emph{ACM Computing Surveys}, vol.~23, no.~1, pp.~5--48, 1991.
 \bibitem{ibmhfp} IBM hexadecimal floating-point. \url{https://en.wikipedia.org/wiki/IBM_hexadecimal_floating-point}
 \bibitem{elias1975} P.~Elias, ``Universal codeword sets and representations of the integers,'' \emph{IEEE Trans. Inform. Theory}, vol.~21, no.~2, pp.~194--203, 1975.
+\bibitem{positgap} Closing the Gap Between Float and Posit Hardware Efficiency, arXiv:2603.01615.
 \end{thebibliography}
 
 \end{document}
