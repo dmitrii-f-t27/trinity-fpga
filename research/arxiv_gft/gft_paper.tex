@@ -487,10 +487,8 @@ yields the geometric one; a fixed field costs $\ell(e) = \mathrm{const}$ and
 yields no staircase at the price of bounded support. The staircase form is the
 growth rate of the exponent's codeword length, and nothing else. This also names
 the gap in the table: between $\ell \propto |e|$ and $\ell \propto \log_2|e|$ no
-catalogued format sits, and a regime spending one trit per tripling of $|e|$ ---
-$\ell(e) \propto \log_3|e|$, natural on the fabric GF-T targets --- would occupy
-it. We have not built one, and note it as the obvious next construction rather
-than as a result.
+catalogued format sits. Section~\ref{sec:codes} builds the codes and asks what is
+in the gap; the answer corrects a suggestion we made before building them.
 
 \section{Accuracy}\label{sec:accuracy}
 
@@ -1019,6 +1017,105 @@ ternary fabric. The two together delimit the format exactly: the radix choice is
 right on any fabric, and the encoding choice is right on one.
 \end{corollary}
 
+
+\section{The regime field is a universal code}
+\label{sec:codes}
+
+Theorem~\ref{thm:dichotomy} identifies the exponent's encoding as a prefix code.
+That identification is worth making explicit, because it places the taxonomy of
+Section~\ref{sec:taxonomy} inside a hierarchy that predates every format in the
+catalogue by decades~\cite{elias1975}.
+
+\begin{theorem}[The staircase is the codeword-length function]
+\label{thm:code}
+Let a format of $N$ positions encode its exponent with a prefix code assigning
+$e$ a codeword of length $\ell(e)$. Then
+$M_{\mathrm{eff}}(e) = N - 1 - \ell(e)$, and the staircase form is the growth
+rate of $\ell$ and nothing else.
+\end{theorem}
+
+The catalogue's three tapering classes are then three points in the classical
+hierarchy: a unary regime, $\ell \propto |e|$, gives posit's arithmetic
+staircase; a length-prefixed binary regime, $\ell \propto \log_2|e|$, gives
+takum's geometric one; a fixed field, $\ell = \mathrm{const}$, gives no staircase
+at the price of bounded support. Elias' $\gamma$, $\delta$ and $\omega$ codes
+occupy the logarithmic class at successively finer asymptotics.
+
+\begin{theorem}[Logarithmic is the floor]
+\label{thm:floor}
+For any prefix code on the integers, $\ell(e) \geq \log_2|e|$ for infinitely many
+$e$. Hence no format of unbounded range tapers more gently than one bit per
+doubling of $|e|$, asymptotically.
+\end{theorem}
+
+\begin{proof}
+Kraft's inequality gives $\sum_e 2^{-\ell(e)} \leq 1$. If $\ell(e) < \log_2|e|$
+for all but finitely many $e$, the tail of the sum exceeds
+$\sum_e 1/|e|$, which diverges. \qed
+\end{proof}
+
+Theorem~\ref{thm:floor} is worth stating plainly because it bounds this work as
+much as its competitors: takum's regime is asymptotically optimal, and no format
+--- GF-T included --- can beat it over unbounded range. What GF-T does instead is
+decline the unbounded range, which Theorem~\ref{thm:dichotomy} shows is the only
+other option. The measured advantages of Section~\ref{sec:accuracy} are therefore
+advantages \emph{inside GF-T's range}, which is where the taper has already cost
+takum the bits, and they should never be read as a claim beyond it.
+
+\begin{theorem}[The regime's radix does not matter]
+\label{thm:radixinv}
+A regime spending one digit per multiplication of $|e|$ by $r$, over an alphabet
+of $r$ symbols, costs $\log_2 r \cdot \log_r |e| = \log_2 |e|$ bits, independent
+of $r$. The staircase form is invariant to the regime's radix.
+\end{theorem}
+
+Theorem~\ref{thm:radixinv} retracts a construction we proposed in an earlier draft
+of this work. Having observed the gap between the arithmetic and geometric
+classes, we suggested a regime spending one trit per tripling of $|e|$ as the
+natural way for a ternary format to occupy it. It does not occupy it: building
+both codes and normalising each to satisfy Kraft, the two codeword-length
+functions differ by an additive constant of exactly $1$ at every $|e|$ from $1$ to
+$4096$. One trit per tripling is takum's staircase with a different constant, not
+a third form. A ternary fabric changes what the regime costs to decode; it does
+not change what it costs to encode.
+
+\paragraph{The gap is real, occupiable, and empty for a reason we can only
+conjecture.} Growth rates strictly between $\log_2|e|$ and $|e|$ do exist and are
+Kraft-feasible --- $\ell(e) = \lceil\sqrt{|e|}\rceil$ is one --- and such a code
+is not dominated. At $N = 16$, normalised so that all three are legal prefix
+codes:
+
+\begin{table}[t]\centering
+\caption{$M_{\mathrm{eff}}$ by $|e|$ and usable range for three regime codes at
+$N = 16$, each normalised to satisfy Kraft. The square-root code is a genuine
+Pareto point: more precision than the logarithmic code throughout the core, more
+range than the unary one.}
+\label{tab:codes}
+\begin{tabular}{lrrrrrr}
+\toprule
+regime & $|e|{=}1$ & $4$ & $16$ & $64$ & $256$ & binades \\
+\midrule
+unary, $\ell \propto |e|$ (posit class)      & $11$ & $10$ & $7$ & $-5$ & $-53$ & $43$ \\
+$\ell = \lceil\sqrt{|e|}\rceil$              & $11$ & $10$ & $8$ & $4$  & $-4$  & $121$ \\
+$\ell \propto \log_2|e|$ (takum class)       & $9$  & $7$  & $5$ & $3$  & $1$   & $511$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For reference, a fixed field reaching the same 121 binades as the square-root code
+spends 8 bits on the exponent and holds $7$ bits flat everywhere --- better than
+the square-root code beyond $|e| \approx 30$ and worse below it, which is the
+taper trade in miniature.
+
+So the gap is not empty because its occupants are dominated; they are not. We
+conjecture it is empty because of decode cost. Both occupied classes decode with
+the same piece of hardware, a leading-zero counter: unary reads the run directly,
+and a length-prefixed regime reads the run as a length. An intermediate growth
+rate requires an integer square root or equivalent, which is a multi-cycle
+structure or a table, and no accuracy gain in Table~\ref{tab:codes} is large
+enough to pay for one. We have not built the hardware to test this, and mark it as
+a conjecture rather than a finding.
+
 \section{Limitations}\label{sec:limits}
 
 \begin{enumerate}[leftmargin=*]
@@ -1144,6 +1241,7 @@ D.~Shah et al.
 \bibitem{ternary27} Ternary27: A Balanced Ternary Floating Point Format, Version~3.1. \url{https://hackaday.io/project/183153}
 \bibitem{goldberg1991} D.~Goldberg, ``What Every Computer Scientist Should Know About Floating-Point Arithmetic,'' \emph{ACM Computing Surveys}, vol.~23, no.~1, pp.~5--48, 1991.
 \bibitem{ibmhfp} IBM hexadecimal floating-point. \url{https://en.wikipedia.org/wiki/IBM_hexadecimal_floating-point}
+\bibitem{elias1975} P.~Elias, ``Universal codeword sets and representations of the integers,'' \emph{IEEE Trans. Inform. Theory}, vol.~21, no.~2, pp.~194--203, 1975.
 \end{thebibliography}
 
 \end{document}
