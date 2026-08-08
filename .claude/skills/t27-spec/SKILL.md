@@ -1463,3 +1463,59 @@ Two habits: **grep for constant port connections before believing an integration
 complete**, and when you write one, put the condition for removing it in the comment. "Tied
 off until X is wired" is a to-do with an owner; `1'b0` alone is indistinguishable from
 intent, and the next reader has to prove a negative.
+
+## A refutation that survives a correct fix means another cause, not a wrong diagnosis
+
+A property refuted; the trace identified a stale completion flag; the flag was fixed; the
+property **still refuted**.
+
+The pull at that moment is strong and wrong: conclude the diagnosis was mistaken, revert,
+start over. The first diagnosis was correct and **incomplete**. A second, independent
+defect sat in a *different module* — a level-triggered handshake sampled one cycle too
+early — and each defect would have been masked by the other's correctness.
+
+**Re-read the trace instead of reverting.** The second trace looked different from the
+first, which is itself the signal: if a fix changes the counterexample, it addressed
+something real. A fix that leaves the counterexample identical is the one that missed.
+
+This is why composition defects cluster. Two modules that are each individually correct can
+still disagree at their seam, and when two seams are broken at once, fixing either alone
+changes nothing observable at the top. **Expect multi-cause failures at integration
+boundaries, and treat "still failing" as a request for the next trace rather than a verdict
+on the last one.**
+
+## The recorded gap is what made the fix possible
+
+A previous session left this property reproduced, documented, and **not asserted** —
+choosing that over weakening it until it passed.
+
+That decision is what made this session possible. A softened assertion would have shipped
+**two real defects under a green check**, and nobody would have taken the trace that found
+them, because there would have been nothing to investigate.
+
+**An honestly recorded failure is a work item; a weakened assertion is a lie with a
+maintenance cost.** The asymmetry is worth internalising: leaving something visibly
+unfinished costs a little discomfort now and preserves the information. Papering over it
+costs nothing now and destroys the information permanently — the next person sees green and
+has no reason to look.
+
+## Ask the tool for the signals you named, not for a dump
+
+Two waves were lost to unreadable counterexamples. `-dump_vcd` after `-flatten` produced
+files full of `$auto$async2sync.cc:116:execute$1477` — every user-facing name mangled by
+the flattening the prover required.
+
+The working approach was smaller, not bigger: **top-level signal names survive flattening**,
+so naming them explicitly gets a clean table.
+
+```
+sat ... -show pf_bram_we -show mac_valid_q -show layer_start -show start_prefetch
+```
+
+Two independent defects were visible in one reading of that table.
+
+**When a diagnostic dump is unusable, ask for less rather than more.** A full dump of a
+transformed netlist is mostly artefacts of the transformation; a named projection of the
+signals you already suspect is legible by construction. The same applies to logs, traces,
+and profiles — a filtered view of hypotheses beats an exhaustive view of everything, and it
+is usually one flag away.
