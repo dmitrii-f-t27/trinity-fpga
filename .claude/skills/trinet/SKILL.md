@@ -85,14 +85,29 @@ is comfortable, 60 → 1186 kbaud is in budget, 30 → 2372 kbaud is at the edge
 
 ## Running a fleet — what three boards teach that one cannot
 
-- **CFGMCLK differs per chip.** It is an internal RC oscillator: 71.176 MHz on
-  one board, 72.065 on another, a 1.25% spread. One host baud cannot be exactly
-  right for all of them, so open every port at the **midpoint** of the members'
-  measured rates. At an aggressive divisor the spread eats the margin that
-  quantisation has already narrowed.
+- **CFGMCLK differs per chip.** It is an internal RC oscillator. Measured across
+  this fleet on 2026-08-03: 70.46, 67.13 and 68.69 MHz (±0.18), a 4.97% spread.
+  Each board tolerates about ±4.5%, so the windows still overlap — **one rate
+  serves the fleet: 1144744 baud, 6400/6400 on each of the three.** Do not
+  assume that survives a re-flash or a new board; measure it.
+- **Measure the window, never take the first rate that answers.** A board a few
+  percent off its rate still replies — it just loses a few percent of jobs, and
+  that reads as a bad board, a bad cable or a bad hub. node2 was written up as
+  the marginal board of the fleet at 97.6%; it delivers 6400/6400 once the rate
+  is measured, on the same cable and the same hub port. The old check asked six
+  probes per candidate and took the first that passed all six. A rate losing
+  2.4% of jobs passes six probes 86% of the time.
+  ```bash
+  python3 conformance/trinet_baud_sweep.py --port <p> --centre <b> --span 0.08
+  ```
+  It prints a clean window, the rate to use, and — separately — the degraded
+  shoulder either side. Operate at the centre. Never inside a shoulder.
 - **A fleet runs at the rate every member sustains**, not the fastest any member
   reaches. At BAUD_DIV=30 one board was clean at 600/600 while another returned
-  18% of its responses damaged — same design, same host, different cable.
+  18% of its responses damaged — same design, same host, different cable. Re-read
+  that last clause with the above in mind: "different cable" was the conclusion
+  reached without a sweep, and it is exactly the conclusion the sweep overturned
+  for node2.
 - **Every AL321 in this set reports the same USB serial.** openocd cannot tell
   them apart and silently picks the first, so use
   `ax7203_al321_multi.cfg` and pass `adapter usb location`. Sweep to find the
@@ -142,6 +157,37 @@ BBRAM with an encrypted bitstream, or an external secure element. Until then
 node identity is **asserted, not proven**, and must be described that way
 wherever it is published.
 
+### The key is loaded over the wire, not baked in (changed 2026-08-03)
+
+`RECEIPT_KEY` used to be a synthesis parameter. It was committed to a public
+repository, the fix was applied to the source, and **the fix never reached the
+silicon** — the fleet ran for a day signing with keys any reader of the git log
+could compute, and every test stayed green because a compromised key and a good
+key are indistinguishable to anything that only asks "does the tag match".
+
+The reason it never reached the silicon is the part worth keeping. Re-keying a
+baked-in key needs a place-and-route run **this workstation cannot perform** —
+an XC7A200T chipdb OOMs at Docker's 4 GB default, and raising it to 6 GB on an
+8 GB host stops Docker starting at all — plus 13 minutes of flashing, per board.
+A key that costs an hour to rotate is a key nobody rotates.
+
+So the node now takes its key from `op 0x02`: 16 bytes in the W and X operand
+fields, so the request stays 24 bytes and the frame parser is untouched.
+
+- **Write-once per configuration.** A second `setkey` returns `0x03 key locked`
+  and changes nothing. Without that, anyone reaching the wire could replace the
+  operator's key and every later receipt would verify under theirs.
+- **The ack is signed with the key just installed**, so acceptance is
+  distinguishable from an echo. `Node.setKey` checks the tag, not the status.
+- **An unkeyed board still computes.** It answers `0x04 no key` with a real
+  dot product and a meaningless tag. Anything measuring arithmetic must use
+  `protocol.statusMeansComputed()` — testing `status == status_ok` makes a
+  correctly working unkeyed board look broken at every candidate baud rate.
+- A non-null `RECEIPT_KEY` still bakes a key in and locks it at reset, for
+  anyone with a build machine who prefers the key never touch a wire.
+
+Cost: 1292 → 1484 LC, +15%. Still 0 DSP48.
+
 ## Files
 
 ```
@@ -156,22 +202,86 @@ specs/trinet/*.t27                             the record
 ## Commands
 
 ```bash
-zig test src/trinet/agent.zig -lc                     # 42 tests, whole stack
+zig test src/trinet/agent.zig -lc                     # whole stack
 zig build-exe src/trinet/main.zig -lc                 # CLI
 ./main selftest                                       # adversaries vs verifier
-./main probe /dev/cu.usbserial-1110                   # verify a flashed board
+./main probe <port> <baud>                            # arithmetic AND authenticity, reported apart
+./main census <port> 0 100 64                         # 100 runs; baud 0 = negotiate
 ./main demo                                           # mesh + agent + books
 
-python3 conformance/trinet_mac32_conformance_ax7203.py --self-test
-python3 conformance/trinet_mac32_conformance_ax7203.py --port /dev/cu.usbserial-1110 --n 512
+python3 conformance/trinet_discover.py                # who is on the bus, and at what rate
+python3 conformance/trinet_baud_sweep.py --port <p> --divisor 60   # a board's real rate
 ```
 
-Flash (13 minutes — pipeline other work against it):
+**Never trust a port name across sessions.** They move when hubs change:
+`-1110` was node0 one hour and node1 the next. Identity comes from the board's
+id field, never from argument order or device name.
+
+Bring a board up, in order:
 
 ```bash
 sudo -n /opt/homebrew/bin/openocd -f fpga/openxc7-synth/ax7203_al321.cfg \
   -c "init" -c "pld load 0 <file.bit>" -c "runtest 2000" -c "shutdown"
+./main keygen > trinet-keys.txt          # gitignored, mode 600, never commit
+./main setkey <port0> <port1> <port2>     # one 24-byte frame per board
+./main fleet  <port0> <port1> <port2>     # now it can settle
 ```
+
+With several programmers attached, every AL321 reports the same USB serial, so
+pass `-c "adapter usb location <loc>"` with `ax7203_al321_multi.cfg` and sweep
+the locations fresh — they move with the hubs too.
+
+Get the locations from `ioreg`, do not guess them:
+
+```bash
+ioreg -p IOUSB -w0 | grep -E "Hub|Digilent|CP2102N"
+```
+
+`Digilent USB Device@01120000` → openocd location `1-1.2` (first byte is the
+bus, each remaining non-zero nibble is a port down the chain). A CP2102N next to
+a Digilent under the **same hub** is the same board — that is how to pair a
+serial port with a programmer without flashing anything to find out.
+
+**`mpsse_flush()` stall usually means somebody else already holds the adapter —
+and on 2026-08-03 that somebody was me.**
+
+Two of three cables stalled on every attempt for an hour. The cause was not the
+cable, the board, or (as first recorded here, wrongly) which USB bus they sat
+on: two `openocd` processes from earlier probes were still alive as root,
+holding those two FTDI devices. Check for that before theorising:
+
+```bash
+ps -eo pid,stat,etime,comm | grep openocd
+```
+
+Anything older than the probe you just ran is a leak.
+
+**Why they leaked — do not repeat this.** The probes were bounded by
+backgrounding `sudo`, capturing `$!`, and sending `kill -9` to it after a sleep.
+That does not work: `$!` is the **`sudo` wrapper**, `openocd` runs as root
+beneath it, and a user `kill -9` cannot touch a root child. The wrapper dies,
+the timeout looks like it worked, and the adapter stays held. (Do not copy that
+form from anywhere — it is written out here only to be recognised, never run.)
+Put the timeout **inside** the privileged process instead:
+
+```bash
+sudo -n timeout -s KILL 25 /opt/homebrew/bin/openocd \
+  -f fpga/openxc7-synth/ax7203_al321_multi.cfg \
+  -c "adapter usb location 0-1.2" -c "init" -c "shutdown"
+```
+
+**Clearing a leak needs the operator, not `sudo -n`.** The NOPASSWD rule in
+`/etc/sudoers.d/openocd` covers exactly one binary — `/opt/homebrew/bin/openocd`
+— so `sudo -n pkill -9 openocd` fails with "a password is required", and being
+`-n` it fails *silently* instead of prompting. A leaked openocd survived three
+such attempts while every one of them was reported as having cleared it. Check
+with `ps` afterwards rather than trusting the exit, and when it really needs
+clearing, ask the operator to run `sudo pkill -9 openocd`.
+
+Order of suspicion for a stall: leaked openocd first, then a replug of the
+cable, then the board's power. Bus position was a coincidence — after the
+cables were replugged all three answered, including both that had "always"
+stalled.
 
 ## Board and toolchain truths
 

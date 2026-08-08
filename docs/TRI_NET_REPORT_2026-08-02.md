@@ -6,22 +6,141 @@ four are structural, and this report leads with them rather than burying them.
 
 ---
 
+## 0. Corrections, entered later the same day
+
+Four things below this line were wrong when first written. They are corrected
+in place, and recorded here because a report that quietly edits itself is worth
+less than one that says what it got wrong.
+
+**The fleet is three boards, not two.** The third was recorded as a wiring
+fault — configured, `DONE=1`, UART silent. It was answering the whole time, at
+1124474 baud against a hardcoded 1186267. A 5.2% error, where a UART tolerates
+about 3. Swept, it verifies 32/32 immediately and 6400/6400 over 100
+independent runs, making it the equal of the best board here. The diagnosis had
+been repeated for a day without being retested; it took the operator asking why
+the third board was missing for anyone to point a sweep at it.
+
+**The per-chip clock spread is about 5%, not 1.25%.** CFGMCLK differs per die —
+the 1.25% figure came from two samples and should not have been published as a
+fleet property — and that is why the third board was invisible. *The conclusion
+originally drawn from it, that no fleet can share one host baud rate, was wrong
+and is corrected below.*
+
+**Every board is running a receipt key that was published in this
+repository.** W01 nulled the committed keys in the source and never reached the
+silicon. Measured today: node0 verifies 64/64 under `0x00..0x0f` and node2
+63/64 under `0x20..0x2f`. *Every "keyed receipt verified on silicon" result in
+this document is therefore a tag any reader of the git log can compute.* The
+arithmetic is real; the receipts are not evidence. Tooling now detects this and
+refuses to credit such a board — no slash either, because the boards are honest.
+
+> **Resolved for node0, 2026-08-03.** Re-flashed from CI, came up unkeyed
+> (`status 0x04`) with correct arithmetic, and took a key over the wire that has
+> never been published. 100 runs × 64 jobs: **6400/6400 correct and 6400/6400
+> authenticated**. An attacker's second key was refused on silicon
+> (`0x03 KEY_LOCKED`) and later work still verified under the operator's key,
+> not the attacker's. This is the first receipt in the programme that is
+> evidence of anything.
+>
+> **All three, later the same day.** node1 and node2 re-flashed too, in parallel
+> — 13 minutes for both. Across 100 runs each: node0 6400/6400 correct and
+> authenticated, node1 6400/6400 and 6400/6400, node2 6245/6400 and 6235/6400.
+> The agent's forward pass then ran across all three: **96 of 96 accepted, 0
+> rejected, 0 slashed, all three nodes active**. No published key anywhere in
+> the fleet. This is the first settlement in the programme resting on receipts
+> that are evidence.
+>
+> The reason the fix had not reached the silicon for a day is worth keeping:
+> rotating a baked-in key needed a place-and-route run this workstation cannot
+> perform. **A key that costs an hour to rotate is a key nobody rotates**, so
+> the key is now loaded over the wire, write-once per configuration, and
+> rotation costs a power cycle.
+
+**Every published jobs/s figure was computed by dividing by jobs attempted.**
+Including failures. A board answering nothing returns instantly, so a total
+failure read as the fastest run ever recorded — caught at 5409 jobs/s against a
+transport ceiling of 4942, with 0/64 verified. Latency percentiles had the same
+defect. Section 2's throughput line is restated below.
+
+An accomplice defect made the first two harder to see: the host chose the
+response width from `key != null` — a host-side config fact — rather than from
+the wire. A keyless host read 15 bytes of a 19-byte response and offset every
+later read by four, so a healthy board reported `MalformedResponse` forever.
+
+### Entered 2026-08-03: the marginal board was a marginal line rate
+
+**node2 is not a marginal board, and the fleet does share one rate.** Both
+claims above were measured wrong, by the same instrument.
+
+Each board's line rate was bracketed by sweeping the host rate in 0.5% steps
+with 64 jobs per step, counting a step clean only when every predictable byte of
+every response was right. The windows:
+
+| node | clean window (baud) | centre | tolerated | implied CFGMCLK |
+|---|---|---|---|---|
+| node0 | 1121020 – 1227778 | 1174399 | ±4.55% | 70.46 ± 0.18 MHz |
+| node1 | 1068248 – 1169444 | 1118846 | ±4.52% | 67.13 ± 0.18 MHz |
+| node2 | 1121020 – 1168468 | 1144744 | ±2.07% | 68.69 ± 0.18 MHz |
+
+The spread is 4.97% and each board tolerates about ±4.5%, so the windows
+overlap on 1121020–1168468. **At 1144744 baud all three boards returned every
+job: 100 runs × 64 on each, 19 200 jobs, zero failures.** At its own window
+centre each board did the same, and node2 was run twice to make it a
+reproduction rather than an anecdote.
+
+node2's 97.6% was measured at 1186267 — 3.6% above the top of its window. Same
+cable, same hub port, no re-flash, no power cycle between the two measurements.
+
+The baud hypothesis had been tested and recorded as refuted: node2 was re-run at
+"its own centre rate", scored 98.08% against 98.56%, and the half-percent gap
+was read as a refutation. That rate was 1174399, taken from a list of
+`BAUD_DIV=60` candidates — and it is *also* outside node2's window. Every rate
+anyone tried came from a list the wrong assumption had generated, so no test
+drawn from that list could escape it.
+
+The instrument itself was the defect, and it is the recurring shape: `six
+probes per candidate, accept the first that passes`. A rate losing 2.4% of jobs
+passes six probes 86% of the time. The check could not fail the case it existed
+to detect. `conformance/trinet_baud_sweep.py` now uses 64 jobs per rate, checks
+every predictable byte, splits failures by direction, and reports the centre of
+the clean window; `conformance/trinet_discover.py` measures an acquired rate
+instead of trusting the first reply.
+
+**What this does not explain.** node0 and node1 have hard window edges — one
+step out and nothing comes back. node2 degrades gently instead, 96–98% clean
+over 1174399–1227778. Something costs that board its upper margin and nothing
+here identifies it. It no longer costs it any jobs, which is why this is an open
+question and not a fault.
+
+---
+
 ## 1. The strongest sentence the evidence supports
 
-> Two ALINX AX7203 boards, synthesised end to end on a fully open toolchain
-> (yosys + nextpnr-xilinx), each run a 1336-logic-cell balanced-ternary
-> dot-product cell with an in-fabric SipHash-2-4 tag engine. A single host
-> process dispatched all 96 dot products of a three-layer forward pass to them
-> over USB serial, independently recomputed every answer, and credited 96 of 96
-> on three consecutive runs.
+> Three ALINX AX7203 boards, synthesised end to end on a fully open toolchain
+> (yosys + nextpnr-xilinx), each run a 1480-logic-cell balanced-ternary
+> dot-product cell using no DSP block. Across 100 independent runs per board —
+> 19,200 dot products, port reopened every run — every board returned every
+> answer correctly. The same cell synthesises without modification on ten FPGA
+> families from eight vendors.
 
-That establishes a dispatch → verify → settle path working end to end against
-real silicon on an open flow. It establishes nothing about power, about compute
-saved, about where the arithmetic actually ran, or about anything being a
-network.
+*(That sentence read "two boards returned every answer correctly and the third
+returned 98.6%" until 2026-08-03. The third board was being talked to at a rate
+outside its window; at 1144744 baud all three are clean. See the correction
+above.)*
 
-**"Ternary internet" is not defensible for two boards on one desk.** What is
-defensible is "a verifiable ternary compute node, demonstrated on two boards".
+That establishes a ternary dot-product cell that works on silicon, on an open
+flow, reproducibly, on more than one die, and portably. It establishes nothing
+about power, about compute saved, or about anything being a network.
+
+It also, as of today, establishes nothing about *authenticity*: all three boards
+carry receipt keys published in this repository, so no receipt any of them
+produces is evidence of who produced it. The dispatch → verify → settle path is
+implemented and tested in software; on hardware it currently, and correctly,
+refuses to settle.
+
+**"Ternary internet" is not defensible for three boards on one desk.** What is
+defensible is "a portable, reproducible ternary compute node, demonstrated on
+three boards, whose settlement layer is not yet trustworthy on hardware".
 
 ---
 
@@ -29,13 +148,49 @@ defensible is "a verifiable ternary compute node, demonstrated on two boards".
 
 | | |
 |---|---|
-| Ternary dot product + receipt, bit-exact on hardware | 512/512 (v1), 256/256 keyed (v2) |
+| Ternary dot product, statistical base — 100 independent runs × 64 jobs, port reopened each run | node0 **6400/6400**, node1 **6400/6400**, node2 6308/6400 |
+| Perfect runs | node0 100/100, node1 100/100, node2 42/100 (min 60, p50 63) |
 | Keyed receipt rejects a wrong key | every job, measured both directions |
-| Agent forward pass across two boards | 96/96 accepted, three consecutive runs |
-| Throughput, one healthy board | **3786 jobs/s** (was 191 — 20× from batching, on top of 36× from transport work) |
-| Logic cost | 1336 LC, **0 DSP48** |
-| Software stack | 45 tests |
-| CFGMCLK, measured per chip | 71.176 and 72.065 MHz — a **1.25% per-chip spread** |
+| Logic cost | 1480 LC, 1046 FF, **0 DSP48** (yosys 0.62, CI's chparams, `-flatten -abc9 -nocarry -nodsp -arch xc7`) |
+| Portability | synthesises clean on **10 FPGA families**, 1082 flip-flops on 9 of them, 1092 on the tenth (yosys 0.62) |
+| Software stack | **54 tests** (`zig test src/trinet/agent.zig`, which nests protocol/node/ledger/mesh/model/net) |
+| CFGMCLK, measured per chip | 70.46 / 67.13 / **68.69** MHz (±0.18) — a **4.97% per-chip spread** |
+
+Throughput was deliberately absent from that table: every figure this project
+published divided by jobs *attempted* rather than jobs verified, so all of them
+were withdrawn rather than restated.
+
+**Restated 2026-08-03**, 2000 jobs per board at each board's negotiated rate,
+every job counted only if it came back whole:
+
+| node | rate | one at a time | batched ×32 | of transport ceiling |
+|---|---|---|---|---|
+| node0 | 1174399 | 495.7 jobs/s | **3843.6 jobs/s** | 78.5% |
+| node1 | 1144744 | 483.7 jobs/s | **3680.1 jobs/s** | 77.2% |
+| node2 | 1144744 | 475.6 jobs/s | **3678.6 jobs/s** | 77.1% |
+
+2000/2000 whole on every board, and nothing near the ceiling flag. *These jobs
+came back whole; no receipt was checked, because the keys installed on these
+boards are not held on this machine. This is a measurement of the transport, not
+of verified compute.* Batching is worth 7.6–7.8× because the round trip is USB
+latency — 2.05 ms p50 against a wire time near 0.4 ms — and batching amortises
+it.
+
+The ceiling is arithmetic rather than measurement: at 1144744 baud and 24 bytes
+on the busier direction no node on this transport can exceed **4769.8 jobs/s**,
+against a derived compute ceiling of ~2.29 M jobs/s — **480× the transport**.
+The cell is idle for all but ~30 of the ~200 clocks each job occupies. Any
+throughput claim about this node is a claim about a UART.
+
+`bench` itself had four defects, all found by reading its output rather than its
+code: it never called `loadFleetKeys`, so `verified` was structurally 0 and the
+throughput line printed 0.0 jobs/s on any machine, key file or not; it took the
+node's identity from a command-line slot rather than asking the board, the same
+identity-by-argument-order defect already fixed on the fleet path; it derived
+the compute ceiling from a hardcoded 71.18 MHz CFGMCLK, a figure that belongs to
+no board in this fleet; and it printed the requested baud in the ceiling line
+while computing the ceiling from the negotiated one, so the label disagreed with
+its own arithmetic.
 
 Every number above came with a defect found by measuring rather than reasoning.
 The four from the batching work alone: fixed-size blocks gave a whole layer to
@@ -43,6 +198,15 @@ one node; batching multiplies the cost of a lossy link; the read timeout was
 2 s against a 1.2 ms round trip and accounted for 12 of 12.1 seconds; and the
 frame parser lives in the FPGA and survives the host process, so runs degraded
 3002 → 150 → 52 jobs/s until the port open began resynchronising the cell.
+
+The pattern held today and is worth naming, because it is the only reliable
+thing here. **Six defects this session, and not one was visible from the code.**
+Each was found by disbelieving a number: a throughput above a physical ceiling,
+a testbench that passed no key, a board written off without a sweep, a slash
+against a board with nothing wrong with it. The code review that would have
+caught any of them by reading is not one anybody has run. What worked was
+computing what the answer *had* to be and noticing when the measurement was on
+the wrong side of it.
 
 ---
 
@@ -122,6 +286,28 @@ key they are checked against.
 
 **W08 — No power figure of any kind.** Nothing has been on a bench supply.
 
+### Found today, and worse than any of the above
+
+**W09 — A security fix that never reached the hardware, and nothing noticed for
+a day.** W01 was recorded as fixed. The source was fixed; the silicon was not,
+and the fleet ran for a day producing receipts that verified perfectly under
+keys published in the git history. A compromised key and a good key are
+indistinguishable to any test that only asks "does the tag match", so the entire
+test suite stayed green. Two guards now exist — `publishedKeyUsed()` in the
+protocol, and `conformance/key_default_check.py` in CI — but the general lesson
+is the uncomfortable one: **"fixed" meant "the source changed", and nobody
+checked the artifact.**
+
+**W10 — The testbench guarding the receipt had been disabled by the fix to the
+thing it guarded.** `trinet_node_v2_tb.v` passed no key and relied on the module
+default. Nulling that default left it asserting golden tags no RTL could
+produce. It failed 0/6 and had failed silently since. A test that depends on a
+default is a test that stops testing the moment the default is corrected.
+
+**W11 — The verifier accused boards it could not check.** With no key loaded,
+the fleet slashed an honest board 400 mTRI. `Verdict.unverifiable` now separates
+"this receipt is wrong" from "we cannot tell", and only the first costs stake.
+
 ---
 
 ## 5. Next wave
@@ -138,8 +324,11 @@ boards and no purchases.
 | WV-5 | Bounded anti-replay window instead of an unbounded nonce map | |
 | WV-6 | Measure the realised penalty rate instead of asserting the inequality | |
 | WV-7 | Split `physical_asserted` from `physical_corroborated`; publish latency distributions | |
-| WV-8 | Statistical base: 100 seeds, all runs reported — three runs of one seed will not survive review | |
-| WV-9 | Restate throughput and scale honestly at the fleet operating point | |
+| WV-8 | Statistical base: 100 runs per board, all reported | done — 100/100, 100/100, 42/100 |
+| WV-9 | Restate throughput and scale honestly at the fleet operating point | withdrawn, not restated — needs re-flashed boards |
+| WV-10 | **Re-flash all three boards with keys generated and never committed** | blocking everything downstream |
+| WV-11 | Verify the artifact, not the source, whenever a security fix lands | |
+| WV-12 | Power on a bench supply — still the single most valuable missing number | |
 
 ---
 
@@ -206,12 +395,52 @@ wanted by the people best positioned to want it. A depends on measurements we do
 not have yet. C is an 18-month track that would be easy to mistake for a
 3-month one.
 
+### What running the falsifiers changed
+
+C's second falsifier was run, and it came back the opposite of what the review
+predicted. See `docs/TRI_NET_PORTABILITY.md`. The cell contains exactly two
+Xilinx primitives — the clock source and the device-identity port, both board
+concerns — and with those lifted out it synthesises with zero errors on ten
+families from eight vendors, with **819 flip-flops on nine of them** and no
+inferred multiplier anywhere. Ten independent synthesisers agreeing to the
+register is what portable RTL looks like.
+
+So the objection "the deliverable would be rebuilt, not repackaged" is dead: the
+deliverable is one 272-line file that already builds everywhere. **The
+recommendation does not change.** C's real obstacles were never engineering —
+no measured power, no device-bound identity, no fab path, and a market whose
+first question is TID/SEU data. Making the effort estimate smaller does not make
+the market reachable. What changed is that the reason to defer C is now honest
+about being a market judgement rather than a technical one, and the portability
+result is worth having under A or B regardless of which is chosen.
+
+A's prerequisites moved in both directions. The statistical base now exists —
+100 runs per board, all reported, including the board that fails 58% of its
+runs. The throughput figure went the other way: it was not restated but
+**withdrawn**, because the way it was computed made every published value
+meaningless. A paper submitted this week would have one fewer prerequisite and
+one more retraction than it did this morning.
+
+B is unchanged and unstarted, and is still the cheapest way to learn something
+that cannot be learned by building.
+
+### The gate in front of all three
+
+Nothing downstream is worth doing before the boards are re-flashed with keys
+that were never committed. Every option above rests on the receipt meaning
+something, and today it means nothing on hardware. This is a day of work — three
+bitstreams, three flashes at ~13 minutes each — and it blocks the honest version
+of A, the credibility of B's pitch, and any claim C would make about
+device-bound identity.
+
 ---
 
 ## 7. Kill criteria
 
 - A metered power figure lands and the ternary cell does not beat a CPU on
   joules per inference.
+- A re-flash with fresh keys lands and the receipts still cannot be checked by
+  anyone but the coordinator — which is W02, and is the case today by design.
 - No substantive reply from the ternary cohort in 30 days **and** no referee
   interest in the openXC7 framing.
 - Nobody will name a workload expressible in ternary dot products.
@@ -220,4 +449,11 @@ not have yet. C is an 18-month track that would be easy to mistake for a
 ---
 
 Author: Dmitrii Vasilev ([@gHashTag](https://github.com/gHashTag))
-Evidence: `specs/trinet/*.t27`, issue #199, `docs/TRI_NET_ARCHITECTURE.md`
+Evidence: `specs/trinet/*.t27`, issue #199, `docs/TRI_NET_ARCHITECTURE.md`,
+`docs/TRI_NET_PORTABILITY.md`
+
+Reproduce the hardware numbers with all three boards attached:
+
+```bash
+for p in /dev/cu.usbserial-1110 /dev/cu.usbserial-110 /dev/cu.usbserial-130; do trinet census $p 0 100 64; done
+```

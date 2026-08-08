@@ -100,9 +100,28 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: {python-version: '3.12'}
-      - run: sudo apt-get update && sudo apt-get install -y yosys
+
+      # This job installed yosys from apt, which on ubuntu-latest is 0.33. Under
+      # 0.33 every synth_<family> pass returns without stats this check can read,
+      # so it reported "only 0 families synthesised" and failed — on every run of
+      # this workflow since the day it was added, on every branch, including the
+      # commit whose message announced the ten-family result.
+      #
+      # The claim was true the whole time: 10 families agree under yosys 0.62 and
+      # 11 under 0.65, same flip-flop count, no multipliers. But a gate that has
+      # never once gone green is not protecting the claim it is named after, and
+      # nothing would have caught a real regression. Pin the toolchain instead of
+      # taking whatever the runner image ships, the way ax7203-format-cost.yml
+      # already does.
+      - name: Docker pull regymm/openxc7 (retry on transient 5xx)
+        run: |
+          for i in 1 2 3 4 5 6; do
+            docker pull regymm/openxc7:latest && break
+            echo "::warning::docker pull attempt $i failed, sleeping $((i*20))s"; sleep $((i*20))
+          done
+          docker image inspect regymm/openxc7:latest >/dev/null 2>&1 || { echo "::error::docker pull failed after 6 retries"; exit 1; }
 
       - name: Synthesise the node for every family this yosys offers
-        run: python3 conformance/portability_check.py
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 \
+            python3 conformance/portability_check.py

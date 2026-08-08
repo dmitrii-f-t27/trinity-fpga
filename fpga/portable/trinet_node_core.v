@@ -26,14 +26,38 @@
 // REQUEST  (24 bytes): AA 55 OP NONCE[4] W[8] X[8] TRIG
 // RESPONSE (19 bytes): A5 Y STATUS NONCE[4] NODE_ID[4] TAG[8]
 //
+//   OP 0x01  ternary MAC. W and X are 32 packed trits each.
+//   OP 0x02  set the receipt key. W||X are the 16 key bytes, first byte first.
+//            Accepted once per configuration; ignored afterwards.
+//
+//   STATUS 0x01 ok          the answer is signed and creditable
+//          0x02 key set     the key in this request is now the node's key
+//          0x03 key locked  a key was already set; this request changed nothing
+//          0x04 no key      unkeyed node: y is real, the tag means nothing
+//
 // Author: Dmitrii Vasilev (@gHashTag)
 //=============================================================================
 module trinet_node_core #(
     // Divides `clk` to the line rate. On the AX7203 this is CFGMCLK/60.
     parameter integer BAUD_DIV_P = 60,
-    // Per-node secret. The all-zero default is deliberate: a plausible-looking
-    // default is how a real key ended up committed to a public repository once
-    // already.
+    // Optional pre-loaded key. The all-zero default is deliberate, and is now
+    // also the normal case: a null key means the node comes up UNKEYED and
+    // takes its key over the wire (op 0x02) exactly once per configuration.
+    //
+    // WHY THE KEY IS NOT BAKED IN ANY MORE. It was, and it went stale: fixing
+    // the committed-key defect in source never reached the silicon, because
+    // re-keying meant a place-and-route run the operator's machine cannot
+    // perform (8 GB is not enough for an XC7A200T chipdb) plus a 13-minute
+    // flash, per board. A key that costs an hour to rotate is a key nobody
+    // rotates. Loading it after configuration makes rotation a power-cycle and
+    // one 24-byte frame.
+    //
+    // The trade is honest: whoever can reach this UART in the window after
+    // configuration can claim the node. They can also simply re-flash it, so
+    // this concedes little that physical access did not already concede.
+    //
+    // A non-zero RECEIPT_KEY still works and locks at reset, for anyone who
+    // does have a build machine and prefers the key never touch a wire.
     parameter [127:0] RECEIPT_KEY = 128'h0
 ) (
     input  wire        clk,
@@ -168,11 +192,53 @@ module trinet_node_core #(
     wire signed [7:0] dot_result = $signed({2'b00, cnt_pos}) - $signed({2'b00, cnt_neg});
 
     //-------------------------------------------------------------------------
+    // The key, and the one chance to set it.
+    //
+    // op 0x02 carries 16 key bytes in the W and X fields, so the request stays
+    // 24 bytes and the frame parser above is untouched — which also keeps
+    // conformance/frame_alignment_check.py meaningful.
+    //
+    // Write-once until reconfiguration. A key that can be overwritten at any
+    // time is not a key: anyone who reaches the wire could replace it after the
+    // operator set it, and every receipt afterwards would verify under the
+    // attacker's key instead.
+    //-------------------------------------------------------------------------
+    localparam [7:0] OP_MAC32  = 8'h01;
+    localparam [7:0] OP_SETKEY = 8'h02;
+
+    localparam [7:0] ST_OK         = 8'h01;
+    localparam [7:0] ST_KEY_SET    = 8'h02;
+    localparam [7:0] ST_KEY_LOCKED = 8'h03;
+    localparam [7:0] ST_NO_KEY     = 8'h04;
+
+    reg [127:0] key_reg;
+    reg         key_locked;
+
+    wire setting_key = frame_valid && (op_r == OP_SETKEY) && !key_locked;
+
+    // The acknowledgement must be tagged with the key just accepted, so the
+    // host can confirm the board really took it. key_reg only updates next
+    // cycle, hence the combinational bypass.
+    wire [127:0] key_eff = setting_key ? {x_bus, w_bus} : key_reg;
+
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            key_reg    <= RECEIPT_KEY;
+            key_locked <= (RECEIPT_KEY != 128'h0);
+        end else if (setting_key) begin
+            key_reg    <= {x_bus, w_bus};
+            key_locked <= 1'b1;
+        end
+    end
+
+    //-------------------------------------------------------------------------
     // Keyed receipt.
     //-------------------------------------------------------------------------
-    reg [7:0]  y_reg;
-    reg [31:0] id_latched;
-    reg        mac_start;
+    reg [7:0]   y_reg;
+    reg [31:0]  id_latched;
+    reg         mac_start;
+    reg [7:0]   status_reg;
+    reg [127:0] key_latched;
 
     wire [207:0] preimage = {
         id_latched[31:24], id_latched[23:16], id_latched[15:8], id_latched[7:0],
@@ -188,20 +254,33 @@ module trinet_node_core #(
 
     trinet_siphash24 #(.MSG_BYTES(26)) u_mac (
         .clk(clk), .rst(rst), .start(mac_start),
-        .msg(preimage), .key(RECEIPT_KEY),
+        .msg(preimage), .key(key_latched),
         .tag(mac_tag), .done(mac_done));
 
     reg result_ready;
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             y_reg <= 8'd0; id_latched <= 32'd0; mac_start <= 1'b0; result_ready <= 1'b0;
+            status_reg <= ST_NO_KEY; key_latched <= RECEIPT_KEY;
         end else begin
             mac_start <= 1'b0;
             result_ready <= mac_done;
             if (frame_valid) begin
-                y_reg      <= dot_result;
-                id_latched <= node_id;
-                mac_start  <= 1'b1;
+                // The dot product is computed either way; only signing depends
+                // on holding a key. Returning y unsigned is useful for bring-up
+                // and cannot be mistaken for work, because the status says so
+                // and the host refuses to credit it.
+                // A key-load carries key bytes in the operand fields, and
+                // running a dot product over them would put a meaningless
+                // number in the receipt that somebody would eventually read as
+                // work. Answer zero and mean it.
+                y_reg       <= (op_r == OP_SETKEY) ? 8'd0 : dot_result;
+                id_latched  <= node_id;
+                key_latched <= key_eff;
+                mac_start   <= 1'b1;
+                status_reg  <= (op_r == OP_SETKEY)
+                                 ? (key_locked ? ST_KEY_LOCKED : ST_KEY_SET)
+                                 : (key_locked ? ST_OK : ST_NO_KEY);
             end
         end
     end
@@ -230,7 +309,7 @@ module trinet_node_core #(
             if (result_ready) begin
                 tx_buf[0]  <= 8'hA5;
                 tx_buf[1]  <= y_reg;
-                tx_buf[2]  <= 8'h01;
+                tx_buf[2]  <= status_reg;
                 tx_buf[3]  <= nonce_b[0];
                 tx_buf[4]  <= nonce_b[1];
                 tx_buf[5]  <= nonce_b[2];

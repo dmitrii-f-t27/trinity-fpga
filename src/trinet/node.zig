@@ -22,6 +22,10 @@ pub const Error = error{
     Unreachable,
     MalformedResponse,
     Timeout,
+    /// The board already holds a key and will not take another until it is
+    /// reconfigured. Not a failure of the caller — it is the write-once latch
+    /// doing its job, and the only fix is a power cycle or a re-flash.
+    KeyAlreadySet,
 };
 
 /// How an emulated node behaves. Everything except `.honest` is an attack that
@@ -128,6 +132,123 @@ pub const Node = struct {
         };
     }
 
+    /// Rates to try when a board's own is unknown.
+    ///
+    /// CFGMCLK is an internal RC oscillator with no trim, so its frequency is a
+    /// property of the individual die. Measured across this fleet with
+    /// conformance/trinet_baud_sweep.py: 70.46, 67.13 and 68.69 MHz, a 4.97%
+    /// spread, and each board tolerates about +/-4.5%. The windows therefore
+    /// overlap, and 1144744 baud delivers 6400/6400 on all three -- so this list
+    /// leads with it rather than with a per-die constant.
+    ///
+    /// The list is for ACQUISITION. It cannot be the source of an operating
+    /// rate, because a list generated from an assumption cannot contain the rate
+    /// that refutes it: every rate tried on node2 came from a BAUD_DIV=60
+    /// candidate table, and the rate that fixed it was not in the table.
+    /// conformance/trinet_baud_sweep.py finds a board's real window; this only
+    /// has to get close enough to talk.
+    pub const candidate_bauds = [_]u32{ 1144744, 1174399, 1118846, 1186267, 1150000, 1210000, 2372533, 164000, 160000 };
+
+    /// Jobs used to judge a candidate rate, once it is known to answer at all.
+    ///
+    /// This was six, and six cannot see the failure it exists to catch. A rate
+    /// a few percent off does not go silent -- it loses a couple of percent of
+    /// jobs, which reads as a lossy cable. At node2's measured 2.4% loss, six
+    /// jobs come back clean 86% of the time and one comes back clean 97.6% of
+    /// the time, so both the Zig and the Python probe accepted the bad rate and
+    /// stopped looking. 64 drops that to 21%, and refusing to stop at the first
+    /// perfect candidate removes the rest.
+    pub const baud_confirm_jobs = 64;
+
+    /// Open a board without being told its line rate, by asking it.
+    ///
+    /// Costs one exchange per candidate on a miss. That is cheaper than the
+    /// alternative, which is a fleet whose membership depends on how close each
+    /// die's oscillator happened to land to a constant someone hardcoded.
+    /// How many of `jobs` come back whole at the rate this node is already open
+    /// at.
+    ///
+    /// "Whole" includes the claimed identity being the same on every job. The
+    /// caller may not know what the identity should be — auto-baud runs before
+    /// anyone has asked the board who it is — but a rate that damages bytes
+    /// damages that field too, and self-consistency is checkable without
+    /// knowing the answer in advance.
+    fn scoreRate(n: *Node, jobs: usize) usize {
+        var score: usize = 0;
+        var claimed: ?u32 = null;
+        for (0..jobs) |k| {
+            const w: u8 = if (k % 2 == 0) 0x55 else 0xA9;
+            const job = protocol.Job.withNonce(@intCast(k + 1), @splat(w), @splat(0x55));
+            const r = n.execute(job) catch continue;
+            if (!protocol.statusMeansComputed(r.status)) continue;
+            if (!std.mem.eql(u8, &r.nonce, &job.nonce)) continue;
+            if (r.y != protocol.dot(job.w, job.x)) continue;
+            if (claimed) |c| {
+                if (r.node_id != c) continue;
+            } else claimed = r.node_id;
+            score += 1;
+        }
+        return score;
+    }
+
+    pub fn initFpgaAutoBaud(id: u32, name: []const u8, path: [:0]const u8) !struct {
+        node: Node,
+        baud: u32,
+        clean: usize,
+        jobs: usize,
+    } {
+        var last_err: anyerror = error.Timeout;
+        var best_baud: ?u32 = null;
+        var best_score: usize = 0;
+
+        // Rates that delivered every job, kept so the chosen one can be the
+        // middle of them rather than whichever came first in the list. A rate at
+        // the very edge of a board's window scores perfectly today and loses
+        // jobs when the die warms up; the middle of the perfect set is further
+        // from both edges than either end of it.
+        var perfect: [candidate_bauds.len]u32 = undefined;
+        var n_perfect: usize = 0;
+
+        for (candidate_bauds) |b| {
+            var n = initFpga(id, name, path, b) catch |e| {
+                last_err = e;
+                continue;
+            };
+            // One probe first, only to find out whether the board can hear this
+            // rate at all. A rate it cannot hear costs a read timeout per job,
+            // and scoring every dead candidate in full would pay that 64 times
+            // over for nothing.
+            var score: usize = 0;
+            if (scoreRate(&n, 1) == 1) score = scoreRate(&n, baud_confirm_jobs);
+            n.deinit();
+
+            if (score == baud_confirm_jobs) {
+                perfect[n_perfect] = b;
+                n_perfect += 1;
+            }
+            if (score > best_score) {
+                best_score = score;
+                best_baud = b;
+            }
+            // No early exit. Stopping at the first candidate that passed is what
+            // put the marginal board on the worst rate available to it, and a
+            // candidate that answers costs well under a second to score.
+        }
+
+        if (n_perfect > 0) {
+            std.mem.sort(u32, perfect[0..n_perfect], {}, std.sort.asc(u32));
+            best_baud = perfect[n_perfect / 2];
+            best_score = baud_confirm_jobs;
+        }
+
+        if (best_baud) |b| {
+            var n = try initFpga(id, name, path, b);
+            n.stats = .{};
+            return .{ .node = n, .baud = b, .clean = best_score, .jobs = baud_confirm_jobs };
+        }
+        return last_err;
+    }
+
     pub fn initFpga(id: u32, name: []const u8, path: [:0]const u8, baud: u32) !Node {
         var port = try serial.Port.open(path, baud);
 
@@ -229,6 +350,33 @@ pub const Node = struct {
             return Error.Timeout;
         };
         return protocol.decodeResponseV2(&raw) orelse Error.MalformedResponse;
+    }
+
+    /// Install this node's receipt key over the wire.
+    ///
+    /// Returns true only if the node's acknowledgement is signed with the key
+    /// that was just sent. Checking the signature rather than the status byte
+    /// is deliberate: a node that merely echoed the request could produce the
+    /// status, but only one that actually installed the key can produce a tag
+    /// that verifies under it.
+    ///
+    /// `error.KeyAlreadySet` means the board is holding a key from an earlier
+    /// load and will not take another until it is reconfigured. That is the
+    /// property the design rests on, so it is reported as a distinct outcome
+    /// rather than a generic failure.
+    pub fn setKey(self: *Node, key: [16]u8) Error!void {
+        const port = switch (self.backend) {
+            .fpga => |*p| p,
+            else => return Error.Unreachable,
+        };
+        const job = protocol.Job.setKey(self.highest_nonce_issued + 1, key);
+        const r = try self.executeSerial(port, job);
+
+        if (r.status == protocol.status_key_locked) return Error.KeyAlreadySet;
+        if (r.status != protocol.status_key_set) return Error.MalformedResponse;
+        if (r.tag != protocol.setKeyAckTag(job, r.node_id, key)) return Error.MalformedResponse;
+
+        self.key = key;
     }
 
     /// Send several jobs before reading any answer.

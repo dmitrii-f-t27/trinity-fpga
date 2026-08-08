@@ -66,6 +66,8 @@ pub const Stats = struct {
     /// Damaged frames. Separated from rejections because one is a statement
     /// about the operator's wiring and the other about their honesty.
     corrupt_jobs: u64 = 0,
+    unverifiable_jobs: u64 = 0,
+    not_eligible_jobs: u64 = 0,
     on_silicon: u64 = 0,
     in_software: u64 = 0,
 
@@ -179,15 +181,27 @@ pub const Mesh = struct {
         }
         const settlement = try self.ledger.settle(n.id, job, receipt, verdict);
 
-        if (settlement.outcome == .credited) {
-            self.stats.accepted += 1;
-            n.stats.accepted += 1;
-            if (n.isPhysical()) self.stats.on_silicon += 1 else self.stats.in_software += 1;
-        } else if (settlement.outcome == .corrupt_not_charged) {
-            self.stats.corrupt_jobs += 1;
-        } else {
-            self.stats.rejected += 1;
-            n.stats.rejected += 1;
+        // Exhaustive on purpose — no `else`. Three separate times this session a
+        // new outcome fell into a catch-all and got printed as "rejected as
+        // dishonest" beside "slashed: 0 mTRI", a summary that accuses and then
+        // charges nothing. A reader cannot tell whether that is a lie or a bug.
+        // With no `else`, adding an outcome is a compile error until someone
+        // decides what it means.
+        switch (settlement.outcome) {
+            .credited => {
+                self.stats.accepted += 1;
+                n.stats.accepted += 1;
+                if (n.isPhysical()) self.stats.on_silicon += 1 else self.stats.in_software += 1;
+            },
+            .corrupt_not_charged => self.stats.corrupt_jobs += 1,
+            .unverifiable_not_charged => self.stats.unverifiable_jobs += 1,
+            // We declined to use the node. That is our scheduling decision, not
+            // the node's conduct.
+            .not_eligible => self.stats.not_eligible_jobs += 1,
+            .rejected_and_slashed, .identity_mismatch => {
+                self.stats.rejected += 1;
+                n.stats.rejected += 1;
+            },
         }
 
         return .{
@@ -334,7 +348,9 @@ pub const Mesh = struct {
                             if (n.isPhysical()) self.stats.on_silicon += 1 else self.stats.in_software += 1;
                         },
                         .corrupt_not_charged => self.stats.corrupt_jobs += 1,
-                        else => {
+                        .unverifiable_not_charged => self.stats.unverifiable_jobs += 1,
+                        .not_eligible => self.stats.not_eligible_jobs += 1,
+                        .rejected_and_slashed, .identity_mismatch => {
                             self.stats.rejected += 1;
                             n.stats.rejected += 1;
                         },
@@ -376,8 +392,8 @@ pub const Mesh = struct {
             );
         }
         try writer.print(
-            "jobs: {d} dispatched, {d} accepted, {d} rejected as dishonest, {d} damaged in transit, {d} unreachable\n",
-            .{ self.stats.dispatched, self.stats.accepted, self.stats.rejected, self.stats.corrupt_jobs, self.stats.unreachable_jobs },
+            "jobs: {d} dispatched, {d} accepted, {d} rejected as dishonest, {d} damaged in transit, {d} unverifiable, {d} not dispatched, {d} unreachable\n",
+            .{ self.stats.dispatched, self.stats.accepted, self.stats.rejected, self.stats.corrupt_jobs, self.stats.unverifiable_jobs, self.stats.not_eligible_jobs, self.stats.unreachable_jobs },
         );
         try writer.print(
             "dispatch: {d} to serial-attached nodes, {d} to software nodes ({d:.1}%)\n",
@@ -597,8 +613,13 @@ test "keyed nodes are verified with their own key, not each other's" {
     const honest = protocol.executeKeyed(job, 0xA000, key_a);
     try std.testing.expectEqual(protocol.Verdict.ok, protocol.verifyWithKey(job, honest, key_a));
     try std.testing.expectEqual(protocol.Verdict.corrupt, protocol.verifyWithKey(job, honest, key_b));
-    // And a keyed receipt with no key at all must never be waved through.
-    try std.testing.expectEqual(protocol.Verdict.corrupt, protocol.verifyWithKey(job, honest, null));
+    // And a keyed receipt with no key at all must never be waved through —
+    // but must not be held against the node either. Holding the wrong key is a
+    // statement about the receipt; holding no key is a statement about us.
+    const no_key = protocol.verifyWithKey(job, honest, null);
+    try std.testing.expectEqual(protocol.Verdict.unverifiable, no_key);
+    try std.testing.expect(!no_key.accepted());
+    try std.testing.expect(!no_key.indictsTheNode());
 }
 
 test "a layer is shared across nodes, not dumped on the first one" {
