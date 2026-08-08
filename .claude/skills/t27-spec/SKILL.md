@@ -1284,3 +1284,72 @@ because no property reads memory" is a complete disclosure; "proved" alone is no
 The related mechanic: when the properties must reference internal signals, put them in the
 module under `` `ifdef FORMAL `` rather than in a wrapper. A wrapper forces `-flatten`,
 which mangles exactly the names the properties need.
+
+## Give an unmade decision an interface, and it becomes trackable
+
+A design question sat open for ten waves: ternary activations, or 4-bit? It could not be
+answered, and the reason turned out to be structural — **the choice had no address**. It
+lived in the *absence* of a module. Nothing in the code said "activations are ternary";
+the datapath simply had no layer boundary, and the ternary assumption leaked in through
+what the neighbouring ports happened to be.
+
+Building the missing module changed the question's status without answering it. The width
+is now one output port. A 4-bit variant changes `trit [1:0]` to `act [3:0]` and swaps a
+comparison for a scale-and-round; nothing else moves.
+
+**An unmade decision with no interface is untrackable. The same decision with an interface
+is a diff.** Before agonising over an open architectural question, check whether the
+artefact that would embody it exists — if it does not, building it is usually more
+valuable than deciding, and often makes the decision obvious.
+
+The related habit: **an assumption implied by an absence is the hardest kind to audit.**
+Grep finds a wrong constant; nothing finds a missing stage. When reviewing, ask what the
+data must pass through that is not there.
+
+## Prefer a total function to a documented precondition
+
+The requantizer compares an accumulator against a symmetric threshold. If the host writes
+a *negative* threshold, `acc >= threshold` and `acc <= -threshold` are both true. Written
+as parallel comparisons that is a don't-care — and in a design whose output alphabet has a
+**reserved invalid code**, a don't-care is a corruption waiting to happen, with no error
+path anywhere downstream.
+
+Written as a priority chain it costs one ternary operator and the output is legal for every
+input, including inputs the host should never produce.
+
+**When the cost of totality is a line, pay it rather than documenting a precondition.** A
+precondition is a promise made by code you do not control, and the failure it permits here
+is silent: an invalid code propagates through every consumer without a single assertion
+firing. The reserved-value case generalises — any enum with an unused encoding deserves a
+proof that the unused encoding is unreachable, not a comment saying it should be.
+
+## A substring ban catches the documentation that justifies it
+
+Three times now, a test forbidding a literal has failed on the module's own explanation of
+why that literal is forbidden:
+
+- `!contains("8'hFF")` — failed on the comment describing the old hardwired burst length
+- `!contains("2'b11")` — failed on both the comment *and* the assertion enforcing the ban
+- a `FORMAT-SPEC` filter — matched the schema file it was meant to classify
+
+The fix each time is to narrow to the syntactic context that matters — strip comments,
+skip assertion lines, match an assignment rather than an occurrence. **A ban on a string is
+a ban on a construct; write it against the construct.** The tell is that the test fails on
+the very commit that adds the safeguard, which reads as a false alarm and is really a
+badly-scoped assertion.
+
+## A test whose name contains a number will be renamed every time the system grows
+
+Adding one file to a bundle broke `bundle_order_has_twelve_entries`,
+`build_sv_entries_returns_eleven_files`, and two lookups indexing `entries[9]` and
+`entries[10]`.
+
+None of those tests was wrong about the system; they were asserting an *incident* of it.
+The invariants they should have carried — `BUNDLE_ORDER.len() == BUNDLE_FILE_COUNT`, "the
+last entry is the manifest", "the top-level entry contains the top name" — survive growth
+untouched, and are found by lookup rather than by position.
+
+**If a test's name has to change when the system grows correctly, the test is asserting the
+wrong thing.** Same for positional indexing into an ordered collection: it encodes today's
+order as a requirement. Both are cheap to write and quietly convert every future addition
+into a small tax.
