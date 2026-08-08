@@ -672,45 +672,63 @@ $10$ & $59049$ & $16$ & $65536$ & $90.1\%$ \\
 \end{tabular}
 \end{table}
 
-\paragraph{The declared rungs do not fit their declared widths.} Storing the
-exponent as a plain binary field of $\lceil E_t\log_2 3\rceil$ bits, the layout
-$1 + \lceil E_t\log_2 3\rceil + M$ comes to 17 bits for GF-T16, 36 for GF-T32, 65
-for GF-T64 and 129 for GF-T128. The reference oracle stores it exactly that way,
-so either the format packs trits more densely than the oracle models --- five
-trits into eight bits reaches $94.9\%$ against the $63.3\%$ of a four-trit field
---- or the rung names are approximate. This has to be settled before any
-design-space conclusion can be drawn, because it decides how many bits the
-exponent actually costs.
+\paragraph{The width convention counts positions, and one rung breaks it.}
+A rung's width is its position count with a trit occupying one position, so the
+layout is $1 + E_t + M = N$. Three of the four specified rungs satisfy it exactly:
+GF-T4 is $1+2+1$, GF-T8 is $1+3+4$, GF-T32 is $1+6+25$. GF-T16 is
+$1+4+9 = 14$, two positions short of its name, and neither specification file
+gives a reason. The likely history is visible in the parameters: GF-T16 inherits
+GF16's $\varphi$-optimal $M = 9$ and replaces GF16's six-bit exponent with four
+trits, which buys range --- $3^4 = 81$ steps against $2^6 = 64$ --- and frees two
+positions that were never re-spent. It is the one rung derived from its parent
+rather than from the width rule.
 
-\paragraph{The current budgets are the least efficient available.} GF-T16 uses
-$E_t = 4$ at $63.3\%$ and GF-T64 uses $E_t = 7$ at $53.4\%$, against $94.9\%$ at
-$E_t = 5$ and $84.4\%$ at $E_t = 3$. That is worth stating as a fact about the
-layout; we deliberately do not turn it into a recommendation, because which
-budget is best depends entirely on the range a workload actually visits. Searching
-for the lowest error at a fixed width on our $\pm25$-binade sweep returns
-$E_t = 4$ at every width --- not because four trits are optimal, but because on a
-workload that narrow, range is never worth a mantissa bit. A recommendation would
-require stating the workload first, and that is the point of the corollary in
-Section~\ref{sec:law}: the pair $(M_{\mathrm{eff}}, \text{binades})$ is the answer,
-not either half of it.
+This also settles what a rung costs on a binary fabric, which is a separate
+question from its width: a trit stored as a two-bit code makes GF-T16 eighteen
+bits, and the offset stored as a plain binary integer makes it seventeen. Those
+are fabric costs, not format widths, and confusing the two is what made the
+ladder appear not to fit.
 
-\paragraph{The waste is the price of the feature, and should be named as such.}
-At $E_t = 4$ the field holds 81 of its 128 codes, discarding $0.66$ bits; at
-$E_t = 7$ it discards $0.91$. Those are not losses to be recovered --- they are
-exactly what is paid so the exponent remains a balanced-ternary number that a
-ternary ALU adds without conversion. Stated that way the trade is legible: GF-T16
-buys native ternary exponent arithmetic for two-thirds of a bit of precision. A
-reader can then decide whether their fabric makes that worth it.
+\paragraph{What the two free positions are worth.} Because the exponent cancels
+in Theorem~\ref{thm:law}, the menu at sixteen positions can be read off before
+measuring, and the measurement confirms it to four significant figures
+(6{,}000 values, $2^{\pm 38}$, no clipping in any row):
 
-\paragraph{What would follow, once the packing question is settled.} If the
-exponent is stored as a binary field, budgets of $E_t \in \{3, 5, 8, 10\}$ pay
-$84.4$--$94.9\%$ against the $53.4$--$63.3\%$ of the present choices, and a
-re-laddered family on those budgets would spend less of each word on being
-ternary. If instead the trits are densely packed, the premium is already close to
-the $\log_2 3 = 1.585$ bits-per-trit floor and there is little to recover. We
-report the fork rather than pick a side: the measurement that decides it is
-whether the shipped encoder packs, and that is a question about the specification
-rather than about the arithmetic.
+\begin{table}[t]\centering
+\caption{The three ways to spend GF-T16's two unused positions. Error and range
+trade against each other exactly as Theorem~\ref{thm:law} predicts; nothing in
+any row is worse than the present rung.}
+\label{tab:gft16-fill}
+\begin{tabular}{lrrrr}
+\toprule
+variant & positions & mean rel.\ error & decades & vs.\ takum16 (far) \\
+\midrule
+present, $E_t{=}4$, $M{=}9$   & $14$ & $3.37\mathrm{e}{-4}$ & $24$  & $5.46\times$ \\
+$E_t{=}4$, $M{=}11$           & $16$ & $\mathbf{8.42\mathrm{e}{-5}}$ & $24$ & $\mathbf{22.27\times}$ \\
+$E_t{=}5$, $M{=}10$           & $16$ & $1.69\mathrm{e}{-4}$ & $73$  & --- \\
+$E_t{=}6$, $M{=}9$            & $16$ & $3.37\mathrm{e}{-4}$ & $\mathbf{219}$ & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The last row is the law's own consistency check: adding two trits of exponent
+while holding $M$ leaves the error bit-identical at $3.37\mathrm{e}{-4}$ and
+multiplies the range ninefold. The second row is the one that matters for the
+comparison of Section~\ref{sec:accuracy}: two more mantissa bits divide the error
+by $4.00$, and the rung goes from losing the near bin at $0.90\times$ and winning
+the outer two at $2.83\times$ and $5.46\times$, to winning all three at
+$3.54\times$, $11.45\times$ and $22.27\times$. Post-route on XC7A200T under one
+harness, the wider significand costs $443$ LUTs against $372$, a $19\%$ increase,
+at $136.44$\,MHz against $131.73$ --- no frequency penalty.
+
+We report this as an open choice rather than a redefinition. Changing GF-T16
+invalidates the conformance vectors and the silicon results of
+Section~\ref{sec:hardware}, and which column to buy --- precision, range, or the
+present balance --- is exactly the workload question the corollary in
+Section~\ref{sec:law} says cannot be answered without naming the workload. What
+is not a choice is the slack itself: two positions of a sixteen-position format
+are currently unallocated, and the specification should say so deliberately or
+spend them.
 
 \section{Limitations}\label{sec:limits}
 
