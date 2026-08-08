@@ -25,8 +25,12 @@
   citecolor=blue
 }
 
-\title{GF-T16: a fixed-field float with a balanced-ternary exponent, \\
-       measured against tekum16 and on open-source silicon}
+% The title names the category and the design point rather than an internal
+% codename. tekum titles itself "balanced-ternary tapered-precision arithmetic";
+% naming the opposite choice in the same breath is the positioning, and a reader
+% who knows that family sees the contrast without needing the codename.
+\title{Ternary Floats: fixed fields instead of tapered precision \\
+  \large A balanced-ternary exponent from 4 to 1024 bits, measured on open silicon}
 \author{Dmitrii Vasilev\\
   \small ORCID 0009-0008-4294-6159 \\
   \small \texttt{admin@t27.ai}}
@@ -36,14 +40,19 @@
 \maketitle
 
 \begin{abstract}
-Tapered formats such as takum~\cite{takum} and its balanced-ternary descendant
-tekum~\cite{tekum} buy
-dynamic range with a variable-length regime field. The field costs a
-barrel-shift decode on any fabric, and precision tapers towards the ends of the
-range. We describe \textbf{GF-T16}, a 16-bit float that keeps its fields fixed
-and places the exponent in balanced ternary: four trits give $3^4=81$ exponent
-steps and, on a ternary fabric, the exponent add is a native operation rather
-than a base conversion. The mantissa stays 9 bits at every magnitude.
+A floating-point format for a ternary machine has to decide where the ternary
+goes. We put it in the exponent and leave the fields fixed. \textbf{Ternary
+Floats} (GF-T) encode the exponent as a balanced-ternary integer of $E_t$ trits
+and hold the mantissa at a constant width; the ladder is specified from GF-T4 to
+GF-T1024, and we measure the four rungs that fit a mid-size FPGA.
+
+This is the opposite design point from the tapered formats that occupy this
+space. Takum~\cite{takum} and its balanced-ternary descendant tekum~\cite{tekum}
+buy dynamic range with a variable-length regime field, which costs a barrel-shift
+decode on any fabric and spends mantissa bits towards the ends of the range.
+Fixed fields give that back: the decode is a bit slice, the exponent add is
+native on a ternary fabric, and precision does not taper. The price is bounded
+range, stated here as a trade rather than a footnote.
 
 Two sets of measurements are reported. On accuracy, against a structural model of
 tekum16, GF-T16 ties near unity and shows $2.84\times$ and $5.53\times$ lower
@@ -152,6 +161,25 @@ GF-T32 & $1{,}477$ & $0$ & $83.27$\,MHz  \\
 \end{tabular}
 \end{table}
 
+\begin{table}[t]\centering
+\caption{The specified ladder. $E_t$ is the trit budget, $M$ the mantissa width,
+range in decades. Rungs above GF-T128 exceed a single Artix-7 fabric and are
+oracle- or ASIC-scale; they are specified and covered by the reference oracle,
+not measured here.}
+\label{tab:spec}
+\begin{tabular}{lrrr@{\hskip 2em}lrrr}
+\toprule
+rung & $E_t$ & $M$ & decades & rung & $E_t$ & $M$ & decades \\
+\midrule
+GF-T4  & $2$ & $1$  & $2.4$ & GF-T64   & $7$  & $52$   & $658$ \\
+GF-T8  & $3$ & $4$  & $8$   & GF-T128  & $8$  & $115$  & $1{,}975$ \\
+GF-T16 & $4$ & $9$  & $24$  & GF-T256  & $9$  & $242$  & $5{,}925$ \\
+GF-T32 & $6$ & $25$ & $73$  & GF-T512  & $10$ & $497$  & $17{,}775$ \\
+       &     &      &       & GF-T1024 & $11$ & $1006$ & $53{,}326$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \begin{figure}[t]\centering
 \includegraphics[width=0.82\textwidth]{gft_ladder.pdf}
 \caption{Area and achieved frequency across the ladder.}
@@ -254,6 +282,12 @@ format does not have.
 decades, where a regime field is unbounded. Fixed fields buy the cheap datapath
 and the uniform mantissa; range is the price, and workloads that need more should
 raise the trit budget or use a tapered format.
+
+\item \textbf{Four of nine rungs are measured.} GF-T4 through GF-T32 fit the
+device; GF-T64 and GF-T128 are within reach of a larger part and GF-T256 upwards
+exceed a single Artix-7 fabric entirely. Table~\ref{tab:spec} is the
+specification and the oracle's coverage; Table~\ref{tab:ladder} is what was
+placed and routed. We keep them apart on purpose.
 
 \item \textbf{One device family.} Artix-7 on an open flow. Not multi-corner
 characterisation; an ASIC mapping will differ.
