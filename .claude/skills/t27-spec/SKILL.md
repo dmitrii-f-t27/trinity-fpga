@@ -1519,3 +1519,54 @@ transformed netlist is mostly artefacts of the transformation; a named projectio
 signals you already suspect is legible by construction. The same applies to logs, traces,
 and profiles — a filtered view of hypotheses beats an exhaustive view of everything, and it
 is usually one flag away.
+
+## Wiring a module is not using it — the property must name the connection
+
+An AXI-Lite slave was instantiated to replace a bundle of top-level config ports with
+proper CSRs. Instantiation is easy to verify by eye and easy to get wrong in a way nothing
+notices: a previous wave left a double-buffer controller connected to a wire that no
+consumer ever read, and it stayed dead for four waves.
+
+So the properties written alongside the instantiation name the *connection*, not the
+module:
+
+```verilog
+a_start_is_ctrl_bit0:     assert (start == reg_ctrl[0]);
+a_status_reflects_engine: assert (reg_status[0] == busy && reg_status[1] == done);
+```
+
+Both would be **vacuously true** if the slave were instantiated and ignored — `start` would
+simply be something else. Naming both sides is what makes them bite.
+
+**When integrating a component, assert an equality that spans the boundary.** "The module
+is instantiated" is checkable by grep and means little; "this internal signal equals that
+register bit" cannot hold unless the wire exists. The cheap version of this check is the
+grep-count rule — a signal appearing exactly twice is connected and unused — and the strong
+version is a property that fails if the connection is removed.
+
+## Tests named for an interface break when the interface improves — invert them
+
+Replacing a config port bundle with a register aperture broke three tests
+(`control_ports_present`, `top_control_ports_present`, and two string matches on a
+declaration whose whitespace shifted). None of them was wrong about the old design; all of
+them asserted an *incident* of it.
+
+The rewrite did two things, and the second is the one worth remembering. It renamed them to
+`host_aperture_replaces_config_ports` — and it **inverted** them, so they now assert the
+**absence** of the old ports as well as the presence of the new ones:
+
+```rust
+for gone in ["input  wire        start,", "input  wire [5:0]  num_layers,"] {
+    assert!(!v.contains(gone), "config port should be a CSR now: {gone}");
+}
+```
+
+**When a change makes a test obsolete, ask whether the negation is now the interesting
+claim.** Often the thing you just removed is exactly what must not come back — a reverted
+refactor, a reintroduced tie-off, a resurrected port. Deleting the test throws that away;
+inverting it converts a broken test into a regression guard for free.
+
+The related smell, seen repeatedly here: a test that asserts a string containing formatting
+(`"reg [31:0] cycles;"`) breaks when a declaration is realigned. Match on the semantic part
+or normalise whitespace; a test that fails on `git diff -w`-invisible changes is measuring
+the wrong thing.
