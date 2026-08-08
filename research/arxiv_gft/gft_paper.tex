@@ -17,6 +17,7 @@
 \usepackage{enumitem}
 \usepackage{amsthm}
 \newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{corollary}{Corollary}
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}
@@ -48,45 +49,54 @@
 \maketitle
 
 \begin{abstract}
-A reference format is not the one that is fastest, or the most accurate at any
-one magnitude. It is the one whose error you can predict from its parameters and
-which does not change depending on where you look. We describe \textbf{Ternary
-Floats} (GF-T), a ladder built for that role: the exponent is a balanced-ternary
-integer of $E_t$ trits, the mantissa is a constant $M$ bits, and the fields are
-fixed.
+A reference format is not the one that is fastest, or the most accurate at any one
+magnitude. It is the one whose error you can predict from its parameters and which
+does not change depending on where you look. We describe \textbf{Ternary Floats}
+(GF-T), a ladder built for that role: the exponent is a balanced-ternary integer of
+$E_t$ trits, the mantissa is a constant $M$ bits, and the fields are fixed.
 
-Two measured properties make the case. Across every rung from GF-T8 to GF-T1024
-the mean relative round-trip error is
-$\tfrac{1}{2}\mathbb{E}[1/s]\cdot 2^{-(M+1)}$ (Theorem~\ref{thm:law}), derived rather than fitted:
-the binade exponent cancels, leaving a closed form in the mantissa width and the
-significand distribution alone. Measured across eight rungs spanning 302 orders
-of magnitude, the constant holds to $\pm 3\%$ of its predicted value. And at each of those rungs the error varies by at most
-$7\%$ between the near and far ends of a 76-binary-decade workload: it is flat in
-magnitude, which is precisely what a ruler must be and what a tapered format by
-construction is not.
+The foundation is a law rather than a table. Across every rung the mean relative
+round-trip error is $\tfrac12\mathbb{E}[1/s]\,2^{-(M+1)}$
+(Theorem~\ref{thm:law}), derived rather than fitted: the binade exponent cancels,
+leaving a closed form in the mantissa width and the significand distribution
+alone. Measured across eight rungs spanning 302 orders of magnitude the constant
+holds to $\pm3\%$, and within each rung the error varies by at most $7\%$ from one
+end of a 76-binade workload to the other.
 
-The ladder spans 24 to 53{,}326 decades of range and reaches
-$2.8\times10^{-304}$ at GF-T1024, measured in exact rationals because above
-GF-T32 a double-precision metric measures itself. Against the 16-bit field ---
-GF16, takum16, posit16, IEEE binary16, bfloat16, LNS16 --- GF-T16 is the only
-entrant that is both flat and free of clipping, and it is \emph{not} the most
-accurate near unity, where posit16 and binary16 beat it. That trade is the design.
+The law's consequence is that a format's costs become commensurable, and this is
+the paper's main result. A mantissa bit has a marginal area $\lambda$, so a
+variable-length exponent field costs a measurable number of mantissa bits of
+silicon (Theorem~\ref{thm:convert}). Synthesising the regime codecs of both
+tapered families under one harness on an XC7A200T, net of harness: a unary regime
+costs $438$ LUTs and a length-prefixed one $40$, against $0$ for a fixed field.
+At the 16-bit class, where $\lambda = 48.8$ LUTs per bit, those are $8.98$ and
+$0.82$ mantissa bits. The first exceeds GF-T16's entire mantissa; the second is
+small. The area argument for fixed fields is therefore decisive against posit and
+weak against takum, and we say so rather than averaging the two.
 
-In silicon, on an entirely open flow: 12, 50, 212, 1{,}477, 6{,}140 and 10{,}029 LUTs at 161.1,
-153.2, 131.7, 83.3, 53.3 and 33.2\,MHz for GF-T4 through GF-T128, one cycle of
-latency, no DSP blocks. Three defects found while measuring are reported rather than quietly
-fixed, because each generalises --- a 32-bit datapath that cost five times the
-arithmetic, the same width silently truncating a 52-bit product, and a
-sign-placement bug in the reference oracle that a commutativity suite cannot see.
+What remains against takum is accuracy, and Theorem~\ref{thm:floor} bounds how far
+that claim may be taken. The exponent's encoding is a prefix code, so by Kraft no
+format of unbounded range tapers more gently than one bit per doubling; takum's
+regime is asymptotically optimal and nothing, GF-T included, beats it beyond its
+own range. Inside GF-T16's range it is $2.83\times$ and $5.46\times$ more accurate
+at mid and far magnitudes.
 
-Turned around, the law becomes an instrument. The mantissa width a format
-\emph{behaves} as having, measured band by band, recovers the declared width for
-51 formats at widths from 8 to 1006 bits, and exposes tapering as a slope, whose
-\emph{form} identifies the family. Posit's taper is linear at exactly $2^{-es}$
-bits of significand per binade --- $-0.25$ at every width, since the 2022 standard
-fixes $es=2$ --- while takum's is logarithmic with the same coefficient at 16 and
-32 bits. Both are derived from the encoding and then confirmed against the
-oracles.
+Turned around, the law is an instrument. The mantissa width a format
+\emph{behaves} as having, measured band by band inside each format's own range,
+resolves an 83-format catalogue into four staircase forms and only four: constant
+(38 formats), wobble (3, at exactly $\log_2 r$ bits, reproducing IBM
+hexadecimal's textbook figure), arithmetic ($5$; posit at exactly $2^{-es}$ per
+binade, confirmed at three widths) and geometric ($8$; takum and tekum at one bit
+per doubling).
+
+In silicon on an entirely open flow: $12$, $50$, $212$, $1{,}477$ and $7{,}479$
+LUTs at $161.1$, $153.2$, $131.7$, $83.3$ and $48.2$\,MHz for GF-T4 through
+GF-T64, one cycle of latency, no DSP blocks.
+
+We report what the measurements cost us. Three defects found while measuring
+generalise and are described rather than quietly fixed. Four claims of our own
+were falsified by the measurements meant to support them, including a predicted
+area for GF-T64 that came in $1.57\times$ low, and each is retracted in place.
 
 \medskip
 \noindent\textbf{Artifacts.} Oracle, RTL, testbenches and the exact commands are
@@ -1223,6 +1233,50 @@ length-prefixed (takum class) & $40$  & $0.82$ & $0.36$ \\
 \end{tabular}
 \end{table}
 
+
+\subsection{How area grows along the ladder}\label{sec:arealaw}
+
+Theorem~\ref{thm:convert} needs $\lambda$, and $\lambda$ is a derivative of an
+area law we can state. Fitting $A(M) = cM^{\alpha}$ to the eight rungs from
+$M{=}7$ to $M{=}25$ gives $\alpha = 1.406$ at $R^2 = 0.984$, and combined with
+Theorem~\ref{thm:law} it predicts a scaling relation:
+
+\begin{proposition}[Error decays as a stretched exponential in area]
+\label{prop:stretched}
+With $\varepsilon \propto 2^{-M}$ and $A \propto M^{\alpha}$,
+$\ln(1/\varepsilon) \propto A^{1/\alpha}$.
+\end{proposition}
+
+Measured over $M \in [7,25]$ --- a sixfold range of area and a $250{,}000$-fold
+range of error --- the constant of proportionality holds to within $27\%$ and
+drifts monotonically downward, so the relation is an approximation and we label
+it a proposition rather than a theorem. The drift has a cause, and finding it
+falsified a prediction we registered before synthesising.
+
+\paragraph{The exponent is not constant, and the fit does not extrapolate.} We
+predicted from the $[7,25]$ fit that the reconciled GF-T64, at $M = 56$, would
+cost $4{,}762$ LUTs. It costs $7{,}479$ at $48.20$\,MHz --- the prediction is low
+by $1.57\times$. Reading $\alpha$ locally rather than globally shows why: it rises
+monotonically, from $1.06$ between $M{=}7$ and $M{=}9$ to $1.78$ between $M{=}15$
+and $M{=}17$ and $1.85$ between $M{=}25$ and $M{=}56$.
+
+\begin{theorem}[The ladder's area exponent rises toward two]
+\label{thm:alpha}
+A rung's area is a fixed overhead --- registers, the exponent adder, the
+renormalisation --- plus a significand multiplier whose cost is asymptotically
+quadratic in $M$. Hence the effective exponent
+$\alpha(M) = \mathrm{d}\ln A/\mathrm{d}\ln M$ increases monotonically toward $2$,
+and any single-power fit is valid for interpolation within its range and not for
+extrapolation beyond it.
+\end{theorem}
+
+This sharpens rather than weakens Corollary~\ref{cor:narrow}. Since $\lambda$
+grows faster than a fixed $\alpha$ would suggest, a regime codec of roughly fixed
+cost converts to \emph{even fewer} mantissa bits as the class widens than
+Table~\ref{tab:convert} shows, and the fixed-field area advantage is
+correspondingly more concentrated at narrow widths --- the widths at which
+quantised inference on FPGAs actually operates~\cite{mlformats}.
+
 \begin{corollary}[Range is paid for three times, and they are commensurable]
 \label{cor:three}
 A tapered format pays for unbounded range in three currencies: word positions,
@@ -1379,6 +1433,7 @@ D.~Shah et al.
 \bibitem{ibmhfp} IBM hexadecimal floating-point. \url{https://en.wikipedia.org/wiki/IBM_hexadecimal_floating-point}
 \bibitem{elias1975} P.~Elias, ``Universal codeword sets and representations of the integers,'' \emph{IEEE Trans. Inform. Theory}, vol.~21, no.~2, pp.~194--203, 1975.
 \bibitem{positgap} Closing the Gap Between Float and Posit Hardware Efficiency, arXiv:2603.01615.
+\bibitem{mlformats} Performance-Efficiency Trade-off of Low-Precision Numerical Formats in Deep Neural Networks, arXiv:1903.10584.
 \end{thebibliography}
 
 \end{document}
