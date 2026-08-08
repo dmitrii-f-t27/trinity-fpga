@@ -1173,3 +1173,56 @@ the author's own code.
 The corresponding audit sweep is cheap: for a family of related modules, grep each for how
 it handles the degenerate input — zero, empty, one — and line the answers up. Divergence
 in the column *is* the finding.
+
+## Check the premise of a long-carried question before answering it
+
+A design question rode nine waves as the recommended-but-deferred item:
+*"BitNet v2 moves the binding constraint from weight width to activation width — is a
+ternary-weight datapath still the right target?"* Each restatement made it sound
+better established.
+
+Fetching the abstract took one request. **BitNet v2 keeps 1-bit weights.** Its
+contribution is a Hadamard transform that makes 4-bit *activations* viable. So the
+ternary-weight premise was validated by the paper, not threatened by it — and the
+question, as phrased, had no answer because it presupposed something false.
+
+**A question repeated across many sessions accumulates authority it never earned.** Each
+time it is carried forward it looks more like settled context and less like a claim. The
+cheap defence: before doing the work a long-standing question implies, spend one request
+checking the sentence it rests on. Especially when the question originated in your own
+earlier summary — restating your own inference back to yourself is how an inference
+becomes a premise.
+
+The corollary that made the wave worth it: **answering the question properly meant reading
+what the system actually does**, and that is where the real finding was. The paper said
+weights were fine; the RTL said *activations* were ternary too — more aggressive than any
+published variant, on the axis the field finds hardest. Nobody had asked that question,
+because everybody was asking the other one.
+
+## "N of N emitted" is not "N of N integrated"
+
+A README row read *"RTL pipeline · GREEN · 9/9 modules"*. Nine modules are emitted, so the
+row is true. The top level instantiates **three** of them; the MAC, the weight memory, the
+DMA, the bus slave and the interrupt block are never instantiated, the memory port is tied
+to zero, and one input is declared and never referenced.
+
+Nothing in the row is false. It is a **count of artefacts presented where a reader infers a
+count of working parts** — the same shape as a gate that reports on a proxy, arriving in a
+status table instead of a CI job.
+
+Two checks, both mechanical:
+
+**For any "N components" claim, grep the top level for instantiations and compare.** One
+command, and it distinguishes a library from a system. Emission, compilation, and
+integration are three different milestones that a single number silently merges.
+
+**Ask what the verification actually ranges over.** Six defects had been found and fixed in
+these blocks — real work, cheapest possible place to find them — but every property was
+module-scoped. Until the blocks are wired there is no system behaviour to state a property
+about, and saying so bounds the claim honestly rather than letting "28 properties proved"
+imply an engine was verified.
+
+The generalisable habit: **when a project reports progress as a count, find out what the
+denominator is a count of.** Modules that exist, modules that compile, modules that are
+reachable from the top, and modules exercised by a test are four different denominators,
+and the gap between the first and the last is where a project's real state hides.
