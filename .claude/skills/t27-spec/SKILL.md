@@ -601,3 +601,70 @@ safe and mechanical. Re-sealing 496 specs would have rewritten 730 provenance re
 canonicalised whatever the current codegen emits, with no independent oracle that it is
 right — so it was reported, scoped, and left for a human. An audit that quietly re-baselines
 the thing it was auditing has destroyed the evidence it was sent to check.
+
+## Read the gate's body, not its name — some gates are one `echo`
+
+The gate audit from the previous wave was applied to CI. Three of nineteen workflows had
+this for their entire job body:
+
+```yaml
+- name: Validate schemas
+  run: |
+    echo "Validating JSON schemas..."
+```
+
+`seal-coverage.yml`, `schema-validation.yml`, `check-now-freshness.yml`. Each reported
+green on every pull request. The README cited one of them — *"CI · Schema validation ·
+GREEN · Conformance vectors validated"* — as evidence. **That row was backed by an echo
+statement.**
+
+This is the terminal form of the claimed-vs-tested gap: not a weak proxy, but no test at
+all, wearing the name of one. It is invisible from every angle except opening the file —
+the job name is right, the status badge is green, the README cites it truthfully as
+"passing". `grep -L` for workflows whose steps contain no command other than `echo` finds
+the whole class in seconds, and is worth running against any repo whose CI you are about
+to cite.
+
+The repair pattern that avoids the obvious trap: **do not make a hollow gate blocking on
+the same commit that makes it real.** `seal-coverage` was wired to a checker that returns
+0 of 496 — switching it on would have walled off every PR behind a re-baseline nobody had
+reviewed. It went in non-blocking, publishing the true number to the job summary, with the
+enforcing flip named as the next step. A gate that reports honestly and does not block is
+a real improvement over a gate that lies and does not block; a gate that blocks on a
+number nobody has agreed to is a new outage.
+
+**And never hollow one out to make it pass.** If duplication or cost makes a gate not
+worth keeping, delete it — an empty gate is strictly worse than a missing one, because a
+missing gate is visible in the workflow list and an empty one reports green.
+
+## Two derivations of one path is a bug even when every test passes
+
+Seal files in this repo are named `<parent-dir>_<module-name>.json`, where module-name
+comes from the spec's `module` declaration — not from its filename. The pre-commit gate
+guessed `basename "$spec" .t27`. Both derivations had lived side by side for months.
+
+Both failure directions were live:
+
+```
+specs/base/types.t27    tool -> base_tritype-base.json   EXISTS
+                        gate -> types.json               MISSING   # flags a sealed spec
+specs/numeric/gf16.t27  tool -> numeric_triformat-gf16.json  EXISTS
+                        gate -> gf16.json                     "EXISTS"
+```
+
+The second only matched because an unrelated `GF16.json` collided **case-insensitively on
+macOS**. The same gate on Linux CI would have looked for a file that does not exist. A
+case-insensitive filesystem is a bug-concealer: it makes two different names test as one,
+so a naming disagreement passes locally and fails only in CI, or fails only for the
+contributor on a different OS.
+
+The fix is not to correct the guess — it is to delete it. `t27c seal-path <spec>` now
+prints the canonical path and the gate asks the compiler. **When a shell script and a
+compiled tool must agree on a derived path, the script should call the tool, not
+reimplement the rule.** Any rule expressed twice will diverge; the only question is
+whether you find out from a test or from a user.
+
+Related: the gates here are also **local-only** — the tracked hook is a three-line stub,
+and the real four-gate hook installs into `.git/hooks/` only if someone runs an installer
+script. Before trusting "the pre-commit gate catches this", check that a fresh clone
+actually gets the gate.
