@@ -672,13 +672,27 @@ $10$ & $59049$ & $16$ & $65536$ & $90.1\%$ \\
 \end{tabular}
 \end{table}
 
-\paragraph{The current ladder sits on the two worst budgets.} GF-T16 uses
-$E_t = 4$ at $63.3\%$ and GF-T64 uses $E_t = 7$ at $53.4\%$ --- the two least
-efficient entries in the useful range. At 64 bits, moving from $E_t{=}7$ to
-$E_t{=}5$ frees four bits for the significand, which by Theorem~\ref{thm:law}
-divides the error by sixteen; it costs range, from 658 decades to 73. Whether that
-is the right trade depends on the workload, but it should be a decision rather
-than an inheritance, and at present it is neither stated nor made.
+\paragraph{The declared rungs do not fit their declared widths.} Storing the
+exponent as a plain binary field of $\lceil E_t\log_2 3\rceil$ bits, the layout
+$1 + \lceil E_t\log_2 3\rceil + M$ comes to 17 bits for GF-T16, 36 for GF-T32, 65
+for GF-T64 and 129 for GF-T128. The reference oracle stores it exactly that way,
+so either the format packs trits more densely than the oracle models --- five
+trits into eight bits reaches $94.9\%$ against the $63.3\%$ of a four-trit field
+--- or the rung names are approximate. This has to be settled before any
+design-space conclusion can be drawn, because it decides how many bits the
+exponent actually costs.
+
+\paragraph{The current budgets are the least efficient available.} GF-T16 uses
+$E_t = 4$ at $63.3\%$ and GF-T64 uses $E_t = 7$ at $53.4\%$, against $94.9\%$ at
+$E_t = 5$ and $84.4\%$ at $E_t = 3$. That is worth stating as a fact about the
+layout; we deliberately do not turn it into a recommendation, because which
+budget is best depends entirely on the range a workload actually visits. Searching
+for the lowest error at a fixed width on our $\pm25$-binade sweep returns
+$E_t = 4$ at every width --- not because four trits are optimal, but because on a
+workload that narrow, range is never worth a mantissa bit. A recommendation would
+require stating the workload first, and that is the point of the corollary in
+Section~\ref{sec:law}: the pair $(M_{\mathrm{eff}}, \text{binades})$ is the answer,
+not either half of it.
 
 \paragraph{The waste is the price of the feature, and should be named as such.}
 At $E_t = 4$ the field holds 81 of its 128 codes, discarding $0.66$ bits; at
@@ -688,13 +702,15 @@ ternary ALU adds without conversion. Stated that way the trade is legible: GF-T1
 buys native ternary exponent arithmetic for two-thirds of a bit of precision. A
 reader can then decide whether their fabric makes that worth it.
 
-\paragraph{A re-laddered family.} Choosing budgets where the packing is efficient
---- $E_t \in \{3, 5, 8, 10\}$ at $84.4$, $94.9$, $80.1$ and $90.1\%$ --- and
-avoiding $4$ and $7$ gives a ladder whose every rung pays a smaller premium for
-being ternary. We do not propose it as a replacement here, because changing the
-rungs invalidates the conformance vectors and the silicon results in
-Section~\ref{sec:hardware}; we report it as the design-space consequence of the
-law, which is what the law is for.
+\paragraph{What would follow, once the packing question is settled.} If the
+exponent is stored as a binary field, budgets of $E_t \in \{3, 5, 8, 10\}$ pay
+$84.4$--$94.9\%$ against the $53.4$--$63.3\%$ of the present choices, and a
+re-laddered family on those budgets would spend less of each word on being
+ternary. If instead the trits are densely packed, the premium is already close to
+the $\log_2 3 = 1.585$ bits-per-trit floor and there is little to recover. We
+report the fork rather than pick a side: the measurement that decides it is
+whether the shipped encoder packs, and that is a question about the specification
+rather than about the arithmetic.
 
 \section{Limitations}\label{sec:limits}
 
