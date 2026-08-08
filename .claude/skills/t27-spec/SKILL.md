@@ -901,3 +901,54 @@ concrete and obviously reachable, so the refutation is hard to dismiss as an art
 
 Two for two: both RTL defects found in this campaign were *missing events* — a lost
 interrupt and a lost response — in modules whose per-event logic was individually correct.
+
+## Every `assume` narrows what the `assert` proves — say so
+
+A master-side property was refuted: *"beats consumed must not exceed the beats the
+transfer asked for."* Tempting to file as a third defect. It was not filed, because
+`rvalid` is a free input in that harness — the prover was free to have the slave deliver
+beats nobody requested. **A misbehaving environment is indistinguishable from a defect in
+the unit under test, and only assumptions tell them apart.**
+
+Adding a minimal slave model (`assume (!rvalid || burst_active)`) made a *different*
+property meaningful and provable — the one that caught a real bug. The over-read property
+stayed refuted even after the fixes, and was recorded as **inconclusive, not claimed**,
+because building a slave model faithful enough to settle it was more work than the wave
+had.
+
+Three things this fixes in how such results get written up:
+
+**An unconstrained input is an adversary, not a wire.** Any property about a unit's
+response to its environment is really a property about *that environment's* contract too.
+State the contract, or state that you didn't.
+
+**Report inconclusive as inconclusive.** The pressure at write-up time is to sort every
+result into bug or non-bug. A third category — *the harness cannot currently decide this* —
+is honest and cheap, and it names the next piece of work precisely.
+
+**The `assume` list belongs in the artefact.** A harness with hidden assumptions overstates
+its own coverage in exactly the way a hollow gate does; the properties look proved, and the
+domain quietly shrank. Every `assume` is written into the checked-in property file with the
+reason it is there.
+
+## The test's name can be the bug report
+
+Among the tests holding defects in place was one called `dma_burst_length_is_max`. It
+asserted `m_axi_arlen <= 8'hFF` — a fixed 256-beat burst on every transfer, regardless of
+size. The RTL then stopped consuming once the byte count ran out, abandoning the burst.
+
+The test was not merely pinning the implementation. **Its name asserted the defect as the
+contract.** Anyone auditing the test list would read "burst length is max" as an
+intentional design decision and move on. Another in the same file asserted
+`if (m_axi_rlast || bytes_remaining <= 32'd8)` — and that `||` *was* the bug, written into
+a test as expected behaviour.
+
+Eight such tests were rewritten across this campaign, and **all four RTL defects found had
+one**. That correlation is not a coincidence: a defect that survives review usually does so
+because something in the repository asserts it is correct.
+
+**When auditing, read the test names as claims about intent and ask whether each is
+actually desirable.** `*_is_max`, `*_always_*`, `*_never_*` in a test name are assertions
+about the specification, not the code, and they are worth checking against the
+specification. A defect with a test defending it is invisible to every tool that trusts
+the test suite — which is all of them.
