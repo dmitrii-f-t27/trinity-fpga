@@ -1008,3 +1008,71 @@ There is a pull, especially at write-up time and especially in a run that has pr
 several real fixes, to make every thread terminate in a verdict. Resist it. **"Reproduced,
 unexplained, here is the exact command"** is a complete and useful deliverable — it is the
 next person's starting line rather than a wrong turn they have to discover.
+
+## Constraints can be silently inert — prove that your assumptions are active
+
+Yosys's `sat` ignores `$assume` cells unless `-set-assumes` is passed. Opt-in, no warning,
+no diagnostic. A harness missing the flag still runs, still prints `PROVED` or `REFUTED`,
+and every constraint in it does nothing — so a property meant to hold *given a compliant
+environment* is quietly checked against an arbitrary one.
+
+That cost a full wave. An `arlen` anomaly was recorded as unexplained, and a dependent
+property left open, when the harness had simply never applied its own constraints. The
+test that would have caught it on day one is two lines:
+
+```verilog
+always @(posedge clk) assume (1'b0);                  // unsatisfiable
+always @(posedge clk) if (rst_n) assert (a == !a);    // manifestly false
+```
+
+Assumptions live → the assertion is vacuously true → **PROVED**. Assumptions inert → the
+false assertion is reachable → **REFUTED**. It is now the first step of the CI job: a green
+result there is what licenses reading any other harness's assumptions as meaningful.
+
+**Whenever a tool takes constraints, verify the constraints are in force before trusting a
+result that depends on them.** Not "read the docs" — construct an input whose answer
+differs between the two worlds and check which one you are in. The same shape applies to a
+linter's config, a mock's expectations, a test fixture's setup: anything that is supposed
+to narrow behaviour can fail to, and the failure looks like a passing run.
+
+This is the third instance of one instrument in this campaign. A tautology that fails means
+a broken harness. A gate that cannot fail is not a gate. **Constraints that constrain
+nothing are the same defect** — each is caught by including one case whose answer you
+already know.
+
+## Put the assertions inside the module when you need a readable counterexample
+
+Two waves were spent unable to see why a property refuted. The harness instantiated the
+design under test inside a wrapper, and `sat` refuses to run with more than one module
+selected, so `-flatten` was required — which mangles every signal name, leaving VCDs full
+of `$auto$async2sync.cc:116:execute$453` and nothing else.
+
+The fix was mechanical: append the assertions to a **copy of the module itself**, before
+its `endmodule`. One module, no `-flatten`, and `-show state -show bytes_remaining …`
+prints a legible cycle-by-cycle table. The cause was visible in one reading.
+
+**When a counterexample is unreadable, change the harness's shape, not your guessing
+strategy.** Several hours went into reasoning about what the trace *might* contain; the
+trace itself took ten minutes to obtain and settled it immediately. The generalisation:
+if the diagnostic output of a tool is unusable, that is the bug to fix first — everything
+downstream of it is speculation.
+
+## Proving code unreachable is a reason to delete it, not to add it
+
+Having found that a counter could wrap when a value hit zero, the reflex was a clamp. It
+was written, and then reverted, because the same session had *proved* that state
+unreachable under the protocol contract — and in the out-of-contract case the counter
+underflows to a **large** value, where the result is arithmetically correct rather than a
+wrap. The clamp guarded nothing reachable and added a branch.
+
+**A defensive check whose trigger condition you have just proved impossible is not
+defensive, it is noise** — it implies a hazard that does not exist, and the next reader
+must re-derive that to touch the code. Guard what the contract permits; document what the
+contract forbids.
+
+The corollary is where the judgement lies: full immunity to a non-compliant peer was not
+achievable here at all. The only way to stop consuming early was to abandon a burst, which
+is itself the protocol violation fixed two waves earlier. **Sometimes robustness against a
+lawless environment and correctness against the specification are in direct conflict, and
+the specification wins** — but say so in the code, so the absent hardening reads as a
+decision rather than an oversight.
