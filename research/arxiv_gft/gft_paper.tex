@@ -81,10 +81,12 @@ sign-placement bug in the reference oracle that a commutativity suite cannot see
 
 Turned around, the law becomes an instrument. The mantissa width a format
 \emph{behaves} as having, measured band by band, recovers the declared width for
-51 formats at widths from 8 to 1006 bits, and exposes tapering as a slope. That
-slope turns out to be a constant of the family rather than of the width: posit
-sheds $0.25$ bits of significand per binade at both 16 and 32 bits, takum $0.12$
-at 32 and 64.
+51 formats at widths from 8 to 1006 bits, and exposes tapering as a slope, whose
+\emph{form} identifies the family. Posit's taper is linear at exactly $2^{-es}$
+bits of significand per binade --- $-0.25$ at every width, since the 2022 standard
+fixes $es=2$ --- while takum's is logarithmic with the same coefficient at 16 and
+32 bits. Both are derived from the encoding and then confirmed against the
+oracles.
 
 \medskip
 \noindent\textbf{Artifacts.} Oracle, RTL, testbenches and the exact commands are
@@ -243,8 +245,9 @@ declared 7. A law that reconstructs a format's own parameter to a hundredth of a
 bit, from nothing but its round-trip error, is doing more than curve-fitting.
 
 \paragraph{Tapering becomes a number.} posit16 sheds $0.254$ bits of significand
-per binade ($R^2 = 0.999$) and takum16 sheds $0.113$ ($R^2 = 0.86$): over the
-thirty binades of this sweep, $7.6$ and $3.4$ bits respectively. That is the
+per binade ($R^2 = 0.999$) and takum16 appears to shed $0.113$ over the thirty
+binades of this sweep --- but see Section~\ref{sec:taperlaw}: takum's taper is
+logarithmic, so that figure is an artefact of the window rather than a rate. That is the
 quantity a tapered format trades for range, and to our knowledge it is not usually
 reported as a single figure. It also explains the accuracy tables directly ---
 posit16 starts $1.7$ bits ahead of GF-T16 and ends $3.8$ behind.
@@ -293,6 +296,67 @@ past its exponent range rather than a slope. GF14, for instance, reads flat at
 $7.97$ through $|e|<12$ and collapses below that only for negative exponents,
 which is its subnormal boundary and not a defect --- the instrument says which of
 the two it is, where an accuracy table alone does not.
+
+
+\subsection{Tapering has a functional form, and it follows from the encoding}
+\label{sec:taperlaw}
+
+Section~\ref{sec:catalogue} reported a taper rate per family. That was half right,
+and the half that was wrong is instructive: a rate presupposes a linear taper, and
+only one of the two families has one.
+
+\begin{theorem}[Posit taper]\label{thm:posit}
+For a posit of $n$ bits with exponent field $es$, the regime is a run of $k$ like
+bits carrying a scale of $\mathrm{useed}^k = 2^{2^{es}k}$, so $k = |e|/2^{es}$, and
+the regime consumes $k+1$ of the $n$ bits. Hence
+\[
+  M(e) \;=\; n - 2 - es - \frac{|e|}{2^{es}},
+  \qquad \frac{\mathrm{d}M}{\mathrm{d}|e|} \;=\; -2^{-es}\ \text{exactly.}
+\]
+\end{theorem}
+
+The Posit Standard (2022) fixes $es = 2$ at every precision, so the rate is
+$-0.25$ for all widths --- which is why it appeared as a family constant.
+Measured: $-0.2497$ at posit16 and $-0.2505$ at posit32 against a predicted
+$-0.2500$, with a linear fit at $R^2 = 0.98$ against a logarithmic fit at $0.84$.
+
+\begin{theorem}[Takum taper]\label{thm:takum}
+Takum spends a fixed 3-bit regime field holding $r$, after which the
+characteristic occupies $r$ bits. The reachable exponent therefore grows like
+$2^r$ while the significand loses $r$, giving
+\[
+  M(e) \;=\; M_0 - c\log_2|e| ,
+\]
+a logarithmic taper with no constant rate.
+\end{theorem}
+
+Measured: $c = 0.751$ at takum16 and $0.747$ at takum32, logarithmic fit
+$R^2 = 0.92$ against a linear fit at $0.79$ --- the reverse of posit, and the same
+$c$ at both widths.
+
+\begin{corollary}[A rate is not always the right summary]
+A taper can be summarised by a rate only when it is linear. Quoting
+``bits per binade'' for a logarithmic taper yields a number that depends on the
+measurement window: an earlier draft of this paper reported $-0.117$ for takum16
+over $|e| \in [0,30)$, and the same format measured over $[0,60)$ would give a
+smaller figure for no reason but the window. The functional form has to be
+identified before a summary statistic is chosen.
+\end{corollary}
+
+\begin{corollary}[A three-way taxonomy, recovered without knowing the encoding]
+The diagnostic separates formats by the \emph{form} of $M(e)$: constant
+(fixed-field, GF-T and GF by construction), linear in $|e|$ (posit), or
+logarithmic in $|e|$ (takum). Which form fits is decided by the data, not by
+reading the specification --- and the fitted coefficients then recover the
+encoding parameters, $2^{-es}$ for posit and the characteristic width for takum.
+\end{corollary}
+
+This also gives a quantitative reading of takum's stated claim to improve on
+posits~\cite{takum}: at $|e| = 30$ a posit has shed $7.5$ bits of significand and
+a takum $3.7$, and the gap widens without bound because one taper is linear and
+the other is not. What the literature describes qualitatively --- more precision
+near unity, less at the extremes~\cite{gustafson} --- has a form and a coefficient,
+and both are recoverable from round-trip error alone.
 
 \section{Accuracy}\label{sec:accuracy}
 
@@ -659,6 +723,12 @@ D.~Vasilev.
 \newblock An 83-format numeric catalog with bit-exact conformance vectors: a
 vendor-neutral reference for FP8, BF16, MXFP4, and microscaling formats.
 \newblock arXiv:2606.09686v2, 2026.
+
+\bibitem{gustafson}
+J.~L.~Gustafson and I.~Yonemoto.
+\newblock Beating floating point at its own game: posit arithmetic.
+\newblock \emph{Supercomputing Frontiers and Innovations}, 4(2), 2017.
+\newblock Posit Standard (2022) fixes $es=2$ at all precisions.
 
 \bibitem{yosys}
 C.~Wolf.
