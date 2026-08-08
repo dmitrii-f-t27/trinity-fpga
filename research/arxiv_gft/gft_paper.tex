@@ -1122,16 +1122,17 @@ names.
 
 \begin{table}[t]\centering
 \caption{Regime codec cost by class, post-route on XC7A200T under one harness,
-no DSP. The round-trip column is decode plus encode.}
+no DSP. Figures are net of the harness, which costs $24$ LUTs and was synthesised
+separately and subtracted; the round-trip column is decode plus encode.}
 \label{tab:regimecost}
 \begin{tabular}{lrrrrr}
 \toprule
 class & \multicolumn{2}{c}{decode} & \multicolumn{2}{c}{encode} & round trip \\
       & LUTs & $F_{\max}$ & LUTs & $F_{\max}$ & LUTs \\
 \midrule
-unary, $\ell \propto |e|$ (posit)          & $403$ & $36.8$\,MHz  & $83$  & $211.2$\,MHz & $486$ \\
-$\ell \propto \log_2|e|$ (takum)           & $\mathbf{30}$ & $\mathbf{805.8}$\,MHz & $\mathbf{58}$ & $\mathbf{285.1}$\,MHz & $\mathbf{88}$ \\
-$\ell = \lceil\sqrt{|e|}\rceil$            & $417$ & $33.1$\,MHz  & $147$ & $96.4$\,MHz  & $564$ \\
+unary, $\ell \propto |e|$ (posit)          & $379$ & $36.8$\,MHz  & $59$  & $211.2$\,MHz & $438$ \\
+$\ell \propto \log_2|e|$ (takum)           & $\mathbf{6}$ & $\mathbf{805.8}$\,MHz & $\mathbf{34}$ & $\mathbf{285.1}$\,MHz & $\mathbf{40}$ \\
+$\ell = \lceil\sqrt{|e|}\rceil$            & $393$ & $33.1$\,MHz  & $123$ & $96.4$\,MHz  & $516$ \\
 \midrule
 fixed field (GF, GF-T)                     & $0$   & ---          & $0$   & ---          & $\mathbf{0}$ \\
 \bottomrule
@@ -1139,7 +1140,7 @@ fixed field (GF, GF-T)                     & $0$   & ---          & $0$   & --- 
 \end{table}
 
 The conjecture said the square-root code would be too expensive to be worth
-building. It is not: it costs $16\%$ more than the unary regime round trip, and
+building. It is not: it costs $18\%$ more than the unary regime round trip, and
 the unary regime ships in production. What the measurement does show is that the
 expense lies somewhere else than we assumed, and this has a closed form.
 
@@ -1163,7 +1164,7 @@ other.
 \begin{corollary}[The logarithmic regime is not a trade]
 \label{cor:takumwins}
 Against the unary regime the length-prefixed one is better on every axis measured:
-asymptotically optimal by Theorem~\ref{thm:floor}, $5.5\times$ smaller round trip,
+asymptotically optimal by Theorem~\ref{thm:floor}, $11\times$ smaller round trip,
 and $22\times$ faster to decode. The published bounded-regime posit
 variants~\cite{positgap}, which cap the regime field precisely to avoid the scan,
 are the same conclusion reached from the other direction.
@@ -1173,16 +1174,83 @@ are the same conclusion reached from the other direction.
 \label{cor:price}
 A fixed field has no regime codec at all. The dichotomy of
 Theorem~\ref{thm:dichotomy} therefore has a hardware statement: unbounded range
-costs $88$ LUTs at best and $486$ at worst on this device, against $0$ for a
-format that declines it. This is the cost GF-T does not pay, and it is separate
-from --- and larger than --- the accuracy advantage of
-Section~\ref{sec:accuracy}.
+costs $40$ LUTs at best and $438$ at worst on this device, against $0$ for a
+format that declines it. Section~\ref{sec:convert} converts those LUTs into the
+same currency as the accuracy results, which is the only way to say whether they
+matter.
 \end{corollary}
 
 We are left without an explanation for the empty gap. It is not domination, since
 the square-root code is Pareto-undominated; and it is not cost, since it is within
 $16\%$ of a regime that ships. Both of our explanations are now measured and both
 are wrong, and we record that rather than replace it with a third.
+
+
+\section{Converting silicon into precision}\label{sec:convert}
+
+Corollary~\ref{cor:price} gives a regime's cost in LUTs and Section~\ref{sec:accuracy}
+gives an accuracy ratio, and the two cannot be compared until they are in one
+currency. They can be: at a fixed class, a mantissa bit has a marginal area, and
+by Theorem~\ref{thm:law} it has a known value in accuracy.
+
+\begin{theorem}[Area and precision are commensurable]
+\label{thm:convert}
+Let $\lambda = \mathrm{d}A/\mathrm{d}M$ be the marginal area of a mantissa bit at
+a given class. A regime codec costing $C$ LUTs is then equivalent to $C/\lambda$
+mantissa bits of silicon, and by Theorem~\ref{thm:law} to a factor
+$2^{C/\lambda}$ in accuracy at equal area.
+\end{theorem}
+
+Measuring $\lambda$ directly --- the same width-derived multiplier synthesised at
+$M = 7, 9, \ldots, 25$ under one harness --- gives $285$, $372$, $443$, $567$,
+$696$, $870$, $1238$ and $1683$ LUTs. The marginal cost is not constant: it rises
+from $35.5$ LUTs per bit between $M{=}9$ and $M{=}11$ to $111.2$ between $M{=}21$
+and $M{=}25$. Taking the local value at each class, $\lambda = 48.8$ at the
+16-bit class and $111.2$ at the 32-bit one:
+
+\begin{table}[t]\centering
+\caption{Regime area converted into mantissa bits through
+Theorem~\ref{thm:convert}. The unary regime costs, in silicon alone, more than
+GF-T16's entire mantissa.}
+\label{tab:convert}
+\begin{tabular}{lrrr}
+\toprule
+regime & LUTs & bits at 16-bit class & bits at 32-bit class \\
+\midrule
+unary (posit class)          & $438$ & $\mathbf{8.98}$ & $3.94$ \\
+length-prefixed (takum class) & $40$  & $0.82$ & $0.36$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{corollary}[Range is paid for three times, and they are commensurable]
+\label{cor:three}
+A tapered format pays for unbounded range in three currencies: word positions,
+in the regime field; silicon, in the codec; and precision at the extremes, in the
+taper. Theorem~\ref{thm:convert} and Theorem~\ref{thm:law} put all three in
+mantissa bits, so they can be added.
+\end{corollary}
+
+Applied honestly, Corollary~\ref{cor:three} separates the two tapered families
+rather than lumping them. Against posit the silicon term alone is $8.98$ bits at
+the 16-bit class --- more than GF-T16's entire $9$-bit mantissa, so the area a
+posit implementation spends decoding its regime would, spent on significand
+instead, roughly double the precision budget of a fixed-field format at the same
+class. Against takum the silicon term is $0.82$ bits, which is small. The
+length-prefixed regime is cheap, and any argument for a fixed field made on area
+grounds is an argument against posit and not against takum. Against takum what
+remains is the accuracy result of Section~\ref{sec:accuracy}, bounded as
+Theorem~\ref{thm:floor} requires to GF-T's own range.
+
+\begin{corollary}[The area argument is a narrow-width argument]
+\label{cor:narrow}
+Since $\lambda$ grows superlinearly in $M$ while a regime codec's cost is roughly
+fixed, the same codec converts to fewer mantissa bits as the class widens:
+$8.98$ bits at 16 becomes $3.94$ at 32 for the unary regime. The fixed-field area
+advantage is therefore strongest where the words are narrowest, which is the
+regime in which quantised inference operates and not the one in which numerical
+linear algebra does.
+\end{corollary}
 
 \section{Limitations}\label{sec:limits}
 
