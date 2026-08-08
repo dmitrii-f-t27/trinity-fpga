@@ -509,3 +509,38 @@ The repair is not deleting the claim — it is narrowing it until it survives co
 Here that meant conceding the compiler-correctness and refinement axes outright, and
 promoting the one genuinely unusual artefact (a machine-checkable tape-out conformance
 gate) to the load-bearing position, explicitly labelled as the claim most worth attacking.
+
+## A tool's own summary line is a claim, not evidence
+
+`validate-conformance` printed `101 total, 43 valid, 0 invalid, 58 empty/skipped`. That
+went into a report, a `NOW.md` entry, a GitHub issue, and a memory file as "the
+conformance corpus is roughly half-hollow" — and it became the headline recommendation
+for the next wave: *populate the empty files*.
+
+Zero files were empty. The validator resolved payloads with `.as_array()`, and the
+corpus stores vectors both as `{"vectors": [...]}` and as `{"vectors": {"case_a": {…}}}`.
+Every object-shaped file counted as zero. Of the 58: 45 were fully populated (one
+carried 20 vectors), 8 were schema files that carry no vectors by construction, 5 were
+benchmark reports. Among the false positives was `FORMAT-SPEC-001.json` — the numeric
+SSOT the whole positioning rests on, reported as empty by its own repo's validator.
+
+Opening four of the flagged files took under a minute and would have caught it before it
+propagated to four places. The distinction that matters:
+
+**A summary is the tool's interpretation of the data. Only the data is the data.** When
+a count is about to become a plan — "populate these 58 files" — open the objects it
+counted, at least a sample across categories, and confirm the count means what the label
+says. Categories matter more than sample size here: the 58 held four distinct shapes,
+and reading three files of the same shape would have confirmed the wrong conclusion.
+
+**A gate with a high false-positive rate is worse than no gate**, because it launders
+noise as signal and nobody reads warning 43 of 58. The repair is to make the tool
+classify rather than binarise — this one now reports vectors / report / definition /
+empty, and the single genuinely stale artefact it had been hiding for months
+(a CLARA coverage file covering 7% of the current corpus) became visible the moment the
+false positives stopped.
+
+The general form, and the reason this keeps recurring in this campaign: **the failure
+mode is never a wrong number, it is an unexamined label.** `FAIL: 496` meant "binary not
+found". `58 empty/skipped` meant "object-shaped". Both were accurate counts of something
+other than what their word said.
