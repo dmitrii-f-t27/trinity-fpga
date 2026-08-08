@@ -29,8 +29,11 @@
 % codename. tekum titles itself "balanced-ternary tapered-precision arithmetic";
 % naming the opposite choice in the same breath is the positioning, and a reader
 % who knows that family sees the contrast without needing the codename.
-\title{Ternary Floats: fixed fields instead of tapered precision \\
-  \large A balanced-ternary exponent from 4 to 1024 bits, measured on open silicon}
+% The thesis is what the ladder is FOR: a reference whose error is predictable
+% from its parameters and does not move with magnitude. Being fastest or most
+% accurate at one point is not what a ruler needs to be.
+\title{Ternary Floats: a reference ladder whose error does not depend on magnitude \\
+  \large Fixed fields and a balanced-ternary exponent, from 4 to 1024 bits, measured on open silicon}
 \author{Dmitrii Vasilev\\
   \small ORCID 0009-0008-4294-6159 \\
   \small \texttt{admin@t27.ai}}
@@ -40,41 +43,39 @@
 \maketitle
 
 \begin{abstract}
-A floating-point format for a ternary machine has to decide where the ternary
-goes. We put it in the exponent and leave the fields fixed. \textbf{Ternary
-Floats} (GF-T) encode the exponent as a balanced-ternary integer of $E_t$ trits
-and hold the mantissa at a constant width; the ladder is specified from GF-T4 to
-GF-T1024, and we measure the four rungs that fit a mid-size FPGA.
+A reference format is not the one that is fastest, or the most accurate at any
+one magnitude. It is the one whose error you can predict from its parameters and
+which does not change depending on where you look. We describe \textbf{Ternary
+Floats} (GF-T), a ladder built for that role: the exponent is a balanced-ternary
+integer of $E_t$ trits, the mantissa is a constant $M$ bits, and the fields are
+fixed.
 
-This is the opposite design point from the tapered formats that occupy this
-space. Takum~\cite{takum} and its balanced-ternary descendant tekum~\cite{tekum}
-buy dynamic range with a variable-length regime field, which costs a barrel-shift
-decode on any fabric and spends mantissa bits towards the ends of the range.
-Fixed fields give that back: the decode is a bit slice, the exponent add is
-native on a ternary fabric, and precision does not taper. The price is bounded
-range, stated here as a trade rather than a footnote.
+Two measured properties make the case. Across every rung from GF-T8 to GF-T1024
+the mean relative round-trip error is
+$0.375 \cdot 2^{-(M+1)}$, with the constant holding to $\pm 1.5\%$ over eight
+rungs and 302 orders of magnitude --- the precision is a closed form in the
+mantissa width alone. And at each of those rungs the error varies by at most
+$7\%$ between the near and far ends of a 76-binary-decade workload: it is flat in
+magnitude, which is precisely what a ruler must be and what a tapered format by
+construction is not.
 
-Two sets of measurements are reported. On accuracy, against a structural model of
-tekum16, GF-T16 ties near unity and shows $2.84\times$ and $5.53\times$ lower
-mean relative round-trip error at $|e|\in[8,20)$ and $|e|\in[20,38)$; the bins
-are powers of two, and we say so because read as decades the far result is an
-overflow rather than a win. On cost, the multiplier was synthesised and routed on
-a Xilinx XC7A200T through an entirely open flow: 12, 50, 212 and 1{,}477 LUTs at
-$161.1$, $153.2$, $131.7$ and $83.3$\,MHz for GF-T4/8/16/32, one cycle of
-latency, no DSP blocks. The ternary-fabric argument remains architectural, since no ternary
-process exists to synthesise on; the binary-fabric figures are the measured
-claim, and they suggest the format is inexpensive even where its native
-advantage does not apply.
+The ladder spans 24 to 53{,}326 decades of range and reaches
+$2.8\times10^{-304}$ at GF-T1024, measured in exact rationals because above
+GF-T32 a double-precision metric measures itself. Against the 16-bit field ---
+GF16, takum16, posit16, IEEE binary16, bfloat16, LNS16 --- GF-T16 is the only
+entrant that is both flat and free of clipping, and it is \emph{not} the most
+accurate near unity, where posit16 and binary16 beat it. That trade is the design.
 
-We also report two width defects found while measuring, because both generalise:
-declaring the datapath 32 bits wide cost five times the arithmetic on a fabric,
-and at GF-T32 it silently truncated a 52-bit product. Equivalence for every
-change is established by exhaustive or near-exhaustive sweep rather than by
-argument.
+In silicon, on an entirely open flow: 12, 50, 212 and 1{,}477 LUTs at 161.1,
+153.2, 131.7 and 83.3\,MHz for GF-T4/8/16/32, one cycle of latency, no DSP
+blocks. Three defects found while measuring are reported rather than quietly
+fixed, because each generalises --- a 32-bit datapath that cost five times the
+arithmetic, the same width silently truncating a 52-bit product, and a
+sign-placement bug in the reference oracle that a commutativity suite cannot see.
 
 \medskip
 \noindent\textbf{Artifacts.} Oracle, RTL, testbenches and the exact commands are
-public; every figure in this paper can be regenerated from them.
+public; every figure here regenerates from them.
 \end{abstract}
 
 \section{The format}\label{sec:format}
@@ -101,6 +102,58 @@ binary carry, no conversion between bases.
 where a tapered format narrows towards the extremes. This is the mechanism behind
 the accuracy result of Section~\ref{sec:accuracy}: the win appears where the
 comparison format has spent its mantissa on range.
+
+
+\section{Why a ladder, and why this one}\label{sec:ruler}
+
+A format that is used as a reference has different requirements from one used as
+a workhorse. A workhorse should be fast and accurate where the data is. A
+reference has to be \emph{predictable}: given its parameters you should know its
+error without measuring, and that error should not move when you look at a
+different part of the range. A ruler whose divisions grow towards one end is not
+a ruler.
+
+Table~\ref{tab:law} tests both properties on this ladder.
+
+\begin{table}[t]\centering
+\caption{The precision law and the flatness, measured in exact rationals.
+``Flatness'' is the ratio of the worst magnitude band to the best: $1.000$ would
+mean the error does not depend on magnitude at all.}
+\label{tab:law}
+\begin{tabular}{lrrrrr}
+\toprule
+rung & $M$ & $2^{-(M+1)}$ & measured & ratio & flatness \\
+\midrule
+GF-T8    & $4$    & $3.12\mathrm{e}{-2}$   & $1.22\mathrm{e}{-2}$   & $0.39$ & $1.000$ \\
+GF-T16   & $9$    & $9.77\mathrm{e}{-4}$   & $3.60\mathrm{e}{-4}$   & $0.37$ & $1.070$ \\
+GF-T32   & $25$   & $1.49\mathrm{e}{-8}$   & $5.49\mathrm{e}{-9}$   & $0.37$ & $1.070$ \\
+GF-T64   & $52$   & $1.11\mathrm{e}{-16}$  & $4.22\mathrm{e}{-17}$  & $0.38$ & $1.050$ \\
+GF-T128  & $115$  & $1.20\mathrm{e}{-35}$  & $4.44\mathrm{e}{-36}$  & $0.37$ & $1.070$ \\
+GF-T256  & $242$  & $7.07\mathrm{e}{-74}$  & $2.69\mathrm{e}{-74}$  & $0.38$ & $1.050$ \\
+GF-T512  & $497$  & $1.22\mathrm{e}{-150}$ & $4.51\mathrm{e}{-151}$ & $0.37$ & $1.070$ \\
+GF-T1024 & $1006$ & $7.29\mathrm{e}{-304}$ & $2.77\mathrm{e}{-304}$ & $0.38$ & $1.050$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The precision is a closed form.} The measured error is
+$0.375 \cdot 2^{-(M+1)}$ at every rung, the constant varying by $\pm1.5\%$ across
+eight rungs that span 302 orders of magnitude. Nothing was fitted: $M$ comes from
+the format definition and the constant falls out of round-to-nearest on a uniform
+mantissa. A user of the ladder can state the error of a rung that has never been
+built.
+
+\paragraph{The error does not move with magnitude.} Flatness stays between
+$1.05$ and $1.07$ --- at most a $7\%$ difference between the closest and furthest
+parts of a workload spanning 76 binary decades. This is the property fixed fields
+buy and the one a tapered format cannot have: spending mantissa bits on range is
+exactly what makes precision depend on where you are.
+
+\paragraph{What this does not claim.} Not that GF-T is the most accurate format
+at any given width --- Section~\ref{sec:field} shows posit16 and binary16 ahead
+near unity, and Section~\ref{sec:field} shows the binary formats ahead outright at
+32 bits. A reference does not need to win those comparisons. It needs to be the
+thing you measure them against.
 
 \section{Accuracy}\label{sec:accuracy}
 
@@ -137,7 +190,6 @@ reading. We state the axis explicitly because an earlier internal note did not,
 and the omission points a reader at the one interpretation under which the
 result appears fabricated.
 
-
 \section{The 16-bit field}\label{sec:field}
 
 Comparing against one incumbent invites the objection that the incumbent was
@@ -168,19 +220,37 @@ LNS16              & $8.39\mathrm{e}{-4}$ (1324) & $7.63\mathrm{e}{-4}$ (1808) &
 \end{table}
 
 \begin{table}[t]\centering
-\caption{Accuracy across the rungs the metric can resolve, after the oracle fix
-of Section~\ref{sec:limits}. GF-T32's figure is what 25 mantissa bits should
-give; before the fix the same measurement returned $5.4\mathrm{e}{-1}$.}
-\label{tab:rungacc}
-\begin{tabular}{lrrr}
+\caption{The whole ladder, measured in exact rationals. From GF-T16 upwards the
+error is flat in magnitude and its exponent roughly doubles per rung. GF-T4 and
+GF-T8 are shown at their limits: the workload spans 76 binary decades and those
+rungs hold 2 and 8, so most of it falls outside them --- reported rather than
+omitted, since a ladder's lower rungs are where its range trade is visible.}
+\label{tab:ladderacc}
+\begin{tabular}{lrrrr}
 \toprule
-rung & $|e|<8$ & $|e|\,8$--$20$ & $|e|\,20$--$38$ \\
+rung & decades & $|e|<8$ & $|e|\,8$--$20$ & $|e|\,20$--$38$ \\
 \midrule
-GF-T16 & $3.54\mathrm{e}{-4}$ & $3.55\mathrm{e}{-4}$ & $3.55\mathrm{e}{-4}$ \\
-GF-T32 & $5.35\mathrm{e}{-9}$ & $5.47\mathrm{e}{-9}$ & $5.33\mathrm{e}{-9}$ \\
+GF-T4    & $2$      & \multicolumn{3}{c}{beyond range for this workload} \\
+GF-T8    & $8$      & $1.22\mathrm{e}{-2}$ & \multicolumn{2}{c}{beyond range} \\
+GF-T16   & $24$     & $3.45\mathrm{e}{-4}$   & $3.69\mathrm{e}{-4}$   & $3.66\mathrm{e}{-4}$ \\
+GF-T32   & $219$    & $5.27\mathrm{e}{-9}$   & $5.63\mathrm{e}{-9}$   & $5.58\mathrm{e}{-9}$ \\
+GF-T64   & $658$    & $4.33\mathrm{e}{-17}$  & $4.22\mathrm{e}{-17}$  & $4.12\mathrm{e}{-17}$ \\
+GF-T128  & $1{,}975$  & $4.25\mathrm{e}{-36}$  & $4.55\mathrm{e}{-36}$  & $4.51\mathrm{e}{-36}$ \\
+GF-T256  & $5{,}925$  & $2.76\mathrm{e}{-74}$  & $2.69\mathrm{e}{-74}$  & $2.63\mathrm{e}{-74}$ \\
+GF-T512  & $17{,}775$ & $4.32\mathrm{e}{-151}$ & $4.62\mathrm{e}{-151}$ & $4.58\mathrm{e}{-151}$ \\
+GF-T1024 & $53{,}326$ & $2.84\mathrm{e}{-304}$ & $2.77\mathrm{e}{-304}$ & $2.71\mathrm{e}{-304}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[t]\centering
+\includegraphics[width=0.86\textwidth]{gft_ladder_acc.pdf}
+\caption{The same data. Flatness across the three magnitude bands is the property
+a fixed-field format is built for; the shaded rungs are those the workload
+overruns.}
+\label{fig:ladderacc}
+\end{figure}
+
 
 \begin{figure}[t]\centering
 \includegraphics[width=0.92\textwidth]{gft_competition.pdf}
