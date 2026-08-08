@@ -1353,3 +1353,62 @@ untouched, and are found by lookup rather than by position.
 wrong thing.** Same for positional indexing into an ordered collection: it encodes today's
 order as a requirement. Both are cheap to write and quietly convert every future addition
 into a small tax.
+
+## A signal that appears exactly twice is connected and unused
+
+A double-buffer controller computed a ping-pong decision. The top level declared a wire for
+it and passed it to the controller's output port — and never read it. The activation memory
+had `wr_en` tied to `1'b0`. So the controller was correct, its output was wired, nothing
+acted on it, and there was no path from a layer's output to the next layer's input at all.
+
+The whole thing was visible in one number:
+
+```
+grep -c use_buffer_a <top>     # 2
+```
+
+**Two occurrences means a declaration and a connection, with no consumer.** Three or more
+means something reads it. This costs one command per suspicious signal and finds a class of
+defect that no per-module check can reach — every module involved is individually correct,
+and linters see a driven, loaded wire.
+
+The generalisation for reviewing an integration: **count uses of each signal crossing the
+seam, and look at every one with a count of two.** Same for a module instantiated but whose
+outputs go nowhere, and for an output port assigned from a constant. A tie-off is a
+deferred decision, and tie-offs are invisible in any view that does not span the boundary
+they sit on.
+
+## Check the rate, not just the name, when reusing an address
+
+An activation memory's write address looked obvious: the double-buffer controller already
+produced `write_addr`, so wire it up. Wrong by a factor of 27 — `write_addr` counts
+*neurons*, and the requantizer emits one packed word per **27** neurons. The right address
+was a dedicated word counter reset at layer start.
+
+**A signal named for what it addresses is not necessarily the address you need.** When
+connecting two stages, compare their *rates* before their names: how many items does the
+producer emit per item the consumer indexes? Packing, batching, and serialisation all
+introduce a divisor that a plausible-looking name hides.
+
+The same check catches the mirror error — an address that advances too slowly because the
+consumer was assumed to be per-item when it is per-burst.
+
+## Integration defects are a distinct class, and you cannot find them early
+
+Three consecutive waves, three defect classes, none reachable by any module-level property:
+
+| Defect | Why module-level proving missed it |
+|---|---|
+| latency skew — control met data a cycle early | sequencer, memory and MAC each individually correct |
+| absent stage — no layer boundary existed | nothing to state a property *about* |
+| dead control signal — decision computed and ignored | controller correct, consumer simply absent |
+
+Every module had properties. Every property proved. **The composition was wrong in three
+different ways.**
+
+Two things follow. **Module-level verification bounds its own claim**, and saying so is part
+of reporting it honestly — "28 properties proved" implies far more than it delivers if the
+modules are not wired together. And **there is no way to front-load this**: the seam has to
+exist before you can assert across it, so the integration effort is not a phase you can
+verify your way past. Build the seam, then assert on it, and expect the first assertions
+across a new seam to find something.
