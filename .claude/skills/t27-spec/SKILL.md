@@ -1126,3 +1126,50 @@ computed on the original text and then applied *after* a regex substitution had 
 the string's length, so the probe landed past `endmodule`. **Recompute positions after any
 edit that changes length**, or work on structure rather than offsets. Both failures
 presented as "the tool is broken" and were purely mechanical.
+
+## A runaway loop has a safety shadow — check that instead
+
+Two modules failed to terminate when a count parameter was zero: a terminator written
+`index == count - 1` compares against all-ones, never matches, and the FSM runs forever.
+
+Non-termination is a **liveness** property, and immediate assertions — the only form the
+open-source prover accepts here — cannot express one. The instinct is to reach for a
+heavier tool. Unnecessary: a loop that never ends almost always has some counter or index
+that leaves its legitimate range, and *that* is pure safety.
+
+```
+valid  |-> neuron_id < num_neurons        REFUTED before the fix, PROVED after
+writes <= num_words   (while active)      REFUTED before the fix, PROVED after
+```
+
+**Look for the safety shadow of a liveness property before escalating tooling.** "It runs
+forever" is hard; "this index exceeds its bound" is a one-line assertion a bounded model
+checker settles in seconds. The same substitution works for deadlock (a queue depth
+exceeds capacity), for livelock (a retry counter exceeds its limit), and for leaks (an
+allocation balance goes negative).
+
+The general lesson is about the shape of the question: **an unbounded property often has a
+bounded consequence, and the consequence is the one worth asserting.**
+
+## When siblings disagree, the odd one out is a bug, not a contract
+
+The hardest part of reporting a zero-count defect is that it could be intentional — maybe
+callers are simply required to pass a non-zero count, and the guard is the caller's job.
+Nothing in the module says either way.
+
+The evidence was in the family. `layer_sequencer` already contained
+`if (num_chunks == 0) state <= DONE_ST` — and did **not** do the same for neurons. The
+adjacent `multilayer_sequencer` guards `num_layers > 0`. Two siblings handle the zero case
+and two do not, and the module that guards one of its own two counts and not the other is
+not expressing a contract. It is inconsistent with itself.
+
+**Before deciding whether an omission is deliberate, look at how the same question is
+answered next door.** A convention followed in three places and broken in one is an
+oversight; a rule broken everywhere may be the real convention, written down nowhere. This
+resolves the "is it a bug or is it by design?" question without needing to find whoever
+wrote it — and it makes the report far harder to wave away, because the counter-example is
+the author's own code.
+
+The corresponding audit sweep is cheap: for a family of related modules, grep each for how
+it handles the degenerate input — zero, empty, one — and line the answers up. Divergence
+in the column *is* the finding.
