@@ -1358,6 +1358,78 @@ regime in which quantised inference operates and not the one in which numerical
 linear algebra does.
 \end{corollary}
 
+
+\section{The value law costs more than the field layout}
+\label{sec:valuelaw}
+
+Sections~\ref{sec:regimecost} and~\ref{sec:convert} priced the regime as a field
+to be extracted, and synthesising the published decoders shows that this is the
+smaller half of the question. We take the takum and posit decoders from an
+existing open verification suite --- Verilog, golden-checked against an mpmath
+oracle --- and put them through the same harness on XC7A200T.
+
+\begin{table}[t]\centering
+\caption{Published 32-bit decoders, post-route on XC7A200T under one harness, no
+DSP, converting to binary32. These are the real codecs rather than the structural
+models of Table~\ref{tab:regimecost}.}
+\label{tab:realcodecs}
+\begin{tabular}{lrrl}
+\toprule
+decoder & LUTs & $F_{\max}$ & what dominates \\
+\midrule
+\texttt{posit32\_decode} & $480$ & $49.0$\,MHz & leading-zero count, barrel shift \\
+\texttt{takum32\_decode} & $76{,}821$ & --- & a $65536 \times 48$-bit table for $2^{f}$ \\
+GF-T32, exponent path    & $0$   & ---         & the field is read directly \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The takum figure needs stating carefully. Its decoder evaluates
+$2^{f_{\mathrm{hi}}/2^{16}}$ from a $65536 \times 48$-bit table, then applies a
+Taylor correction through a $108$-bit and an $80$-bit multiply. In this flow the
+table did not infer as block RAM --- the module lacks the
+\texttt{ram\_style="block"} attribute that the same suite's 16-bit decoder
+carries --- so it was built from logic, and $76{,}821$ LUTs is what the design as
+written costs here rather than a property of takum. Inferred correctly the table
+is $3.15$\,Mbit, which is $85$ RAMB36 tiles, $23\%$ of this device's entire block
+memory. Either way the cost is not the regime field.
+
+\begin{theorem}[Linear and logarithmic value laws]
+\label{thm:valuelaw}
+Let a format's value law be $v = s \cdot 2^{e}$ with $s$ and $e$ read from fields
+(\emph{linear}), or $v = \pm 2^{\ell}$ for a decoded real $\ell$
+(\emph{logarithmic}). A linear law decodes with a shift, cost independent of the
+mantissa width. A logarithmic law requires evaluating an exponential, whose cost
+is a table or an iterative kernel and is independent of the field layout ---
+therefore independent of the staircase form of Section~\ref{sec:taxonomy}.
+\end{theorem}
+
+Theorem~\ref{thm:valuelaw} is a second axis, orthogonal to the first. The
+staircase taxonomy classifies how a format spends \emph{precision}; the value law
+classifies what it costs to \emph{read}. posit is tapered and linear; takum is
+tapered and logarithmic; LNS is untapered and logarithmic; GF, GF-T and IEEE are
+untapered and linear. The two axes are independent, and our earlier reading ---
+that decode cost is set by whether the regime is scanned
+(Theorem~\ref{thm:scan}) --- describes only the field-extraction term. It remains
+correct within that term, and Table~\ref{tab:realcodecs} shows the term is not
+where the money is for a logarithmic format.
+
+\begin{corollary}[What GF-T's exponent path costs]
+\label{cor:zeropath}
+GF-T's value law is linear and its exponent field is fixed, so its exponent path
+is wires: no scan, no table, no iteration. Against posit32 that is $480$ LUTs not
+spent; against takum32 it is a table of $3.15$\,Mbit not instantiated. This is a
+larger and more robust statement than the accuracy result, and unlike it,
+Theorem~\ref{thm:floor} places no range bound on it.
+\end{corollary}
+
+We flag one asymmetry rather than let it pass. A logarithmic value law buys
+something real in exchange: multiplication becomes addition. The comparison above
+is of \emph{decoders} --- the cost of getting a value into a binary datapath ---
+and a design that stays in the logarithmic domain never pays it. That is the
+regime in which LNS accelerators are built, and against those the argument of
+Corollary~\ref{cor:zeropath} does not apply at all.
+
 \section{Limitations}\label{sec:limits}
 
 \begin{enumerate}[leftmargin=*]
