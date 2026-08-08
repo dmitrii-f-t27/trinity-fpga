@@ -952,3 +952,59 @@ actually desirable.** `*_is_max`, `*_always_*`, `*_never_*` in a test name are a
 about the specification, not the code, and they are worth checking against the
 specification. A defect with a test defending it is invisible to every tool that trusts
 the test suite — which is all of them.
+
+## When a model's precondition fails, re-check it with ports only
+
+A formal environment model is code, and code has bugs. A model that is wrong in the
+*permissive* direction lets defects through; wrong in the *restrictive* direction it
+manufactures them. The second is worse, because it looks like a finding.
+
+An AXI4 slave model tracked one burst at a time and asserted — rather than assumed — the
+precondition that the master issues one at a time. **That precondition refuted.** Read
+naively: the master overlaps bursts. Instead the same claim was checked with properties
+using only the unit's own ports:
+
+```
+!(arvalid && rready)                   PROVED
+no back-to-back AR handshakes          PROVED
+```
+
+Both held, which located the fault in the model — it cleared `burst_active` from its own
+beat counter rather than from the master-visible `rlast`, so one disagreement latched it
+high forever and every later handshake violated the precondition.
+
+**Port-only properties are the arbiter**, because they involve no model at all. When a
+modelled property and a port-only property disagree, the model is the newer, less-tested
+artefact. Two habits follow:
+
+**Assert a model's preconditions; never assume them.** An assumption that the unit behaves
+is precisely the assumption that hides misbehaviour. Written as an assertion, the same
+statement becomes a check that the model is applicable — and it fires loudly when it is not.
+
+**Key model state off the signals the unit actually drives**, not off a parallel count the
+model maintains. Two counters that should agree are two things that can disagree; deriving
+from `rlast` rather than from a private tally removed a whole failure mode.
+
+## Record the anomaly instead of picking a story
+
+The same wave ended with a result that could not be explained: with a one-beat transfer
+constrained, `arlen == 0` at the address handshake **refuted**, while hand-tracing the RTL
+said it must hold — the length and the valid are assigned on the same cycle from state
+committed in the same non-blocking group.
+
+Two tidy stories were available. *"Found a one-cycle hazard"* — a fifth defect for the
+campaign tally. Or *"harness artifact, moving on"* — a clean close. Both would have been
+written confidently and one of them would have been wrong.
+
+It was recorded as an **anomaly**: named, reproduced, and explicitly not classified. The
+dependent property was marked open too, on the ground that **a harness with one unexplained
+result cannot be trusted to settle a second**.
+
+The asymmetry that decides this: a **false finding costs more than a missing one, because
+it gets acted on.** Someone edits correct RTL, or writes off a real bug as noise. A missing
+finding stays missing and is found later.
+
+There is a pull, especially at write-up time and especially in a run that has produced
+several real fixes, to make every thread terminate in a verdict. Resist it. **"Reproduced,
+unexplained, here is the exact command"** is a complete and useful deliverable — it is the
+next person's starting line rather than a wrong turn they have to discover.
