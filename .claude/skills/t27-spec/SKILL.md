@@ -781,3 +781,68 @@ the prover produced a counterexample: one cycle after reset, the antecedent's hi
 predates the reset. The right guard is `rst_n && $past(rst_n)`. A refutation on a property
 you believed was a design error found for free — which is only possible once the
 properties are actually being checked.
+
+## A test that pins the implementation's shape cannot notice it is wrong
+
+Formal verification found a lost-interrupt race in generated RTL: three interrupt sources
+and a clear-on-read were emitted as four independent non-blocking assignments, and
+last-write-wins meant a `status_read` concurrent with an event destroyed that event.
+
+Two unit tests covered exactly that code. Both passed. They asserted the **literal text**:
+
+```rust
+assert!(v.contains("if (inference_done) irq_status[0] <= 1'b1;"));
+assert!(v.contains("if (status_read)    irq_status     <= 3'b000;"));
+```
+
+Those tests passed for precisely as long as the bug existed, and failed the moment it was
+fixed — they had to be rewritten as part of the fix. **They were not testing the design;
+they were holding it still.** A string-match against emitted code asserts *"the generator
+still produces what it produced yesterday"*, which is a snapshot, not a property. Snapshot
+tests are useful for catching unintended churn and worthless for catching a defect that
+was present when the snapshot was taken.
+
+The rewritten versions assert reachable behaviour — that every source contributes its bit
+unconditionally, and that the clear applies to the *previous* value only — with the real
+guarantee carried by a proof harness. The distinction generalises past hardware: **if a
+test would fail when the code is corrected, it is pinning the bug, not guarding against
+it.** Worth asking of any assertion written by copying a line out of the implementation.
+
+## Prove the mechanism, not just the counterexample
+
+A refutation says *"there exists a state where this fails"*. It is easy to file that as
+"can occasionally misbehave" and move on.
+
+Better: after the refutation, state the failure as a property and prove **it**.
+`$past(inference_done) && $past(status_read) |-> irq_status[0] == 0` came back PROVED —
+so the event is not *sometimes* lost, it is **always** lost whenever a read coincides.
+That converts a probabilistic-sounding bug report into a definite statement about every
+reachable state, and it is what justified changing generated RTL rather than adding a
+caveat.
+
+Two supporting habits, both of which paid here:
+
+**Make the experiment discriminating.** Two properties differing by exactly one guard —
+`!$past(status_read)` — one proving, one refuting, isolate the cause with no further
+argument. Prefer a minimal-pair over a single failing check.
+
+**Validate a regression harness against the broken version.** The checked-in property file
+was run against the *old* RTL and confirmed to refute. A harness that has only ever been
+run against a fixed design is untested: it might pass because the properties are vacuous.
+
+## When a property that cannot fail, fails, the harness is wrong
+
+Three properties came back refuted at once, one of them
+`irq_enable == 0 |-> !irq_out` — a tautology over combinational logic
+(`irq_out = |(irq_status & irq_enable)`). A tautology cannot be refuted, so the run was
+not evaluating what it appeared to.
+
+The cause: Yosys's `sat` refuses to run with more than one module selected, and its error —
+`Only one module must be selected for the SAT pass!` — surfaces as a non-zero exit that
+reads exactly like `proof did fail`. Adding `-flatten` to `prep` fixed all three.
+
+**Keep one property in every harness whose answer you already know.** It costs nothing and
+converts a whole class of silent harness faults into an obvious contradiction. This is the
+same instrument as the earlier rules — a clean 0%/100% is a harness fault, a gate that
+cannot fail is not a gate — applied to a prover: the check is not on the result but on
+whether the result is *possible*.
