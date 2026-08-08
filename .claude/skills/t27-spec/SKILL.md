@@ -1677,3 +1677,34 @@ independently worth having.
 unbounded-but-green one.** Say how far it moved, what remains, and how you know the
 remainder is what you say it is — "neutralising this one assertion makes every other pass"
 is a stronger statement about scope than any amount of narrative.
+
+## Three partial fixes in a row means change what is observable, not the observer
+
+One property refused to close across three waves. Each attempt was a real improvement and
+each narrowed the failure window:
+
+1. a status signal that was a decode became a proper state register
+2. a one-directional guard on a symmetric constraint became symmetric
+3. the guard was extended across three more pipeline-stage valids
+
+All three were correct. None was sufficient, and the pattern — *each fix narrows, none
+closes* — is itself the diagnostic. The fourth attempt was spent on a trace instead, and it
+showed why: the supervisor being gated **runs its own state machine and does not stop when
+the host clears the request bit**. The signal the gate keyed off tracked a *request*, not a
+*state*. Quiescence lived inside a submodule and simply was not observable from where the
+gate was written.
+
+**When successive guards each narrow a window without closing it, stop adding conditions
+and ask what the guard cannot see.** Accumulating terms at the observation point is the
+signature of a missing observable — the fix is usually one output port on the module that
+actually knows, not a fifth conjunct on the module that does not.
+
+The corollary that made stopping the right call: **the diagnosis is a better deliverable
+than a fourth narrowing.** Naming the change ("`multilayer_sequencer` needs an `idle`
+output, and the interlock keys off that") converts an open bug into a scoped task, and
+leaves the accumulated conditions replaceable by one that answers the right question rather
+than entrenched as four that nearly do.
+
+This is the same distinction as request-versus-acknowledge in a handshake, one level up: a
+supervisor that can be *asked* to stop is not one that *has* stopped, and any interlock
+built on the ask inherits the gap.
