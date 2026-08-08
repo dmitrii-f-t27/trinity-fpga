@@ -72,17 +72,19 @@ GF16, takum16, posit16, IEEE binary16, bfloat16, LNS16 --- GF-T16 is the only
 entrant that is both flat and free of clipping, and it is \emph{not} the most
 accurate near unity, where posit16 and binary16 beat it. That trade is the design.
 
-In silicon, on an entirely open flow: 12, 50, 212 and 1{,}477 LUTs at 161.1,
-153.2, 131.7 and 83.3\,MHz for GF-T4/8/16/32, one cycle of latency, no DSP
-blocks. Three defects found while measuring are reported rather than quietly
+In silicon, on an entirely open flow: 12, 50, 212, 1{,}477, 6{,}140 and 10{,}029 LUTs at 161.1,
+153.2, 131.7, 83.3, 53.3 and 33.2\,MHz for GF-T4 through GF-T128, one cycle of
+latency, no DSP blocks. Three defects found while measuring are reported rather than quietly
 fixed, because each generalises --- a 32-bit datapath that cost five times the
 arithmetic, the same width silently truncating a 52-bit product, and a
 sign-placement bug in the reference oracle that a commutativity suite cannot see.
 
-Turned around, the law becomes an instrument: the mantissa width a format
-\emph{behaves} as having, measured band by band, recovers the declared width to
-$0.01$ bits for every fixed-field format we tried and exposes tapering as a slope
---- posit16 sheds $0.254$ bits of significand per binade, takum16 $0.113$.
+Turned around, the law becomes an instrument. The mantissa width a format
+\emph{behaves} as having, measured band by band, recovers the declared width for
+51 formats at widths from 8 to 1006 bits, and exposes tapering as a slope. That
+slope turns out to be a constant of the family rather than of the width: posit
+sheds $0.25$ bits of significand per binade at both 16 and 32 bits, takum $0.12$
+at 32 and 64.
 
 \medskip
 \noindent\textbf{Artifacts.} Oracle, RTL, testbenches and the exact commands are
@@ -261,6 +263,37 @@ for a tapered format neither is constant, which is why a ladder makes a better
 ruler than a taper.
 \end{corollary}
 
+
+\subsection{The diagnostic across a catalogue}\label{sec:catalogue}
+
+Applying Theorem~\ref{thm:diag} to every format for which a published oracle was
+available --- 51 in all, spanning IEEE, bfloat, posit, takum, LNS, MXFP, VAX, IBM
+hexadecimal, Cray, PDP-11, x87 and Microsoft binary, plus both GoldenFloat ladders
+--- produced three observations we did not anticipate.
+
+\paragraph{Declared widths are recovered across three orders of magnitude of
+width.} The GF ladder returns $8.97$ at GF16 against a declared 9, $78.03$ at
+GF128 against 78, and $631.99$ at GF1024 against 632. The same holds for
+double-double ($106.68$), quad-double ($215.90$) and x87's 80-bit format
+($63.04$). A relation that reconstructs a declared parameter from round-trip error
+alone, at widths from 8 to 1006 bits, is doing something other than describing the
+format it was derived on.
+
+\paragraph{The taper rate is a constant of the family, not of the width.} posit16
+sheds $0.250$ bits of significand per binade and posit32 sheds $0.253$; takum32,
+takum64 and tekum32 all sit at $0.117$. Within a family the rate does not move
+with the width, which follows from the regime encoding being the same scheme at
+every size --- and gives each family a single number that summarises what it
+trades for range.
+
+\paragraph{Range exhaustion is distinguishable from tapering, and both from
+neither.} Of the 51, the great majority read as fixed-field with $|{\rm slope}|
+< 0.005$; seven read as tapered; and the remainder show the cliff of a format run
+past its exponent range rather than a slope. GF14, for instance, reads flat at
+$7.97$ through $|e|<12$ and collapses below that only for negative exponents,
+which is its subnormal boundary and not a defect --- the instrument says which of
+the two it is, where an accuracy table alone does not.
+
 \section{Accuracy}\label{sec:accuracy}
 
 Mean relative error over an encode--decode round trip, 6{,}000 values spanning
@@ -415,7 +448,9 @@ rung & LUTs & DSP48 & $F_{\max}$ \\
 GF-T4  & $12$      & $0$ & $161.11$\,MHz \\
 GF-T8  & $50$      & $0$ & $153.23$\,MHz \\
 GF-T16 & $212$     & $0$ & $131.73$\,MHz \\
-GF-T32 & $1{,}477$ & $0$ & $83.27$\,MHz  \\
+GF-T32  & $1{,}477$  & $0$ & $83.27$\,MHz \\
+GF-T64  & $6{,}140$  & $0$ & $53.26$\,MHz \\
+GF-T128 & $10{,}029$ & $0$ & $33.23$\,MHz \\
 \bottomrule
 \end{tabular}
 \end{table}
