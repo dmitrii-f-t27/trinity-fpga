@@ -298,6 +298,16 @@ def _selftest():
         check(decode(fmt, one) == 1, f"{fname}: unity (0x{one:x})")
         r = format_add(fmt, one, one)
         check(decode(fmt, r) == 2, f"{fname}: 1+1=2")
+
+        # Multiplication was checked nowhere. Pass 221's mutation gate corrupted format_mul and
+        # this self-test did not notice, while bfloat*_mul.json is generated from it. Six of sixteen
+        # oracles had the same hole and every one of them was multiplication -- addition is
+        # checked everywhere, mul nowhere.
+        #
+        # Properties of the OPERATION, not of the implementation: unity is neutral and zero
+        # absorbs. Both hold in every format here regardless of width or rounding.
+        check(format_mul(fmt, one, one) == one, f"{fname}: 1*1=1")
+        check(decode(fmt, format_mul(fmt, one, fmt.pos_zero)) == 0, f"{fname}: 1*0=0")
         check(format_add(fmt, 0, 0) == 0, f"{fname}: 0+0=0")
         check(isinstance(decode(fmt, fmt.pos_inf), Special), f"{fname}: +Inf")
         check(isinstance(decode(fmt, fmt.quiet_nan), Special), f"{fname}: NaN")
@@ -320,6 +330,14 @@ def _selftest():
     # held under shift k represents value * 2^k vs the same bits at shift 0).
     afp_fmt = FORMATS["afp"]
     bf16_fmt = FORMATS["bfloat16"]
+
+    # afp_mul was checked nowhere. This module has TWO multiplication functions and the
+    # first patch of pass 221 covered only format_mul; the mutation gate still reported
+    # afp_mul surviving. Properties of the operation, at the default shift.
+    _afp_one = afp_encode(Fraction(1))
+    check(afp_mul(_afp_one, _afp_one) == _afp_one, "afp: 1*1=1")
+    check(afp_decode(afp_mul(_afp_one, afp_encode(Fraction(0)))) == 0, "afp: 1*0=0")
+    check(afp_decode(afp_mul(_afp_one, afp_encode(Fraction(2)))) == 2, "afp: 1*2=2")
 
     def _same(a, b):
         if isinstance(a, Special) or isinstance(b, Special):

@@ -58,7 +58,7 @@ module corona_compute_mxfp4_cmp_ax7203 (
     wire [22:0] m4_mant32_a = {m4_mant_a, 22'b0};
     reg [31:0] fp32_a;
     always @(*) begin
-        if(m4_zero_a) fp32_a=32'h00000000;
+        if(m4_zero_a) fp32_a={m4_sign_a, 31'b0};
         else fp32_a={m4_sign_a, m4_exp32_a, m4_mant32_a};
     end
     wire m4_sign_b = fmt_b[3];
@@ -70,7 +70,7 @@ module corona_compute_mxfp4_cmp_ax7203 (
     wire [22:0] m4_mant32_b = {m4_mant_b, 22'b0};
     reg [31:0] fp32_b;
     always @(*) begin
-        if(m4_zero_b) fp32_b=32'h00000000;
+        if(m4_zero_b) fp32_b={m4_sign_b, 31'b0};
         else fp32_b={m4_sign_b, m4_exp32_b, m4_mant32_b};
     end
     wire ce=(fp32_a==fp32_b); wire cl=(fp32_a<fp32_b); wire cd=cl|ce;

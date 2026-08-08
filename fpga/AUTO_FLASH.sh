@@ -1,13 +1,22 @@
 #!/bin/bash
+# NOTE (2026-08-05): per the no-shell-scripts rule (CLAUDE.md),
+# fpga/**/*.sh is slated to migrate to `tri` subcommands / Zig.
+# Do not extend this script; disposition tracked in trinity-fpga#425.
+# A Zig replacement already exists: prefer `fpga-flash` (src/cli/fpga_flash.zig,
+# subcommands fxload|verify-pid|flash|uart-test|full).
 # ═════════════════════════════════════════════════════════════════════════
 # VSA FPGA — FULLY AUTONOMOUS FLASH + TEST
 # ═════════════════════════════════════════════════════════════════════════
 
 set -e
 
-BITFILE="/Users/playra/trinity-w1/fpga/openxc7-synth/vsa_uart_top.bit"
-TOOLS="/Users/playra/trinity-w1/fpga/tools"
-TEST_BIN="/Users/playra/trinity-w1/fpga/openxc7-synth/vsa_fpga_test"
+# Resolve paths relative to this script so the flasher is portable
+# (was hardcoded to /Users/playra/trinity-w1). Override with FPGA_DIR if needed.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FPGA_DIR="${FPGA_DIR:-$SCRIPT_DIR}"
+BITFILE="$FPGA_DIR/openxc7-synth/vsa_uart_top.bit"
+TOOLS="$FPGA_DIR/tools"
+TEST_BIN="$FPGA_DIR/openxc7-synth/vsa_fpga_test"
 
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║     VSA FPGA — AUTONOMOUS FLASH + TEST                       ║"
@@ -37,7 +46,7 @@ echo ""
 # Step 4: Build test if needed
 if [ ! -f "$TEST_BIN" ]; then
     echo "[3/4] Building test program..."
-    cd /Users/playra/trinity-w1/fpga/openxc7-synth
+    cd "$FPGA_DIR/openxc7-synth"
     zig build-exe vsa_fpga_test.zig -O ReleaseFast
     echo "  ✓ Test program built"
 fi

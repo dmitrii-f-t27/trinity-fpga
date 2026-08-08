@@ -72,7 +72,7 @@ module corona_compute_gf96_to_fp32_ax7203 (
     wire gf_inf = (gf_exp == {36{1'b1}}) && (gf_mant == 0);
     wire gf_nan = (gf_exp == {36{1'b1}}) && (gf_mant != 0);
     wire [22:0] fp32_mant = gf_mant[22:0];
-    wire signed [37:0] fp32_exp_calc = $signed(gf_exp) + 38'sd-34359738240;
+    wire signed [37:0] fp32_exp_calc = $signed(gf_exp) + -38'sd34359738240;
     reg [31:0] fp32_result;
     always @(*) begin
         if(gf_nan) fp32_result = {gf_sign, 8'd255, 22'b0, 1'b1};

@@ -142,7 +142,7 @@ module corona_compute_lns64_alu_ax7203 (
     wire [9:0] l64_exp32_a = {1'b0, {1'b0, l64_int_a[6:0]}} + 10'd127;
     reg [31:0] fp32_a;
     always @(*) begin
-        if(l64_zero_a) fp32_a=32'h00000000;
+        if(l64_zero_a) fp32_a={l64_sign_a, 31'b0};
         else fp32_a={l64_sign_a, l64_exp32_a[7:0], l64_fm_a};
     end
     wire l64_sign_b = fmt_b[63];
@@ -224,7 +224,7 @@ module corona_compute_lns64_alu_ax7203 (
     wire [9:0] l64_exp32_b = {1'b0, {1'b0, l64_int_b[6:0]}} + 10'd127;
     reg [31:0] fp32_b;
     always @(*) begin
-        if(l64_zero_b) fp32_b=32'h00000000;
+        if(l64_zero_b) fp32_b={l64_sign_b, 31'b0};
         else fp32_b={l64_sign_b, l64_exp32_b[7:0], l64_fm_b};
     end
     wire add_irdy,add_ovld; wire [31:0] add_res;

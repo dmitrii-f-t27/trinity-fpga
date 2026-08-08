@@ -129,7 +129,7 @@ module corona_compute_lns16_cmp_ax7203 (
     wire [8:0] lns_exp32_a = {1'b0, {1'b0,lns_int_a[6:0]}} + 9'd127;
     reg [31:0] fp32_a;
     always @(*) begin
-        if(lns_zero_a) fp32_a=32'h00000000;
+        if(lns_zero_a) fp32_a={lns_sign_a, 31'b0};
         else fp32_a={lns_sign_a,lns_exp32_a[7:0],lns_fm_a};
     end
     wire [15:0] lns_val_b = fmt_b;
@@ -212,7 +212,7 @@ module corona_compute_lns16_cmp_ax7203 (
     wire [8:0] lns_exp32_b = {1'b0, {1'b0,lns_int_b[6:0]}} + 9'd127;
     reg [31:0] fp32_b;
     always @(*) begin
-        if(lns_zero_b) fp32_b=32'h00000000;
+        if(lns_zero_b) fp32_b={lns_sign_b, 31'b0};
         else fp32_b={lns_sign_b,lns_exp32_b[7:0],lns_fm_b};
     end
     wire ce=(fp32_a==fp32_b); wire cl=(fp32_a<fp32_b); wire cd=cl|ce;

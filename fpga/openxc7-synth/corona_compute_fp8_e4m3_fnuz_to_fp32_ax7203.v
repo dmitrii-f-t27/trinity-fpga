@@ -57,7 +57,7 @@ module corona_compute_fp8_e4m3_fnuz_to_fp32_ax7203 (
     wire [7:0] fnuz_e32_a = {4'd0,fnuz_exp_a} + 8'd119;
     reg [31:0] fp32_a;
     always @(*) begin
-        if(fnuz_zero_a) fp32_a=32'h00000000;
+        if(fnuz_zero_a) fp32_a={fnuz_sign_a, 31'b0};
         else if(fnuz_nan_a) fp32_a=32'h7FC00000;
         else fp32_a={fnuz_sign_a,fnuz_e32_a,{fnuz_mant_a,20'b0}};
     end

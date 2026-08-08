@@ -103,7 +103,15 @@ module corona_compute_vax_h_fma_ax7203 (
     wire [22:0] vh_mant32_a = vh_mant_a[111:89];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(vh_zero_a) fp32_a=32'h00000000;
+        if(vh_zero_a) fp32_a={vh_sign_a, 31'b0};
+        // Saturate instead of wrapping -- see the note in the sibling
+        // wrappers. vh_exp32_s_a is a SIGNED 16-bit intermediate and vh_exp32_a is
+        // its low 8 bits, so an exponent outside fp32's window used to
+        // come back as some other exponent entirely. This format has no
+        // Inf encoding of its own, so overflow saturates to fp32 +Inf on
+        // the narrowed operand, which is what the adder downstream reads.
+        else if(vh_exp32_s_a > 16'sd254) fp32_a={vh_sign_a, 8'hFF, 23'b0};
+        else if(vh_exp32_s_a < 16'sd1) fp32_a={vh_sign_a, 8'd0, 23'b0};
         else fp32_a={vh_sign_a, vh_exp32_a, vh_mant32_a};
     end
     wire vh_sign_b = fmt_b[127];
@@ -115,7 +123,15 @@ module corona_compute_vax_h_fma_ax7203 (
     wire [22:0] vh_mant32_b = vh_mant_b[111:89];
     reg [31:0] fp32_b;
     always @(*) begin
-        if(vh_zero_b) fp32_b=32'h00000000;
+        if(vh_zero_b) fp32_b={vh_sign_b, 31'b0};
+        // Saturate instead of wrapping -- see the note in the sibling
+        // wrappers. vh_exp32_s_b is a SIGNED 16-bit intermediate and vh_exp32_b is
+        // its low 8 bits, so an exponent outside fp32's window used to
+        // come back as some other exponent entirely. This format has no
+        // Inf encoding of its own, so overflow saturates to fp32 +Inf on
+        // the narrowed operand, which is what the adder downstream reads.
+        else if(vh_exp32_s_b > 16'sd254) fp32_b={vh_sign_b, 8'hFF, 23'b0};
+        else if(vh_exp32_s_b < 16'sd1) fp32_b={vh_sign_b, 8'd0, 23'b0};
         else fp32_b={vh_sign_b, vh_exp32_b, vh_mant32_b};
     end
     wire vh_sign_c = fmt_c[127];
@@ -127,7 +143,7 @@ module corona_compute_vax_h_fma_ax7203 (
     wire [22:0] vh_mant32_c = vh_mant_c[111:89];
     reg [31:0] fp32_c;
     always @(*) begin
-        if(vh_zero_c) fp32_c=32'h00000000;
+        if(vh_zero_c) fp32_c={vh_sign_c, 31'b0};
         else fp32_c={vh_sign_c, vh_exp32_c, vh_mant32_c};
     end
     wire mul_irdy,mul_ovld; wire [31:0] mul_result;

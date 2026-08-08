@@ -372,7 +372,12 @@ website/
 # Junk archive (large, local only)
 archive/junk-*/
 fpga/openxc7-synth/synth_reports/hslm_full_top.json
+# Stray backup / merge artifacts (R2). Plain *.bak missed numbered variants
+# like foo.zig.bak3, so match those plus .orig/.rej too.
 *.bak
+*.bak[0-9]*
+*.orig
+*.rej
 
 # Swift build artifacts (Queen UI)
 apps/queen/*.d
@@ -409,3 +414,4 @@ apps/queen/Trinity.app/
 # Receipt keys — per-node secrets, never committed
 trinet-keys.txt
 *.trinet-keys
+research/.gate_cache/

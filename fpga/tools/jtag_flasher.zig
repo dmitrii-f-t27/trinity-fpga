@@ -22,6 +22,18 @@ pub fn main() !void {
 
     const bitstream = args[1];
 
+    // Resolve helper tools relative to this executable's directory so the
+    // flasher is portable (was hardcoded to /Users/playra/trinity-w1). fxload,
+    // xusb_xp2.hex and jtag_program ship alongside this binary in fpga/tools.
+    const exe_dir = try std.fs.selfExeDirPathAlloc(allocator);
+    defer allocator.free(exe_dir);
+    const fxload_path = try std.fs.path.join(allocator, &.{ exe_dir, "fxload" });
+    defer allocator.free(fxload_path);
+    const firmware_path = try std.fs.path.join(allocator, &.{ exe_dir, "xusb_xp2.hex" });
+    defer allocator.free(firmware_path);
+    const jtag_program_path = try std.fs.path.join(allocator, &.{ exe_dir, "jtag_program" });
+    defer allocator.free(jtag_program_path);
+
     std.debug.print("═══════════════════════════════════════════\n", .{});
     std.debug.print(" JTAG FLASHER — Pure Zig\n", .{});
     std.debug.print(" Bitstream: {s}\n", .{bitstream});
@@ -30,15 +42,13 @@ pub fn main() !void {
     // Run fxload first (PID 0x0013 -> 0x0008)
     std.debug.print("[1/2] fxload: switching cable to JTAG mode...\n", .{});
 
-    var fxload_child = std.process.Child.init(
-        &[_][]const u8{
-            "/Users/playra/trinity-w1/fpga/tools/fxload",
-            "-t", "fx2",
-            "-d", "03fd:0013",
-            "-i", "/Users/playra/trinity-w1/fpga/tools/xusb_xp2.hex",
-        },
-        allocator,
-    );
+    const fxload_argv = [_][]const u8{
+        fxload_path,
+        "-t", "fx2",
+        "-d", "03fd:0013",
+        "-i", firmware_path,
+    };
+    var fxload_child = std.process.Child.init(&fxload_argv, allocator);
 
     const fxload_term = try fxload_child.spawnAndWait();
 
@@ -58,10 +68,8 @@ pub fn main() !void {
     // Flash bitstream
     std.debug.print("[2/2] Flashing bitstream...\n", .{});
 
-    var flash_child = std.process.Child.init(
-        &[_][]const u8{ "/Users/playra/trinity-w1/fpga/tools/jtag_program", bitstream },
-        allocator,
-    );
+    const flash_argv = [_][]const u8{ jtag_program_path, bitstream };
+    var flash_child = std.process.Child.init(&flash_argv, allocator);
 
     const flash_term = try flash_child.spawnAndWait();
 

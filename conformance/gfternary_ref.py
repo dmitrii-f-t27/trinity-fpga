@@ -57,7 +57,15 @@ class GFTernaryFormat:
     @property
     def pos_zero(self): return 0x0
     @property
-    def neg_zero(self): return 0x0           # ternary has single zero code
+    def neg_zero(self):
+        # The old body was `return 0x0` with the comment "ternary has single zero
+        # code" -- the comment is right and the code contradicted it: pos_zero is
+        # also 0x0, so the format declared two zeros at ONE code. Same class as
+        # VAX (pass 188), takum/tekum/mxint8 (pass 231) and the decimal hosts
+        # (pass 236). Raising means generate_vectors.real_specials, which probes
+        # with getattr, simply omits it.
+        raise AttributeError(f"{self.name} has a single zero code: "
+                             f"{self.pos_zero:#x} is both")
     @property
     def quiet_nan(self): return 0x3          # reserved code 3 (treated as +φ)
     @property

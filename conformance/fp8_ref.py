@@ -256,6 +256,17 @@ def _selftest():
         r = format_add(fmt, one, one)
         check(decode(fmt, r) == 2, f"{fname}: 1+1=2 (got {decode(fmt, r)})")
         check(format_add(fmt, 0, 0) == 0, f"{fname}: 0+0=0")
+
+        # Multiplication was checked nowhere. Pass 220's mutation gate corrupted
+        # format_mul and this self-test did not notice -- while fp8_*_mul.json is
+        # generated from it. Three properties of the operation, not of the
+        # implementation: unity is neutral, zero absorbs, and 2*2 is 4 wherever 4 is
+        # representable, which it is at every fp8 width here.
+        check(format_mul(fmt, one, one) == one, f"{fname}: 1*1=1")
+        check(decode(fmt, format_mul(fmt, one, 0)) == 0, f"{fname}: 1*0=0")
+        two = format_add(fmt, one, one)
+        check(decode(fmt, format_mul(fmt, two, two)) == 4,
+              f"{fname}: 2*2=4 (got {decode(fmt, format_mul(fmt, two, two))})")
         if fmt.has_inf or fmt.nan_at_max_only:
             check(isinstance(decode(fmt, fmt.quiet_nan), Special), f"{fname}: NaN")
 

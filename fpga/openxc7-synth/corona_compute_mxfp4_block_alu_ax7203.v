@@ -67,7 +67,7 @@ module corona_compute_mxfp4_block_alu_ax7203 (
     wire [8:0] sub_exp_a = 9'd127 + scale_exp_a;  // subnormal real_exp = 1-1 = 0
     reg [31:0] fp32_a;
     always @(*) begin
-        if(elem_zero_a) fp32_a=32'h00000000;
+        if(elem_zero_a) fp32_a={elem_sign_a, 31'b0};
         else if(is_elem_norm_a) begin
             if(elem_fp32_exp_raw_a > 9'd254) fp32_a = elem_sign_a ? 32'hFF800000 : 32'h7F800000;
             else if(elem_fp32_exp_raw_a[8]) fp32_a = 32'h00000000;
@@ -96,7 +96,7 @@ module corona_compute_mxfp4_block_alu_ax7203 (
     wire [8:0] sub_exp_b = 9'd127 + scale_exp_b;  // subnormal real_exp = 1-1 = 0
     reg [31:0] fp32_b;
     always @(*) begin
-        if(elem_zero_b) fp32_b=32'h00000000;
+        if(elem_zero_b) fp32_b={elem_sign_b, 31'b0};
         else if(is_elem_norm_b) begin
             if(elem_fp32_exp_raw_b > 9'd254) fp32_b = elem_sign_b ? 32'hFF800000 : 32'h7F800000;
             else if(elem_fp32_exp_raw_b[8]) fp32_b = 32'h00000000;

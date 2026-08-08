@@ -2,18 +2,18 @@
 """mxfp4 decode conformance — 4-bit → FP32. 2-byte frame."""
 import serial, struct, time, random, sys, argparse
 N,E,M,BIAS = 4,2,1,1
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from gf_decode_golden import decode_to_fp32
 EM = (1<<E)-1
 def decode(raw):
-    raw &= (1<<N)-1
-    s=raw>>(N-1); e=(raw>>M)&EM; m=raw&((1<<M)-1)
-    if e==EM: e=EM-1; m=(1<<M)-1  # saturate (OCP MX: no Inf/NaN)
-    if e==0:
-        if m==0: return s<<31
-        v=(m/float(1<<M))*(2.0**(1-BIAS))
-    else: v=(1+m/float(1<<M))*(2.0**(e-BIAS))
-    if abs(v)>3.4e38: return 0xFF800000 if v<0 else 0x7F800000
-    if abs(v)<1.2e-38: return s<<31
-    return struct.unpack(">I",struct.pack(">f",-v if s else v))[0]
+    # Exact golden -- conformance/gf_decode_golden.py.
+    # This used to do `if e==EM: e=EM-1; m=(1<<M)-1  # saturate (OCP MX: no Inf/NaN)`.
+    # The comment is right and the code does not follow it: OCP MX FP4 E2M1 has no
+    # Inf, no NaN and no reserved code, so exp=all-ones is an ordinary value. The
+    # codebook is {0, .5, 1, 1.5, 2, 3, 4, 6} and saturating mapped both 4 and 6
+    # onto 3 -- codes 6, 7, 14 and 15, a quarter of the format.
+    return decode_to_fp32(raw, N, E, M, BIAS, "mxfp4")
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--port",default="/dev/cu.usbserial-1120")

@@ -10,7 +10,7 @@ gen_vectors.py — генератор проверочных векторов д
 5 классов для крупных — то же покрытие, что и в rtl_bit_model.py).
 
 Запуск: python3 gen_vectors.py [имя_формата ...]  (без аргументов — все 10).
-Файлы кладутся рядом, в /home/user/workspace/wave_audit/gf_decode/vectors/.
+Файлы кладутся рядом со скриптом, в ./vectors/ (см. OUT_DIR ниже).
 
 compute-HW / decode-HW ГАЛОЧКА закрывается ТОЛЬКО реальным прогоном
 tb_gf_decode.v на iverilog/Vivado + синтезом+прошивкой AX7203 —

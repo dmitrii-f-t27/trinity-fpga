@@ -62,7 +62,7 @@ module corona_compute_vax_d_to_fp32_ax7203 (
     wire [22:0] vd_mant32_a = vd_mant_a[54:32];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(vd_zero_a) fp32_a=32'h00000000;
+        if(vd_zero_a) fp32_a={vd_sign_a, 31'b0};
         else fp32_a={vd_sign_a, vd_exp32_a, vd_mant32_a};
     end
     always @(posedge mclk or posedge rst) begin

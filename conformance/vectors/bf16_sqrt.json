@@ -1,6 +1,18 @@
 {
   "format": "bf16",
   "op": "sqrt",
+  "oracle": "bf16_ref.py",
+  "family": "bfloat",
+  "width": 16,
+  "specials": {
+    "pos_zero": "0x0000",
+    "neg_zero": "0x8000",
+    "pos_inf": "0x7F80",
+    "neg_inf": "0xFF80",
+    "quiet_nan": "0x7F81"
+  },
+  "note": "exact sqrt by integer bisection on the exact significand (conformance/exact_ops.py); b is ignored.",
+  "provenance": "expected values recomputed from the named oracle. They previously came from conformance/golden_conformance_vectors.py, a float32 proxy: 6,690 of 11,520 disagreed (research/audit_fp32_proxy_golden.py). Inputs and order are unchanged from the silicon sprint.",
   "count": 64,
   "vectors": [
     {
@@ -13,25 +25,25 @@
       "a": 1,
       "b": 0,
       "op": "sqrt",
-      "result": 8192
+      "result": 7733
     },
     {
       "a": 65535,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 32768,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32768
     },
     {
       "a": 32768,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32768
     },
     {
       "a": 16384,
@@ -55,13 +67,13 @@
       "a": 36048,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 32098,
       "b": 0,
       "op": "sqrt",
-      "result": 24176
+      "result": 24177
     },
     {
       "a": 29256,
@@ -79,7 +91,7 @@
       "a": 13434,
       "b": 0,
       "op": "sqrt",
-      "result": 14844
+      "result": 14845
     },
     {
       "a": 11395,
@@ -91,13 +103,13 @@
       "a": 55302,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 4165,
       "b": 0,
       "op": "sqrt",
-      "result": 10208
+      "result": 10209
     },
     {
       "a": 3905,
@@ -115,19 +127,19 @@
       "a": 28657,
       "b": 0,
       "op": "sqrt",
-      "result": 22447
+      "result": 22448
     },
     {
       "a": 30495,
       "b": 0,
       "op": "sqrt",
-      "result": 23369
+      "result": 23370
     },
     {
       "a": 3478,
       "b": 0,
       "op": "sqrt",
-      "result": 9866
+      "result": 9867
     },
     {
       "a": 26062,
@@ -139,7 +151,7 @@
       "a": 54987,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 28893,
@@ -151,13 +163,13 @@
       "a": 58878,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 36463,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 851,
@@ -169,85 +181,85 @@
       "a": 20926,
       "b": 0,
       "op": "sqrt",
-      "result": 18587
+      "result": 18588
     },
     {
       "a": 55392,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 44597,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 36421,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 20379,
       "b": 0,
       "op": "sqrt",
-      "result": 18316
+      "result": 18317
     },
     {
       "a": 28221,
       "b": 0,
       "op": "sqrt",
-      "result": 22235
+      "result": 22236
     },
     {
       "a": 44118,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 13396,
       "b": 0,
       "op": "sqrt",
-      "result": 14824
+      "result": 14825
     },
     {
       "a": 12156,
       "b": 0,
       "op": "sqrt",
-      "result": 14205
+      "result": 14206
     },
     {
       "a": 49797,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 12676,
       "b": 0,
       "op": "sqrt",
-      "result": 14465
+      "result": 14466
     },
     {
       "a": 47052,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 45082,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 34671,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 5695,
@@ -259,19 +271,19 @@
       "a": 60217,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 16361,
       "b": 0,
       "op": "sqrt",
-      "result": 16300
+      "result": 16301
     },
     {
       "a": 49615,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 10328,
@@ -283,13 +295,13 @@
       "a": 38427,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 47400,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 25203,
@@ -307,19 +319,19 @@
       "a": 6006,
       "b": 0,
       "op": "sqrt",
-      "result": 11130
+      "result": 11131
     },
     {
       "a": 29871,
       "b": 0,
       "op": "sqrt",
-      "result": 23061
+      "result": 23062
     },
     {
       "a": 37930,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 10458,
@@ -337,49 +349,49 @@
       "a": 13238,
       "b": 0,
       "op": "sqrt",
-      "result": 14744
+      "result": 14745
     },
     {
       "a": 49823,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 36434,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 59429,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 47819,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 21319,
       "b": 0,
       "op": "sqrt",
-      "result": 18785
+      "result": 18786
     },
     {
       "a": 48520,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 46566,
       "b": 0,
       "op": "sqrt",
-      "result": 0
+      "result": 32641
     },
     {
       "a": 27460,

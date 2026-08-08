@@ -1,6 +1,15 @@
 {
   "format": "gf8",
   "op": "quire",
+  "oracle": "gf_ref.py",
+  "family": "gf",
+  "width": 8,
+  "specials": {
+    "pos_zero": "0x00",
+    "neg_zero": "0x80"
+  },
+  "note": "NOT an accumulator: this is encode(decode(a)), the decode/encode round trip the fp32 proxy called `quire`. b is ignored. The QUIRE core on silicon has never been checked against an accumulator golden.",
+  "provenance": "expected values recomputed from the named oracle. They previously came from conformance/golden_conformance_vectors.py, a float32 proxy: 6,690 of 11,520 disagreed (research/audit_fp32_proxy_golden.py). Inputs and order are unchanged from the silicon sprint.",
   "count": 64,
   "vectors": [
     {
@@ -13,13 +22,13 @@
       "a": 1,
       "b": 0,
       "op": "quire",
-      "result": 16
+      "result": 1
     },
     {
       "a": 255,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 255
     },
     {
       "a": 128,
@@ -49,25 +58,25 @@
       "a": 12,
       "b": 0,
       "op": "quire",
-      "result": 16
+      "result": 12
     },
     {
       "a": 140,
       "b": 0,
       "op": "quire",
-      "result": 144
+      "result": 140
     },
     {
       "a": 125,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 125
     },
     {
       "a": 114,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 114
     },
     {
       "a": 71,
@@ -103,7 +112,7 @@
       "a": 15,
       "b": 0,
       "op": "quire",
-      "result": 16
+      "result": 15
     },
     {
       "a": 47,
@@ -121,13 +130,13 @@
       "a": 119,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 119
     },
     {
       "a": 13,
       "b": 0,
       "op": "quire",
-      "result": 16
+      "result": 13
     },
     {
       "a": 101,
@@ -157,13 +166,13 @@
       "a": 142,
       "b": 0,
       "op": "quire",
-      "result": 144
+      "result": 142
     },
     {
       "a": 3,
       "b": 0,
       "op": "quire",
-      "result": 16
+      "result": 3
     },
     {
       "a": 81,
@@ -187,7 +196,7 @@
       "a": 142,
       "b": 0,
       "op": "quire",
-      "result": 144
+      "result": 142
     },
     {
       "a": 79,
@@ -247,7 +256,7 @@
       "a": 135,
       "b": 0,
       "op": "quire",
-      "result": 144
+      "result": 135
     },
     {
       "a": 22,
@@ -313,7 +322,7 @@
       "a": 116,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 116
     },
     {
       "a": 148,
@@ -331,7 +340,7 @@
       "a": 119,
       "b": 0,
       "op": "quire",
-      "result": 0
+      "result": 119
     },
     {
       "a": 51,
@@ -349,7 +358,7 @@
       "a": 142,
       "b": 0,
       "op": "quire",
-      "result": 144
+      "result": 142
     },
     {
       "a": 232,

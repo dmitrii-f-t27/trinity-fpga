@@ -55,7 +55,7 @@ module corona_compute_ms_mbf32_mul_ax7203 (
     wire mbf_zero_a = (mbf_val_a==32'h0);
     reg [31:0] fp32_a;
     always @(*) begin
-        if(mbf_zero_a) fp32_a=32'h0;
+        if(mbf_zero_a) fp32_a={mbf_sign_a, 31'b0};
         else if(mbf_exp_a<=8'd2) fp32_a={mbf_sign_a,31'b0};
         else fp32_a={mbf_sign_a,mbf_exp_a-8'd2,mbf_mant_a};
     end
@@ -66,7 +66,7 @@ module corona_compute_ms_mbf32_mul_ax7203 (
     wire mbf_zero_b = (mbf_val_b==32'h0);
     reg [31:0] fp32_b;
     always @(*) begin
-        if(mbf_zero_b) fp32_b=32'h0;
+        if(mbf_zero_b) fp32_b={mbf_sign_b, 31'b0};
         else if(mbf_exp_b<=8'd2) fp32_b={mbf_sign_b,31'b0};
         else fp32_b={mbf_sign_b,mbf_exp_b-8'd2,mbf_mant_b};
     end
@@ -86,7 +86,7 @@ module corona_compute_ms_mbf32_mul_ax7203 (
     reg [31:0] q_result;
     always @(*) begin
         if(q_nan) q_result=32'h7FC00000;
-        else if(q_zero) q_result=32'h0;
+        else if(q_zero) q_result={q_sign, 31'b0};
         else if(q_exp==0) q_result={q_sign,8'd3,23'b0};
         else if(q_exp>=8'd253) q_result={q_sign,8'hFF,q_mant};
         else q_result={q_sign,q_exp+8'd2,q_mant};
@@ -95,7 +95,7 @@ module corona_compute_ms_mbf32_mul_ax7203 (
     always @(posedge mclk or posedge rst) begin
         if(rst) begin result_reg<=0;result_ready<=0; end
         else begin result_ready<=comp_ovld;
-            if(comp_ovld) result_reg<={0'b0,q_result};
+            if(comp_ovld) result_reg<=q_result;
         end
     end
     assign led[2]=|result_reg;

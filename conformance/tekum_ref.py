@@ -94,7 +94,11 @@ class TekumFormat:
 
     @property
     def neg_zero(self):
-        return 1 << self.sign_shift
+        # tekum has no negative zero. This returned the same sign-bit-only pattern the
+        # property below calls NaR -- the two were literally the same expression, three
+        # lines apart -- so every tekum pack's legend listed NaR as `neg_zero`.
+        raise AttributeError(f"{self.name} has no negative zero: "
+                             f"{1 << self.sign_shift:#x} is NaR")
 
     @property
     def nar(self):
@@ -381,6 +385,12 @@ def _selftest():
         # ---- 3. unity ----
         one = encode(fmt, Fraction(1))
         check(decode(fmt, one) == 1, f"{fname}: encode(1) decodes to 1 (got 0x{one:x})")
+
+        # Multiplication was checked nowhere -- section 4 below tests ADD consistency
+        # only. Pass 221's mutation gate corrupted tekum_mul and this self-test did not
+        # notice, while tekum*_mul.json is generated from it.
+        check(tekum_mul(fmt, one, one) == one, f"{fname}: 1*1=1")
+        check(decode(fmt, tekum_mul(fmt, one, 0)) == 0, f"{fname}: 1*0=0")
 
     # ---- 4. add-consistency: когда a+b точно представимо, результат точен ----
     fmt = FORMATS["tekum16"]

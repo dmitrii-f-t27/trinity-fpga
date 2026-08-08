@@ -90,9 +90,17 @@ module corona_compute_double_double_alu_ax7203 (
     wire [22:0] dd_mant32_a = dd_mant_a[51:29];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(dd_zero_a) fp32_a=32'h00000000;
+        if(dd_zero_a) fp32_a={dd_sign_a, 31'b0};
         else if(dd_nan_a) fp32_a=32'h7FC00000;
         else if(dd_inf_a) fp32_a={dd_sign_a, 8'hFF, 23'b0};
+        // Saturate instead of wrapping. dd_exp32_a is dd_exp32_s_a truncated to 8
+        // bits, and dd_exp32_s_a is a SIGNED 16-bit intermediate, so an exponent
+        // outside fp32's window used to come back as some other exponent
+        // entirely -- a value far above fp32's maximum arrived as an
+        // ordinary finite number instead of +Inf. Pass 240 counted 32,510
+        // of binary128's own exponents landing outside that window.
+        else if(dd_exp32_s_a > 16'sd254) fp32_a={dd_sign_a, 8'hFF, 23'b0};
+        else if(dd_exp32_s_a < 16'sd1) fp32_a={dd_sign_a, 8'd0, 23'b0};
         else fp32_a={dd_sign_a, dd_exp32_a, dd_mant32_a};
     end
     wire dd_sign_b = fmt_b[63];
@@ -106,9 +114,17 @@ module corona_compute_double_double_alu_ax7203 (
     wire [22:0] dd_mant32_b = dd_mant_b[51:29];
     reg [31:0] fp32_b;
     always @(*) begin
-        if(dd_zero_b) fp32_b=32'h00000000;
+        if(dd_zero_b) fp32_b={dd_sign_b, 31'b0};
         else if(dd_nan_b) fp32_b=32'h7FC00000;
         else if(dd_inf_b) fp32_b={dd_sign_b, 8'hFF, 23'b0};
+        // Saturate instead of wrapping. dd_exp32_b is dd_exp32_s_b truncated to 8
+        // bits, and dd_exp32_s_b is a SIGNED 16-bit intermediate, so an exponent
+        // outside fp32's window used to come back as some other exponent
+        // entirely -- a value far above fp32's maximum arrived as an
+        // ordinary finite number instead of +Inf. Pass 240 counted 32,510
+        // of binary128's own exponents landing outside that window.
+        else if(dd_exp32_s_b > 16'sd254) fp32_b={dd_sign_b, 8'hFF, 23'b0};
+        else if(dd_exp32_s_b < 16'sd1) fp32_b={dd_sign_b, 8'd0, 23'b0};
         else fp32_b={dd_sign_b, dd_exp32_b, dd_mant32_b};
     end
     wire add_irdy,add_ovld; wire [31:0] add_res;

@@ -71,7 +71,7 @@ module corona_compute_ms_mbf64_alu_ax7203 (
     wire [22:0] mb_mant32_a = mb_mant_a[54:32];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(mb_zero_a) fp32_a=32'h00000000;
+        if(mb_zero_a) fp32_a={mb_sign_a, 31'b0};
         else fp32_a={mb_sign_a, mb_exp32_a, mb_mant32_a};
     end
     wire mb_sign_b = fmt_b[63];
@@ -82,7 +82,7 @@ module corona_compute_ms_mbf64_alu_ax7203 (
     wire [22:0] mb_mant32_b = mb_mant_b[54:32];
     reg [31:0] fp32_b;
     always @(*) begin
-        if(mb_zero_b) fp32_b=32'h00000000;
+        if(mb_zero_b) fp32_b={mb_sign_b, 31'b0};
         else fp32_b={mb_sign_b, mb_exp32_b, mb_mant32_b};
     end
     wire add_irdy,add_ovld; wire [31:0] add_res;

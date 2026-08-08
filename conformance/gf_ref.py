@@ -374,6 +374,15 @@ def _selftest():
             one = fmt.bias << fmt.mant_bits
             assert gf_add(fmt, one, 0) == one, f"{name}: 1+0 != 1"
             assert gf_add(fmt, one, one) != one, f"{name}: 1+1 == 1"
+
+            # Multiplication was checked nowhere. Pass 221's mutation gate corrupted
+            # gf_mul and this self-test did not notice, while gf*_mul.json is generated
+            # from it. Six of sixteen oracles had the same hole and every one was
+            # multiplication: addition is checked everywhere, mul nowhere.
+            #
+            # Properties of the operation, not of the implementation.
+            assert gf_mul(fmt, one, one) == one, f"{name}: 1*1 != 1"
+            assert decode(fmt, gf_mul(fmt, one, 0)) == 0, f"{name}: 1*0 != 0"
         ok += 1
     # Wide / ultra-wide formats: edge-case only (0+0=0, -0+0=+0). Random raws
     # would decode to pow2(≈2^195) for gf512/gf1024 — unconstructible; the

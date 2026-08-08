@@ -63,7 +63,17 @@ class TakumFormat:
     @property
     def pos_zero(self): return 0
     @property
-    def neg_zero(self): return 1 << self.sign_shift
+    def neg_zero(self):
+        # takum has no negative zero. 1 << sign_shift is NaR -- the same code the format
+        # reserves for every result outside the reals -- so handing it out under this name
+        # put NaR in the specials legend of every takum pack as `neg_zero`.
+        #
+        # Same shape as pass 188's VAX finding: a format with one zero declaring two, and
+        # the second pointing at a code that means something else entirely. AttributeError
+        # rather than a raise, so generate_vectors.real_specials probes with getattr and
+        # simply omits it.
+        raise AttributeError(f"{self.name} has no negative zero: "
+                             f"{1 << self.sign_shift:#x} is NaR")
     @property
     def nar(self): return 1 << self.sign_shift
 
@@ -277,6 +287,16 @@ def _selftest():
         check(format_add(fmt, 0, 0) == 0, f"{fname}: 0+0=0")
         r = format_add(fmt, one, one)
         check(decode(fmt, r) == 2, f"{fname}: 1+1=2 (got {decode(fmt, r)})")
+
+        # Multiplication was checked nowhere. Pass 221's mutation gate corrupted format_mul and
+        # this self-test did not notice, while takum*_mul.json is generated from it. Six of sixteen
+        # oracles had the same hole and every one of them was multiplication -- addition is
+        # checked everywhere, mul nowhere.
+        #
+        # Properties of the OPERATION, not of the implementation: unity is neutral and zero
+        # absorbs. Both hold in every format here regardless of width or rounding.
+        check(format_mul(fmt, one, one) == one, f"{fname}: 1*1=1")
+        check(decode(fmt, format_mul(fmt, one, fmt.pos_zero)) == 0, f"{fname}: 1*0=0")
 
         if fmt.n <= 16:
             codes = range(0, 1 << fmt.n)

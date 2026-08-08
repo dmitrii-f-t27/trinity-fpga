@@ -152,7 +152,7 @@ module corona_compute_quad_double_fma_ax7203 (
     wire [22:0] qd_mant32_a = qd_mant_a[51:29];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(qd_zero_a) fp32_a=32'h00000000;
+        if(qd_zero_a) fp32_a={qd_sign_a, 31'b0};
         else if(qd_special_a) fp32_a=32'h7FC00000;
         else fp32_a={qd_sign_a, qd_exp32_a, qd_mant32_a};
     end
@@ -166,7 +166,7 @@ module corona_compute_quad_double_fma_ax7203 (
     wire [22:0] qd_mant32_b = qd_mant_b[51:29];
     reg [31:0] fp32_b;
     always @(*) begin
-        if(qd_zero_b) fp32_b=32'h00000000;
+        if(qd_zero_b) fp32_b={qd_sign_b, 31'b0};
         else if(qd_special_b) fp32_b=32'h7FC00000;
         else fp32_b={qd_sign_b, qd_exp32_b, qd_mant32_b};
     end
@@ -180,7 +180,7 @@ module corona_compute_quad_double_fma_ax7203 (
     wire [22:0] qd_mant32_c = qd_mant_c[51:29];
     reg [31:0] fp32_c;
     always @(*) begin
-        if(qd_zero_c) fp32_c=32'h00000000;
+        if(qd_zero_c) fp32_c={qd_sign_c, 31'b0};
         else if(qd_special_c) fp32_c=32'h7FC00000;
         else fp32_c={qd_sign_c, qd_exp32_c, qd_mant32_c};
     end

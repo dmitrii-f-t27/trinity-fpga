@@ -34,6 +34,25 @@ CONF = os.path.join(REPO, "conformance")
 K = 24          # codes sampled per format -> K*K ordered pairs
 
 
+def k_for(width):
+    """Sample size, scaled by width.
+
+    A flat K=24 gives 576 ordered pairs, and on a 64-bit format each operation is
+    exact rational arithmetic over denominators like 1.67e47. The sweep did not
+    hang at gf6 -- it was still working on gf64, and had been for hours. It printed
+    nothing while doing so, so a slow format and a dead process looked identical,
+    and 24 of 85 oracles read as the whole corpus.
+
+    Narrow formats keep the dense sample; wide ones get a smaller one, which is a
+    weaker check than K=24 and an infinitely stronger one than never finishing.
+    """
+    if width <= 32:
+        return K
+    if width <= 64:
+        return 10
+    return 8
+
+
 def arithmetic_of(mod):
     """Find (add, mul) under any naming convention used in this tree.
 
@@ -111,6 +130,31 @@ def is_special(mod, fmt, raw) -> bool:
     return f != f or abs(f) == float("inf")
 
 
+# E8M0 (OCP MX v1.0) is exponent-only: 2**(code-127), 0xFF is NaN, and there is
+# NO ZERO and no sign. Pass 266 established that when building its oracle and
+# deliberately wrote no e8m0_sub pack for the same reason. The zero-based laws are
+# not violated by it, they are undefined for it -- and the loop below hardcodes
+# `zero = 0`, which for E8M0 names the code for 2**-127, not zero at all. Asking
+# was a category error and it produced 2 and 9.
+NO_ZERO = {"e8m0"}
+
+
+def same_value(mod, fmt, a, b):
+    """Do two codes decode to the same value, whatever their encodings?"""
+    try:
+        return mod.decode(fmt, a) == mod.decode(fmt, b)
+    except Exception:
+        return False
+
+
+def is_zero_value(mod, fmt, raw):
+    try:
+        v = mod.decode(fmt, raw)
+        return getattr(v, "kind", None) is None and v == 0
+    except Exception:
+        return False
+
+
 def sample_codes(width, k=K):
     span = 1 << width
     if span <= k:
@@ -125,25 +169,61 @@ def sample_codes(width, k=K):
 def main() -> int:
     oracles = load_oracles()
     print(f"{'format':<14}{'pairs':>7}  {'comm+':<7}{'comm*':<7}"
-          f"{'x+0':<7}{'x*1':<7}{'x*0':<7}", flush=True)
-    print("-" * 62, flush=True)
+          f"{'x+0':<7}{'x*1':<7}{'x*0':<7}{'reenc':<7}", flush=True)
+    print("-" * 69, flush=True)
+    print("reenc = value preserved, encoding changed. Not a violation: IEEE",
+          flush=True)
+    print("754-2008 gives decimal a preferred exponent. n/a = format has no zero.",
+          flush=True)
 
     violations = {}
+    measured = []
+    unmeasurable = []
     for name in sorted(oracles):
         mod, fmt = oracles[name]
         f_add, f_mul = arithmetic_of(mod)
         if f_add is None or f_mul is None:
             continue
         width = width_of(fmt, name)
-        if width == 0 or width > 64:
+        if width == 0 or width > 128:
             continue
-        codes = sample_codes(width)
+        # The real cost is the EXPONENT RANGE, not the width. These oracles compute
+        # in exact rationals, so a format whose exponent reaches 2**16000 produces
+        # Fractions with tens of thousands of digits, and one multiply can take
+        # minutes. gf128 with only 8 sampled codes ran for a quarter of an hour
+        # without finishing a single row.
+        #
+        # Capping on width was the wrong axis: gf64 is 64 bits and intractable,
+        # int64 is 64 bits and trivial. Cap on what actually explodes, and SAY the
+        # format was skipped rather than letting it read as clean.
+        ebits = getattr(fmt, "exp_bits", None) or getattr(fmt, "E", 0)
+        if isinstance(ebits, int) and ebits > 15:
+            unmeasurable.append((name, "exponent field %d bits -- exact rational "
+                                       "arithmetic is intractable" % ebits))
+            continue
+        k = k_for(width)
+        codes = sample_codes(width, k)
+        # Announce BEFORE measuring. Without this the only evidence a format is
+        # being worked on is the absence of the next line, which is also what a
+        # dead process looks like.
+        print(f"  ... {name} (w={width}, k={k})", end="\r", flush=True)
 
-        bad = {"comm_add": 0, "comm_mul": 0, "id_add": 0, "id_mul": 0, "ann_mul": 0}
+        bad = {"comm_add": 0, "comm_mul": 0, "id_add": 0, "id_mul": 0,
+               "ann_mul": 0, "reenc": 0}
         pairs = 0
+        has_zero = name.lower() not in NO_ZERO
 
         # identity / annihilator need the codes for 0 and 1
-        zero = 0
+        #
+        # The zero CODE is not the literal 0 in every format. nf4 puts zero at code
+        # 7 and decodes code 0 to -1; lns8 puts it at 64 and decodes code 0 to 1;
+        # lns16 puts it at 16384. With `zero = 0` hardcoded, the sweep was computing
+        # x + (-1) for nf4 and x + 1 for the LNS family and calling the result
+        # "x + 0". That is where nf4's 14/14 and the LNS rows came from: every one
+        # an artefact of asking the wrong question.
+        #
+        # Ask the format where its zero is.
+        zero = getattr(fmt, "pos_zero", 0)
         one = None
         if hasattr(mod, "encode"):
             try:
@@ -172,13 +252,54 @@ def main() -> int:
             # apply.
             if is_special(mod, fmt, a):
                 continue
+            # Both remaining laws were stated too strongly, and the sign of zero is
+            # why. This file was outside every sweep until pass 290 widened
+            # run_all_gates' glob, so nothing had ever read its output.
+            #
+            #   ANNIH_MUL was `mul(x, +0) == pos_zero`. For NEGATIVE finite x the
+            #   correct result is NEGATIVE zero -- gf16 encodes -1.5 * (+0) as
+            #   0x8000, not 0x0000 -- so every negative operand in the sample was
+            #   counted a violation. That is roughly 9 per format across 40-odd
+            #   formats, all of them correct arithmetic. The same sign-of-zero class
+            #   that made pass 193's witness report 2,471 disagreements of its own.
+            #
+            #   IDENT_ADD was `add(x, +0) == x`. False for x = -0: IEEE 754 gives
+            #   (-0) + (+0) = +0 under round-to-nearest, so the code changes. This is
+            #   the identical false law pass 185 had to pull out of the decimal
+            #   cross-validator, surviving here because nobody ran the file.
+            #
+            # Stated correctly, both are real constraints and any violation is one.
+            if not has_zero:
+                continue
+            is_neg_zero = (a == getattr(fmt, "neg_zero", None))
             try:
-                if f_add(fmt, a, zero) != a:
-                    bad["id_add"] += 1
-                if f_mul(fmt, a, zero) != zero:
+                # By VALUE, not by code. IEEE 754-2008 gives decimal arithmetic a
+                # PREFERRED EXPONENT: x + 0 preserves the value and may change the
+                # encoding, so bit-equality is simply the wrong comparison for that
+                # family and reported decimal32 3, decimal64 7, bcd 13. Pass 185
+                # already had to pull the same bit-for-bit assertion out of the
+                # decimal cross-validator; this is its second appearance.
+                #
+                # A re-encoding is counted apart, under `reenc`, because it is worth
+                # seeing and is not a violation. A changed VALUE is the violation.
+                if not is_neg_zero:
+                    got = f_add(fmt, a, zero)
+                    if got != a:
+                        if same_value(mod, fmt, got, a):
+                            bad["reenc"] += 1
+                        else:
+                            bad["id_add"] += 1
+                prod = f_mul(fmt, a, zero)
+                if prod not in (zero, getattr(fmt, "neg_zero", zero)) \
+                        and not is_zero_value(mod, fmt, prod):
                     bad["ann_mul"] += 1
-                if one is not None and f_mul(fmt, a, one) != a:
-                    bad["id_mul"] += 1
+                if one is not None:
+                    got1 = f_mul(fmt, a, one)
+                    if got1 != a:
+                        if same_value(mod, fmt, got1, a):
+                            bad["reenc"] += 1
+                        else:
+                            bad["id_mul"] += 1
             except Exception:
                 pass
 
@@ -188,11 +309,31 @@ def main() -> int:
         def cell(k):
             return "OK" if bad[k] == 0 else str(bad[k])
 
+        print(" " * 40, end="\r")          # clear the progress line
+        zcell = "n/a" if not has_zero else cell('ann_mul')
         print(f"{name:<14}{pairs:>7}  {cell('comm_add'):<7}{cell('comm_mul'):<7}"
-              f"{cell('id_add'):<7}{cell('id_mul'):<7}{cell('ann_mul'):<7}", flush=True)
-        if any(bad.values()):
+              f"{('n/a' if not has_zero else cell('id_add')):<7}"
+              f"{cell('id_mul'):<7}{zcell:<7}"
+              f"{(str(bad['reenc']) if bad['reenc'] else '-'):<7}", flush=True)
+        real = {kk: vv for kk, vv in bad.items() if kk != "reenc"}
+        if any(real.values()):
             violations[name] = dict(bad)
+        measured.append(name)
 
+    print()
+    print()
+    print(f"formats measured : {len(measured)} of {len(oracles)} oracles loaded")
+    if unmeasurable:
+        print("skipped as intractable, with the reason:")
+        for n, why in unmeasurable:
+            print("    %-14s %s" % (n, why))
+        print()
+    skipped = sorted(set(oracles) - set(measured) - {n for n, _ in unmeasurable})
+    if skipped:
+        print(f"not measured     : {len(skipped)}  ({', '.join(skipped[:8])}"
+              f"{' ...' if len(skipped) > 8 else ''})")
+        print("  Not measured is NOT clean. A format absent from the table above")
+        print("  has had no law checked against it.")
     print()
     if violations:
         print(f"VIOLATIONS in {len(violations)} format(s):")

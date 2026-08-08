@@ -89,7 +89,7 @@ module corona_compute_ibm_hfp32_alu_ax7203 (
     wire [9:0] ibm_fp32_exp_a = ibm_exp2_a + 10'd127;
     reg [31:0] fp32_a;
     always @(*) begin
-        if(ibm_zero_a) fp32_a=32'h0;
+        if(ibm_zero_a) fp32_a={ibm_sign_a, 31'b0};
         else if(ibm_fp32_exp_a[9]||ibm_fp32_exp_a>=10'd255) fp32_a={ibm_sign_a,8'hFE,23'h7FFFFF};
         else fp32_a={ibm_sign_a,ibm_fp32_exp_a[7:0],ibm_norm_a[22:0]};
     end
@@ -133,7 +133,7 @@ module corona_compute_ibm_hfp32_alu_ax7203 (
     wire [9:0] ibm_fp32_exp_b = ibm_exp2_b + 10'd127;
     reg [31:0] fp32_b;
     always @(*) begin
-        if(ibm_zero_b) fp32_b=32'h0;
+        if(ibm_zero_b) fp32_b={ibm_sign_b, 31'b0};
         else if(ibm_fp32_exp_b[9]||ibm_fp32_exp_b>=10'd255) fp32_b={ibm_sign_b,8'hFE,23'h7FFFFF};
         else fp32_b={ibm_sign_b,ibm_fp32_exp_b[7:0],ibm_norm_b[22:0]};
     end
@@ -175,14 +175,14 @@ module corona_compute_ibm_hfp32_alu_ax7203 (
     reg [31:0] q_result;
     always @(*) begin
         if(q_nan) q_result=32'h7FC00000;
-        else if(q_zero) q_result=32'h0;
+        else if(q_zero) q_result={q_sign, 31'b0};
         else q_result={q_sign,q_ibm_exp[6:0],q_ibm_frac};
     end
     reg [31:0] result_reg; reg result_ready;
     always @(posedge mclk or posedge rst) begin
         if(rst) begin result_reg<=0;result_ready<=0; end
         else begin result_ready<=ovld;
-            if(ovld) result_reg<={0'b0,q_result};
+            if(ovld) result_reg<=q_result;
         end
     end
     assign led[2]=|result_reg;

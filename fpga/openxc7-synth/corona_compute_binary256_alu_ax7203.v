@@ -121,7 +121,7 @@ module corona_compute_binary256_alu_ax7203 (
     wire [22:0] b256_mant32_a = b256_mant_a[235:213];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(b256_zero_a) fp32_a=32'h00000000;
+        if(b256_zero_a) fp32_a={b256_sign_a, 31'b0};
         else if(b256_special_a) fp32_a=32'h7FC00000;
         else fp32_a={b256_sign_a, b256_exp32_a, b256_mant32_a};
     end
@@ -135,7 +135,7 @@ module corona_compute_binary256_alu_ax7203 (
     wire [22:0] b256_mant32_b = b256_mant_b[235:213];
     reg [31:0] fp32_b;
     always @(*) begin
-        if(b256_zero_b) fp32_b=32'h00000000;
+        if(b256_zero_b) fp32_b={b256_sign_b, 31'b0};
         else if(b256_special_b) fp32_b=32'h7FC00000;
         else fp32_b={b256_sign_b, b256_exp32_b, b256_mant32_b};
     end

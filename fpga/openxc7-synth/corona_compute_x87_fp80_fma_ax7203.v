@@ -87,9 +87,17 @@ module corona_compute_x87_fp80_fma_ax7203 (
     wire [22:0] x80_mant32_a = x80_mant_a[62:40];
     reg [31:0] fp32_a;
     always @(*) begin
-        if(x80_zero_a) fp32_a=32'h00000000;
+        if(x80_zero_a) fp32_a={x80_sign_a, 31'b0};
         else if(x80_nan_a) fp32_a=32'h7FC00000;
         else if(x80_inf_a) fp32_a={x80_sign_a, 8'hFF, 23'b0};
+        // Saturate instead of wrapping. x80_exp32_a is x80_exp32_s_a truncated to 8
+        // bits, and x80_exp32_s_a is a SIGNED 16-bit intermediate, so an exponent
+        // outside fp32's window used to come back as some other exponent
+        // entirely -- a value far above fp32's maximum arrived as an
+        // ordinary finite number instead of +Inf. Pass 240 counted 32,510
+        // of binary128's own exponents landing outside that window.
+        else if(x80_exp32_s_a > 16'sd254) fp32_a={x80_sign_a, 8'hFF, 23'b0};
+        else if(x80_exp32_s_a < 16'sd1) fp32_a={x80_sign_a, 8'd0, 23'b0};
         else fp32_a={x80_sign_a, x80_exp32_a, x80_mant32_a};
     end
     wire x80_sign_b = fmt_b[79];
@@ -103,9 +111,17 @@ module corona_compute_x87_fp80_fma_ax7203 (
     wire [22:0] x80_mant32_b = x80_mant_b[62:40];
     reg [31:0] fp32_b;
     always @(*) begin
-        if(x80_zero_b) fp32_b=32'h00000000;
+        if(x80_zero_b) fp32_b={x80_sign_b, 31'b0};
         else if(x80_nan_b) fp32_b=32'h7FC00000;
         else if(x80_inf_b) fp32_b={x80_sign_b, 8'hFF, 23'b0};
+        // Saturate instead of wrapping. x80_exp32_b is x80_exp32_s_b truncated to 8
+        // bits, and x80_exp32_s_b is a SIGNED 16-bit intermediate, so an exponent
+        // outside fp32's window used to come back as some other exponent
+        // entirely -- a value far above fp32's maximum arrived as an
+        // ordinary finite number instead of +Inf. Pass 240 counted 32,510
+        // of binary128's own exponents landing outside that window.
+        else if(x80_exp32_s_b > 16'sd254) fp32_b={x80_sign_b, 8'hFF, 23'b0};
+        else if(x80_exp32_s_b < 16'sd1) fp32_b={x80_sign_b, 8'd0, 23'b0};
         else fp32_b={x80_sign_b, x80_exp32_b, x80_mant32_b};
     end
     wire x80_sign_c = fmt_c[79];
@@ -119,7 +135,7 @@ module corona_compute_x87_fp80_fma_ax7203 (
     wire [22:0] x80_mant32_c = x80_mant_c[62:40];
     reg [31:0] fp32_c;
     always @(*) begin
-        if(x80_zero_c) fp32_c=32'h00000000;
+        if(x80_zero_c) fp32_c={x80_sign_c, 31'b0};
         else if(x80_nan_c) fp32_c=32'h7FC00000;
         else if(x80_inf_c) fp32_c={x80_sign_c, 8'hFF, 23'b0};
         else fp32_c={x80_sign_c, x80_exp32_c, x80_mant32_c};

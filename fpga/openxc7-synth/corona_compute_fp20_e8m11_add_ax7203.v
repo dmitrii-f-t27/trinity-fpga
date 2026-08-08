@@ -65,7 +65,7 @@ module corona_compute_fp20_e8m11_add_ax7203 (
     wire [22:0] f_mant32_norm_a = {1'b0, f_mant_a, 11'b0};
     reg [31:0] fp32_a;
     always @(*) begin
-        if(f_zero_a) fp32_a=32'h00000000;
+        if(f_zero_a) fp32_a={f_sign_a, 31'b0};
         else if(f_inf_a) fp32_a=f_sign_a?32'hFF800000:32'h7F800000;
         else if(f_nan_a) fp32_a=32'h7FC00000;
         else if(f_sub_a) fp32_a={f_sign_a, 8'd1, f_mant32_norm_a};
@@ -84,7 +84,7 @@ module corona_compute_fp20_e8m11_add_ax7203 (
     wire [22:0] f_mant32_norm_b = {1'b0, f_mant_b, 11'b0};
     reg [31:0] fp32_b;
     always @(*) begin
-        if(f_zero_b) fp32_b=32'h00000000;
+        if(f_zero_b) fp32_b={f_sign_b, 31'b0};
         else if(f_inf_b) fp32_b=f_sign_b?32'hFF800000:32'h7F800000;
         else if(f_nan_b) fp32_b=32'h7FC00000;
         else if(f_sub_b) fp32_b={f_sign_b, 8'd1, f_mant32_norm_b};
