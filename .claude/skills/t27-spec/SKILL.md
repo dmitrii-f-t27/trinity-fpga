@@ -1076,3 +1076,53 @@ is itself the protocol violation fixed two waves earlier. **Sometimes robustness
 lawless environment and correctness against the specification are in direct conflict, and
 the specification wins** — but say so in the code, so the absent hardening reads as a
 decision rather than an oversight.
+
+## Test that a property can fail, not just that it passes
+
+A passing property is compatible with two very different situations: the design is
+correct, or the property was never really evaluated. The second has two distinct causes,
+and neither reports anything unusual.
+
+**Guard vacuity.** `G |-> P` is free whenever `G` is unreachable. The exact oracle needs
+no `cover` support: replace the assertion *body* with `assert (1'b0)`, keeping the guard.
+That run **proves if and only if `G` is unreachable**. Neutralise the file's other
+assertions to `assert (1'b1)` first, so each result speaks about exactly one guard.
+
+**Interesting-case vacuity.** Guard reachability is necessary, not sufficient.
+`assert (!A || B)` is trivially satisfied whenever `A` is false, so a property can be
+evaluated on every cycle and still test nothing. Probe the case the property exists to
+cover by asserting its negation — **a refutation is the witness that the case occurs.**
+
+The one that justified the exercise: a regression witness for a burst-abandonment bug
+required a *multi-beat* burst to mean anything. Had the harness only ever produced
+single-beat bursts, it would have proved, stayed green forever, and silently stopped
+guarding the defect it was written for.
+
+**Make the witnesses permanent, as runs that must fail.** A CI step expecting refutation
+looks strange and is exactly right: if it ever starts passing, a case became unreachable
+and the property depending on it has gone free. Distinguish refutation from error when
+checking — grep the prover's failure text rather than trusting a non-zero exit, since a
+syntax error also exits non-zero.
+
+The recurring shape across this whole campaign, now found in five places: **a check that
+cannot fail is indistinguishable from no check.** A shell gate that always errored and got
+bypassed; a CI job that was one `echo`; a validator whose predicate matched the wrong
+shape; constraints the prover silently ignored; and properties whose antecedents might
+never occur. The instrument is the same each time — *include a case whose answer you
+already know, and confirm you get it.*
+
+## Neutralise, don't delete, when isolating one assertion
+
+Isolating a single property by deleting the others produced nineteen consecutive tool
+errors: the assertions sat inside `always @(posedge clk) if (…)` blocks, so removing the
+statement left a dangling `if` with no body.
+
+Replacing them with `assert (1'b1)` keeps the syntax intact and the semantics inert. The
+same applies to disabling a branch, a test, or a validation step while bisecting:
+**substitute a no-op of the same syntactic category rather than removing the construct.**
+
+There is a second, subtler version of this that also cost a run: an insertion offset was
+computed on the original text and then applied *after* a regex substitution had changed
+the string's length, so the probe landed past `endmodule`. **Recompute positions after any
+edit that changes length**, or work on structure rather than offsets. Both failures
+presented as "the tool is broken" and were purely mechanical.
