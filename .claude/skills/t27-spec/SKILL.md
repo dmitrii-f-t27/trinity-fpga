@@ -1226,3 +1226,61 @@ The generalisable habit: **when a project reports progress as a count, find out 
 denominator is a count of.** Modules that exist, modules that compile, modules that are
 reachable from the top, and modules exercised by a test are four different denominators,
 and the gap between the first and the last is where a project's real state hides.
+
+## A property about a signal is not a property about the wire it feeds
+
+Wiring a MAC to a memory with one cycle of read latency needs the control path delayed by
+one cycle, or chunk *N*'s control meets chunk *N−1*'s data. The property written for it:
+
+```verilog
+assert (mac_valid_q == $past(layer_valid));     // the skew register lags by one
+```
+
+True, provable — and useless. It constrains the *register*, not the consumer. Rewiring the
+MAC's `valid_in` straight to `layer_valid`, reintroducing exactly the hazard, left it
+**PROVING**. The register still existed and still behaved; nothing tied it to the MAC.
+
+The repair states the property on the **consumer's own output**, which can only be what it
+is if the consumer saw the intended input:
+
+```verilog
+assert (mac_valid_out == ($past(mac_valid_q) && $past(mac_last_q)));
+```
+
+Correct build proves; unskewed build refutes.
+
+**When asserting that A drives B, phrase it over something only B can produce.** A property
+naming only signals *upstream* of the connection cannot see the connection. This is the
+integration-level form of vacuity: not an unreachable guard, but a true statement about the
+wrong side of a wire.
+
+Two carry-overs:
+
+**Composition bugs are invisible to module-scoped verification, by construction.** The
+sequencer was correct, the memory was correct, the MAC was correct, and the assembly was
+wrong. No amount of per-module proving reaches it — the first property that could was the
+first one spanning two modules.
+
+**The rule that caught it was already written down.** *Validate a regression harness
+against the broken version.* Deliberately reintroducing the defect and confirming the
+property refutes took two minutes and was the only reason eight green properties were not
+shipped with one certifying nothing. **A harness only run against a correct design has not
+been tested — it has been demonstrated.**
+
+## Reduce the model, not the property, when the prover cannot handle a construct
+
+`sat` cannot model `$mem_v2`, so a proof involving a 4096-entry BRAM simply errors. Two
+ways out: weaken the property until it avoids the memory, or shrink the memory.
+
+Shrinking is correct here and the reasoning is what matters: **the properties never read
+memory contents** — they are about control alignment — so `chparam -set DEPTH 4` plus
+`memory_map` changes nothing the properties observe. The claim proved is the same claim.
+
+Weakening the property would have silently narrowed what was verified; reducing the model
+narrows only what is *simulated*, and the narrowing is auditable — one flag, one line of
+justification. **State which of the two you did.** "Proved with a reduced memory depth,
+because no property reads memory" is a complete disclosure; "proved" alone is not.
+
+The related mechanic: when the properties must reference internal signals, put them in the
+module under `` `ifdef FORMAL `` rather than in a wrapper. A wrapper forces `-flatten`,
+which mangles exactly the names the properties need.
