@@ -44,7 +44,23 @@ class GFTFormat:
     @property
     def mant(self): return 1 << self.mant_bits
     @property
-    def sign_shift(self): return 24                               # room for wide exp/mant
+    def exp_bits(self):
+        """Bits the offset field actually occupies."""
+        return self.offset_max.bit_length()
+
+    @property
+    def sign_shift(self):
+        # Derived, not fixed. This was hardcoded to 24 — "room for wide exp/mant" —
+        # which holds only while the payload stays below that bit. At mant_bits of
+        # 21 or 25 the exponent field reaches bit 24 and the sign lands inside the
+        # payload: encoding 1.5 through GF-T32 returned -1.5. Wider mantissas were
+        # corrupted too, silently, whenever bit 24 of the significand happened to
+        # be set — which is why a spot check on 1.5 passed at mant_bits=52.
+        #
+        # The commutativity check the ladder relies on cannot see this: an inverted
+        # sign survives on both sides of a + b == b + a. A round-trip assertion
+        # catches it in one line.
+        return self.mant_bits + self.exp_bits
     @property
     def exp_shift(self): return self.mant_bits
     @property
@@ -79,12 +95,12 @@ def encode(fmt: GFTFormat, value) -> int:
 
 
 def is_special(fmt: GFTFormat, raw: int) -> bool:
-    return ((raw >> fmt.exp_shift) & ((1 << (fmt.exp_trits * 2)) - 1)) == fmt.offset_max
+    return ((raw >> fmt.exp_shift) & ((1 << fmt.exp_bits) - 1)) == fmt.offset_max
 
 
 def decode(fmt: GFTFormat, raw: int):
     sign = (raw >> fmt.sign_shift) & 1
-    offset = (raw >> fmt.exp_shift) & ((1 << (fmt.exp_trits * 2)) - 1)
+    offset = (raw >> fmt.exp_shift) & ((1 << fmt.exp_bits) - 1)
     m = raw & (fmt.mant - 1)
     if offset == fmt.offset_max:
         return math.nan if m else (-math.inf if sign else math.inf)
