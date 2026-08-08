@@ -721,3 +721,63 @@ something you have not looked at.
 Where a description is genuinely the source's own words, quote it and say so; where it is
 your assessment, keep it outside the quotes. A table that mixes the two silently is doing
 the same work as an omission.
+
+## A tool that silently discards what you asked it to check
+
+The plan was to preprocess SystemVerilog with `sv2v` so Yosys could read the project's
+assertions. `sv2v`'s README, read before installing: *"Assertions are also supported, but
+are simply dropped during conversion."*
+
+"Supported" here means *parsed without error*, not *preserved*. Measured on 0.0.13 — a
+module with a `property` block and an `assert property` goes in; a module with **zero**
+assertions comes out; **exit 0**, no warning, no diagnostic.
+
+Had that been wired up, `sv2v → yosys → sby` would have run to completion and reported
+success while proving nothing, because there would have been no properties left to
+violate. **That is worse than the broken state it replaced**, which at least failed loudly
+at parse. A pipeline can be built entirely from real, well-regarded tools and still be
+theater.
+
+Two things generalise:
+
+**Read a tool's stated limitations before adopting it, and treat "supported" as a word
+that needs unpacking.** One line of a README saved a working, green, meaningless CI job.
+The install came *after* the README, and the empirical confirmation after that — cheapest
+check first.
+
+**When a transform can silently reduce your inputs, measure the output population, not
+just the exit code.** The guard that catches this is counting what survived: the CI job
+now runs `stat` and fails when zero `$check` cells reach the netlist. Validated in both
+directions — the real emitter yields 2 and passes, `sv2v` output yields 0 and fails. The
+same shape applies far outside formal verification: a filter step, a migration, a
+codegen pass. *Exit 0 over an empty set* is the most expensive kind of pass, because
+nothing downstream can tell it from success.
+
+## When a tool refuses your input, consider changing the input
+
+Two waves went into the fact that Yosys's frontend accepts neither named `property`
+blocks nor inline `assert property (@(posedge clk) …)`. The reflex was to find a
+translator — and the translator deleted the properties.
+
+Yosys *does* accept immediate assertions inside `always`. Nearly the whole property set
+maps onto them: `a |-> b` is `assert (!(a) || (b))`, and `a |-> ##N b` is
+`assert (!($past(a, N)) || (b))`. Emitting that subset made the properties provable in an
+afternoon, after two waves spent trying to make the unreadable form readable.
+
+**Meet the tool where it is.** When a consumer rejects your format, generating what it
+accepts is often far cheaper than making it accept what you generate — and it removes a
+dependency rather than adding one.
+
+Two riders:
+
+**Name what does not survive the translation, in the artefact itself.** `s_eventually` is
+liveness; an immediate assertion evaluates in one cycle and cannot express it. Those
+behaviors are reported on stderr *and* written into the generated file as a
+`NOT TRANSLATED` comment. A partial translation that does not state its own coverage is
+the vacuity failure again, one level up: the run is green and the domain quietly shrank.
+
+**Let the prover correct you.** The first delayed-implication guard was `rst_n` alone, and
+the prover produced a counterexample: one cycle after reset, the antecedent's history
+predates the reset. The right guard is `rst_n && $past(rst_n)`. A refutation on a property
+you believed was a design error found for free — which is only possible once the
+properties are actually being checked.
