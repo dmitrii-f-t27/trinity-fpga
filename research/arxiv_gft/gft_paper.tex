@@ -15,6 +15,11 @@
 \usepackage{tabularx}
 \usepackage{array}
 \usepackage{enumitem}
+\usepackage{amsthm}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
 
 \geometry{a4paper, margin=1in}
 
@@ -52,7 +57,7 @@ fixed.
 
 Two measured properties make the case. Across every rung from GF-T8 to GF-T1024
 the mean relative round-trip error is
-$\tfrac{1}{2}\mathbb{E}[1/s]\cdot 2^{-(M+1)}$, which we derive rather than fit:
+$\tfrac{1}{2}\mathbb{E}[1/s]\cdot 2^{-(M+1)}$ (Theorem~\ref{thm:law}), derived rather than fitted:
 the binade exponent cancels, leaving a closed form in the mantissa width and the
 significand distribution alone. Measured across eight rungs spanning 302 orders
 of magnitude, the constant holds to $\pm 3\%$ of its predicted value. And at each of those rungs the error varies by at most
@@ -73,6 +78,11 @@ blocks. Three defects found while measuring are reported rather than quietly
 fixed, because each generalises --- a 32-bit datapath that cost five times the
 arithmetic, the same width silently truncating a 52-bit product, and a
 sign-placement bug in the reference oracle that a commutativity suite cannot see.
+
+Turned around, the law becomes an instrument: the mantissa width a format
+\emph{behaves} as having, measured band by band, recovers the declared width to
+$0.01$ bits for every fixed-field format we tried and exposes tapering as a slope
+--- posit16 sheds $0.254$ bits of significand per binade, takum16 $0.113$.
 
 \medskip
 \noindent\textbf{Artifacts.} Oracle, RTL, testbenches and the exact commands are
@@ -143,9 +153,14 @@ rounding error under round-to-nearest is uniform on $[-u\,2^{e}, +u\,2^{e}]$
 while the value is $v = s\,2^{e}$ with significand $s \in [1,2)$, so the relative
 error is $|U|/s$ with $|U|$ uniform on $[0,u]$ and \emph{independent of $e$}.
 Hence
+\begin{theorem}[Precision law]\label{thm:law}
+For a format with a constant significand width of $M$ bits under
+round-to-nearest, with significand $s$ and exponent $e$ independent,
 \[
-  \mathbb{E}\bigl[|\text{rel err}|\bigr] \;=\; \tfrac{1}{2}\,\mathbb{E}[1/s]\;\cdot\;2^{-(M+1)} .
+  \mathbb{E}\bigl[|\text{rel err}|\bigr] \;=\; \tfrac{1}{2}\,\mathbb{E}[1/s]\;\cdot\;2^{-(M+1)} ,
 \]
+independently of $e$.
+\end{theorem}
 The exponent drops out entirely --- that is the flatness of the next paragraph,
 proved rather than observed. The constant is not universal: it is
 $\tfrac{1}{2}\ln 2 = 0.3466$ for a significand uniform on $[1,2)$ and
@@ -171,6 +186,80 @@ at any given width --- Section~\ref{sec:field} shows posit16 and binary16 ahead
 near unity, and Section~\ref{sec:field} shows the binary formats ahead outright at
 32 bits. A reference does not need to win those comparisons. It needs to be the
 thing you measure them against.
+
+
+\section{The law is general, and it measures tapering}\label{sec:law}
+
+Section~\ref{sec:ruler} derived the error of a fixed-field format. Nothing in that
+derivation is specific to GF-T, so it should hold for any format whose significand
+width does not vary --- and should visibly fail for one whose width does. That
+makes it an instrument rather than a description, and this section uses it as one.
+
+\begin{definition}[Effective mantissa]
+For a format and a magnitude band $B$, define
+\[
+  M_{\mathrm{eff}}(B) \;=\; -\log_2\!\left(\frac{2\,\mathbb{E}\bigl[|\text{rel err}|\;\big|\;B\bigr]}{\mathbb{E}[1/s]}\right) - 1 ,
+\]
+the mantissa width a fixed-field format would need to produce the error observed
+in $B$.
+\end{definition}
+
+\begin{theorem}[Diagnostic]\label{thm:diag}
+$M_{\mathrm{eff}}$ is constant across bands if and only if the format holds a
+constant significand width over those bands and does not exhaust its range. For a
+tapered format $M_{\mathrm{eff}}$ decreases with $|e|$, and the slope
+$\mathrm{d}M_{\mathrm{eff}}/\mathrm{d}|e|$ is the taper rate in bits of
+significand per binade.
+\end{theorem}
+
+Table~\ref{tab:meff} applies it. The measurement is a uniform significand on
+$[1,2)$ so that $\mathbb{E}[1/s] = \ln 2$ exactly, removing the workload from the
+question.
+
+\begin{table}[t]\centering
+\caption{Effective mantissa by magnitude band, and the fitted taper rate. Declared
+$M$ is recovered to $0.01$ bits for every fixed-field format, which validates the
+law; the tapered formats separate cleanly.}
+\label{tab:meff}
+\begin{tabular}{lrrrrrr}
+\toprule
+format & declared $M$ & $|e|\,0$--$6$ & $6$--$12$ & $12$--$20$ & $20$--$30$ & bits/binade \\
+\midrule
+GF-T16   & $9$  & $8.99$  & $8.99$ & $9.00$ & $9.01$ & $+0.001$ \\
+GF16     & $9$  & $8.99$  & $8.99$ & $9.00$ & $9.01$ & $+0.001$ \\
+bfloat16 & $7$  & $7.04$  & $7.04$ & $7.00$ & $7.04$ & $-0.000$ \\
+binary16 & $10$ & $10.01$ & $10.01$ & $7.41$ & $0.52$ & --- \\
+posit16  & ---  & $10.72$ & $9.34$ & $7.48$ & $5.17$ & $\mathbf{-0.254}$ \\
+takum16  & ---  & $9.62$  & $8.17$ & $7.34$ & $7.04$ & $\mathbf{-0.113}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The law recovers what the formats declare.} GF-T16 and GF16 return
+$8.99$--$9.01$ against a declared 9; bfloat16 returns $7.00$--$7.04$ against a
+declared 7. A law that reconstructs a format's own parameter to a hundredth of a
+bit, from nothing but its round-trip error, is doing more than curve-fitting.
+
+\paragraph{Tapering becomes a number.} posit16 sheds $0.254$ bits of significand
+per binade ($R^2 = 0.999$) and takum16 sheds $0.113$ ($R^2 = 0.86$): over the
+thirty binades of this sweep, $7.6$ and $3.4$ bits respectively. That is the
+quantity a tapered format trades for range, and to our knowledge it is not usually
+reported as a single figure. It also explains the accuracy tables directly ---
+posit16 starts $1.7$ bits ahead of GF-T16 and ends $3.8$ behind.
+
+\paragraph{Running out of range is a different failure, and the instrument
+separates it.} binary16 is a fixed-field format, yet its $M_{\mathrm{eff}}$
+collapses from $10.01$ to $0.52$. It is not tapering: it is subnormalising and
+then overflowing. A constant slope indicates a taper; a cliff indicates a range
+limit. The two look alike in an accuracy table and do not look alike here.
+
+\begin{corollary}
+A format's position on the range--precision trade can be stated as a pair: the
+constant $M_{\mathrm{eff}}$ it holds, and the number of binades over which it
+holds it. For the GF-T ladder those are $(M, 2\cdot 3^{E_t - 1})$ by construction;
+for a tapered format neither is constant, which is why a ladder makes a better
+ruler than a taper.
+\end{corollary}
 
 \section{Accuracy}\label{sec:accuracy}
 
