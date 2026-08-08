@@ -282,20 +282,26 @@ double-double ($106.68$), quad-double ($215.90$) and x87's 80-bit format
 alone, at widths from 8 to 1006 bits, is doing something other than describing the
 format it was derived on.
 
-\paragraph{The taper rate is a constant of the family, not of the width.} posit16
-sheds $0.250$ bits of significand per binade and posit32 sheds $0.253$; takum32,
-takum64 and tekum32 all sit at $0.117$. Within a family the rate does not move
-with the width, which follows from the regime encoding being the same scheme at
-every size --- and gives each family a single number that summarises what it
-trades for range.
+\paragraph{The taper rate is a constant of the family --- but only posit has a
+rate.} posit16 sheds $0.254$ bits of significand per binade and posit32 sheds
+$0.247$, against the $2^{-es} = 0.25$ that Theorem~\ref{thm:posit} requires;
+posit64, whose oracle carries the pre-standard $es = 3$, sheds $0.123$ against a
+required $0.125$. Three formats, three exact confirmations. We previously reported
+a comparable per-binade rate for takum, and that was a category error on our part:
+takum's staircase is logarithmic, so fitting a line to it produces a number that
+depends on the interval fitted and describes nothing. Its correct constant is one
+bit per \emph{doubling} of $|e|$, and against that the four takum and three tekum
+rungs measure $0.83$ to $1.09$.
 
 \paragraph{Range exhaustion is distinguishable from tapering, and both from
-neither.} Of the 51, the great majority read as fixed-field with $|{\rm slope}|
-< 0.005$; seven read as tapered; and the remainder show the cliff of a format run
-past its exponent range rather than a slope. GF14, for instance, reads flat at
-$7.97$ through $|e|<12$ and collapses below that only for negative exponents,
-which is its subnormal boundary and not a defect --- the instrument says which of
-the two it is, where an accuracy table alone does not.
+neither.} The distinction is not optional: our own first pass placed the
+measurement bands at fixed positions rather than inside each format's measured
+range, and read the saturation of every narrow format as a taper --- classifying
+GF-T16, a fixed-field format, as geometrically tapered. Measuring each format's
+usable range first and then placing the bands inside it removes the artefact
+entirely. GF14 reads flat at $8.05$ across its range and collapses only below its
+subnormal boundary, which is not a defect; the instrument says which of the two it
+is, where an accuracy table alone does not.
 
 
 \subsection{Tapering has a functional form, and it follows from the encoding}
@@ -381,6 +387,110 @@ two ways that agree: from the encoder, by reading the regime field, and from
 round-trip error alone, by the diagnostic of Theorem~\ref{thm:diag}. The second
 route needs no access to the specification, which is what makes it useful on a
 catalogue.
+
+
+\subsection{Four staircase forms, and only four}\label{sec:taxonomy}
+
+Classifying by the \emph{form} of the staircase rather than by a fitted slope
+resolves the catalogue into four classes. Of the 83 entries, 11 are integer or
+fixed-point formats with no exponent field; of the remaining 72, 18 span fewer
+than six binades and cannot be classified from round-trip error at all, and one
+requires probes wider than we generated.
+
+\begin{table}[t]\centering
+\caption{The catalogue by staircase form. The parameter is the taper constant in
+the units natural to each form. Measured against each format's own usable range.}
+\label{tab:taxonomy}
+\begin{tabular}{llrl}
+\toprule
+form & $M_{\mathrm{eff}}$ against $|e|$ & count & members and constants \\
+\midrule
+constant   & flat                          & $38$ & IEEE, bfloat, VAX, Cray, x87, GF, GF-T \\
+wobble     & periodic, no trend            & $3$  & IBM hexadecimal, $\log_2 16 = 4$ bits \\
+arithmetic & $-2^{-es}$ per binade         & $5$  & posit16/32 $0.25$, posit64 $0.125$ \\
+geometric  & $-1$ per doubling             & $8$  & takum $\times 4$, tekum $\times 3$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The fourth class was not in our scheme until the catalogue produced it, and it has
+a closed form.
+
+\begin{theorem}[Precision wobble]
+\label{thm:wobble}
+Let a format scale by $r^{e}$ with a significand quantised uniformly over a
+scale interval spanning a factor $r$. Its relative error varies by a factor of
+$r$ across that interval, so $M_{\mathrm{eff}}$ oscillates with amplitude exactly
+$\log_2 r$ bits and has no trend in $|e|$.
+\end{theorem}
+
+\begin{proof}
+The quantisation step is constant across the interval and the relative error is
+that step divided by the significand, which ranges over a factor $r$. Taking
+$-\log_2$ of the ratio of the extremes gives $\log_2 r$. Since the interval
+repeats identically at every $e$, the oscillation is periodic and carries no
+trend. \qed
+\end{proof}
+
+Theorem~\ref{thm:wobble} reproduces a result sixty years older than this work.
+IBM System/360 hexadecimal is documented as delivering between $4p-3$ and $4p$
+significant bits, a spread of three~\cite{goldberg1991,ibmhfp}; the integer count
+is the floor of the continuous quantity, so the theorem's $\log_2 16 = 4$ and the
+textbook's $3$ are the same statement. Measured over eight sub-intervals ---
+which by averaging within each bin predicts a reduced spread of $2.96$ rather than
+the full $4$ --- \texttt{ibm\_hfp32} and \texttt{ibm\_hfp64} give $3.13$ and
+$3.04$, while \texttt{binary32} and \texttt{gf32} give $0.85$ and $0.93$ against a
+predicted $0.87$. Binary formats wobble by one bit; this is the familiar
+$1$-bit wobble of every radix-2 float, and it is the smallest wobble any integer
+radix admits. Theorem~\ref{thm:wobble} therefore supplies a second and independent
+argument for GF-T's binary scale, alongside the $0.331$ positions of
+Theorem~\ref{thm:scaleradix}: a radix-3 scale would wobble by $1.585$ bits
+instead of $1$.
+
+The taxonomy also settles why a format must choose between the first class and the
+last two, and hence why this work is a ladder rather than a format.
+
+\begin{theorem}[Range--precision dichotomy]
+\label{thm:dichotomy}
+Fix a width $N$. If a format's exponent takes unboundedly many values, then its
+exponent codewords have unbounded length, and
+$\lim_{|e| \to \infty} M_{\mathrm{eff}}(e) = 0$. Consequently no fixed-width
+format has both unbounded range and precision bounded below by a positive
+constant.
+\end{theorem}
+
+\begin{proof}
+The exponent codewords form a prefix code over a binary alphabet, so by Kraft's
+inequality $\sum_{e} 2^{-\ell(e)} \leq 1$. If the sum has infinitely many terms
+then $\ell(e) \to \infty$. The payload available to the significand is
+$N - 1 - \ell(e)$, so it falls to zero, and by Theorem~\ref{thm:law} so does
+$M_{\mathrm{eff}}$. \qed
+\end{proof}
+
+\begin{corollary}[Why a ladder]
+\label{cor:ladder}
+Theorem~\ref{thm:dichotomy} makes constant precision and unbounded range
+incompatible at any fixed width, so a format that wants both must obtain the
+second by varying $N$. A ladder of fixed-field rungs does exactly this: each rung
+holds its precision flat across its whole range, and the ladder as a whole covers
+any range required. The tapered families make the opposite choice --- one rung,
+unbounded range, precision decaying at the rate of their regime code, arithmetic
+for posit and geometric for takum. Neither choice is better in the abstract; what
+the dichotomy establishes is that they are the only two available.
+\end{corollary}
+
+Read against Corollary~\ref{cor:ladder}, the three tapered constants in
+Table~\ref{tab:taxonomy} become a statement about codes rather than about
+formats. A unary regime costs $\ell(e) \propto |e|$ and yields the arithmetic
+staircase; a length-prefixed binary regime costs $\ell(e) \propto \log_2 |e|$ and
+yields the geometric one; a fixed field costs $\ell(e) = \mathrm{const}$ and
+yields no staircase at the price of bounded support. The staircase form is the
+growth rate of the exponent's codeword length, and nothing else. This also names
+the gap in the table: between $\ell \propto |e|$ and $\ell \propto \log_2|e|$ no
+catalogued format sits, and a regime spending one trit per tripling of $|e|$ ---
+$\ell(e) \propto \log_3|e|$, natural on the fabric GF-T targets --- would occupy
+it. We have not built one, and note it as the obvious next construction rather
+than as a result.
 
 \section{Accuracy}\label{sec:accuracy}
 
@@ -1032,6 +1142,8 @@ D.~Shah et al.
 \bibitem{hayes2001} B.~Hayes, ``Third Base,'' \emph{American Scientist}, vol.~89, no.~6, pp.~490--494, 2001.
 \bibitem{radixeconomy} Radix economy, optimal radix choice. \url{https://en.wikipedia.org/wiki/Radix_economy}
 \bibitem{ternary27} Ternary27: A Balanced Ternary Floating Point Format, Version~3.1. \url{https://hackaday.io/project/183153}
+\bibitem{goldberg1991} D.~Goldberg, ``What Every Computer Scientist Should Know About Floating-Point Arithmetic,'' \emph{ACM Computing Surveys}, vol.~23, no.~1, pp.~5--48, 1991.
+\bibitem{ibmhfp} IBM hexadecimal floating-point. \url{https://en.wikipedia.org/wiki/IBM_hexadecimal_floating-point}
 \end{thebibliography}
 
 \end{document}
