@@ -1412,3 +1412,54 @@ modules are not wired together. And **there is no way to front-load this**: the 
 exist before you can assert across it, so the integration effort is not a phase you can
 verify your way past. Build the seam, then assert on it, and expect the first assertions
 across a new seam to find something.
+
+## A property you cannot prove yet is a finding, not a bad property
+
+Wiring a prefetch controller to a shared memory produced a property that refuted: the
+prefetcher could write an address the compute stage was reading, even though the
+sequencer's state machine appeared to make that impossible, and even with the environment
+constrained so the memory only answers questions it was asked.
+
+Three options, and the choice matters more than the result:
+
+1. **Ship the failing assertion.** Breaks the build for everyone, and turns a finding into
+   an outage.
+2. **Weaken it until it passes.** This is deliberate vacuity — the exact failure mode
+   catalogued elsewhere in this file, committed knowingly. It converts an open question
+   into a false green.
+3. **Record the gap.** The property is written into the RTL as a comment and into the
+   findings document with its exact reproduction, and is *not* asserted.
+
+Option 3, every time. **The pressure at the end of a work session is to leave everything
+green, and a weakened assertion looks exactly like a solved problem.** It is worse than a
+missing assertion, because it actively certifies the thing it stopped checking.
+
+State three things when recording: the property as written, that it was reproduced under a
+*constrained* environment (so it is not an artefact), and that it is not asserted. That
+turns "we did not finish" into a precise starting point rather than an absence someone has
+to rediscover.
+
+## Count the tie-offs — they are decisions someone deferred
+
+Across three waves of integration work, every structural gap announced itself as a
+constant:
+
+```verilog
+assign prefetch_done = 1'b1;   // "tied off until X is wired"
+assign mem_addr      = 32'd0;
+assign mem_rd_en     = 1'b0;
+.wr_en(1'b0)                   // on BOTH memories -- neither was ever written
+```
+
+The comment on the first one was honest. The others carried none, and one of them meant
+the weight memory in a machine-learning accelerator had never been loaded.
+
+**A tie-off is a deferred decision wearing the costume of a design choice.** They are
+trivially greppable — a constant on the right-hand side of an `assign`, a literal in a port
+map — and each one bounds what any test above it can possibly be checking. An engine whose
+memories are tied to zero will still pass every property about its sequencers.
+
+Two habits: **grep for constant port connections before believing an integration is
+complete**, and when you write one, put the condition for removing it in the comment. "Tied
+off until X is wired" is a to-do with an owner; `1'b0` alone is indistinguishable from
+intent, and the next reader has to prove a negative.
