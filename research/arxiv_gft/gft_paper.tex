@@ -1260,22 +1260,74 @@ by $1.57\times$. Reading $\alpha$ locally rather than globally shows why: it ris
 monotonically, from $1.06$ between $M{=}7$ and $M{=}9$ to $1.78$ between $M{=}15$
 and $M{=}17$ and $1.85$ between $M{=}25$ and $M{=}56$.
 
-\begin{theorem}[The ladder's area exponent rises toward two]
+\begin{theorem}[The ladder's area law]
 \label{thm:alpha}
 A rung's area is a fixed overhead --- registers, the exponent adder, the
-renormalisation --- plus a significand multiplier whose cost is asymptotically
-quadratic in $M$. Hence the effective exponent
-$\alpha(M) = \mathrm{d}\ln A/\mathrm{d}\ln M$ increases monotonically toward $2$,
-and any single-power fit is valid for interpolation within its range and not for
-extrapolation beyond it.
+renormalisation --- plus a significand multiplier quadratic in $M$:
+\[
+A(M) \;=\; f + cM^{2}.
+\]
+Consequently the effective power-law exponent
+$\alpha(M) = \mathrm{d}\ln A/\mathrm{d}\ln M$ is not a constant but rises
+monotonically toward $2$, and the marginal cost of a mantissa bit,
+$\lambda = \mathrm{d}A/\mathrm{d}M = 2cM$, is \emph{linear} in $M$ rather than
+fixed.
 \end{theorem}
 
-This sharpens rather than weakens Corollary~\ref{cor:narrow}. Since $\lambda$
-grows faster than a fixed $\alpha$ would suggest, a regime codec of roughly fixed
-cost converts to \emph{even fewer} mantissa bits as the class widens than
-Table~\ref{tab:convert} shows, and the fixed-field area advantage is
-correspondingly more concentrated at narrow widths --- the widths at which
-quantised inference on FPGAs actually operates~\cite{mlformats}.
+Synthesising the same width-derived multiplier at fourteen mantissa widths from
+$M{=}7$ to $M{=}90$ --- $285$, $372$, $443$, $567$, $696$, $870$, $1238$, $1683$,
+$2601$, $3990$, $5934$, $7479$, $12232$ and $19980$ LUTs --- and fitting both
+parameters gives $f = 141$ LUTs and $c = 2.4455$ LUTs per bit squared at
+$R^2 = 0.99963$, with a maximum deviation of $9.9\%$ across a seventyfold range of
+area. Read locally, $\alpha$ climbs from $1.06$ between $M{=}7$ and $M{=}9$ to
+$2.20$ between $M{=}56$ and $M{=}70$, which is Theorem~\ref{thm:alpha} rather than
+noise. On the registered prediction the structural model is right to $+4.4\%$
+where the single power law was low by $36.3\%$; we report both, since the power
+law was ours and we published the prediction before synthesising.
+
+\begin{theorem}[A regime's worth in precision falls as $1/M$]
+\label{thm:oneoverm}
+By Theorems~\ref{thm:convert} and~\ref{thm:alpha}, a regime codec of fixed area
+$C$ is worth
+\[
+\frac{C}{\lambda} \;=\; \frac{C}{2cM}
+\]
+mantissa bits, inversely proportional to the mantissa width. It is worth at least
+one mantissa bit exactly while $M \leq C/2c$.
+\end{theorem}
+
+\begin{table}[t]\centering
+\caption{The same regime codecs valued at five mantissa widths through
+Theorem~\ref{thm:oneoverm}, with $c = 2.4455$ measured on XC7A200T. The unary
+regime's silicon exceeds an entire GF-T16 mantissa; the length-prefixed regime is
+below one bit everywhere above the 8-bit class.}
+\label{tab:oneoverm}
+\begin{tabular}{rrrr}
+\toprule
+$M$ & $\lambda$ (LUT/bit) & unary, $438$ LUT & length-prefixed, $40$ LUT \\
+\midrule
+$9$  & $44.0$  & $\mathbf{9.95}$ & $0.91$ \\
+$11$ & $53.8$  & $8.14$ & $0.74$ \\
+$25$ & $122.3$ & $3.58$ & $0.33$ \\
+$56$ & $273.9$ & $1.60$ & $0.15$ \\
+$90$ & $440.2$ & $1.00$ & $0.09$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{corollary}[Break-even widths]
+\label{cor:breakeven}
+With $c = 2.4455$, the unary regime is worth at least one mantissa bit of silicon
+up to $M = 89.6$ --- that is, through the entire 128-bit class --- while the
+length-prefixed regime reaches one bit only up to $M = 8.2$. takum's regime
+therefore costs less than a single mantissa bit of silicon at every rung above
+GF-T8, and posit's costs more than one at every rung below GF-T256.
+\end{corollary}
+
+Corollary~\ref{cor:breakeven} is the exact form of what
+Corollary~\ref{cor:narrow} could only say qualitatively, and it is the sharpest
+statement we can make about where a fixed field pays for itself in area: against
+posit, almost everywhere; against takum, only at the very bottom of the ladder.
 
 \begin{corollary}[Range is paid for three times, and they are commensurable]
 \label{cor:three}
