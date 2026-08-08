@@ -22,6 +22,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install oracle dependencies
+        # gf_mx_ref imports numpy for block quantisation. Without this the gate
+        # reports the oracle as FAILED on an ImportError, which looks like a
+        # numeric defect and is not one -- the wrong kind of red.
+        run: python3 -m pip install --quiet numpy
       - name: Run golden oracle self-tests
         run: |
           # posit_ref._selftest does a wide exhaustive sweep (~70-90 s); the rest are fast.
