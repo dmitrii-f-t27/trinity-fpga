@@ -689,6 +689,43 @@ bits, and the offset stored as a plain binary integer makes it seventeen. Those
 are fabric costs, not format widths, and confusing the two is what made the
 ladder appear not to fit.
 
+\paragraph{The slack is not confined to one rung.} Applying $1 + E_t + M = N$ to
+every specified rung separates the two documents that define the ladder. The four
+rungs of the machine-readable specification obey it at GF-T4, GF-T8 and GF-T32;
+the five upper rungs, which exist only in a research note, miss it by four to six
+positions each, and the note and the specification disagree with each other about
+GF-T32.
+
+\begin{table}[t]\centering
+\caption{The width rule across the ladder. $k$ is the shortfall
+$N - (1 + E_t + M)$. The reconciled column is $M = N - 1 - E_t$, which changes
+nothing at the three rungs that already obey the rule.}
+\label{tab:ladder-sweep}
+\begin{tabular}{lrrrrrr}
+\toprule
+rung & source & $E_t$ & $M$ & $1{+}E_t{+}M$ & $k$ & reconciled $M$ \\
+\midrule
+GF-T4    & spec & $2$  & $1$    & $4$    & $0$ & $1$ \\
+GF-T8    & spec & $3$  & $4$    & $8$    & $0$ & $4$ \\
+GF-T16   & spec & $4$  & $9$    & $14$   & $2$ & $\mathbf{11}$ \\
+GF-T32   & spec & $6$  & $25$   & $32$   & $0$ & $25$ \\
+GF-T32   & note & $5$  & $21$   & $27$   & $5$ & --- \\
+GF-T64   & note & $7$  & $52$   & $60$   & $4$ & $\mathbf{56}$ \\
+GF-T128  & note & $8$  & $115$  & $124$  & $4$ & $\mathbf{119}$ \\
+GF-T256  & note & $9$  & $242$  & $252$  & $4$ & $\mathbf{246}$ \\
+GF-T512  & note & $10$ & $497$  & $508$  & $4$ & $\mathbf{501}$ \\
+GF-T1024 & note & $11$ & $1006$ & $1018$ & $6$ & $\mathbf{1012}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+No single alternative convention explains the upper rungs either: reading the
+exponent as $\lfloor E_t\log_2 3\rfloor$ bits fits GF-T16, GF-T64, GF-T128 and
+GF-T1024 exactly but overshoots GF-T256 and GF-T512 by one and misses GF-T32
+entirely. We conclude that the upper ladder was tabulated rung by rung rather than
+derived, and that reconciling it costs nothing at the rungs that are already
+right.
+
 \paragraph{What the two free positions are worth.} Because the exponent cancels
 in Theorem~\ref{thm:law}, the menu at sixteen positions can be read off before
 measuring, and the measurement confirms it to four significant figures
@@ -729,6 +766,148 @@ Section~\ref{sec:law} says cannot be answered without naming the workload. What
 is not a choice is the slack itself: two positions of a sixteen-position format
 are currently unallocated, and the specification should say so deliberately or
 spend them.
+
+\section{Why ternary, and exactly how much}\label{sec:whyternary}
+
+The case for a ternary exponent is usually made by citing radix economy and left
+there. We state it, then bound it in two directions --- what a binary fabric takes
+back, and what the radix of the \emph{scale} is worth as distinct from the radix
+of the \emph{exponent} --- because both bounds turn out to be decisive for the
+design and neither is folklore.
+
+\begin{theorem}[Radix economy]
+\label{thm:economy}
+Representing $R$ distinct values in radix $b$ costs $b\log_b R = b\ln R/\ln b$
+state-slots. The factor $b/\ln b$ is minimised at $b = e$; among integers it is
+$3/\ln 3 = 2.731$ against $2/\ln 2 = 2.885$, so a ternary field is $5.3\%$ more
+economical than a binary one.
+\end{theorem}
+
+This is the classical argument~\cite{hayes2001,radixeconomy} and it is what
+motivates a ternary exponent. It is also stated in a currency --- state-slots ---
+that no binary fabric pays in. The next theorem says what happens when it does.
+
+\begin{theorem}[No free range on a binary fabric]
+\label{thm:nofree}
+An exponent field of $E_t$ trits spans $3^{E_t}$ values. Stored as a binary
+integer it occupies $\lceil E_t\log_2 3\rceil$ bits, a field spanning
+$2^{\lceil E_t\log_2 3\rceil} \geq 3^{E_t}$ values. Hence on a binary fabric a
+ternary exponent never spans more values per bit than a binary one, with equality
+only at $E_t = 0$. Writing $\rho(E_t) = 3^{E_t}/2^{\lceil E_t\log_2 3\rceil}$ for
+the utilisation, $\rho \in (1/2, 1]$ and $\rho$ does not converge.
+\end{theorem}
+
+\begin{table}[t]\centering
+\caption{Utilisation $\rho(E_t)$ of the binary field holding an $E_t$-trit
+exponent. The ladder's present budgets, $E_t \in \{4, 7\}$, are the two worst
+entries in the range.}
+\label{tab:rho}
+\begin{tabular}{lrrrrrrrrrr}
+\toprule
+$E_t$ & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 \\
+\midrule
+$\rho$ & $56.2$ & $84.4$ & $\mathbf{63.3}$ & $94.9$ & $71.2$ & $\mathbf{53.4}$ & $80.1$ & $60.1$ & $90.1$ & $67.6$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Theorem~\ref{thm:nofree} is the reason the ladder's rung widths must be read as
+position counts and not bit counts, and it is where our own first reading of the
+ladder went wrong: measuring what a trit costs when packed into bits and calling
+the result the format's width confuses a fabric cost with a format property. The
+independently published balanced-ternary float Ternary27~\cite{ternary27} counts
+the same way --- 2 type trits, 1 sign trit, 5 exponent trits and 19 significand
+trits, exactly 27 --- which is external corroboration that position counting is
+the convention in this family rather than a reading of our own.
+
+\begin{theorem}[Unallocated positions are a pure loss]
+\label{thm:alloc}
+Let a rung of $N$ positions carry a sign, $E_t$ exponent trits and $M$ mantissa
+bits with $1 + E_t + M = N - k$, $k \geq 0$. Then relative to the rung with the
+same $E_t$ and $M + k$, its expected relative error is larger by exactly $2^{k}$
+and its dynamic range is identical.
+\end{theorem}
+
+\begin{proof}
+By Theorem~\ref{thm:law} the expected relative error is
+$\tfrac12 \mathbb{E}[1/s]\,2^{-(M+1)}$, in which the exponent does not appear;
+replacing $M$ by $M+k$ multiplies it by $2^{-k}$. The dynamic range is
+$3^{E_t}$ binades, a function of $E_t$ alone, so it is unchanged. Nothing else in
+the layout depends on $M$. \qed
+\end{proof}
+
+Theorem~\ref{thm:alloc} converts the slack of Section~\ref{sec:design} into a
+number without any measurement, and the measurement then confirms it. Against a
+workload built in exact arithmetic --- necessary above GF-T32, where a
+double-precision probe measures its own resolution rather than the format's ---
+the predicted and observed factors are:
+
+\begin{table}[t]\centering
+\caption{Unallocated positions per rung, the loss Theorem~\ref{thm:alloc}
+predicts, and the loss measured against the reconciled rung
+$M = N - 1 - E_t$. Exact-arithmetic workload, 800 probes per rung.}
+\label{tab:alloc}
+\begin{tabular}{lrrrr}
+\toprule
+rung & $k$ & predicted & measured \\
+\midrule
+GF-T16  & $2$ & $4\times$  & $4.03\times$  \\
+GF-T64  & $4$ & $16\times$ & $15.43\times$ \\
+GF-T128 & $4$ & $16\times$ & $15.99\times$ \\
+GF-T256 & $4$ & $16\times$ & $15.24\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The final question is one the ladder answers implicitly and, as far as we can
+find, no one has stated: GF-T encodes its exponent in radix 3 but scales by
+$2^{e}$, whereas Ternary27 scales by $3^{e}$. These are different choices and
+they are separable.
+
+\begin{theorem}[The scale radix, and why 2 beats 3]
+\label{thm:scaleradix}
+Let a format scale by $r^{e}$ with a normalised significand uniformly quantised
+over $[1, r)$ by $M$ bits. Then its expected relative error on a log-uniform
+workload is $\kappa(r)\,2^{-M}$ with
+\[
+\kappa(r) \;=\; \frac{(r-1)^{2}}{r\ln r},
+\qquad \kappa(2) = 0.72135,\quad \kappa(3) = 1.21365 .
+\]
+Holding the field layout fixed, moving the scale from $r=2$ to $r=3$ therefore
+multiplies the error by $\kappa(3)/\kappa(2) = 1.6825$ while multiplying the
+dynamic range by $\log_2 3 = 1.5850$. Measured in positions, it costs
+$\log_2 1.6825 = 0.7506$ of precision and buys $\log_3 1.5850 = 0.4192$ of range:
+a net loss of $0.3314$ positions per number. A power-of-two scale strictly
+dominates a power-of-three scale at equal width.
+\end{theorem}
+
+\begin{proof}
+The quantisation step over $[1,r)$ is $(r-1)2^{-M}$ and the mean absolute
+rounding error is half of it. On a log-uniform workload the significand has
+density $1/(s\ln r)$ on $[1,r)$, so
+$\mathbb{E}[1/s] = \frac{1}{\ln r}\int_1^{r} s^{-2}\,ds = \frac{1-1/r}{\ln r}$.
+Multiplying gives $\tfrac12 (r-1)2^{-M}\cdot\frac{1-1/r}{\ln r}$, and
+$\tfrac12(r-1)(1-1/r) = (r-1)^2/2r$. Absorbing the factor $\tfrac12$ into the
+$2^{-(M+1)}$ convention of Theorem~\ref{thm:law} yields $\kappa$ as stated. For
+the range, $E_t$ trits span $3^{E_t}$ steps of $\log_2 r$ binades each. One
+mantissa bit halves the error and one exponent trit triples the range, which
+fixes the exchange rate between the two currencies and gives the position
+figures. \qed
+\end{proof}
+
+Direct measurement at two rungs, encoding and decoding through both scales in
+exact arithmetic, gives error ratios of $1.675$ at $(E_t,M) = (4,11)$ and $1.690$
+at $(6,25)$ against the predicted $1.6825$, and range ratios of $1.583$ and
+$1.585$ against the predicted $1.5850$.
+
+\begin{corollary}[What GF-T is, precisely]
+GF-T is not a ternary float in the sense of Ternary27; it is a binary-radix float
+whose exponent is \emph{encoded} in balanced ternary. Theorem~\ref{thm:scaleradix}
+says that this is the better of the two available choices by $0.331$ positions per
+number, and Theorem~\ref{thm:nofree} says that the ternary encoding pays only on a
+ternary fabric. The two together delimit the format exactly: the radix choice is
+right on any fabric, and the encoding choice is right on one.
+\end{corollary}
 
 \section{Limitations}\label{sec:limits}
 
@@ -850,6 +1029,9 @@ D.~Shah et al.
 \newblock nextpnr: a portable FPGA place-and-route tool.
 \newblock \url{https://github.com/YosysHQ/nextpnr}; Xilinx target via Project X-Ray.
 
+\bibitem{hayes2001} B.~Hayes, ``Third Base,'' \emph{American Scientist}, vol.~89, no.~6, pp.~490--494, 2001.
+\bibitem{radixeconomy} Radix economy, optimal radix choice. \url{https://en.wikipedia.org/wiki/Radix_economy}
+\bibitem{ternary27} Ternary27: A Balanced Ternary Floating Point Format, Version~3.1. \url{https://hackaday.io/project/183153}
 \end{thebibliography}
 
 \end{document}
