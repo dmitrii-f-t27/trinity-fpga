@@ -846,3 +846,58 @@ converts a whole class of silent harness faults into an obvious contradiction. T
 same instrument as the earlier rules — a clean 0%/100% is a harness fault, a gate that
 cannot fail is not a gate — applied to a prover: the check is not on the result but on
 whether the result is *possible*.
+
+## A refutation is only a bug if the counterexample state is reachable
+
+Five properties were checked against an AXI-Lite slave. Three came back refuted. Two were
+real defects. The third — `bresp == 2'b00` — was an artifact, and `bresp` is *only ever
+assigned* `2'b00`, so it cannot be violated in any reachable state.
+
+The cause is temporal induction. `sat -tempinduct` proves *if the property held for the
+last k cycles it holds now*, and its base case may start from an **unreachable** state
+where a register holds garbage. Re-running from a reachable start settles it:
+
+```
+tempinduct (unconstrained init) -> REFUTED     # artifact
+BMC from zero-init state        -> PROVED      # truth
+```
+
+Both genuine defects refuted under **both** settings — which is the discriminator worth
+keeping: **cross-check every refutation against a reachable start before believing it.**
+A real bug survives the change of proof method; an induction artifact does not.
+
+The general form matters more than the yosys specifics. A model checker answers a question
+about a *model*, and the model includes assumptions about which states can occur. When a
+result is surprising, the first suspect is the state space, not the design. This is the
+reachability twin of the earlier rules — a tautology that fails means a broken harness; a
+refutation from an impossible state means a mis-scoped one. Both are the tool answering a
+different question than the one asked.
+
+The corollary is what nearly went wrong: a false bug report is *more* expensive than a
+missed one, because it gets acted on. Someone would have "fixed" a correct reset value.
+
+## Count what must balance, not what should look right
+
+The AXI slave's handshakes were shaped correctly. VALID was never deasserted without a
+handshake — a property that **proved**, on the buggy design. Every shape-based check
+passed. A protocol lint would have signed it off.
+
+The defect was arithmetic: `ready` was asserted at reset and never dropped, while the
+module had one response register per channel, so two accepted transactions could share one
+response beat and hang the master. What exposed it was counting:
+
+```verilog
+outstanding <= outstanding + accepted - completed;
+assert (outstanding <= 1);
+```
+
+**When a design promises a conservation law — one response per request, one release per
+acquire, one pop per push — assert the balance directly.** Shape properties check that
+each event looks right; a balance checks that none went missing. Those are different
+failures, and the second is the one that hangs a bus.
+
+This also composes with the reachability rule above: a counter makes the violating state
+concrete and obviously reachable, so the refutation is hard to dismiss as an artifact.
+
+Two for two: both RTL defects found in this campaign were *missing events* — a lost
+interrupt and a lost response — in modules whose per-event logic was individually correct.
