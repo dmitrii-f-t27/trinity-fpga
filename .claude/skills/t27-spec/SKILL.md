@@ -544,3 +544,60 @@ The general form, and the reason this keeps recurring in this campaign: **the fa
 mode is never a wrong number, it is an unexamined label.** `FAIL: 496` meant "binary not
 found". `58 empty/skipped` meant "object-shaped". Both were accurate counts of something
 other than what their word said.
+
+## Gates check the cheap proxy; audit the gate against the property it names
+
+Three consecutive waves in this repo each turned up one gate enforcing something weaker
+than its own label:
+
+| Gate | Name claims | Actually tests |
+|---|---|---|
+| `scripts/tri check-now` (Gate 1/4) | NOW freshness | nothing — the wrapper was broken, so it was bypassed with `--no-verify` |
+| `validate-conformance` | conformance corpus is populated | array-shaped payloads only, so 58 of 101 files were false positives |
+| Gate 2/4 "Seal coverage" | seal coverage | `[[ -f "$seal_file" ]]` — that a file *exists* |
+
+The third is the sharpest. `.trinity/seals/` held **730 seal files and not one verified**.
+480 were written on the same day as a commit that rewrote the specs they sealed, and
+nothing was re-baselined for four months across a run of codegen fixes. **Presence is not
+integrity**, and only presence was ever enforced, so the drift was structurally invisible —
+there was no observation that could have revealed it short of running `--verify` by hand.
+
+The audit that finds this class in one pass, for each gate: **write down the property the
+gate's name claims, then read the gate and write down the property it tests. Where the two
+differ, that is the hole.** It takes minutes and does not require understanding the domain.
+
+Two riders learned the same wave:
+
+**A gate that cannot fail teaches people to route around it.** The broken wrapper made
+Gate 1/4 fail always, so commits used `--no-verify` — which silently disabled the other
+three gates too. A gate is a hazard when it is always red *or* always green.
+
+**Check the gate's file resolution, not just its predicate.** Gate 2/4 derived
+`basename "$spec" .t27` → `gf16.json`, while `seal --verify` reads a path-derived
+`numeric_triformat-gf16.json`. Both "worked" on macOS only because the filesystem is
+case-insensitive and `GF16.json` happened to match. On Linux CI the gate would look for a
+file that does not exist. Two naming schemes for one artefact is a defect even when every
+individual test passes.
+
+## Evidence that cites a command nobody can run is not evidence
+
+`conformance/clara_spec_coverage.json` recorded
+`{"command": "bash scripts/clara/demo.sh", "result": "20/20 passed, 0 failed"}`.
+`scripts/clara/` does not exist anywhere in the repository — not renamed, not moved,
+absent. The row had been carried as passing evidence for four months.
+
+This reframes what "narrow the claim vs regenerate the evidence" means. There was no
+claim to narrow: an artefact asserting a result from a command that cannot be executed is
+not weak evidence, it is **not evidence**, and the only repair is to replace it with
+something regenerable. The new command writes a `reproduce` field into its own output for
+exactly this reason.
+
+**When auditing an evidence file, run its own stated reproduction command before reading
+its numbers.** If the command does not exist, the numbers do not need checking.
+
+And the corollary that governs what an audit may do on its own: **regenerating the
+measurement is repair; rewriting the baseline is a decision.** Re-running coverage was
+safe and mechanical. Re-sealing 496 specs would have rewritten 730 provenance records and
+canonicalised whatever the current codegen emits, with no independent oracle that it is
+right — so it was reported, scoped, and left for a human. An audit that quietly re-baselines
+the thing it was auditing has destroyed the evidence it was sent to check.
