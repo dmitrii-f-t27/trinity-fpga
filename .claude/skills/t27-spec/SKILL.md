@@ -668,3 +668,56 @@ Related: the gates here are also **local-only** — the tracked hook is a three-
 and the real four-gate hook installs into `.git/hooks/` only if someone runs an installer
 script. Before trusting "the pre-commit gate catches this", check that a fresh clone
 actually gets the gate.
+
+## State the evidence class, and let the weaker claim stand
+
+A campaign of audits produced a document of numbered findings. The temptation at write-up
+time is to round every observation up to a theorem. Two of them could not survive it.
+
+The seal-path function was described in a commit as "injective by construction". It is
+not. The encoding flattens `/` to `_`, and `_` is legal inside a path component, so
+`specs/a_b/c.t27` and `specs/a/b_c.t27` both yield `a_b_c.json`. What was true — and
+sufficient — is that it is injective **on this corpus**: 496 specs, 496 distinct images,
+measured. The general claim was never needed; it was reached for because it sounded
+finished.
+
+So every proposition now carries a tag: `PROVED` (machine-checked), `MEASURED`
+(reproducible over a **stated domain**), `CONJECTURE`. The discipline is not decoration.
+It forces the domain into the sentence, and the domain is where these claims actually
+break.
+
+Three habits followed from it:
+
+**Write the counterexample into a test that asserts the limitation holds.** Not a
+`// TODO: not injective in general` comment, which decays — an assertion that
+`Σ(a_b/c) == Σ(a/b_c)`. If someone changes the encoding, that test fails and drags the
+documentation back into review. A limitation pinned by a passing test is maintained; one
+pinned by prose is not.
+
+**A partial invariant plus a guard at the mutation site beats a total invariant nobody
+re-checks.** The residual collision risk was closed at `seal --save`, which refuses to
+overwrite a seal whose recorded owner differs. The predecessor scheme had a *stronger*
+sounding rule and no guard, and it silently destroyed a seal that stayed broken for
+months.
+
+**Validate a checking pipeline in both directions before trusting it.** A yosys proof
+recipe was confirmed by running it on a property that is true (exit 0) *and* one that is
+false (exit 1). A pipeline that only ever reports success is indistinguishable from one
+that checks nothing — which is exactly the CI-theater failure from the previous wave,
+arriving in a new costume.
+
+## Verify a citation's title from the source before it goes in a document
+
+Six arXiv identifiers were assembled from memory for a related-work table. Fetching each
+one's `citation_title` showed that one — recalled confidently as a numerics paper — was
+*Graph-based Joint Pandemic Concern and Relation Extraction on Twitter*. It was dropped.
+
+Identifiers are exactly the kind of detail that feels retrievable and is not. The check is
+one HTTP request per entry and it is not optional in a document whose entire value is that
+its claims are checkable. The same rule already applies to a tool's summary line and to an
+evidence file's reproduction command; a citation is the same object — a claim about
+something you have not looked at.
+
+Where a description is genuinely the source's own words, quote it and say so; where it is
+your assessment, keep it outside the quotes. A table that mixes the two silently is doing
+the same work as an omission.
