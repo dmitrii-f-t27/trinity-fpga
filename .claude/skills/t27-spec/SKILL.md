@@ -442,3 +442,70 @@ this implementing", read it.
 alone would have been an interpretation -- this campaign has been wrong on interpretations
 several times. `256 of 256, 0 differ` is not an interpretation. Source narrows the search
 space; measurement still decides.
+
+## A 100% failure rate is a broken harness until proven otherwise
+
+A sweep of all 496 specs reported `PARSE OK: 0  FAIL: 496`. Read literally that is
+"the parser is completely dead" — a finding so large it would have reframed the whole
+session, and it would have been reported to a sleeping user as fact.
+
+It was exit 127. The shell's cwd had reset between calls, `./bootstrap/target/release/t27c`
+did not exist at that relative path, and every one of the 496 invocations was
+`command not found`. The binary builds to the **workspace** target dir,
+`target/release/t27c`, not `bootstrap/target/release/t27c` — `cargo build` was run from
+`bootstrap/`, but the workspace root owns the output directory.
+
+The tell was the shape of the result, not its content. Real breakage is ragged: some
+specs parse, some do not. **A clean 0% or a clean 100% is the signature of a harness
+fault — the measurement never reached the thing being measured.** Before reporting any
+total, run the tool once, by hand, on one input, and look at the actual stderr. The
+correct count here was 496/496, the exact opposite of the first reading.
+
+Corollary for absolute vs. relative paths: any sweep that shells out in a loop should
+resolve its binary to an absolute path once, up front, and fail loudly if it is missing —
+so a missing tool reports as "tool missing", never as "every case failed".
+
+## A gate that is always bypassed is not a gate, and nobody will report it
+
+`scripts/tri` — the wrapper the README tells every new reader to run to verify the repo
+(`./scripts/tri test`) — was broken for **every** subcommand. Line 15 passed
+`--repo-root` before the subcommand name, but it is a per-subcommand clap option, not a
+global one, so every invocation died with `unexpected argument '--repo-root' found`.
+
+The interesting part is why it survived. `scripts/tri check-now` is pre-commit Gate 1/4.
+A permanently failing gate does not get fixed; it gets bypassed with `--no-verify`, and
+the bypass is invisible in the history. The gate had stopped being a gate and became a
+toll, and the toll was free.
+
+Two habits from this:
+
+**When a hook blocks you, read the hook before satisfying it.** The instinct is to make
+the error go away — bump the date, add the trailer. Doing that here would have left the
+wrapper broken and re-armed the same trap for the next agent. The block was a symptom;
+the wrapper was the defect.
+
+**Suspect any documented command you have not personally run this session.** The README
+had shipped a broken verification command through multiple doc-sync commits, because
+doc-sync passes edit prose and do not execute the fences. Run the fence.
+
+## Ask who occupies the corner you claim to own
+
+`COMPETITORS.md` was careful, sourced, and honest in tone: it named five commercial NPUs
+and explained, correctly, that this project does not race them on TOPS or SDK breadth.
+It then claimed the project owns "the inspectable open silicon and formal / assurance
+corner" — and named nobody in that corner.
+
+That corner is crowded. Vericert is verified HLS with the *compiler itself* proved
+correct in Coq; this project's compiler is unverified Rust. Kami does modular refinement
+from spec to RTL; this project has conformance vectors, not a refinement relation.
+Amaranth ships formal verification via SymbiYosys as a built-in.
+
+**A competitive document is not honest because each sentence is true. It is honest when
+the omissions do not do the arguing.** The audit question that finds this in one pass:
+*for each corner the document claims, who else is standing in it, and are they ahead?*
+If the answer is "nobody" the claim is almost certainly under-researched, not uncontested.
+
+The repair is not deleting the claim — it is narrowing it until it survives contact.
+Here that meant conceding the compiler-correctness and refinement axes outright, and
+promoting the one genuinely unusual artefact (a machine-checkable tape-out conformance
+gate) to the load-bearing position, explicitly labelled as the claim most worth attacking.
