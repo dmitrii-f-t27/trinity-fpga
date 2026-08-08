@@ -52,9 +52,10 @@ fixed.
 
 Two measured properties make the case. Across every rung from GF-T8 to GF-T1024
 the mean relative round-trip error is
-$0.375 \cdot 2^{-(M+1)}$, with the constant holding to $\pm 1.5\%$ over eight
-rungs and 302 orders of magnitude --- the precision is a closed form in the
-mantissa width alone. And at each of those rungs the error varies by at most
+$\tfrac{1}{2}\mathbb{E}[1/s]\cdot 2^{-(M+1)}$, which we derive rather than fit:
+the binade exponent cancels, leaving a closed form in the mantissa width and the
+significand distribution alone. Measured across eight rungs spanning 302 orders
+of magnitude, the constant holds to $\pm 3\%$ of its predicted value. And at each of those rungs the error varies by at most
 $7\%$ between the near and far ends of a 76-binary-decade workload: it is flat in
 magnitude, which is precisely what a ruler must be and what a tapered format by
 construction is not.
@@ -136,14 +137,30 @@ GF-T1024 & $1006$ & $7.29\mathrm{e}{-304}$ & $2.77\mathrm{e}{-304}$ & $0.38$ & $
 \end{tabular}
 \end{table}
 
-\paragraph{The precision is a closed form.} The measured error is
-$0.375 \cdot 2^{-(M+1)}$ at every rung, the constant varying by $\pm1.5\%$ across
-eight rungs that span 302 orders of magnitude. Nothing was fitted: $M$ comes from
-the format definition and the constant falls out of round-to-nearest on a uniform
-mantissa. A user of the ladder can state the error of a rung that has never been
-built.
+\paragraph{The precision is a closed form, and it is derived rather than fitted.}
+Write $u = 2^{-(M+1)}$ for the unit roundoff. Inside a binade the absolute
+rounding error under round-to-nearest is uniform on $[-u\,2^{e}, +u\,2^{e}]$
+while the value is $v = s\,2^{e}$ with significand $s \in [1,2)$, so the relative
+error is $|U|/s$ with $|U|$ uniform on $[0,u]$ and \emph{independent of $e$}.
+Hence
+\[
+  \mathbb{E}\bigl[|\text{rel err}|\bigr] \;=\; \tfrac{1}{2}\,\mathbb{E}[1/s]\;\cdot\;2^{-(M+1)} .
+\]
+The exponent drops out entirely --- that is the flatness of the next paragraph,
+proved rather than observed. The constant is not universal: it is
+$\tfrac{1}{2}\ln 2 = 0.3466$ for a significand uniform on $[1,2)$ and
+$\tfrac{1}{2}\,(2\ln 2)^{-1} = 0.3607$ under a logarithmic (Benford) significand.
+Our workload has $\mathbb{E}[1/s] = 0.7721$, predicting $0.3861$; the measured
+figures in Table~\ref{tab:law} average $0.3756$ over eight rungs, with a spread
+of $0.369$--$0.390$ that brackets it.
 
-\paragraph{The error does not move with magnitude.} Flatness stays between
+The practical consequence is the one a reference needs: given $M$ and the
+significand distribution of a workload, the error of a rung nobody has built is
+known before it is built.
+
+\paragraph{The error does not move with magnitude, and cannot.} The derivation
+above removes $e$ from the expression, so magnitude-independence is a property of
+the layout rather than a happy measurement. Empirically flatness stays between
 $1.05$ and $1.07$ --- at most a $7\%$ difference between the closest and furthest
 parts of a workload spanning 76 binary decades. This is the property fixed fields
 buy and the one a tapered format cannot have: spending mantissa bits on range is
