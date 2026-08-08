@@ -1570,3 +1570,54 @@ The related smell, seen repeatedly here: a test that asserts a string containing
 (`"reg [31:0] cycles;"`) breaks when a declaration is realigned. Match on the semantic part
 or normalise whitespace; a test that fails on `git diff -w`-invisible changes is measuring
 the wrong thing.
+
+## An invariant written against one producer assumes how many producers there are
+
+A double-buffer invariant said: never write the buffer being read. It was correct, proved,
+and had guarded a real defect. Then a second writer arrived — an input DMA whose whole
+purpose is to fill the buffer *about to be read*, because that is where the first layer's
+input belongs.
+
+The invariant immediately flagged the **correct** new code as a violation.
+
+The reflex when a proved property starts failing on a change you believe is right is to
+weaken or delete it. Neither is right here. The property was always about *the requantizer
+writing into a buffer under active read* — that scope was simply implicit while there was
+only one writer to be confused about. It now says so:
+
+```verilog
+always @(posedge clk) if (rst_n && !dma_local_we)
+    a_no_read_write_same: assert (...);
+```
+
+**Adding a producer to a shared resource is the moment to re-read every invariant about
+that resource** — not to relax them, but to make explicit the domain they were always
+about. The same applies to a second caller of a function, a second writer to a table, a
+second scheduler touching a queue. A single-producer invariant reads as a global truth
+right up until it isn't.
+
+The corollary: **if scoping an invariant makes it vacuous, it was the wrong invariant.**
+Here the scoped version still bites — a requantizer write into a live buffer is still
+forbidden — which is the check that the scoping was honest rather than a way of switching
+it off.
+
+## `busy` was a decode, not a state — proxies bite in design too
+
+An interlock needed "is the engine running?". The available signal was
+`busy = (current_layer != 0) || layer_start` — a *decode of a counter*, not a recorded
+state. It is false during the entire first layer, so an interlock built on it has a hole
+exactly where the first inference happens.
+
+This is the same failure the campaign kept finding in gates — a check written against a
+cheap proxy instead of the property it names — arriving in the RTL instead of in CI. A
+counter comparison that is *usually* equivalent to "active" is not the same object as a
+flag set at start and cleared at done, and the difference shows up precisely at the
+boundaries where interlocks matter.
+
+**When something needs a state, give it a register.** Deriving it from whatever is nearby
+costs nothing to write and produces a signal that is right in the common case and wrong at
+the edges — the worst possible distribution for a safety interlock.
+
+The wider habit: **before keying safety logic off an existing signal, read its definition
+rather than its name.** `busy`, `ready`, `done`, `active` are all names that invite the
+assumption that someone maintained them as state.
