@@ -1728,9 +1728,10 @@ is computed in, so the figure it returns describes the metric rather than the
 format. Measuring the upper rungs requires exact rationals throughout, as the
 oracle itself already uses.
 
-\item \textbf{Four of nine rungs are measured in hardware.} TEF4 through TEF32 fit the
-device; TEF64 and TEF128 are within reach of a larger part and TEF256 upwards
-exceed a single Artix-7 fabric entirely. Table~\ref{tab:spec} is the
+\item \textbf{Five of nine rungs are measured in hardware.} TEF4 through TEF64 fit
+the device, TEF64 at $7{,}479$ LUTs and $48.20$\,MHz. TEF128 at $M = 119$ does not
+converge in routing on this part and is not claimed; TEF256 upwards exceed a
+single Artix-7 fabric entirely. Table~\ref{tab:spec} is the
 specification and the oracle's coverage; Table~\ref{tab:ladder} is what was
 placed and routed. We keep them apart on purpose.
 
