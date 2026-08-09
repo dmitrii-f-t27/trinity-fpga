@@ -1434,12 +1434,26 @@ where the money is for a logarithmic format.
 
 \begin{theorem}[The logarithmic decode costs by target precision, not by source width]
 \label{thm:targetprec}
-Evaluating $2^{f}$ to $P$ bits with a $2^{k}$-entry table and a degree-$d$
-polynomial correction requires $k \approx P/(d+1)$, so the table is
-$P \cdot 2^{P/(d+1)}$ bits: exponential in the target precision and reducible only
-by raising the polynomial degree, which trades memory for multipliers. The width
-of the source format does not enter.
+A $2^{k}$-entry table for $2^{f}$ with a degree-$d$ Taylor correction delivers
+\[
+P(k,d) \;=\; (d+1)\Bigl(k + \log_2\tfrac{1}{\ln 2}\Bigr) + \log_2 (d+1)!
+\]
+bits of relative accuracy, so the table is $P \cdot 2^{k}$ bits with
+$k = \frac{P - \log_2 (d+1)!}{d+1} - \log_2\frac{1}{\ln 2}$: exponential in the
+target precision, reducible only by raising the polynomial degree, which trades
+memory for multipliers. The width of the source format does not enter.
 \end{theorem}
+
+\begin{proof}
+The residual after the table lookup is $x = f_{\mathrm{lo}}\ln 2$ with
+$f_{\mathrm{lo}} < 2^{-k}$, and the degree-$d$ Taylor remainder of $e^{x}$ is
+$x^{d+1}/(d+1)!$. Taking $-\log_2$ gives the stated $P$. \qed
+\end{proof}
+
+Evaluated against direct simulation of the scheme --- the table, the residual and
+the polynomial, in exact arithmetic --- the formula holds to $\pm 0.1$ bit at every
+point of a $k \in \{4,8,12,16,20\}$ by $d \in \{1,2,3,4\}$ grid, up to the
+$51$-bit resolution of the measurement itself.
 
 Theorem~\ref{thm:targetprec} is falsifiable against the suite and survives. The
 takum32 decoder carries $d = 2$ and $k = 16$, and $48/3 = 16$ exactly, where 48 is
@@ -1449,14 +1463,38 @@ same one. It reads \texttt{takum32\_2frac.mem} --- \emph{the same file} --- and
 emits binary32, as do the takum8, takum16 and takum64 decoders. One table serves
 four source widths because all four target one datapath.
 
-\begin{corollary}[Where the logarithmic law becomes unaffordable]
-Decoding into binary32 needs $P = 48$, so $k = 16$ and $3.1$\,Mbit --- large but
-buildable, as measured. Into binary64 it needs $P = 105$, so $k = 35$ and roughly
-$3.6$\,Tbit at $d = 2$, which is not a design; the degree must rise instead, and
-the cost reappears as multipliers. A linear value law needs no polynomial at any
-target precision, because the significand is already in the datapath's
-representation.
+\begin{corollary}[The trade curve, and what each target actually costs]
+\label{cor:tradecurve}
+Theorem~\ref{thm:targetprec} fixes a curve rather than a point, and the cheapest
+point on it that fits a given device is a computable quantity. Pricing the $d$
+multiplies at $2.4455 P^{2}$ LUTs --- the quadratic term of our own measured area
+law, Theorem~\ref{thm:alpha} --- and requiring the table to fit this device's
+$365$ RAMB36 tiles:
+\begin{center}
+\begin{tabular}{llrr}
+\toprule
+target & cheapest feasible point & block RAM & LUTs \\
+\midrule
+binary32 & $d = 2$, $k = 15$ & $43$ tiles & $11{,}269$ \\
+binary64 & $d = 5$, $k = 16$ & $187$ tiles & $134{,}808$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+An XC7A200T has $134{,}600$ LUTs, so decoding a logarithmic format into a
+binary64 datapath costs approximately the entire device.
 \end{corollary}
+
+We had previously written that binary64 decode ``is not a design'' at roughly
+$3.6$\,Tbit. That figure is the $d = 2$ corner of the curve and taking it for the
+whole curve was our error: at $d = 5$ the table is $6.9$\,Mbit and the design
+exists. The defensible statement is Corollary~\ref{cor:tradecurve} --- it costs a
+device --- and not that it cannot be built.
+
+The measured \texttt{takum32\_decode} sits one $k$ above the binary32 minimum, at
+$k = 16$ against $15$, which is a $2\times$ memory margin and ordinary engineering
+practice rather than waste. A linear value law needs neither the table nor the
+polynomial at any target precision, because the significand is already in the
+datapath's representation.
 
 \begin{corollary}[What GF-T's exponent path costs]
 \label{cor:zeropath}
