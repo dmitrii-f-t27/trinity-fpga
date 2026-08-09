@@ -3995,4 +3995,43 @@ its temp file, so *no* tool call succeeds. When space fluctuates back, spend the
 first successful calls on `git add` + `commit` + `push`, not on diagnosis. And
 do not delete to make room while unattended: on a shared APFS container `df /`
 can report a repo-sized number while the real consumer is another volume
-entirely, so the obvious cleanup target is usually the wrong one.
+entirely, so the obvious cleanup target is usually the wrong one. *Confirmed the
+next wave:* the space returned on its own and the repo's `target/` was 565 MB —
+never the consumer. The cleanup I had proposed would have cost a rebuild and
+freed nothing.
+
+## Wave 614 — properties that are supposed to refute
+
+**Some properties are expected refutations, and a sweep that assumes otherwise
+mislabels them.** Four `*_never_completes` properties here refute on the real
+design *by design*: they record that a zero-sized job does report done, which is
+safe only because a sibling proves it emitted no work. My sweep called all four
+"isolation broken".
+
+**The generalisation is one line: measure the expected verdict, then define
+detection as "the verdict differs from the expected one".** For an inverted
+property that means a mutant made it **prove** — the mutation removed the
+behaviour being recorded. A harness that hard-codes *detection = refutation*
+cannot measure an inverted property at all; it can only get it wrong.
+
+**A property whose value is the record it leaves does not have to earn its place
+by detection.** The campaign's first DEAD verdict landed on an expected
+refutation that pins a deliberate design decision. Keeping it is not timidity —
+detection power and documentary value are different currencies, and a suite is
+read as well as run. Write the verdict beside it either way.
+
+**Report a DEAD verdict with its denominator, loudly.** Twelve mutants of a
+23-line module is a weak basis for calling anything dead. The denominator is not
+a footnote; it is most of the claim.
+
+**A predictable result is calibration, not waste.** Both max-size subsumptions
+were derivable on paper (strictly-increasing is implied by increases-by-one).
+Measuring them anyway is what makes the *surprising* verdicts — a property
+biting uniquely while its mirror-image twin is subsumed — credible rather than
+noise.
+
+**Never let two runs share an output path.** I launched a corrected sweep while
+the original was still running, both redirecting to the same file. The merged
+result was internally inconsistent — a summary line disagreeing with the rows
+above it — and looked enough like data to be read. Check `pgrep` before
+relaunching, and give every run its own output file.
