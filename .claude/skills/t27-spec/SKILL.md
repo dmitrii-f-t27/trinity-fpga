@@ -3089,3 +3089,56 @@ A sweep is defined by two things: the property class, and the surface it covers.
 "we swept zero-sized inputs" without recording *which surface* leaves the impression of
 completeness. The honest form is "zero-sized inputs, write paths only" — which makes the
 gap visible to the next reader instead of hiding it behind a finished-sounding claim.
+
+---
+
+## The weakest assumption that restores a proof is the diagnosis
+
+A failing check was fixed by `assume (count != 0)`, and the obvious conclusion — *the bug
+is the zero case* — was published. It was wrong. A **weaker** assumption also restored the
+proof:
+
+```
+assume (count != 0)                  -> PROVED
+assume (count == $past(count))       -> PROVED   <- weaker, and the real cause
+```
+
+A stable *zero* proves. The necessary condition was the count **changing**, not its value;
+excluding zero merely excluded the particular change the solver had reached for.
+
+**When one assumption makes a failure disappear, keep looking for a weaker one that also
+does.** Every assumption that restores a proof describes *a* sufficient condition; only the
+weakest describes the cause. The strong one is usually the first you think of, and it is
+usually a special case of the real thing.
+
+Beyond formal work: a bug that "only happens with an empty list" may really be "only
+happens when the list changes during iteration"; empty is just the easiest way to reach it.
+
+## Configuration read live by a running state machine is a defect class
+
+A sequencer compared its counter against a limit register every cycle, and the limit was
+wired straight to a host-writable register. A write mid-run moves the terminator underneath
+work already in flight.
+
+The fix is one register and a capture point: latch the configuration when the operation
+starts, and run from the latched copy. Cheap, local, and independently correct regardless
+of what else the investigation turns up.
+
+Worth looking for wherever an operation has a *duration*: batch sizes read per-iteration,
+timeouts consulted inside the loop they bound, feature flags evaluated per-item in a job
+that should be consistent end-to-end. **If a value can change while the thing it governs is
+running, decide explicitly whether it should — and usually it should not.**
+
+## Ship a fix that is right on its own terms, even if it does not close the case
+
+The latch did not make the failing property pass. The standing rule is to withdraw a fix
+that misses its target *and costs something*; this one cost nothing measurable and is
+defensible without reference to the investigation that produced it — a sequencer must not
+have its terminator moved mid-run.
+
+The test to apply: **would I write this having seen the code fresh, with no knowledge of
+the open bug?** If yes, keep it and say plainly that it does not close the case. If the
+only argument for it is the bug it failed to fix, withdraw it.
+
+That distinction keeps a codebase from accumulating speculative changes while still
+allowing genuine improvements found along the way.
