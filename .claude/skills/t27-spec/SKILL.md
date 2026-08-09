@@ -1876,3 +1876,68 @@ something that had been proving. All three were withdrawn and the finding was re
 instead. The instinct to ship *something* after that much work is the thing to resist:
 a fix that does not fix the target and regresses the baseline is strictly worse than an
 honest open finding, and the sunk effort is not an argument for it.
+
+---
+
+## A generated file's comments are not evidence about the generated file
+
+The standing rule is *verify the artifact, not the source*. A comment **inside** the
+artifact is still source. An emitter wrote:
+
+```verilog
+// A zero-length request moves no data and completes immediately.
+IDLE: if (start && (length != 32'd0)) begin
+```
+
+The comment describes the intent. The code does the opposite — it drops the request
+entirely — and the two sat adjacent for several waves. Reading the comment produced a
+published claim that was confidently, specifically wrong, and it propagated into a
+proposition, a README row, a commit message and an issue before a sweep contradicted it.
+
+When a comment and the code it annotates disagree, the comment is usually the older of
+the two and always the one with no test. **Grep for behaviour, not for prose:** the guard
+condition, the state transition, the assignment. If a claim about behaviour cannot be
+traced to a line that executes, it is not established.
+
+## When a defect shape appears twice, enumerate the class
+
+Three waves found one shape — a zero-sized job — one module at a time. Two were noticed
+while chasing something else; the third was a *guess* at a mechanism, and the guess was
+wrong. A single sweep over every module that takes a count found both real instances at
+once and produced something none of the individual investigations had: a **policy
+question**.
+
+```
+layer_sequencer       zero neurons  completes
+weight_prefetch_ctrl  zero words    completes
+multilayer_sequencer  zero layers   DROPPED   <- host hangs
+dma_controller        zero length   DROPPED   <- host hangs
+```
+
+A 2–2 split. **Neither policy is wrong in isolation; the disagreement is the defect**,
+because a caller cannot know which to expect. That framing is only visible from the
+sweep — each module in isolation looks defensible.
+
+The generalisation: after the second sighting of any defect shape, stop fixing instances
+and enumerate the class. Boundary values (zero, one, max, overflow), empty collections,
+single-element cases, absent optional fields, first and last iteration. Cheap, mechanical,
+and it converts a stream of accidents into one decision.
+
+## The unobservable outcome is the dangerous one
+
+Ranking the ways a request can fail:
+
+1. **Completes correctly** — fine.
+2. **Errors** — visible, caller can react.
+3. **Completes vacuously** (reports done, did nothing) — visible if the caller checks.
+4. **Silently dropped** (no work, no completion, no error) — **invisible**. The caller
+   waits forever for a result that was never coming.
+
+Wave 574 assumed the DMA was in class 3 and treated that as the bug. It was in class 4,
+which is worse. When choosing how to handle a degenerate input, **prefer the outcome the
+caller can observe** — a completion that did nothing beats a silence that did nothing.
+
+Pair the two halves or you get neither: assert the request completes *and* assert it
+performed no work. The first alone permits a module that lies; the second alone permits
+one that hangs. In CI that means a gate with deliberately mixed polarity — some
+properties must PROVE, others must REFUTE — so write the expected verdict next to each.
