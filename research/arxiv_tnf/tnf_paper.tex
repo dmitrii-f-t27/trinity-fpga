@@ -1,4 +1,4 @@
-% TEF16: a fixed-field GoldenFloat with a balanced-ternary exponent.
+% TNF16: a fixed-field GoldenFloat with a balanced-ternary exponent.
 % v1: 2026-08-08. Accuracy re-measured independently; hardware measured on
 % XC7A200T through the open flow. House style follows research/arxiv_submission.
 \documentclass[11pt]{article}
@@ -38,7 +38,7 @@
 % The thesis is what the ladder is FOR: a reference whose error is predictable
 % from its parameters and does not move with magnitude. Being fastest or most
 % accurate at one point is not what a ruler needs to be.
-\title{Ternary-Exponent Floats: a fixed-field ladder with no regime to decode \\
+\title{Ternary Network Floats: a fixed-field ladder with no regime to decode \\
   \large A balanced-ternary exponent over a binary radix, from 4 to 1024 bits,
   measured against the published posit and takum codecs on open silicon}
 \author{Dmitrii Vasilev\\
@@ -53,7 +53,7 @@
 A reference format is not the one that is fastest, or the most accurate at any one
 magnitude. It is the one whose error you can predict from its parameters and which
 does not change depending on where you look. We describe \textbf{Ternary Floats}
-(TEF), a ladder built for that role: the exponent is a balanced-ternary integer of
+(TNF), a ladder built for that role: the exponent is a balanced-ternary integer of
 $E_t$ trits, the mantissa is a constant $M$ bits, and the fields are fixed.
 
 The foundation is a law rather than a table. Across every rung the mean relative
@@ -70,7 +70,7 @@ measurable number of mantissa bits of silicon (Theorem~\ref{thm:convert}).
 Synthesising the regime codecs of both tapered families under one harness on an
 XC7A200T, net of harness: a unary regime costs $438$ LUTs and a length-prefixed
 one $40$, against $0$ for a fixed field, which at the 16-bit class are $8.98$ and
-$0.82$ mantissa bits. The first exceeds TEF16's entire mantissa; the second is
+$0.82$ mantissa bits. The first exceeds TNF16's entire mantissa; the second is
 small. On that axis the argument is decisive against posit and weak against takum,
 and we say so rather than averaging the two.
 
@@ -80,7 +80,7 @@ moves the main result somewhere else, and we had been measuring the smaller half
 \texttt{takum32\_decode} evaluates $2^{f}$ from a $65536\times 48$-bit table and
 costs $10{,}967$ LUTs and $84$ RAMB36 tiles --- $23\%$ of the device's block
 memory --- because takum's value law is logarithmic and a linear datapath needs
-the exponential. TEF's exponent path is wires. Theorem~\ref{thm:valuelaw} makes
+the exponential. TNF's exponent path is wires. Theorem~\ref{thm:valuelaw} makes
 this a second axis, orthogonal to tapering: what a format costs to \emph{read} is
 set by whether its value law is $s\cdot 2^{e}$ or $2^{\ell}$, not by how it spends
 precision. Unlike the accuracy result, Theorem~\ref{thm:floor} places no range
@@ -91,8 +91,8 @@ domain never pays this.
 What remains against takum is accuracy, and Theorem~\ref{thm:floor} bounds how far
 that claim may be taken. The exponent's encoding is a prefix code, so by Kraft no
 format of unbounded range tapers more gently than one bit per doubling; takum's
-regime is asymptotically optimal and nothing, TEF included, beats it beyond its
-own range. Inside TEF16's range it is $3.70\times$ and $11.21\times$ more accurate
+regime is asymptotically optimal and nothing, TNF included, beats it beyond its
+own range. Inside TNF16's range it is $3.70\times$ and $11.21\times$ more accurate
 at mid and far magnitudes, and $3.70\times$ near unity where the unfilled rung
 used to lose.
 
@@ -105,13 +105,13 @@ binade, confirmed at three widths) and geometric ($8$; takum and tekum at one bi
 per doubling).
 
 In silicon on an entirely open flow: $12$, $50$, $212$, $1{,}477$ and $7{,}479$
-LUTs at $161.1$, $153.2$, $131.7$, $83.3$ and $48.2$\,MHz for TEF4 through
-TEF64, one cycle of latency, no DSP blocks.
+LUTs at $161.1$, $153.2$, $131.7$, $83.3$ and $48.2$\,MHz for TNF4 through
+TNF64, one cycle of latency, no DSP blocks.
 
 We report what the measurements cost us. Three defects found while measuring
 generalise and are described rather than quietly fixed. Four claims of our own
 were falsified by the measurements meant to support them, including a predicted
-area for TEF64 that came in $1.57\times$ low, and each is retracted in place.
+area for TNF64 that came in $1.57\times$ low, and each is retracted in place.
 
 Read together the results compose into a claim about the design space rather than
 about one format. It has four axes; three admit answers that do not depend on the
@@ -121,7 +121,7 @@ increasing, so the optimum is not the unconstrained extremum near $r = 1.9$ but
 the best point that can be built. The radix of the exponent's encoding is fixed by
 the fabric. Fixed fields or a taper is a genuine choice with exactly two options.
 The exponent--mantissa split follows once a range is named. Name the fabric, the
-range and the side of the dichotomy, and the format is determined. TEF is what
+range and the side of the dichotomy, and the format is determined. TNF is what
 that returns for one triple, which makes it forced rather than designed --- and
 carries no claim off those arguments.
 
@@ -144,7 +144,7 @@ range at decaying precision --- and the format is determined, not chosen.
 \end{quote}
 
 Section~\ref{sec:optimal} states that as Corollary~\ref{cor:determined} and shows
-TEF is what it returns for one particular triple. Everything before it establishes
+TNF is what it returns for one particular triple. Everything before it establishes
 an axis:
 
 \begin{itemize}
@@ -179,7 +179,7 @@ rather than quietly dropped.
 \section{The format}\label{sec:format}
 
 \begin{equation}
-\text{TEF16}=[\,s\,|\,E{=}4\ \text{balanced-ternary trits}\,|\,M{=}11\ \text{bits}\,],
+\text{TNF16}=[\,s\,|\,E{=}4\ \text{balanced-ternary trits}\,|\,M{=}11\ \text{bits}\,],
 \qquad
 v=(-1)^{s}\Bigl(1+\frac{M}{2^{9}}\Bigr)2^{e},
 \quad e=\sum_{i} t_i 3^i \in [-40,40].
@@ -222,14 +222,14 @@ mean the error does not depend on magnitude at all.}
 \toprule
 rung & $M$ & $2^{-(M+1)}$ & measured & ratio & flatness \\
 \midrule
-TEF8    & $4$    & $3.12\mathrm{e}{-2}$   & $1.22\mathrm{e}{-2}$   & $0.39$ & $1.000$ \\
-TEF16   & $9$    & $9.77\mathrm{e}{-4}$   & $3.60\mathrm{e}{-4}$   & $0.37$ & $1.070$ \\
-TEF32   & $25$   & $1.49\mathrm{e}{-8}$   & $5.49\mathrm{e}{-9}$   & $0.37$ & $1.070$ \\
-TEF64   & $52$   & $1.11\mathrm{e}{-16}$  & $4.22\mathrm{e}{-17}$  & $0.38$ & $1.050$ \\
-TEF128  & $115$  & $1.20\mathrm{e}{-35}$  & $4.44\mathrm{e}{-36}$  & $0.37$ & $1.070$ \\
-TEF256  & $242$  & $7.07\mathrm{e}{-74}$  & $2.69\mathrm{e}{-74}$  & $0.38$ & $1.050$ \\
-TEF512  & $497$  & $1.22\mathrm{e}{-150}$ & $4.51\mathrm{e}{-151}$ & $0.37$ & $1.070$ \\
-TEF1024 & $1006$ & $7.29\mathrm{e}{-304}$ & $2.77\mathrm{e}{-304}$ & $0.38$ & $1.050$ \\
+TNF8    & $4$    & $3.12\mathrm{e}{-2}$   & $1.22\mathrm{e}{-2}$   & $0.39$ & $1.000$ \\
+TNF16   & $9$    & $9.77\mathrm{e}{-4}$   & $3.60\mathrm{e}{-4}$   & $0.37$ & $1.070$ \\
+TNF32   & $25$   & $1.49\mathrm{e}{-8}$   & $5.49\mathrm{e}{-9}$   & $0.37$ & $1.070$ \\
+TNF64   & $52$   & $1.11\mathrm{e}{-16}$  & $4.22\mathrm{e}{-17}$  & $0.38$ & $1.050$ \\
+TNF128  & $115$  & $1.20\mathrm{e}{-35}$  & $4.44\mathrm{e}{-36}$  & $0.37$ & $1.070$ \\
+TNF256  & $242$  & $7.07\mathrm{e}{-74}$  & $2.69\mathrm{e}{-74}$  & $0.38$ & $1.050$ \\
+TNF512  & $497$  & $1.22\mathrm{e}{-150}$ & $4.51\mathrm{e}{-151}$ & $0.37$ & $1.070$ \\
+TNF1024 & $1006$ & $7.29\mathrm{e}{-304}$ & $2.77\mathrm{e}{-304}$ & $0.38$ & $1.050$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -268,7 +268,7 @@ parts of a workload spanning 76 binary decades. This is the property fixed field
 buy and the one a tapered format cannot have: spending mantissa bits on range is
 exactly what makes precision depend on where you are.
 
-\paragraph{What this does not claim.} Not that TEF is the most accurate format
+\paragraph{What this does not claim.} Not that TNF is the most accurate format
 at any given width --- Section~\ref{sec:field} shows posit16 and binary16 ahead
 near unity, and Section~\ref{sec:field} shows the binary formats ahead outright at
 32 bits. A reference does not need to win those comparisons. It needs to be the
@@ -278,7 +278,7 @@ thing you measure them against.
 \section{The law is general, and it measures tapering}\label{sec:law}
 
 Section~\ref{sec:ruler} derived the error of a fixed-field format. Nothing in that
-derivation is specific to TEF, so it should hold for any format whose significand
+derivation is specific to TNF, so it should hold for any format whose significand
 width does not vary --- and should visibly fail for one whose width does. That
 makes it an instrument rather than a description, and this section uses it as one.
 
@@ -312,7 +312,7 @@ law; the tapered formats separate cleanly.}
 \toprule
 format & declared $M$ & $|e|\,0$--$6$ & $6$--$12$ & $12$--$20$ & $20$--$30$ & bits/binade \\
 \midrule
-TEF16   & $9$  & $8.99$  & $8.99$ & $9.00$ & $9.01$ & $+0.001$ \\
+TNF16   & $9$  & $8.99$  & $8.99$ & $9.00$ & $9.01$ & $+0.001$ \\
 GF16     & $9$  & $8.99$  & $8.99$ & $9.00$ & $9.01$ & $+0.001$ \\
 bfloat16 & $7$  & $7.04$  & $7.04$ & $7.00$ & $7.04$ & $-0.000$ \\
 binary16 & $10$ & $10.01$ & $10.01$ & $7.41$ & $0.52$ & --- \\
@@ -322,7 +322,7 @@ takum16  & ---  & $9.62$  & $8.17$ & $7.34$ & $7.04$ & $\mathbf{-0.113}$ \\
 \end{tabular}
 \end{table}
 
-\paragraph{The law recovers what the formats declare.} TEF16 and GF16 return
+\paragraph{The law recovers what the formats declare.} TNF16 and GF16 return
 $8.99$--$9.01$ against a declared 9; bfloat16 returns $7.00$--$7.04$ against a
 declared 7. A law that reconstructs a format's own parameter to a hundredth of a
 bit, from nothing but its round-trip error, is doing more than curve-fitting.
@@ -333,7 +333,7 @@ binades of this sweep --- but see Section~\ref{sec:taperlaw}: takum's taper is
 logarithmic, so that figure is an artefact of the window rather than a rate. That is the
 quantity a tapered format trades for range, and to our knowledge it is not usually
 reported as a single figure. It also explains the accuracy tables directly ---
-posit16 starts $1.7$ bits ahead of TEF16 and ends $3.8$ behind.
+posit16 starts $1.7$ bits ahead of TNF16 and ends $3.8$ behind.
 
 \paragraph{Running out of range is a different failure, and the instrument
 separates it.} binary16 is a fixed-field format, yet its $M_{\mathrm{eff}}$
@@ -344,7 +344,7 @@ limit. The two look alike in an accuracy table and do not look alike here.
 \begin{corollary}
 A format's position on the range--precision trade can be stated as a pair: the
 constant $M_{\mathrm{eff}}$ it holds, and the number of binades over which it
-holds it. For the TEF ladder those are $(M, 2\cdot 3^{E_t - 1})$ by construction;
+holds it. For the TNF ladder those are $(M, 2\cdot 3^{E_t - 1})$ by construction;
 for a tapered format neither is constant, which is why a ladder makes a better
 ruler than a taper.
 \end{corollary}
@@ -380,7 +380,7 @@ rungs measure $0.83$ to $1.09$.
 neither.} The distinction is not optional: our own first pass placed the
 measurement bands at fixed positions rather than inside each format's measured
 range, and read the saturation of every narrow format as a taper --- classifying
-TEF16, a fixed-field format, as geometrically tapered. Measuring each format's
+TNF16, a fixed-field format, as geometrically tapered. Measuring each format's
 usable range first and then placing the bands inside it removes the artefact
 entirely. GF14 reads flat at $8.05$ across its range and collapses only below its
 subnormal boundary, which is not a defect; the instrument says which of the two it
@@ -458,7 +458,7 @@ choosing a statistic --- and prefer reading the encoder to fitting its output.
 
 \begin{corollary}[A three-way taxonomy, recovered without knowing the encoding]
 The diagnostic separates formats by the \emph{form} of $M(e)$: constant
-(fixed-field, TEF and GF by construction), linear in $|e|$ (posit), or
+(fixed-field, TNF and GF by construction), linear in $|e|$ (posit), or
 logarithmic in $|e|$ (takum). Which form fits is decided by the data, not by
 reading the specification --- and the fitted coefficients then recover the
 encoding parameters, $2^{-es}$ for posit and the characteristic width for takum.
@@ -488,7 +488,7 @@ the units natural to each form. Measured against each format's own usable range.
 \toprule
 form & $M_{\mathrm{eff}}$ against $|e|$ & count & members and constants \\
 \midrule
-constant   & flat                          & $38$ & IEEE, bfloat, VAX, Cray, x87, GF, TEF \\
+constant   & flat                          & $38$ & IEEE, bfloat, VAX, Cray, x87, GF, TNF \\
 wobble     & periodic, no trend            & $3$  & IBM hexadecimal, $\log_2 16 = 4$ bits \\
 arithmetic & $-2^{-es}$ per binade         & $5$  & posit16/32 $0.25$, posit64 $0.125$ \\
 geometric  & $-1$ per doubling             & $8$  & takum $\times 4$, tekum $\times 3$ \\
@@ -526,7 +526,7 @@ $3.04$, while \texttt{binary32} and \texttt{gf32} give $0.85$ and $0.93$ against
 predicted $0.87$. Binary formats wobble by one bit; this is the familiar
 $1$-bit wobble of every radix-2 float, and it is the smallest wobble any integer
 radix admits. Theorem~\ref{thm:wobble} therefore supplies a second and independent
-argument for TEF's binary scale, alongside the $0.331$ positions of
+argument for TNF's binary scale, alongside the $0.331$ positions of
 Theorem~\ref{thm:scaleradix} below: a radix-3 scale would wobble by $1.585$ bits
 instead of $1$.
 
@@ -584,7 +584,7 @@ $|e|$. Table~\ref{tab:acc} and Figure~\ref{fig:acc}.
 \label{tab:acc}
 \begin{tabular}{lrrrr}
 \toprule
-magnitude & GF16 ($\varphi$) & \textbf{TEF16} & tekum16 & TEF16 vs tekum16 \\
+magnitude & GF16 ($\varphi$) & \textbf{TNF16} & tekum16 & TNF16 vs tekum16 \\
 \midrule
 $|e|<8$        & $3.43\mathrm{e}{-4}$              & $3.56\mathrm{e}{-4}$ & $3.27\mathrm{e}{-4}$ & $0.92\times$ (tie) \\
 $|e|\,8$--$20$   & $3.57\mathrm{e}{-4}$              & $3.52\mathrm{e}{-4}$ & $1.00\mathrm{e}{-3}$ & $\mathbf{2.84\times}$ \\
@@ -594,14 +594,14 @@ $|e|\,20$--$38$  & $6.98\mathrm{e}{-3}$ (479 clip)   & $3.53\mathrm{e}{-4}$ & $1
 \end{table}
 
 \begin{figure}[t]\centering
-\includegraphics[width=0.82\textwidth]{tef_accuracy.pdf}
+\includegraphics[width=0.82\textwidth]{tnf_accuracy.pdf}
 \caption{Accuracy by binary-exponent magnitude. GF16's 6-bit exponent clips 479
-of 2{,}857 values in the far bin; TEF16's balanced-ternary exponent does not.}
+of 2{,}857 values in the far bin; TNF16's balanced-ternary exponent does not.}
 \label{fig:acc}
 \end{figure}
 
 \paragraph{On the axis.} The bins are powers of two. Read as \emph{decades} the
-far column is not a win at all: TEF16's exponent reaches $\pm40$ in powers of
+far column is not a win at all: TNF16's exponent reaches $\pm40$ in powers of
 two, roughly $\pm12$ decades, so beyond that it overflows while an unbounded
 regime keeps working --- measured, 1{,}458 of the far-bin values clip under that
 reading. We state the axis explicitly because an earlier internal note did not,
@@ -626,7 +626,7 @@ sign, one seed.}
 \toprule
 format & $|e|<8$ & $|e|\,8$--$20$ & $|e|\,20$--$38$ \\
 \midrule
-\textbf{TEF16}    & $3.56\mathrm{e}{-4}$ & $3.52\mathrm{e}{-4}$ & $\mathbf{3.53\mathrm{e}{-4}}$ \\
+\textbf{TNF16}    & $3.56\mathrm{e}{-4}$ & $3.52\mathrm{e}{-4}$ & $\mathbf{3.53\mathrm{e}{-4}}$ \\
 GF16 ($\varphi$)   & $3.56\mathrm{e}{-4}$ & $3.52\mathrm{e}{-4}$ & $6.76\mathrm{e}{-3}$ (478) \\
 takum16 / tekum16  & $3.27\mathrm{e}{-4}$ & $1.00\mathrm{e}{-3}$ & $1.95\mathrm{e}{-3}$ \\
 posit16            & $\mathbf{1.36\mathrm{e}{-4}}$ & $8.31\mathrm{e}{-4}$ & $1.43\mathrm{e}{-2}$ \\
@@ -638,9 +638,9 @@ LNS16              & $8.39\mathrm{e}{-4}$ (1324) & $7.63\mathrm{e}{-4}$ (1808) &
 \end{table}
 
 \begin{table}[t]\centering
-\caption{The whole ladder, measured in exact rationals. From TEF16 upwards the
-error is flat in magnitude and its exponent roughly doubles per rung. TEF4 and
-TEF8 are shown at their limits: the workload spans 76 binary decades and those
+\caption{The whole ladder, measured in exact rationals. From TNF16 upwards the
+error is flat in magnitude and its exponent roughly doubles per rung. TNF4 and
+TNF8 are shown at their limits: the workload spans 76 binary decades and those
 rungs hold 2 and 8, so most of it falls outside them --- reported rather than
 omitted, since a ladder's lower rungs are where its range trade is visible.}
 \label{tab:ladderacc}
@@ -648,21 +648,21 @@ omitted, since a ladder's lower rungs are where its range trade is visible.}
 \toprule
 rung & decades & $|e|<8$ & $|e|\,8$--$20$ & $|e|\,20$--$38$ \\
 \midrule
-TEF4    & $2$      & \multicolumn{3}{c}{beyond range for this workload} \\
-TEF8    & $8$      & $1.22\mathrm{e}{-2}$ & \multicolumn{2}{c}{beyond range} \\
-TEF16   & $24$     & $3.45\mathrm{e}{-4}$   & $3.69\mathrm{e}{-4}$   & $3.66\mathrm{e}{-4}$ \\
-TEF32   & $219$    & $5.27\mathrm{e}{-9}$   & $5.63\mathrm{e}{-9}$   & $5.58\mathrm{e}{-9}$ \\
-TEF64   & $658$    & $4.33\mathrm{e}{-17}$  & $4.22\mathrm{e}{-17}$  & $4.12\mathrm{e}{-17}$ \\
-TEF128  & $1{,}975$  & $4.25\mathrm{e}{-36}$  & $4.55\mathrm{e}{-36}$  & $4.51\mathrm{e}{-36}$ \\
-TEF256  & $5{,}925$  & $2.76\mathrm{e}{-74}$  & $2.69\mathrm{e}{-74}$  & $2.63\mathrm{e}{-74}$ \\
-TEF512  & $17{,}775$ & $4.32\mathrm{e}{-151}$ & $4.62\mathrm{e}{-151}$ & $4.58\mathrm{e}{-151}$ \\
-TEF1024 & $53{,}326$ & $2.84\mathrm{e}{-304}$ & $2.77\mathrm{e}{-304}$ & $2.71\mathrm{e}{-304}$ \\
+TNF4    & $2$      & \multicolumn{3}{c}{beyond range for this workload} \\
+TNF8    & $8$      & $1.22\mathrm{e}{-2}$ & \multicolumn{2}{c}{beyond range} \\
+TNF16   & $24$     & $3.45\mathrm{e}{-4}$   & $3.69\mathrm{e}{-4}$   & $3.66\mathrm{e}{-4}$ \\
+TNF32   & $219$    & $5.27\mathrm{e}{-9}$   & $5.63\mathrm{e}{-9}$   & $5.58\mathrm{e}{-9}$ \\
+TNF64   & $658$    & $4.33\mathrm{e}{-17}$  & $4.22\mathrm{e}{-17}$  & $4.12\mathrm{e}{-17}$ \\
+TNF128  & $1{,}975$  & $4.25\mathrm{e}{-36}$  & $4.55\mathrm{e}{-36}$  & $4.51\mathrm{e}{-36}$ \\
+TNF256  & $5{,}925$  & $2.76\mathrm{e}{-74}$  & $2.69\mathrm{e}{-74}$  & $2.63\mathrm{e}{-74}$ \\
+TNF512  & $17{,}775$ & $4.32\mathrm{e}{-151}$ & $4.62\mathrm{e}{-151}$ & $4.58\mathrm{e}{-151}$ \\
+TNF1024 & $53{,}326$ & $2.84\mathrm{e}{-304}$ & $2.77\mathrm{e}{-304}$ & $2.71\mathrm{e}{-304}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[t]\centering
-\includegraphics[width=0.86\textwidth]{tef_ladder_acc.pdf}
+\includegraphics[width=0.86\textwidth]{tnf_ladder_acc.pdf}
 \caption{The same data. Flatness across the three magnitude bands is the property
 a fixed-field format is built for; the shaded rungs are those the workload
 overruns.}
@@ -671,14 +671,14 @@ overruns.}
 
 
 \begin{figure}[t]\centering
-\includegraphics[width=0.92\textwidth]{tef_competition.pdf}
+\includegraphics[width=0.92\textwidth]{tnf_competition.pdf}
 \caption{The same data. Scissors mark values that overflowed.}
 \label{fig:field}
 \end{figure}
 
 Three readings, including the one that goes against us.
 
-\paragraph{TEF16 is flat, and alone in being flat without clipping.} Its error
+\paragraph{TNF16 is flat, and alone in being flat without clipping.} Its error
 is $3.5\mathrm{e}{-4}$ at every magnitude in the workload and it discards
 nothing. bfloat16 is also flat and clip-free, at roughly four times the error.
 Every other entrant either degrades with magnitude or overflows: binary16 does
@@ -690,13 +690,13 @@ workload on the 32-bit class: GF32 is flat at $3.4\mathrm{e}{-7}$ with no
 clipping, but IEEE binary32 is flat at $2.1\mathrm{e}{-8}$, and posit32 and
 takum32 are better still near unity ($2.1\mathrm{e}{-9}$ and
 $4.9\mathrm{e}{-9}$). Uniformity stops being the deciding property once there are
-enough bits that nothing clips anyway. The TEF argument is a 16-bit-class
+enough bits that nothing clips anyway. The TNF argument is a 16-bit-class
 argument, and we do not extend it.
 
 \paragraph{Near unity we lose.} posit16 at $1.36\mathrm{e}{-4}$ and binary16 at
-$1.76\mathrm{e}{-4}$ are more accurate than TEF16 there, by a factor of two and
+$1.76\mathrm{e}{-4}$ are more accurate than TNF16 there, by a factor of two and
 a half and of two. A tapered format spends its bits where the values usually are,
-and near unity that is the right bet. TEF16 buys uniformity instead, and the
+and near unity that is the right bet. TNF16 buys uniformity instead, and the
 trade only pays for a workload that leaves the neighbourhood of one.
 
 \paragraph{takum16 and tekum16 are the same format here, exhaustively.} The two
@@ -717,26 +717,26 @@ Bitstream generation uses Project X-Ray. No vendor tool is involved at any step,
 which is what makes the numbers checkable by a reader without a licence.
 
 \begin{table}[t]\centering
-\caption{TEF multiplier, post-route, one harness across the whole lineup so the
+\caption{TNF multiplier, post-route, one harness across the whole lineup so the
 rows are comparable. Latency one cycle, throughput one result per cycle.}
 \label{tab:ladder}
 \begin{tabular}{lrrr}
 \toprule
 rung & LUTs & DSP48 & $F_{\max}$ \\
 \midrule
-TEF4  & $12$      & $0$ & $161.11$\,MHz \\
-TEF8  & $50$      & $0$ & $153.23$\,MHz \\
-TEF16 & $212$     & $0$ & $131.73$\,MHz \\
-TEF32  & $1{,}477$  & $0$ & $83.27$\,MHz \\
-TEF64  & $6{,}140$  & $0$ & $53.26$\,MHz \\
-TEF128 & $10{,}029$ & $0$ & $33.23$\,MHz \\
+TNF4  & $12$      & $0$ & $161.11$\,MHz \\
+TNF8  & $50$      & $0$ & $153.23$\,MHz \\
+TNF16 & $212$     & $0$ & $131.73$\,MHz \\
+TNF32  & $1{,}477$  & $0$ & $83.27$\,MHz \\
+TNF64  & $6{,}140$  & $0$ & $53.26$\,MHz \\
+TNF128 & $10{,}029$ & $0$ & $33.23$\,MHz \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[t]\centering
 \caption{The specified ladder. $E_t$ is the trit budget, $M$ the mantissa width,
-range in decades. Rungs above TEF128 exceed a single Artix-7 fabric and are
+range in decades. Rungs above TNF128 exceed a single Artix-7 fabric and are
 oracle- or ASIC-scale; they are specified and covered by the reference oracle,
 not measured here.}
 \label{tab:spec}
@@ -744,17 +744,17 @@ not measured here.}
 \toprule
 rung & $E_t$ & $M$ & decades & rung & $E_t$ & $M$ & decades \\
 \midrule
-TEF4  & $2$ & $1$  & $2.4$ & TEF64   & $7$  & $52$   & $658$ \\
-TEF8  & $3$ & $4$  & $8$   & TEF128  & $8$  & $115$  & $1{,}975$ \\
-TEF16 & $4$ & $9$  & $24$  & TEF256  & $9$  & $242$  & $5{,}925$ \\
-TEF32 & $6$ & $25$ & $73$  & TEF512  & $10$ & $497$  & $17{,}775$ \\
-       &     &      &       & TEF1024 & $11$ & $1006$ & $53{,}326$ \\
+TNF4  & $2$ & $1$  & $2.4$ & TNF64   & $7$  & $52$   & $658$ \\
+TNF8  & $3$ & $4$  & $8$   & TNF128  & $8$  & $115$  & $1{,}975$ \\
+TNF16 & $4$ & $9$  & $24$  & TNF256  & $9$  & $242$  & $5{,}925$ \\
+TNF32 & $6$ & $25$ & $73$  & TNF512  & $10$ & $497$  & $17{,}775$ \\
+       &     &      &       & TNF1024 & $11$ & $1006$ & $53{,}326$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[t]\centering
-\includegraphics[width=0.82\textwidth]{tef_ladder.pdf}
+\includegraphics[width=0.82\textwidth]{tnf_ladder.pdf}
 \caption{Area and achieved frequency across the ladder.}
 \label{fig:ladder}
 \end{figure}
@@ -764,7 +764,7 @@ For context rather than as a controlled comparison: a published Altera
 latency, using 832--1041 logic elements \emph{and} 18 embedded multipliers, and
 posit multiplier studies report 95--572 LUTs with 4.28--15.55\,ns of logic delay.
 Different devices and different toolchains; we draw no equivalence from them
-beyond the observation that TEF16's figures sit inside that envelope on all four
+beyond the observation that TNF16's figures sit inside that envelope on all four
 axes at once, on a fabric that gives the format no ternary advantage.
 
 Isolating the pipeline register: the combinational multiplier closes at
@@ -777,7 +777,7 @@ carry test, a saturating exponent add and a bit select.
 \subsection{Interface width dominated the arithmetic}
 
 Our first synthesisable realisation declared every port and the significand
-product 32 bits wide. Nothing in TEF16 is 32 bits: the mantissa field is 9, so
+product 32 bits wide. Nothing in TNF16 is 32 bits: the mantissa field is 9, so
 $1{+}M$ is 10 and their product is exactly 20; the exponent offset never exceeds
 $\mathrm{OFFSET\_MAX}=80$, which is 7. Synthesis built a $32\times32$ multiplier
 and a 32-bit comparison tree and charged for it (Figure~\ref{fig:width}):
@@ -785,20 +785,20 @@ and a 32-bit comparison tree and charged for it (Figure~\ref{fig:width}):
 match the values they carry. The arithmetic is unchanged.
 
 \begin{figure}[t]\centering
-\includegraphics[width=0.82\textwidth]{tef_width.pdf}
+\includegraphics[width=0.82\textwidth]{tnf_width.pdf}
 \caption{The same arithmetic at three interface widths.}
 \label{fig:width}
 \end{figure}
 
 \subsection{The same width decided correctness}
 
-At TEF32 the significand product needs 52 bits. The 32-bit wire truncates, and
+At TNF32 the significand product needs 52 bits. The 32-bit wire truncates, and
 the module returns wrong results while appearing to support the rung, since its
-own documentation names TEF32 as a supported configuration. Measured against a
+own documentation names TNF32 as a supported configuration. Measured against a
 64-bit reference: 1{,}995{,}730 mismatches in 2{,}128{,}964 combinations.
 
 Deriving every width from the format parameters removes both problems at once. We
-report this because the pattern is not specific to TEF: in a parametric
+report this because the pattern is not specific to TNF: in a parametric
 arithmetic core, a width that is merely \emph{large enough for the configuration
 that was tested} is a silent-truncation trap at the next one, and it will not be
 caught by a testbench written against the tested configuration.
@@ -816,19 +816,19 @@ trusted for that rung.}
 \toprule
 check & combinations / cycles & mismatches \\
 \midrule
-width-derived vs original, TEF16 (sweep)      & $321{,}156$   & $0$ \\
-width-derived vs original, TEF4               & $374$         & $0$ \\
-width-derived vs original, TEF8               & $3{,}716$     & $0$ \\
-width-derived vs original, TEF16              & $77{,}444$    & $0$ \\
-width-derived vs 64-bit reference, TEF32      & $300{,}000$   & $0$ \\
+width-derived vs original, TNF16 (sweep)      & $321{,}156$   & $0$ \\
+width-derived vs original, TNF4               & $374$         & $0$ \\
+width-derived vs original, TNF8               & $3{,}716$     & $0$ \\
+width-derived vs original, TNF16              & $77{,}444$    & $0$ \\
+width-derived vs 64-bit reference, TNF32      & $300{,}000$   & $0$ \\
 pipelined vs combinational                     & $199{,}994$   & $0$ \\
 \midrule
-original 32-bit module vs 64-bit ref, TEF32   & $2{,}128{,}964$ & $1{,}995{,}730$ \\
+original 32-bit module vs 64-bit ref, TNF32   & $2{,}128{,}964$ & $1{,}995{,}730$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The TEF16 sweep is exhaustive in the sense that matters here: the mantissa space
+The TNF16 sweep is exhaustive in the sense that matters here: the mantissa space
 is covered in full at offset pairs exercising underflow, mid-range and
 saturation, then the offsets are covered in full at mantissas that do and do not
 carry --- every path through the carry, the saturation and the underflow clamp.
@@ -866,26 +866,26 @@ $10$ & $59049$ & $16$ & $65536$ & $90.1\%$ \\
 \paragraph{The width convention counts positions, and one rung breaks it.}
 A rung's width is its position count with a trit occupying one position, so the
 layout is $1 + E_t + M = N$. Three of the four specified rungs satisfy it exactly:
-TEF4 is $1+2+1$, TEF8 is $1+3+4$, TEF32 is $1+6+25$. TEF16 is
+TNF4 is $1+2+1$, TNF8 is $1+3+4$, TNF32 is $1+6+25$. TNF16 is
 $1+4+9 = 14$, two positions short of its name, and neither specification file
-gives a reason. The likely history is visible in the parameters: TEF16 inherits
+gives a reason. The likely history is visible in the parameters: TNF16 inherits
 GF16's $\varphi$-optimal $M = 9$ and replaces GF16's six-bit exponent with four
 trits, which buys range --- $3^4 = 81$ steps against $2^6 = 64$ --- and frees two
 positions that were never re-spent. It is the one rung derived from its parent
 rather than from the width rule.
 
 This also settles what a rung costs on a binary fabric, which is a separate
-question from its width: a trit stored as a two-bit code makes TEF16 eighteen
+question from its width: a trit stored as a two-bit code makes TNF16 eighteen
 bits, and the offset stored as a plain binary integer makes it seventeen. Those
 are fabric costs, not format widths, and confusing the two is what made the
 ladder appear not to fit.
 
 \paragraph{The slack is not confined to one rung.} Applying $1 + E_t + M = N$ to
 every specified rung separates the two documents that define the ladder. The four
-rungs of the machine-readable specification obey it at TEF4, TEF8 and TEF32;
+rungs of the machine-readable specification obey it at TNF4, TNF8 and TNF32;
 the five upper rungs, which exist only in a research note, miss it by four to six
 positions each, and the note and the specification disagree with each other about
-TEF32.
+TNF32.
 
 \begin{table}[t]\centering
 \caption{The width rule across the ladder. $k$ is the shortfall
@@ -896,23 +896,23 @@ nothing at the three rungs that already obey the rule.}
 \toprule
 rung & source & $E_t$ & $M$ & $1{+}E_t{+}M$ & $k$ & reconciled $M$ \\
 \midrule
-TEF4    & spec & $2$  & $1$    & $4$    & $0$ & $1$ \\
-TEF8    & spec & $3$  & $4$    & $8$    & $0$ & $4$ \\
-TEF16   & spec & $4$  & $9$    & $14$   & $2$ & $\mathbf{11}$ \\
-TEF32   & spec & $6$  & $25$   & $32$   & $0$ & $25$ \\
-TEF32   & note & $5$  & $21$   & $27$   & $5$ & --- \\
-TEF64   & note & $7$  & $52$   & $60$   & $4$ & $\mathbf{56}$ \\
-TEF128  & note & $8$  & $115$  & $124$  & $4$ & $\mathbf{119}$ \\
-TEF256  & note & $9$  & $242$  & $252$  & $4$ & $\mathbf{246}$ \\
-TEF512  & note & $10$ & $497$  & $508$  & $4$ & $\mathbf{501}$ \\
-TEF1024 & note & $11$ & $1006$ & $1018$ & $6$ & $\mathbf{1012}$ \\
+TNF4    & spec & $2$  & $1$    & $4$    & $0$ & $1$ \\
+TNF8    & spec & $3$  & $4$    & $8$    & $0$ & $4$ \\
+TNF16   & spec & $4$  & $9$    & $14$   & $2$ & $\mathbf{11}$ \\
+TNF32   & spec & $6$  & $25$   & $32$   & $0$ & $25$ \\
+TNF32   & note & $5$  & $21$   & $27$   & $5$ & --- \\
+TNF64   & note & $7$  & $52$   & $60$   & $4$ & $\mathbf{56}$ \\
+TNF128  & note & $8$  & $115$  & $124$  & $4$ & $\mathbf{119}$ \\
+TNF256  & note & $9$  & $242$  & $252$  & $4$ & $\mathbf{246}$ \\
+TNF512  & note & $10$ & $497$  & $508$  & $4$ & $\mathbf{501}$ \\
+TNF1024 & note & $11$ & $1006$ & $1018$ & $6$ & $\mathbf{1012}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 No single alternative convention explains the upper rungs either: reading the
-exponent as $\lfloor E_t\log_2 3\rfloor$ bits fits TEF16, TEF64, TEF128 and
-TEF1024 exactly but overshoots TEF256 and TEF512 by one and misses TEF32
+exponent as $\lfloor E_t\log_2 3\rfloor$ bits fits TNF16, TNF64, TNF128 and
+TNF1024 exactly but overshoots TNF256 and TNF512 by one and misses TNF32
 entirely. We conclude that the upper ladder was tabulated rung by rung rather than
 derived, and that reconciling it costs nothing at the rungs that are already
 right.
@@ -923,10 +923,10 @@ be read off before measuring, and the measurement confirmed it to four significa
 figures:
 
 \begin{table}[t]\centering
-\caption{The three ways to spend TEF16's two unallocated positions. Error and
+\caption{The three ways to spend TNF16's two unallocated positions. Error and
 range trade against each other exactly as Theorem~\ref{thm:law} predicts; nothing
 in any row is worse than the unfilled rung.}
-\label{tab:tef16-fill}
+\label{tab:tnf16-fill}
 \begin{tabular}{lrrrr}
 \toprule
 variant & positions & mean rel.\ error & decades & vs.\ takum16 (far) \\
@@ -1047,7 +1047,7 @@ the layout depends on $M$. \qed
 
 Theorem~\ref{thm:alloc} converts the slack of Section~\ref{sec:design} into a
 number without any measurement, and the measurement then confirms it. Against a
-workload built in exact arithmetic --- necessary above TEF32, where a
+workload built in exact arithmetic --- necessary above TNF32, where a
 double-precision probe measures its own resolution rather than the format's ---
 the predicted and observed factors are:
 
@@ -1060,16 +1060,16 @@ $M = N - 1 - E_t$. Exact-arithmetic workload, 800 probes per rung.}
 \toprule
 rung & $k$ & predicted & measured \\
 \midrule
-TEF16  & $2$ & $4\times$  & $4.03\times$  \\
-TEF64  & $4$ & $16\times$ & $15.43\times$ \\
-TEF128 & $4$ & $16\times$ & $15.99\times$ \\
-TEF256 & $4$ & $16\times$ & $15.24\times$ \\
+TNF16  & $2$ & $4\times$  & $4.03\times$  \\
+TNF64  & $4$ & $16\times$ & $15.43\times$ \\
+TNF128 & $4$ & $16\times$ & $15.99\times$ \\
+TNF256 & $4$ & $16\times$ & $15.24\times$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 The final question is one the ladder answers implicitly and, as far as we can
-find, no one has stated: TEF encodes its exponent in radix 3 but scales by
+find, no one has stated: TNF encodes its exponent in radix 3 but scales by
 $2^{e}$, whereas Ternary27 scales by $3^{e}$. These are different choices and
 they are separable.
 
@@ -1109,8 +1109,8 @@ exact arithmetic, gives error ratios of $1.675$ at $(E_t,M) = (4,11)$ and $1.690
 at $(6,25)$ against the predicted $1.6825$, and range ratios of $1.583$ and
 $1.585$ against the predicted $1.5850$.
 
-\begin{corollary}[What TEF is, precisely]
-TEF is not a ternary float in the sense of Ternary27; it is a binary-radix float
+\begin{corollary}[What TNF is, precisely]
+TNF is not a ternary float in the sense of Ternary27; it is a binary-radix float
 whose exponent is \emph{encoded} in balanced ternary. Theorem~\ref{thm:scaleradix}
 says that this is the better of the two available choices by $0.331$ positions per
 number, and Theorem~\ref{thm:nofree} says that the ternary encoding pays only on a
@@ -1157,10 +1157,10 @@ $\sum_e 1/|e|$, which diverges. \qed
 
 Theorem~\ref{thm:floor} is worth stating plainly because it bounds this work as
 much as its competitors: takum's regime is asymptotically optimal, and no format
---- TEF included --- can beat it over unbounded range. What TEF does instead is
+--- TNF included --- can beat it over unbounded range. What TNF does instead is
 decline the unbounded range, which Theorem~\ref{thm:dichotomy} shows is the only
 other option. The measured advantages of Section~\ref{sec:accuracy} are therefore
-advantages \emph{inside TEF's range}, which is where the taper has already cost
+advantages \emph{inside TNF's range}, which is where the taper has already cost
 takum the bits, and they should never be read as a claim beyond it.
 
 \begin{theorem}[The regime's radix does not matter]
@@ -1235,7 +1235,7 @@ unary, $\ell \propto |e|$ (posit)          & $379$ & $36.8$\,MHz  & $59$  & $211
 $\ell \propto \log_2|e|$ (takum)           & $\mathbf{6}$ & $\mathbf{805.8}$\,MHz & $\mathbf{34}$ & $\mathbf{285.1}$\,MHz & $\mathbf{40}$ \\
 $\ell = \lceil\sqrt{|e|}\rceil$            & $393$ & $33.1$\,MHz  & $123$ & $96.4$\,MHz  & $516$ \\
 \midrule
-fixed field (GF, TEF)                     & $0$   & ---          & $0$   & ---          & $\mathbf{0}$ \\
+fixed field (GF, TNF)                     & $0$   & ---          & $0$   & ---          & $\mathbf{0}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1312,7 +1312,7 @@ and $M{=}25$. Taking the local value at each class, $\lambda = 48.8$ at the
 \begin{table}[t]\centering
 \caption{Regime area converted into mantissa bits through
 Theorem~\ref{thm:convert}. The unary regime costs, in silicon alone, more than
-TEF16's entire mantissa.}
+TNF16's entire mantissa.}
 \label{tab:convert}
 \begin{tabular}{lrrr}
 \toprule
@@ -1345,7 +1345,7 @@ it a proposition rather than a theorem. The drift has a cause, and finding it
 falsified a prediction we registered before synthesising.
 
 \paragraph{The exponent is not constant, and the fit does not extrapolate.} We
-predicted from the $[7,25]$ fit that the reconciled TEF64, at $M = 56$, would
+predicted from the $[7,25]$ fit that the reconciled TNF64, at $M = 56$, would
 cost $4{,}762$ LUTs. It costs $7{,}479$ at $48.20$\,MHz --- the prediction is low
 by $1.57\times$. Reading $\alpha$ locally rather than globally shows why: it rises
 monotonically, from $1.06$ between $M{=}7$ and $M{=}9$ to $1.78$ between $M{=}15$
@@ -1390,7 +1390,7 @@ one mantissa bit exactly while $M \leq C/2c$.
 \begin{table}[t]\centering
 \caption{The same regime codecs valued at five mantissa widths through
 Theorem~\ref{thm:oneoverm}, with $c = 2.4455$ measured on XC7A200T. The unary
-regime's silicon exceeds an entire TEF16 mantissa; the length-prefixed regime is
+regime's silicon exceeds an entire TNF16 mantissa; the length-prefixed regime is
 below one bit everywhere above the 8-bit class.}
 \label{tab:oneoverm}
 \begin{tabular}{rrrr}
@@ -1412,7 +1412,7 @@ With $c = 2.4455$, the unary regime is worth at least one mantissa bit of silico
 up to $M = 89.6$ --- that is, through the entire 128-bit class --- while the
 length-prefixed regime reaches one bit only up to $M = 8.2$. takum's regime
 therefore costs less than a single mantissa bit of silicon at every rung above
-TEF8, and posit's costs more than one at every rung below TEF256.
+TNF8, and posit's costs more than one at every rung below TNF256.
 \end{corollary}
 
 Corollary~\ref{cor:breakeven} is the exact form of what
@@ -1430,14 +1430,14 @@ mantissa bits, so they can be added.
 
 Applied honestly, Corollary~\ref{cor:three} separates the two tapered families
 rather than lumping them. Against posit the silicon term alone is $8.98$ bits at
-the 16-bit class --- more than TEF16's entire $9$-bit mantissa, so the area a
+the 16-bit class --- more than TNF16's entire $9$-bit mantissa, so the area a
 posit implementation spends decoding its regime would, spent on significand
 instead, roughly double the precision budget of a fixed-field format at the same
 class. Against takum the silicon term is $0.82$ bits, which is small. The
 length-prefixed regime is cheap, and any argument for a fixed field made on area
 grounds is an argument against posit and not against takum. Against takum what
 remains is the accuracy result of Section~\ref{sec:accuracy}, bounded as
-Theorem~\ref{thm:floor} requires to TEF's own range.
+Theorem~\ref{thm:floor} requires to TNF's own range.
 
 \begin{corollary}[The area argument is a narrow-width argument]
 \label{cor:narrow}
@@ -1471,7 +1471,7 @@ decoder & LUTs & RAMB36 & $F_{\max}$ & what dominates \\
 \texttt{posit32\_decode}          & $480$      & $0$  & $49.0$\,MHz & leading-zero count, barrel shift \\
 \texttt{takum32\_decode} as published & $76{,}821$ & $0$  & ---         & the $2^{f}$ table, built from logic \\
 \texttt{takum32\_decode} + clocked read & $10{,}967$ & $\mathbf{84}$ & $11.4$\,MHz & the same table, in block memory \\
-TEF32, exponent path             & $0$        & $0$  & ---         & the field is read directly \\
+TNF32, exponent path             & $0$        & $0$  & ---         & the field is read directly \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1502,7 +1502,7 @@ therefore independent of the staircase form of Section~\ref{sec:taxonomy}.
 Theorem~\ref{thm:valuelaw} is a second axis, orthogonal to the first. The
 staircase taxonomy classifies how a format spends \emph{precision}; the value law
 classifies what it costs to \emph{read}. posit is tapered and linear; takum is
-tapered and logarithmic; LNS is untapered and logarithmic; GF, TEF and IEEE are
+tapered and logarithmic; LNS is untapered and logarithmic; GF, TNF and IEEE are
 untapered and linear. The two axes are independent, and our earlier reading ---
 that decode cost is set by whether the regime is scanned
 (Theorem~\ref{thm:scan}) --- describes only the field-extraction term. It remains
@@ -1574,9 +1574,9 @@ practice rather than waste. A linear value law needs neither the table nor the
 polynomial at any target precision, because the significand is already in the
 datapath's representation.
 
-\begin{corollary}[What TEF's exponent path costs]
+\begin{corollary}[What TNF's exponent path costs]
 \label{cor:zeropath}
-TEF's value law is linear and its exponent field is fixed, so its exponent path
+TNF's value law is linear and its exponent field is fixed, so its exponent path
 is wires: no scan, no table, no iteration. Against posit32 that is $480$ LUTs not
 spent; against takum32 it is a table of $3.15$\,Mbit not instantiated. This is a
 larger and more robust statement than the accuracy result, and unlike it,
@@ -1612,7 +1612,7 @@ uniquely.
 \end{theorem}
 
 \begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{tef_radix.pdf}
+\includegraphics[width=\linewidth]{tnf_radix.pdf}
 \caption{$\kappa(r)$ against the scale radix. The unconstrained minimiser sits
 near $r = 1.9$ and is unreachable: only $r = 2^{k}$ scales by a shift, and on that
 set $\kappa$ is strictly increasing.}
@@ -1662,17 +1662,169 @@ but ill-posed: Corollary~\ref{cor:pair} already says a budget cannot be
 recommended without a workload, and Theorem~\ref{thm:dichotomy} says no single
 format can serve both sides.
 
-\begin{corollary}[What this makes TEF]
+\begin{corollary}[What this makes TNF]
 \label{cor:whatitmakes}
 For the arguments (ternary fabric; a range the workload actually visits; fixed
 fields), Corollary~\ref{cor:determined} returns a binary-radix float with a
 balanced-ternary exponent field and a uniform mantissa split by
-$M = N - 1 - E_t$. That is TEF, and it is forced rather than designed. It follows
-that TEF is optimal exactly on those arguments and carries no claim off them ---
+$M = N - 1 - E_t$. That is TNF, and it is forced rather than designed. It follows
+that TNF is optimal exactly on those arguments and carries no claim off them ---
 in particular none on a binary fabric, where axis 2 returns a binary exponent
-instead, and none against a tapered format outside TEF's own range, where
+instead, and none against a tapered format outside TNF's own range, where
 Theorem~\ref{thm:floor} forbids it.
 \end{corollary}
+
+
+\section{Where the format is the datapath}
+\label{sec:ternarynet}
+
+Every hardware figure so far compares a decoder against a datapath that contains a
+significand multiplier. That comparison flatters every format equally, because a
+multiplier of thousands of LUTs amortises a decoder of hundreds. There is a
+workload where the multiplier is absent, and it changes the ranking rather than
+the margins.
+
+In a ternary-weight network --- BitNet-style, with weights in
+$\{-1, 0, +1\}$~\cite{bitnet} --- the product $w \cdot a$ is a select, a negate or
+a zero. No multiplier is instantiated, for any format. The datapath is
+\emph{decode, apply the weight, add, accumulate}, and the decoder is now compared
+against an adder.
+
+\begin{table}[t]\centering
+\caption{One ternary neuron, synthesised as a single design on XC7A200T with no
+DSP. The two variants differ in exactly one block: posit decodes its regime before
+the add, TNF reads its fields directly.}
+\label{tab:tnet}
+\begin{tabular}{lrrr}
+\toprule
+format & LUTs & $F_{\max}$ & throughput per LUT \\
+\midrule
+\textbf{TNF} & $\mathbf{440}$ & $\mathbf{80.73}$\,MHz & $\mathbf{0.184}$\,MHz/LUT \\
+posit        & $895$ & $31.81$\,MHz & $0.036$\,MHz/LUT \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+$2.03\times$ in area and $2.54\times$ in frequency, so $5.16\times$ in throughput
+per LUT --- measured end to end rather than assembled from separate decoder and
+adder figures. The decomposition says why: against a $1{,}477$-LUT multiplier and
+a $384$-LUT adder, posit's $456$-LUT decoder is $20\%$ of the datapath; with the
+multiplier gone it is $54\%$. For takum the same shift takes $85\%$ to $97\%$, and
+brings $84$ RAMB36 tiles with it.
+
+\begin{corollary}[Removing the multiplier promotes the decoder]
+\label{cor:promote}
+Let a datapath cost $C = D + M + A$ for decoder, multiplier and adder. A workload
+that eliminates $M$ raises the decoder's share from $D/(D{+}M{+}A)$ to
+$D/(D{+}A)$, and the ratio between two formats differing only in $D$ from
+$1 + \Delta/(D_0{+}M{+}A)$ to $1 + \Delta/(D_0{+}A)$. The advantage of a
+decoder-free format therefore grows exactly as the multiplier shrinks, and is
+largest where there is none.
+\end{corollary}
+
+Three things this does not say, and each would otherwise be found in minutes.
+
+It is not that TNF avoids multiplication. It pays the significand multiply like
+every other format when one is needed; the quadratic term of its own area law
+(Theorem~\ref{thm:alpha}) \emph{is} that multiplier. What a ternary network removes
+is removed for the network, not for the format.
+
+It is not that TNF is better for FPGAs in general. We synthesised the exponent
+decode of TNF against an ordinary binary fixed field and they measure identically,
+$32$ LUTs each, exactly as Theorem~\ref{thm:nofree} requires. The advantage in
+Table~\ref{tab:tnet} is over a \emph{tapered} format, not over a fixed-field one:
+an IEEE-style field would place alongside TNF, not alongside posit.
+
+And it is not a measurement on a ternary fabric. None exists to buy, and this is a
+binary FPGA where our own Theorem~\ref{thm:nofree} says the ternary encoding earns
+nothing. It does not need to: the gain here comes from the decoder that is absent,
+and would be the same for any fixed-field format.
+
+\paragraph{What the ternary fabric would add, structurally.} On a fabric whose
+positions hold trits, a binary exponent field can be stored densely, in
+$\lceil b/\log_2 3\rceil$ trits, or addably, one bit per trit --- but not both. The
+dense form cannot be added without a radix conversion; the addable form wastes
+$1 - 1/\log_2 3 = 36.9\%$ of every position, which for the exponent widths in this
+catalogue is $33$ to $57\%$ of the field. A balanced-ternary exponent pays neither.
+This is structure rather than measurement, and it is the one place where the
+ternary encoding of Theorem~\ref{thm:nofree} would stop being free of charge and
+start being free of cost.
+
+
+\section{The ladder is a family, and the family is the frontier}
+\label{sec:frontier}
+
+The results above treat each rung as a format. Sweeping the exponent budget instead
+of fixing it changes what is being claimed, and strengthens it.
+
+\begin{theorem}[The width rule generates the frontier]
+\label{thm:family}
+Fix a width $N$. The set
+$\mathcal{F}_N = \{(E_t,\, M) : 1 + E_t + M = N,\ E_t \geq 2,\ M \geq 1\}$
+contains $N-3$ members, each exact by construction. By
+Theorem~\ref{thm:law} member $E_t$ has effective mantissa $M = N-1-E_t$ and
+dynamic range $3^{E_t}-1$ binades, so the members are totally ordered and no two
+dominate one another: $\mathcal{F}_N$ is a discrete Pareto frontier in
+$(M_{\mathrm{eff}}, \text{range})$.
+\end{theorem}
+
+The consequence is a claim about the catalogue rather than about one rung.
+
+\begin{corollary}[No catalogued competitor survives]
+\label{cor:nosurvivors}
+At every width class measured, each catalogued format of that width is strictly
+dominated by some member of $\mathcal{F}_N$: there is a member with at least its
+effective mantissa and at least its range, and strictly more of one.
+\end{corollary}
+
+Measured against the oracles, twenty-eight competitors across five classes, with
+the dominating member named in each case:
+
+\begin{table}[t]\centering
+\caption{Dominance by width class. The family member that dominates is given for
+the hardest case in each class. Effective mantissa is measured; range is
+$3^{E_t}-1$, which is analytic for a fixed field.}
+\label{tab:nosurvivors}
+\begin{tabular}{rrll}
+\toprule
+class & competitors & survivors & hardest case dominated by \\
+\midrule
+$8$   & $7$ & $0$ & $E_t{=}4$, $M{=}3$ against \texttt{fp8\_e5m2} \\
+$16$  & $7$ & $0$ & $E_t{=}6$, $M{=}9$ against \texttt{takum16} \\
+$32$  & $9$ & $0$ & $E_t{=}5$, $M{=}26$ against \texttt{posit32} \\
+$64$  & $4$ & $0$ & $E_t{=}10$, $M{=}53$ against \texttt{cray\_float} \\
+$128$ & $1$ & $0$ & $E_t{=}10$, $M{=}117$ against \texttt{binary128} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Why this is not an artefact of density.} A sufficiently dense family
+dominates any finite set of points trivially, so the content is in \emph{why} the
+competitors sit below the frontier rather than on it. Each loses on at least one
+of three counts, and each count is one of the theorems above. A tapered format
+measures below its declared mantissa, by Theorem~\ref{thm:floor}. A format that
+leaves positions unallocated pays $2^k$ for them, by Theorem~\ref{thm:alloc} --
+which is what the historical GF-T ladder did at 2, 4 and 6 positions. And a binary
+exponent at equal position count spans fewer binades, since a trit carries
+$\log_2 3$ bits against a bit's one. The family loses on none of the three because
+the width rule forbids the second and the encoding settles the third.
+
+\paragraph{What this does not say.} The pair $(M_{\mathrm{eff}}, \text{range})$ is
+a property of the \emph{number}, and dominance in it is not dominance in silicon.
+Section~\ref{sec:ternarynet} measures the same formats through one datapath and
+puts TNF mid-pack among fixed fields at $0.145$--$0.167$\,MHz per LUT against
+\texttt{int8}'s $0.189$. The two are consistent: the frontier asks what a word of
+a given width carries, the datapath asks what it costs to unpack, and every fixed
+field unpacks by reading fields. The gap in silicon runs between fixed and tapered
+formats, $2.4$ to $6.4\times$, and belongs to Theorems~\ref{thm:scan}
+and~\ref{thm:valuelaw} rather than to this ladder.
+
+\paragraph{A limit of the measurement, stated.} Range is analytic for a fixed
+field, but verifying it at the boundary is not always possible: at $E_t = 49$ the
+edge of the range is $2^{1.4 \times 10^{23}}$, which no exact arithmetic can
+construct. Above roughly $E_t = 30$ the range is a fact about the encoding rather
+than a measured quantity, and is reported as such.
+
 
 \section{Limitations}
 
@@ -1696,7 +1848,7 @@ comparison remains to be done.
 $1.5$ through the parameterised oracle returned $-1.5$ at mantissa widths of 21
 and 25 bits: the sign bit sat at a fixed position while the exponent mask took
 more bits than the field holds, so the two overlapped. Both are now derived from
-the format parameters, and TEF32's round-trip error falls from
+the format parameters, and TNF32's round-trip error falls from
 $5.4\mathrm{e}{-1}$ --- what a systematically inverted sign averages to --- to
 $5.3\mathrm{e}{-9}$.
 
@@ -1709,8 +1861,8 @@ oracle reconstructs it from takum's field scheme; the full per-trit
 specification requires the tekum paper. The ratios are as good as that model.
 
 \item \textbf{No head-to-head in hardware.} takum's codec RTL is public and
-written in VHDL~\cite{takumrtl}. We did not synthesise it alongside TEF, so the cost figures are
-TEF's own. What is visible in that source, and which we report as structure
+written in VHDL~\cite{takumrtl}. We did not synthesise it alongside TNF, so the cost figures are
+TNF's own. What is visible in that source, and which we report as structure
 rather than measurement: the 16-bit codec instantiates a 725-line generated
 leading-zero-counter and barrel shifter --- the regime decode a fixed-field
 format does not have.
@@ -1720,17 +1872,17 @@ decades, where a regime field is unbounded. Fixed fields buy the cheap datapath
 and the uniform mantissa; range is the price, and workloads that need more should
 raise the trit budget or use a tapered format.
 
-\item \textbf{Accuracy above TEF32 is limited by the measuring instrument.}
-Once the oracle defect was fixed, TEF32 measures $5.3\mathrm{e}{-9}$, flat
-across the workload, which is what 25 mantissa bits should give. TEF64 carries
+\item \textbf{Accuracy above TNF32 is limited by the measuring instrument.}
+Once the oracle defect was fixed, TNF32 measures $5.3\mathrm{e}{-9}$, flat
+across the workload, which is what 25 mantissa bits should give. TNF64 carries
 52 mantissa bits, which is exactly the significand of the IEEE double our metric
 is computed in, so the figure it returns describes the metric rather than the
 format. Measuring the upper rungs requires exact rationals throughout, as the
 oracle itself already uses.
 
-\item \textbf{Five of nine rungs are measured in hardware.} TEF4 through TEF64 fit
-the device, TEF64 at $7{,}479$ LUTs and $48.20$\,MHz. TEF128 at $M = 119$ does not
-converge in routing on this part and is not claimed; TEF256 upwards exceed a
+\item \textbf{Five of nine rungs are measured in hardware.} TNF4 through TNF64 fit
+the device, TNF64 at $7{,}479$ LUTs and $48.20$\,MHz. TNF128 at $M = 119$ does not
+converge in routing on this part and is not claimed; TNF256 upwards exceed a
 single Artix-7 fabric entirely. Table~\ref{tab:spec} is the
 specification and the oracle's coverage; Table~\ref{tab:ladder} is what was
 placed and routed. We keep them apart on purpose.
@@ -1813,6 +1965,7 @@ D.~Shah et al.
 \bibitem{elias1975} P.~Elias, ``Universal codeword sets and representations of the integers,'' \emph{IEEE Trans. Inform. Theory}, vol.~21, no.~2, pp.~194--203, 1975.
 \bibitem{positgap} Closing the Gap Between Float and Posit Hardware Efficiency, arXiv:2603.01615.
 \bibitem{mlformats} Performance-Efficiency Trade-off of Low-Precision Numerical Formats in Deep Neural Networks, arXiv:1903.10584.
+\bibitem{bitnet} S.~Ma et al., ``The Era of 1-bit LLMs: All Large Language Models are in 1.58 Bits,'' arXiv:2402.17764, 2024.
 \end{thebibliography}
 
 \end{document}

@@ -107,3 +107,36 @@ takum16 (4.79, 508). Ни одного исключения.
 - «GF-T устарел» — он точка того же фронта с максимальным диапазоном, `Eₜ = 6` при
   16 битах, и φ-правило выводит её независимо.
 - Абсолютные числа для 64/128 бит по диапазону — там ограничитель измерителя.
+
+## Dominance across every width class (2026-08-08)
+
+The family sweep now covers all five classes. Range is analytic (`3^E_t - 1`
+binades) because the field is fixed; effective mantissa is measured against the
+oracle at seed 20260809.
+
+| class | competitors | survivors | hardest case dominated by |
+|------:|------------:|----------:|---------------------------|
+| 8     | 7  | 0 | `E_t=4, M=3`   vs fp8_e5m2   |
+| 16    | 7  | 0 | `E_t=6, M=9`   vs takum16   |
+| 32    | 9  | 0 | `E_t=5, M=26`  vs posit32   |
+| 64    | 4  | 0 | `E_t=10, M=53` vs cray_float |
+| 128   | 1  | 0 | `E_t=10, M=117` vs binary128 |
+
+**28 competitors, 0 survivors.**
+
+### The limit of the measurement, stated
+
+Verifying the range *at the boundary* is impossible above roughly `E_t = 30`.
+At `E_t = 49` (GF-T128) the edge is `2^(1.4e23)`; no exact arithmetic can build
+that value. The attempt hung and was killed — recorded here rather than dropped,
+because the honest form of the claim is: above that point the range is a fact
+about the encoding, not a measured quantity, and is reported as such.
+
+### Why this is not trivial density
+
+A dense enough family dominates any finite point set for free. The content is
+*why* each competitor sits below the frontier, and each reason is a theorem:
+taper measures below its declared mantissa (T12); unallocated positions cost
+`2^k` (width rule) — which is what the historical GF-T ladder did at 2, 4 and 6
+positions; and a binary exponent at equal position count spans fewer binades.
+The family loses on none of the three.
