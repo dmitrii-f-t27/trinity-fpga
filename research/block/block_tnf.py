@@ -21,9 +21,12 @@ MODEL, K, SEQLEN = os.path.join(W, "smollm2"), 32, 2048
 # Copied rather than imported: perplexity.py runs its whole experiment at
 # import time, so importing it would launch a different measurement.
 def fp_levels(eb, mb):
+    """OCP MX element formats reserve no Inf/NaN: every exponent code is finite.
+    Reserving the top code would hand E2M1 six magnitudes instead of eight --
+    2.58 bits where the spec gives 3 -- and quietly rig the comparison."""
     bias = (1 << (eb - 1)) - 1
     out = {0.0}
-    for e in range(1, (1 << eb) - 1):
+    for e in range(1, 1 << eb):
         for m in range(1 << mb):
             out.add((1 + m / (1 << mb)) * 2.0 ** (e - bias))
     for m in range(1, 1 << mb):

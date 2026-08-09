@@ -101,3 +101,32 @@
 оптимум противоречил теории); «SwiGLU 1.20×» на выходе SiLU вместо выхода блока;
 perplexity на задаче с нулевой ошибкой (бесконечный запас, двоичный исход);
 и первая версия гейта целостности, показывавшая зелёное на удалённом файле.
+
+## Self-caught defect #9: MXFP4 was given six magnitudes, not eight (2026-08-09)
+
+`fp_levels(eb, mb)` reserved the top exponent code for Inf/NaN, as IEEE
+binary formats do. **The OCP microscaling element formats reserve nothing** --
+every exponent code in E2M1 is finite. The reserved code cost E2M1 the values
+4.0 and 6.0, leaving six magnitudes where the spec gives eight: 2.58 bits of
+element where the standard defines 3.
+
+Effect on the reported numbers, before the fix:
+
+| candidate | levels | ppl | vs fp32 |
+|---|---:|---:|---:|
+| fp32 baseline | -- | 14.4874 | 1.000x |
+| MXFP4 E2M1 + E8M0 | **6** (should be 8) | 42.2895 | 2.919x |
+| int4 uniform + E8M0 | 8 | 30.8859 | 2.132x |
+
+Read as published this says a uniform int4 beats the industry standard by 27%.
+It says nothing of the kind: the two rows were not the same number of levels.
+
+**Same class as defect #6** (normalising by amax, which denied the element
+format its upper range). Both handed our side a comparison the competitor was
+not allowed to enter at full strength, and both would have produced a headline
+in our favour. The pattern to watch for: any time a competitor's level count is
+computed by our code rather than read from its specification, check the count
+against the spec before reading the metric.
+
+Rule adopted: **a competitor's cardinality is a specification fact, and must be
+asserted against the spec in the harness, not derived from a shared helper.**
