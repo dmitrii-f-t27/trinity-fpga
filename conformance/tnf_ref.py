@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-tef_ref.py — parameterized bit-exact oracle for the WHOLE TEF ladder.
+tnf_ref.py — parameterized bit-exact oracle for the WHOLE TNF ladder.
 
-One oracle for every rung (TEF4 .. TEF1024): a GoldenFloat whose exponent is a
+One oracle for every rung (TNF4 .. TNF1024): a GoldenFloat whose exponent is a
 balanced-ternary number of `exp_trits` trits (offset in [0, 3^Et - 1], balanced
 exponent e = offset - (3^Et-1)/2) and a `mant_bits` binary mantissa. No regime
 decode; add/mul are decode -> exact Fraction -> re-encode (round-to-nearest-even).
 
 Off-path conformance oracle (like gf_ref.py / tekum_ref.py). Supersedes the
-single-width tef16_ref.py (TEF16 == TEFFormat(4, 9)).
+single-width tnf16_ref.py (TNF16 == TNFFormat(4, 9)).
 """
 
 from fractions import Fraction
@@ -33,7 +33,7 @@ def _pow2(e: int) -> Fraction:
 
 
 @dataclass(frozen=True)
-class TEFFormat:
+class TNFFormat:
     exp_trits: int
     mant_bits: int
 
@@ -53,7 +53,7 @@ class TEFFormat:
         # Derived, not fixed. This was hardcoded to 24 — "room for wide exp/mant" —
         # which holds only while the payload stays below that bit. At mant_bits of
         # 21 or 25 the exponent field reaches bit 24 and the sign lands inside the
-        # payload: encoding 1.5 through TEF32 returned -1.5. Wider mantissas were
+        # payload: encoding 1.5 through TNF32 returned -1.5. Wider mantissas were
         # corrupted too, silently, whenever bit 24 of the significand happened to
         # be set — which is why a spot check on 1.5 passed at mant_bits=52.
         #
@@ -68,7 +68,7 @@ class TEFFormat:
     def range_decades(self): return 2 * self.exp_offset * math.log10(2)
 
 
-def encode(fmt: TEFFormat, value) -> int:
+def encode(fmt: TNFFormat, value) -> int:
     if value == 0:
         return 0
     sign = 1 if value < 0 else 0
@@ -94,11 +94,11 @@ def encode(fmt: TEFFormat, value) -> int:
     return (sign << fmt.sign_shift) | (offset << fmt.exp_shift) | fl
 
 
-def is_special(fmt: TEFFormat, raw: int) -> bool:
+def is_special(fmt: TNFFormat, raw: int) -> bool:
     return ((raw >> fmt.exp_shift) & ((1 << fmt.exp_bits) - 1)) == fmt.offset_max
 
 
-def decode(fmt: TEFFormat, raw: int):
+def decode(fmt: TNFFormat, raw: int):
     sign = (raw >> fmt.sign_shift) & 1
     offset = (raw >> fmt.exp_shift) & ((1 << fmt.exp_bits) - 1)
     m = raw & (fmt.mant - 1)
@@ -110,13 +110,13 @@ def decode(fmt: TEFFormat, raw: int):
     return -val if sign else val
 
 
-def tef_add(fmt: TEFFormat, a: int, b: int) -> int:
+def tef_add(fmt: TNFFormat, a: int, b: int) -> int:
     if is_special(fmt, a) or is_special(fmt, b):
         return (fmt.offset_max << fmt.exp_shift) | 1
     return encode(fmt, decode(fmt, a) + decode(fmt, b))
 
 
-def tef_mul(fmt: TEFFormat, a: int, b: int) -> int:
+def tef_mul(fmt: TNFFormat, a: int, b: int) -> int:
     if is_special(fmt, a) or is_special(fmt, b):
         return (fmt.offset_max << fmt.exp_shift) | 1
     return encode(fmt, decode(fmt, a) * decode(fmt, b))
@@ -124,15 +124,15 @@ def tef_mul(fmt: TEFFormat, a: int, b: int) -> int:
 
 # Canonical ladder rungs (exp_trits, mant_bits) per nominal width.
 LADDER = {
-    4:   TEFFormat(2, 1),
-    8:   TEFFormat(3, 4),
-    16:  TEFFormat(4, 9),
-    32:  TEFFormat(5, 21),
-    64:  TEFFormat(7, 52),
-    128: TEFFormat(8, 115),
-    256: TEFFormat(9, 242),
-    512: TEFFormat(10, 497),
-    1024: TEFFormat(11, 1006),
+    4:   TNFFormat(2, 1),
+    8:   TNFFormat(3, 4),
+    16:  TNFFormat(4, 9),
+    32:  TNFFormat(5, 21),
+    64:  TNFFormat(7, 52),
+    128: TNFFormat(8, 115),
+    256: TNFFormat(9, 242),
+    512: TNFFormat(10, 497),
+    1024: TNFFormat(11, 1006),
 }
 
 
@@ -154,10 +154,10 @@ def _selftest():
                 bad += 1
             if tef_mul(f, encode(f, x), encode(f, y)) != tef_mul(f, encode(f, y), encode(f, x)):
                 bad += 1
-        print(f"TEF{w:<4} {f.exp_trits:>3} {f.mant_bits:>5} {f.range_decades():11.0f} {('%d violations' % bad):>28}")
+        print(f"TNF{w:<4} {f.exp_trits:>3} {f.mant_bits:>5} {f.range_decades():11.0f} {('%d violations' % bad):>28}")
     F16 = LADDER[16]
     assert abs(float(decode(F16, tef_mul(F16, encode(F16, 1.5), encode(F16, 2.0)))) - 3.0) < 1e-2
-    print("TEF16 1.5*2.0 =", float(decode(F16, tef_mul(F16, encode(F16, 1.5), encode(F16, 2.0)))))
+    print("TNF16 1.5*2.0 =", float(decode(F16, tef_mul(F16, encode(F16, 1.5), encode(F16, 2.0)))))
 
 
 if __name__ == "__main__":

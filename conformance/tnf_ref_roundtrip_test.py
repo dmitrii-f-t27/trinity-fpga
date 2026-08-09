@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""Round-trip self-test for the TEF reference oracle, at every rung.
+"""Round-trip self-test for the TNF reference oracle, at every rung.
 
 Exists because the ladder's existing check is add/mul commutativity, and
 commutativity is blind to a sign inversion: it survives on both sides of
-a + b == b + a. A sign-placement defect went unnoticed that way, and TEF32
+a + b == b + a. A sign-placement defect went unnoticed that way, and TNF32
 returned -1.5 for 1.5 while passing the commutativity suite.
 
-    python3 conformance/tef_ref_roundtrip_test.py
+    python3 conformance/tnf_ref_roundtrip_test.py
 """
 import math
 import sys
 
-from tef_ref import TEFFormat, encode, decode
+from tnf_ref import TNFFormat, encode, decode
 
 # (name, exp_trits, mant_bits) from research/GF_T_GOLD_STANDARD_LADDER.
 RUNGS = [
-    ("TEF4", 2, 1), ("TEF8", 3, 4), ("TEF16", 4, 9), ("TEF32", 6, 25),
-    ("TEF64", 7, 52), ("TEF128", 8, 115), ("TEF256", 9, 242),
-    ("TEF512", 10, 497), ("TEF1024", 11, 1006),
+    ("TNF4", 2, 1), ("TNF8", 3, 4), ("TNF16", 4, 9), ("TNF32", 6, 25),
+    ("TNF64", 7, 52), ("TNF128", 8, 115), ("TNF256", 9, 242),
+    ("TNF512", 10, 497), ("TNF1024", 11, 1006),
 ]
 
 # Values a sign or field-placement defect shows up on immediately. Kept modest so
@@ -28,7 +28,7 @@ PROBES = [1.0, -1.0, 1.5, -1.5, 2.0, -2.0, 3.0, -3.0, 1.25, -1.25]
 def main():
     failures = []
     for name, et, mb in RUNGS:
-        fmt = TEFFormat(et, mb)
+        fmt = TNFFormat(et, mb)
         for v in PROBES:
             got = decode(fmt, encode(fmt, v))
             try:

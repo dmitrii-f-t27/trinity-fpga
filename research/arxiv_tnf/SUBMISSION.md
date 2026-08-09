@@ -1,4 +1,4 @@
-# arXiv submission package — Ternary-Exponent Floats
+# arXiv submission package — Ternary Network Floats
 
 Everything here is ready. **Nothing has been submitted.** Submission is an
 irreversible public act on your account, so it is yours to make.
@@ -11,17 +11,17 @@ than by default. Consequence: **the arXiv timestamp is the only priority this wo
 will have**, which is an argument for submitting sooner rather than polishing.
 
 There is currently no other protection: both repositories are public, the specs
-are Apache-2.0, and the earliest TEF spec commit is 2026-08-09.
+are Apache-2.0, and the earliest TNF spec commit is 2026-08-09.
 
 ## What to upload
 
 | file | role |
 |---|---|
-| `tef_paper.tex` | source |
-| `tef_accuracy.pdf` `tef_ladder.pdf` `tef_ladder_acc.pdf` `tef_competition.pdf` `tef_width.pdf` `tef_radix.pdf` | figures, all referenced, all present |
+| `tnf_paper.tex` | source |
+| `tnf_accuracy.pdf` `tnf_ladder.pdf` `tnf_ladder_acc.pdf` `tnf_competition.pdf` `tnf_width.pdf` `tnf_radix.pdf` | figures, all referenced, all present |
 
 Bibliography is inline (`thebibliography`, 16 entries) — no `.bib` upload needed.
-Builds with `tectonic tef_paper.tex`; `pdflatex` is not installed on this machine.
+Builds with `tectonic tnf_paper.tex`; `pdflatex` is not installed on this machine.
 
 ## Suggested classification
 
@@ -51,13 +51,13 @@ Builds with `tectonic tef_paper.tex`; `pdflatex` is not installed on this machin
    cost is somewhere else entirely.
 4. **"A ternary fabric doesn't exist."** — Theorem `thm:nofree`, and the binary
    fabric numbers are given as the measured claim.
-5. **"TEF128 isn't measured."** — Said in the limitations; it does not route.
+5. **"TNF128 isn't measured."** — Said in the limitations; it does not route.
 
 ## Not claimed
 
 - No ternary radix (Theorem `thm:scaleradix`: it is 0.331 positions per number worse)
 - No advantage on a binary fabric from the ternary encoding (Theorem `thm:nofree`)
-- No advantage over a tapered format outside TEF's range (Theorem `thm:floor`)
+- No advantage over a tapered format outside TNF's range (Theorem `thm:floor`)
 - No area advantage against takum worth naming (0.82 mantissa bits; decisive
   against posit only)
 
@@ -68,4 +68,4 @@ Kept in the paper where they were made:
 1. *The rungs do not fit their widths* — they do; we measured a binary-fabric cost
 2. *One trit per tripling is a new regime class* — it is takum's, off by an additive 1
 3. *The gap is empty because an intermediate regime is too expensive* — it costs 18% more than posit's, which ships
-4. *TEF64 will cost 4,762 LUTs* — it costs 7,479; the single power law was low by 36%
+4. *TNF64 will cost 4,762 LUTs* — it costs 7,479; the single power law was low by 36%

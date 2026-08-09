@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-tef16_ref.py — bit-exact golden oracle for TEF16 (ternary-native GoldenFloat).
+tnf16_ref.py — bit-exact golden oracle for TNF16 (ternary-native GoldenFloat).
 
-Off-path conformance oracle (like gf_ref.py / tekum_ref.py). TEF16:
+Off-path conformance oracle (like gf_ref.py / tekum_ref.py). TNF16:
 
     raw = [ sign(1) | exp_offset(7) | mant(9) ]        (17-bit canonical raw)
     exp_offset in [0,80]; balanced exponent e = exp_offset - 40 for normals.
@@ -92,13 +92,13 @@ def decode(raw: int):
     return -val if sign else val
 
 
-def tef16_add(a_raw: int, b_raw: int) -> int:
+def tnf16_add(a_raw: int, b_raw: int) -> int:
     if is_special(a_raw) or is_special(b_raw):
         return NAN
     return encode(decode(a_raw) + decode(b_raw))
 
 
-def tef16_mul(a_raw: int, b_raw: int) -> int:
+def tnf16_mul(a_raw: int, b_raw: int) -> int:
     if is_special(a_raw) or is_special(b_raw):
         return NAN
     return encode(decode(a_raw) * decode(b_raw))
@@ -112,20 +112,20 @@ def _selftest():
     for _ in range(20000):
         x = (1 if rnd.random() < .5 else -1) * 2.0 ** rnd.uniform(-38, 38) * (1 + rnd.uniform(0, .99))
         y = (1 if rnd.random() < .5 else -1) * 2.0 ** rnd.uniform(-38, 38) * (1 + rnd.uniform(0, .99))
-        if tef16_add(encode(x), encode(y)) != tef16_add(encode(y), encode(x)):
+        if tnf16_add(encode(x), encode(y)) != tnf16_add(encode(y), encode(x)):
             bad += 1
-        if tef16_mul(encode(x), encode(y)) != tef16_mul(encode(y), encode(x)):
+        if tnf16_mul(encode(x), encode(y)) != tnf16_mul(encode(y), encode(x)):
             bad += 1
     # exactness on representable values
     assert abs(float(decode(encode(3.0))) - 3.0) < 1e-2
     assert is_special(INF) and is_special(NAN)
     assert decode(encode(0)) == 0
-    print(f"tef16_ref self-test: add/mul commutative over 20000 pairs, {bad} violations")
-    print(f"  1.5*2.0 = {float(decode(tef16_mul(encode(1.5), encode(2.0)))):.4f} (expect ~3.0)")
-    # 2^35 is inside TEF16's +-40-exponent (~24-decade) range but OUTSIDE GF16's
+    print(f"tnf16_ref self-test: add/mul commutative over 20000 pairs, {bad} violations")
+    print(f"  1.5*2.0 = {float(decode(tnf16_mul(encode(1.5), encode(2.0)))):.4f} (expect ~3.0)")
+    # 2^35 is inside TNF16's +-40-exponent (~24-decade) range but OUTSIDE GF16's
     # 6-bit-exponent (~18-decade) range, where GF16 saturates to Inf.
     v = 2.0 ** 35
-    print(f"  2^35 round-trip = {float(decode(encode(v))):.4e} (TEF16 holds it; GF16 clips to Inf)")
+    print(f"  2^35 round-trip = {float(decode(encode(v))):.4e} (TNF16 holds it; GF16 clips to Inf)")
 
 
 if __name__ == "__main__":
