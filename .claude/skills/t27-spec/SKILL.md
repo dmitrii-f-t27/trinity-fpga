@@ -3866,3 +3866,53 @@ and compare the verdict on the original against the mutant.
 mutants, which is what one expects from almost any pair. A subsumption claim is
 exactly as strong as the mutant set behind it, and someone will otherwise delete
 a property on six data points.
+
+## Wave 611 — a property can prove without reading the design
+
+**`dut.<signal>` inside a Yosys property module is not a hierarchical
+reference.** Yosys does not support them here and does not error. It implicitly
+declares a fresh **one-bit undriven wire** with that name, renames the real
+register around it (`word_index` → `word_index_1`), and proves your property
+against the phantom. Two warnings are printed and nothing reads them:
+
+```
+Warning: Identifier `\dut.word_index' is implicitly declared.
+Warning: Wire wp_props.\dut.word_index is used but has no driver.
+```
+
+A shipped property lived like this for four waves, counted in the property
+total and in every count-based gate.
+
+**Gate on those warnings — it is the cheapest gate in the whole suite.**
+Elaboration only, no proof: `read_verilog -sv -formal <dut> <props>; prep -top
+<wrapper> -flatten`, then fail on `implicitly declared` or `used but has no
+driver`. It covers the entire class — hierarchical references, misspelled
+signals, ports renamed out from under a property — not one instance. It caught
+my own replacement property within seconds of writing it (I used the DUT's port
+name where the wrapper's local wire had a different one).
+
+**A syntactic free-property scan cannot find this.** Checking for bodies the
+optimiser folds to constant true (`x == x`) is a check on the *shape*. Here the
+shape is a perfectly ordinary comparison and the **signal** is fake. Two
+different failure modes need two different instruments; do not assume the one
+you have covers the one you don't.
+
+**To test whether a property reads the design, change the design.** Not the
+property. Pick a mutation no correct form of the property could survive — make
+the counter it constrains advance by two instead of one — and if it still
+proves, it was never looking. Equivalent quick check: assert a hierarchical
+reference equals the port it is wired to (`dut.busy == busy`); that must prove,
+and if it refutes the reference is a phantom.
+
+**Four candidate properties rejected in a row is a signal about the harness, not
+the properties.** I wrote four, all four refuted on the unmutated design, and the
+temptation each time was to weaken the property. Reading one counterexample
+instead found the cause of all four — and a four-wave-old defect.
+
+**Remove rather than patch when the honest replacement needs new assumptions.**
+The property's intent was not expressible from its wrapper's ports without
+modelling an AXI slave, and adding an assumption to make a property prove is how
+an earlier wave silently killed two vacuity witnesses. Deleting it and writing
+down exactly why — including that the property count drops — beats shipping
+something that proves for the wrong reason. Then fix every comment elsewhere
+that cited the deleted property as coverage.
