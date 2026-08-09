@@ -44,7 +44,7 @@
 \author{Dmitrii Vasilev\\
   \small ORCID 0009-0008-4294-6159 \\
   \small \texttt{admin@t27.ai}}
-\date{8 August 2026}
+\date{9 August 2026}
 
 \begin{document}
 \maketitle
@@ -117,6 +117,52 @@ area for TEF64 that came in $1.57\times$ low, and each is retracted in place.
 \noindent\textbf{Artifacts.} Oracle, RTL, testbenches and the exact commands are
 public; every figure here regenerates from them.
 \end{abstract}
+
+\section{What this paper argues}
+\label{sec:roadmap}
+
+The results below were found in the order a measurement campaign finds things,
+but they compose into a single claim, and it is easier to read them knowing it:
+
+\begin{quote}
+A floating-point format has four design axes. Three of them have answers that do
+not depend on the workload. Name the fabric, the range the workload actually
+visits, and whether it wants bounded range at constant precision or unbounded
+range at decaying precision --- and the format is determined, not chosen.
+\end{quote}
+
+Section~\ref{sec:optimal} states that as Corollary~\ref{cor:determined} and shows
+TEF is what it returns for one particular triple. Everything before it establishes
+an axis:
+
+\begin{itemize}
+\item \textbf{The split between exponent and mantissa} is fixed once a range is
+named, because the error depends on the mantissa width alone
+(Section~\ref{sec:law}). The same law, inverted, becomes an instrument that reads
+a format's behaviour back out of its round-trip error, and resolves a
+83-format catalogue into four staircase forms.
+\item \textbf{Fixed fields or a taper} is a genuine choice with exactly two
+options, because a prefix code cannot give unbounded range and bounded precision
+at once (Section~\ref{sec:codes}). That section also shows the taper's shape is
+the growth rate of a codeword length, nothing more.
+\item \textbf{The radix of the exponent's encoding} is decided by the fabric, not
+by preference: packed into bits, a ternary exponent never spans more values per
+bit than a binary one (Section~\ref{sec:whyternary}).
+\item \textbf{The radix of the scale} is fixed at two unconditionally, and this is
+the only axis with no free parameter at all. It is also the one where the optimum
+is not the extremum (Section~\ref{sec:optimal}).
+\end{itemize}
+
+Two sections are about what things cost rather than what they are.
+Section~\ref{sec:convert} makes area and precision commensurable, so a
+variable-length exponent field can be priced in mantissa bits of silicon.
+Section~\ref{sec:valuelaw} then finds that for a logarithmic format the field
+layout is the smaller half of the cost, and that we had been measuring the wrong
+half.
+
+We also report what the campaign cost us. Four claims of our own were falsified by
+the measurements meant to support them, and each is retracted where it was made
+rather than quietly dropped.
 
 \section{The format}\label{sec:format}
 
@@ -309,7 +355,7 @@ format it was derived on.
 
 \paragraph{The taper rate is a constant of the family --- but only posit has a
 rate.} posit16 sheds $0.254$ bits of significand per binade and posit32 sheds
-$0.247$, against the $2^{-es} = 0.25$ that Theorem~\ref{thm:posit} requires;
+$0.247$, against the $2^{-es} = 0.25$ that Theorem~\ref{thm:posit} below requires;
 posit64, whose oracle carries the pre-standard $es = 3$, sheds $0.123$ against a
 required $0.125$. Three formats, three exact confirmations. We previously reported
 a comparable per-binade rate for takum, and that was a category error on our part:
@@ -469,7 +515,7 @@ predicted $0.87$. Binary formats wobble by one bit; this is the familiar
 $1$-bit wobble of every radix-2 float, and it is the smallest wobble any integer
 radix admits. Theorem~\ref{thm:wobble} therefore supplies a second and independent
 argument for TEF's binary scale, alongside the $0.331$ positions of
-Theorem~\ref{thm:scaleradix}: a radix-3 scale would wobble by $1.585$ bits
+Theorem~\ref{thm:scaleradix} below: a radix-3 scale would wobble by $1.585$ bits
 instead of $1$.
 
 The taxonomy also settles why a format must choose between the first class and the
@@ -955,6 +1001,13 @@ $\rho$ & $56.2$ & $84.4$ & $\mathbf{63.3}$ & $94.9$ & $71.2$ & $\mathbf{53.4}$ &
 \end{tabular}
 \end{table}
 
+Run as an optimisation rather than an inequality, the same statement is sharper
+than it looks. Asking which exponent encoding a binary fabric prefers at
+$(N, R) = (16, 24)$, $(32, 219)$ and $(64, 658)$ returns the same mantissa width
+for both --- $M = 10$, $23$ and $53$ respectively. The ternary encoding does not
+lose on a binary fabric; at these widths the ceilings absorb the difference and it
+exactly ties, which is the strongest form of ``never more values per bit''.
+
 Theorem~\ref{thm:nofree} is the reason the ladder's rung widths must be read as
 position counts and not bit counts, and it is where our own first reading of the
 ladder went wrong: measuring what a trit costs when packed into bits and calling
@@ -1351,7 +1404,7 @@ TEF8, and posit's costs more than one at every rung below TEF256.
 \end{corollary}
 
 Corollary~\ref{cor:breakeven} is the exact form of what
-Corollary~\ref{cor:narrow} could only say qualitatively, and it is the sharpest
+Corollary~\ref{cor:narrow} below could only say qualitatively, and it is the sharpest
 statement we can make about where a fixed field pays for itself in area: against
 posit, almost everywhere; against takum, only at the very bottom of the ladder.
 
@@ -1524,6 +1577,90 @@ is of \emph{decoders} --- the cost of getting a value into a binary datapath ---
 and a design that stays in the logarithmic domain never pays it. That is the
 regime in which LNS accelerators are built, and against those the argument of
 Corollary~\ref{cor:zeropath} does not apply at all.
+
+
+\section{Is there an optimal format, and in what sense}
+\label{sec:optimal}
+
+The results above are individually bounding: each says what a format cannot have,
+or what a claim may not be extended to. Read together they are stronger than that.
+They reduce the design space to four axes, three of which admit unconditional
+answers, so that once three inputs are named the format is determined rather than
+chosen.
+
+\begin{theorem}[The binary scale is the unique implementable optimum]
+\label{thm:radixopt}
+Let a format scale by $r^{e}$. Scaling is a shift --- and by
+Theorem~\ref{thm:valuelaw} free of any polynomial or table --- if and only if
+$r = 2^{k}$ for integer $k \geq 1$. On that set $\kappa(r) = (r-1)^2/(r\ln r)$ is
+strictly increasing, taking $0.7213$, $1.6230$, $2.9455$ and $5.0720$ at
+$r = 2, 4, 8, 16$. Hence $r = 2$ minimises the expected relative error among all
+radices whose scaling is implementable without a transcendental, and it does so
+uniquely.
+\end{theorem}
+
+\begin{figure}[t]\centering
+\includegraphics[width=\linewidth]{tef_radix.pdf}
+\caption{$\kappa(r)$ against the scale radix. The unconstrained minimiser sits
+near $r = 1.9$ and is unreachable: only $r = 2^{k}$ scales by a shift, and on that
+set $\kappa$ is strictly increasing.}
+\label{fig:radix}
+\end{figure}
+
+The claim is verified by enumeration rather than resting on the monotonicity of
+$\kappa$ alone. Sweeping $r$ continuously over $[1.1, 16]$ with $E$ integral and
+$M$ taking the remaining width, at eight combinations of width and required range
+from $(P,R) = (8, 24)$ to $(32, 5925)$, the best implementable radix is $r = 2$ in
+every case, and the penalty against the unreachable optimum is $1.09\times$ at all
+eight --- a constant, as it must be, since the two differ only by
+$\kappa(1.9)/\kappa(2)$. The unconstrained minimiser is not $2$: it is near
+$1.9$, worth $7.9\%$ in error. That gain is unavailable, because any
+$r \neq 2^{k}$ makes $r^{e}$ a transcendental evaluation, and
+Corollary~\ref{cor:tradecurve} prices those at $84$ RAMB36 tiles --- $23\%$ of
+this device --- for a binary32 target. Trading $23\%$ of a chip for $7.9\%$ of a
+mantissa bit is not a trade anyone makes. Theorem~\ref{thm:radixopt} is therefore
+the interesting kind of optimality result: the optimum is not the extremum, it is
+the best point that can be built.
+
+\begin{corollary}[Three inputs determine the format]
+\label{cor:determined}
+The design space has four axes, and only one of them is a free choice.
+\begin{enumerate}
+\item \emph{Radix of the scale.} Fixed at $2$ by Theorem~\ref{thm:radixopt},
+unconditionally.
+\item \emph{Radix of the exponent's encoding.} Fixed by the fabric.
+Theorem~\ref{thm:nofree} shows a ternary exponent never spans more values per bit
+than a binary one when packed into bits, so it pays on a ternary fabric and
+nowhere else.
+\item \emph{Fixed fields or a taper.} A genuine choice, and by
+Theorem~\ref{thm:dichotomy} exactly two options exist: bounded range at constant
+precision, or unbounded range at precision decaying no more gently than one bit
+per doubling (Theorem~\ref{thm:floor}).
+\item \emph{The split between $E$ and $M$.} Determined once a required range is
+named, by Theorem~\ref{thm:law} --- and \emph{only} then, since the error depends
+on $M$ alone and the range on $E$ alone.
+\end{enumerate}
+Name the fabric, the required range, and which side of the dichotomy the workload
+sits on, and the format follows.
+\end{corollary}
+
+So the question ``is there an ideal format'' has an answer, provided it is asked
+with its three arguments supplied. Asked without them it is not underdetermined
+but ill-posed: Corollary~\ref{cor:pair} already says a budget cannot be
+recommended without a workload, and Theorem~\ref{thm:dichotomy} says no single
+format can serve both sides.
+
+\begin{corollary}[What this makes TEF]
+\label{cor:whatitmakes}
+For the arguments (ternary fabric; a range the workload actually visits; fixed
+fields), Corollary~\ref{cor:determined} returns a binary-radix float with a
+balanced-ternary exponent field and a uniform mantissa split by
+$M = N - 1 - E_t$. That is TEF, and it is forced rather than designed. It follows
+that TEF is optimal exactly on those arguments and carries no claim off them ---
+in particular none on a binary fabric, where axis 2 returns a binary exponent
+instead, and none against a tapered format outside TEF's own range, where
+Theorem~\ref{thm:floor} forbids it.
+\end{corollary}
 
 \section{Limitations}\label{sec:limits}
 
