@@ -3916,3 +3916,45 @@ an earlier wave silently killed two vacuity witnesses. Deleting it and writing
 down exactly why — including that the property count drops — beats shipping
 something that proves for the wrong reason. Then fix every comment elsewhere
 that cited the deleted property as coverage.
+
+## Wave 612 — three bars, and the property that restates its assumption
+
+**A property must clear three bars, not one.** "It proves" is the cheapest of
+the three and the only one most suites check:
+
+| bar | question | how |
+|---|---|---|
+| **TRUE** | does it hold on the real design? | prove it alone *and* with its suite |
+| **ALIVE** | did an assumption buy that by making the design idle? | every activity still reachable **with the assume active** |
+| **BITING** | does it detect anything? | run it against known behaviour-changing mutants |
+
+**The failure only the third bar catches: a property that restates its own
+assumption.** With `assume (fv_r_acc < fv_ar_acc)` in the environment, the
+property `assert (fv_r_acc <= fv_ar_acc)` proves instantly, reads like a real
+protocol claim, and detects **0 of 64** known-real mutants. It has a reachable
+guard, a non-free body, real signals, and proves at depth — it passes every
+cheap gate there is. Only measuring detection exposes it. This is the argument
+for paying for the expensive bar.
+
+**Write environment assumptions as counters plus one implication.** `rvalid` as
+a free input lets the solver return data for an address the DUT never issued —
+not a design behaviour, a testbench that cannot exist in silicon. Count accepted
+addresses and accepted beats, then `assume (!(rvalid && rready) || r_acc <
+ar_acc)`. Small, readable, and it constrains the *environment* rather than the
+design.
+
+**Gate the assumption, not just the property.** An environment that is safe
+today over-constrains after tomorrow's RTL change, silently. Put reachability
+probes for the signals the assume touches into the CI step that runs *inside*
+the property module — `assert (!(arvalid && arready))` must refute. Otherwise
+the next wave rediscovers the same failure from scratch.
+
+**Attribute detections to the property, not the environment.** If a property
+catches mutants, re-run with the property removed and the environment kept. Any
+mutant that still refutes was being caught by the assumption. Zero is the
+answer you want.
+
+**A refuting candidate is a finding, not an obstacle to route around.** My DMA
+shadow model of the request refuted; the temptation is to weaken the property
+until it passes. Recording "this shadow model is wrong, not shipped" is worth
+more than a property that proves because it was bent to.
