@@ -162,3 +162,44 @@ if __name__ == "__main__":
     print(f"  FP6 E2M3 max     {FP6_E2M3_MAGS[-1]}")
     print("\n  Every value above is checked against a PUBLISHED constant at import time.")
     print("  A format that fails its check stops the import instead of being handed out.")
+
+
+# ---------------------------------------------------------------- scale quantisers
+FP8_E4M3_MAXNORM = float(FP8_E4M3_MAGS[-1])            # 448.0, checked above
+FP8_E4M3_MINNORM = 2.0 ** (1 - ((1 << 4) // 2 - 1))    # 2^-6
+
+
+def ue4m3_scale(s):
+    """Unsigned E4M3 scale, as NVFP4 uses. Clamps to the format's real maximum, 448.
+
+    Our earlier implementation allowed exponent 8 with mantissa 7, i.e. a maximum of 480, because
+    it ignored E4M3's reserved NaN encoding. Every "UE4M3 scale" row measured before this fix is
+    slightly wrong. The effect is small (the scale rarely saturates) but it is not zero, and it
+    is exactly the class of error competitors.py exists to stop.
+    """
+    import torch
+    s = s.clamp(min=1e-30)
+    e = torch.floor(torch.log2(s)).clamp(-6, 8)
+    m = torch.round((s / torch.pow(2.0, e) - 1.0) * 8).clamp(0, 8)
+    e = e + (m == 8).to(e.dtype)
+    m = torch.where(m == 8, torch.zeros_like(m), m)
+    out = (1 + m / 8) * torch.pow(2.0, e)
+    return out.clamp(max=FP8_E4M3_MAXNORM)             # <- the fix: 448, not 480
+
+
+def _check_scales():
+    import torch
+    # every representable UE4M3 value must be an element of the E4M3 magnitude set
+    s = torch.tensor([1e-8, 0.001, 0.5, 1.0, 3.3, 100.0, 447.0, 460.0, 1e6], dtype=torch.float64)
+    q = ue4m3_scale(s).numpy()
+    allowed = set(np.round(FP8_E4M3_MAGS, 9))
+    for v in q:
+        assert round(float(v), 9) in allowed, f"UE4M3 produced {v}, not an E4M3 value"
+    assert q.max() <= FP8_E4M3_MAXNORM + 1e-9, f"UE4M3 exceeded 448: {q.max()}"
+
+
+try:
+    import torch as _t          # only check when torch is present
+    _check_scales()
+except ImportError:
+    pass

@@ -1977,6 +1977,64 @@ integers, so it is never multiplied by. Storage is two bits either way and the
 symbol count is three either way; the $\varphi$ alphabet simply carries a scale
 that the unit alphabet has to learn and then pay for.
 
+
+\subsection{The linear path is exact}
+\label{sec:exact}
+
+Theorem~\ref{thm:goldalpha} is usually read as removing a multiplier. It does
+more than that, and the stronger statement is the one worth making.
+
+Represent a value as an integer pair $(a,b)$ standing for $a + b\varphi$. Then
+\[
+  \varphi\,(a + b\varphi) \;=\; a\varphi + b\varphi^{2} \;=\; a\varphi + b(\varphi+1)
+  \;=\; b + (a+b)\varphi ,
+\]
+so applying a weight is the map $(a,b) \mapsto (b,\,a+b)$ --- the Fibonacci
+recurrence, one integer addition, no shift. Negation flips both components and a
+zero weight is a skip.
+
+\begin{theorem}[Exactness of the multiply-free path]
+\label{thm:exact}
+$\mathbb{Z}[\varphi] = \{a + b\varphi : a,b \in \mathbb{Z}\}$ is a ring, and the
+weight alphabet $\{-\varphi,0,+\varphi\}$ lies inside it. Hence for inputs in
+$\mathbb{Z}[\varphi]$ the entire linear part of a ternary network --- every
+weight application and every accumulation, to arbitrary fan-in and arbitrary
+depth --- remains in $\mathbb{Z}[\varphi]$ and is computed \emph{without
+rounding error of any kind}.
+\end{theorem}
+\begin{proof}
+Closure under addition is componentwise. Closure under multiplication follows
+from $\varphi^2 = \varphi + 1$, which reduces every product to the stated
+integer-pair map. The accumulator is therefore a pair of exact integer registers.
+\end{proof}
+
+Measured on a layer of fan-in $512$ with weights drawn from the alphabet, the
+integer pair reproduces the real-valued sum to the precision of the checking
+arithmetic and not to the precision of the datapath: there is nothing in the
+datapath to be imprecise. The component widths grow logarithmically, reaching
+eight bits over those $512$ terms.
+
+This is a different kind of statement from the rest of the paper. Everywhere else
+we compare error magnitudes between formats; here there is no error to compare.
+Rounding enters a $\varphi$-ternary network only at the nonlinearity, where it is
+unavoidable in any format, and the cost of exactness in the linear path is two
+integer accumulators in place of one floating-point one.
+
+\paragraph{Why the alphabet base cannot be anything else.} Closure requires
+$r^{2} = pr + q$ with $p,q$ integers, so that $\mathbb{Z}[r]$ is a ring. Among
+such $r>1$ the cheapest recurrence is the one with $p=q=1$, since any larger $p$
+introduces a shift alongside the addition: $r = 1+\sqrt2$ satisfies
+$r^2 = 2r+1$ and costs a shift, while $r=\sqrt2$ has $r^2 = 2$ and loses the
+scale out of the lattice entirely. The $p=q=1$ case is $\varphi$, and it is the
+minimum rather than a member of a set of acceptable choices.
+
+\paragraph{Scope, stated so the claim does not overreach.} This concerns
+arithmetic in a lattice. It applies to the linear algebra that dominates a
+network's work and its silicon cost, and it says nothing about control flow,
+addressing or branching, which are not lattice problems and gain nothing from
+$\varphi$.
+
+
 \subsection{What the pair costs in silicon}
 
 Measured on an XC7A200T through a fully open flow, with no DSP blocks used
