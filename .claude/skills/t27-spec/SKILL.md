@@ -2535,3 +2535,58 @@ summary anyone can act on.
 
 Worth doing once for any suite whose members are heterogeneous. The cost is one sweep; the
 result is knowing which of your green checks are load-bearing.
+
+---
+
+## Splitting a suite pays only when its members differ in cost
+
+Splitting one suite into per-property runs bought a 2.9× deeper bound. Applying the same
+move to another suite bought nothing. The difference is measurable in advance:
+
+| | suite A | suite B |
+|---|---|---|
+| cheapest member | 0.2 s | 276 s |
+| dearest member | 87.2 s | 299 s |
+| ratio | **436×** | **1.08×** |
+| gain from splitting | 2.9× deeper | none |
+
+Where one member dominates, isolating it removes the others from a shared instance and the
+achievable depth rises. Where every member costs the same because the **shared setup** is
+the expense, splitting buys attribution and nothing else.
+
+**The diagnostic is one run: time a trivially true member.** If a tautology costs what a
+real property costs, the model is the bottleneck. One invocation, before committing to a
+restructuring.
+
+The general form applies to test suites, benchmark harnesses, and build graphs: measure
+the spread across members before parallelising or sharding. A flat cost profile means the
+fixture is the cost, and splitting only multiplies fixture setup.
+
+## A partition produced by a timeout is a partition of the timeout
+
+A sweep reported "8 of 20 proved" and it was true. It invites exactly one reading — *those
+8 are easier than these 12* — which was false. All 20 proved given more time; the budget
+simply fell across a plateau where everything cost nearly the same.
+
+The tell was available and nearly missed: a **tautology** was in the failing group. A
+trivially true assertion cannot be intrinsically hard, so its presence proves the split is
+an artifact of the budget rather than of the subject.
+
+Whenever a run is cut off by a limit — time, memory, iterations, rate limit — the
+resulting pass/fail split describes where the limit fell. Before reporting it as a
+property of the items, include a known-trivial item as a control and check which side it
+lands on.
+
+## Use the identifier the tool returned, never the one you predicted
+
+A commit body was written with `Closes #2012` while the issue actually created was #2014 —
+the number was guessed from the previous one instead of read from the tool's output. #2012
+was an unrelated open issue that the merge would have closed.
+
+Caught by checking, then fixed by amending the message and force-pushing the feature
+branch. Cheap here; silent and confusing had it merged.
+
+**Any identifier a tool mints — issue numbers, PR numbers, run IDs, generated paths — must
+be read back from that tool's output before being embedded anywhere.** Sequential-looking
+identifiers are the dangerous case, because a wrong guess is well-formed, plausible, and
+points at something real.
