@@ -3252,3 +3252,60 @@ Same for this wave's result: the read pointers **named here** were asked; two ot
 paths were not, because neither is indexed by a configurable count. Writing that sentence
 costs nothing and is the difference between a bounded result and an overclaim that someone
 — usually you — cites later as broader than it was.
+
+---
+
+## A stub measures what the optimiser can delete, not what the stubbed thing costs
+
+Replacing a module with a trivial stub made a proof 8× faster, and that number justified a
+refactor across six files — deferred four times as "the largest available gain". Measured
+directly, the refactor was worth **1.5×**.
+
+The 8× was real and measured something else. Stubbing the module removed its *instantiation*,
+which left its wide inputs unused, and the optimiser then deleted the whole datapath feeding
+it — memories, muxes, buses. **Removing a consumer removes its producers.**
+
+Two rules fall out:
+- Attribute a cost to a component only by changes that hold its neighbours fixed — shrink
+  it, don't delete it.
+- Before acting on a stub-derived number, make the change you actually intend on a small
+  scale and measure *that*. Here: narrowing the datapath from 27 lanes to 3 took two minutes
+  and killed a multi-day refactor.
+
+Same shape in profiling generally: deleting a call site removes everything it reached, so
+"function X is 80% of runtime" measured that way is usually "X and everything it pulls in".
+
+## Cell count, line count, and any static size are poor proxies for solving cost
+
+Two builds fourteen cells apart differed **eleven times** in solve time. Another build with
+290 *fewer* cells ran 0.2% faster; one with 161 fewer ran **slower**.
+
+Whatever makes a search hard is not counted by a size metric. For bounded model checking it
+is roughly the shape of the state dependencies across the unrolling; for other tools it will
+be something else — but in no case is it the thing that is easiest to count.
+
+When optimising a slow check, measure the check. Static size can suggest hypotheses; it
+cannot rank them.
+
+## Re-cost a deferred item before picking it up
+
+An item was deferred four times, each time with a good reason, and each time carrying
+forward its original estimate: *the largest available gain, ~8×*. When it finally reached
+the front of the queue, the estimate was four waves stale and wrong by a factor of five —
+and re-costing it took one wave and closed it permanently.
+
+**A deferred item should be re-costed, not just re-prioritised.** The world it was estimated
+in has changed, usually by the very work that kept deferring it. The re-cost is cheap
+compared to starting the work.
+
+## `git status` is part of the verification
+
+A file had been modified but never committed for roughly twenty waves. Every local
+verification ran against it; CI ran against a different version. It elaborated either way, so
+nothing went red — which is exactly why it survived.
+
+A result produced from the working tree is a result *about the working tree*. Before
+reporting that something passes, confirm the tree is clean, or say explicitly which
+uncommitted changes are in play. Found here by accident, while checking whether an
+experiment had touched the repo — the check that should have been routine was the one that
+caught it.
