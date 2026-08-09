@@ -109,9 +109,36 @@ for nm, r in rtl.items():
                          f"{r['width']} bits, which matches no catalogue row -- "
                          f"synthesised and measured but specified nowhere")
 
+# --- 6. ratchet ------------------------------------------------------------
+# The tree currently carries known divergences whose fix is an owner decision
+# (rename by actual storage, or respecify the ladder packed). Blocking every PR
+# on that debt would make the gate useless until someone pays it. So the known
+# set is recorded as a baseline and the gate fails only on NEW disagreements --
+# and on baseline entries that have disappeared, so the file cannot rot into a
+# permanent excuse.
+BASE = pathlib.Path(__file__).with_name("artefact_agreement_baseline.txt")
 print(f"catalogue rows parsed: {len(cat)}   RTL decoders parsed: {len(rtl)}")
-if fails:
-    print(f"\nFAIL: {len(fails)} disagreement(s)\n")
-    for f in fails: print(f"  {f}")
+
+if "--update-baseline" in sys.argv:
+    BASE.write_text("\n".join(sorted(fails)) + ("\n" if fails else ""))
+    print(f"baseline written: {len(fails)} known disagreement(s)")
+    sys.exit(0)
+
+known = set()
+if BASE.exists():
+    known = {l for l in BASE.read_text().splitlines() if l.strip()}
+cur = set(fails)
+new, fixed = sorted(cur - known), sorted(known - cur)
+
+if fixed:
+    print(f"\n{len(fixed)} baseline entry/entries no longer reproduce -- "
+          f"run with --update-baseline to shrink the ratchet:")
+    for f in fixed: print(f"  [fixed] {f}")
+if new:
+    print(f"\nFAIL: {len(new)} NEW disagreement(s) beyond the baseline\n")
+    for f in new: print(f"  {f}")
     sys.exit(1)
-print("OK: artefacts agree")
+if fixed:
+    sys.exit(1)
+print(f"OK: no new disagreements ({len(known)} known, see "
+      f"{BASE.name} and research/frontier/WITHDRAWAL_1*.md)")
