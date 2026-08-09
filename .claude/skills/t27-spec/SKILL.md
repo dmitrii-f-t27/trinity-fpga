@@ -2993,3 +2993,48 @@ Worth noting for what it nearly cost: under a harness that reads any nonzero exi
 verdict, this would have appeared as a **refuted property** and sent the investigation
 somewhere false. It appeared as a tool error only because that separation was already in
 place — a guard paying off two waves after it was written.
+
+---
+
+## Match the arity in time: a once-evaluated gate cannot enforce a per-cycle invariant
+
+A property said *at the moment of each read, the slot being read must already have been
+written*. The fix attempted was a gate at the start of the operation: count what was
+written, refuse to begin if the count is short.
+
+It could never work, and the reason is worth more than the attempt. A start-time check
+says nothing about what happens **during** the operation — here a producer filling one
+buffer while a consumer drained another, with nothing constraining their interleaving. The
+mismatch was not the threshold, the counter width, or an off-by-one. It was that a
+**per-cycle claim needs a per-cycle guarantee**.
+
+Before writing a guard, name when the claim must hold — once at entry, once per item, or
+on every cycle — and check that the guard is evaluated at the same rate. A guard evaluated
+less often than its claim is not a weak guard, it is the wrong shape, and no tuning
+converts one into the other.
+
+Everyday forms: a permission checked at session start for an action authorised per-request;
+a quota validated at job submission for a loop that allocates as it runs; a health check at
+startup for a dependency that can fail mid-flight.
+
+## Withdraw on two counts, not one
+
+The standing rule was *withdraw a fix that misses its target and costs something*. This
+attempt hit both halves in one run: the target property still refuted **and** the existing
+proved set broke. That made the decision immediate rather than a judgement call.
+
+Worth writing the two-part test explicitly, because the tempting failure is to keep a
+change that only fails one half — "it didn't fix the bug but it's harmless" or "it broke
+one test but it's the right direction". Both are how a codebase accumulates changes that
+nobody can justify individually.
+
+## Record the eliminated shape where the next attempt will read it
+
+The withdrawn interlock left one durable artifact: a comment above the code it would have
+replaced, naming the approach, why it cannot work, and the two shapes that remain. Not in a
+commit message, not only in a design document — **in the file the next attempt will
+open**.
+
+Three waves have gone into this one defect: two to attribute it, one to eliminate a fix
+shape. That is progress only if the eliminations are visible from the code, otherwise the
+fourth wave re-derives the second.
