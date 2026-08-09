@@ -1780,6 +1780,74 @@ than a measured quantity, and is reported as such.
 
 
 
+
+\subsection{Which first principles}
+\label{sec:principles}
+
+The width rule has been stated as a rule. It is not one: it is the solution of a
+constrained maximisation, and naming the constraint is what makes the rest of the
+paper follow rather than accumulate.
+
+\paragraph{The rule is a Karush--Kuhn--Tucker condition.} Write the design problem
+directly. Maximise precision subject to a position budget and a range that must be
+covered:
+\[
+  \max_{E,M} \; M
+  \quad\text{s.t.}\quad
+  1 + E + M = N,
+  \qquad
+  r^{E} \ge b+1 .
+\]
+With multipliers $\lambda$ on the budget and $\mu$ on the range,
+$\mathcal{L} = M + \lambda(N-1-E-M) + \mu\bigl(E - \log_r(b+1)\bigr)$ gives
+$\partial_M \mathcal{L} = 1-\lambda = 0$ and $\partial_E \mathcal{L} = -\lambda+\mu = 0$,
+so $\lambda = \mu = 1$. Because $\mu > 0$, complementary slackness makes the range
+constraint \emph{active}: at the optimum the exponent is exactly as wide as the
+range demands and not one position wider. That statement is
+Theorem~\ref{thm:optimal}, now derived rather than asserted. The multiplier is
+also the shadow price, and $\lambda = 1$ says a position of exponent costs exactly
+a position of mantissa --- the exchange rate is unity because the budget is linear.
+
+\paragraph{Why three and not two is a 1950s result, not ours.} The radix economy
+$\rho(r) = r/\ln r$ is minimised at $r = e$. Ternary sits $0.46\%$ above that
+optimum and binary $6.15\%$ above it. We claim no credit for this; what the present
+work contributes is where it applies, which turns out to be the whole
+reconciliation of our two axes:
+\[
+  \underbrace{r}_{\text{cost per position}} \times \underbrace{\log_r V}_{\text{positions}} .
+\]
+The number axis counts only the second factor, and there $\log_3$ against $\log_2$
+gives the slack $0.3691\,E$ of Corollary~\ref{cor:slack} unconditionally. The
+silicon axis restores the first factor, and packing a trit into binary fabric
+charges $\kappa(3)/\kappa(2) = 1.68$ per position, which is why BNF16 and TNF16
+synthesise within $1\%$ of one another. Theorem~\ref{thm:nofree} and
+Corollary~\ref{cor:slack} are not in tension: they are the two factors of one
+product, reported separately.
+
+\paragraph{What is derivation and what is only resemblance.} Three connections are
+literal and are used as such: the multiplier argument above; radix economy, which
+fixes the exponent's radix; and Kraft's inequality, which bounds the taper in
+Theorem~\ref{thm:floor}. Two resemblances are worth naming only so they are not
+mistaken for arguments. The variational form recalls least action, but there is no
+time and no trajectory here --- the problem is a static optimisation, and the
+resemblance carries no consequence. And $1+E+M=N$ is a budget, not a conservation
+law: positions are allocated by a designer, not withheld by nature. We state the
+distinction because a physical-sounding derivation would be doing rhetorical work
+that the multiplier argument already does honestly.
+
+\paragraph{The standard falls out.} Applied to the block axis this stops being
+abstract. The within-block span of a trained network's weights, measured before
+any format is chosen, is $1.89$ binades at the median and $3.04$ at the 99th
+percentile. The optimum is $E^{*} = \lceil \log_2 b \rceil$, so protecting the
+median returns E1M2 and protecting the 99th percentile returns \emph{E2M1} ---
+which is the element the OCP microscaling specification fixes. The standard is not
+reproduced by coincidence: it is the unique solution of the multiplier problem at
+the tail these weights actually have. Theorem~\ref{thm:regret} says which of the
+two should win, since under-sizing pays on the tail linearly while over-sizing pays
+logarithmically on every value, and Section~\ref{sec:blockrelated} reports the
+measurement that decides it.
+
+
 \subsection{The width rule is an optimisation with one solution}
 \label{sec:optimal}
 

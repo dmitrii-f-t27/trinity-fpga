@@ -65,26 +65,28 @@ def quant(mag, lv):
     return lv[idx]
 
 
-def D_of_r(r, lv, na=NA, nx=NX):
-    """Expected per-element distortion when the scale is r times the exact one."""
-    hi, total, da = 6.0, 0.0, 6.0 / NA
-    for ia in range(1, na + 1):
-        a = ia * da
-        Fa = cdf_abs(a)
-        if Fa <= 1e-14:
-            continue
-        f_a = K * (2 * pdf(a)) * (Fa ** (K - 1))
-        if f_a <= 0:
-            continue
-        s = r * a / lv[-1]
-        xs = np.linspace(-a, a, nx)
-        w = np.array([pdf(x) for x in xs]) * (2 * a / nx)
-        mag = np.abs(xs) / s
-        rec = np.sign(xs) * quant(mag, lv) * s
-        acc = float((w * (rec - xs) ** 2).sum()) / Fa
-        emax = (s * quant(np.array([a / s]), lv)[0] - a) ** 2
-        total += ((K - 1) / K * acc + emax / K) * f_a * da
-    return total
+DA = 6.0 / NA
+A = (np.arange(1, NA + 1)) * DA                       # block-maximum grid
+FA_ABS = np.exp(-A * A / 2) / math.sqrt(2 * math.pi)
+CDF_A = np.array([math.erf(a / math.sqrt(2)) for a in A])
+F_A = K * (2 * FA_ABS) * (CDF_A ** (K - 1))           # density of the block maximum
+U = (np.arange(NX) + 0.5) / NX * 2 - 1                # normalised position within [-a, a]
+X = A[:, None] * U[None, :]                           # (NA, NX)
+PX = np.exp(-X * X / 2) / math.sqrt(2 * math.pi)
+WX = PX * (2 * A / NX)[:, None]
+
+
+def D_of_r(r, lv):
+    """Expected per-element distortion when the scale is r times the exact one.
+
+    Fully vectorised: the first version looped over both integration axes in Python and was
+    ~1800x too slow to sweep the rounding offset at all.
+    """
+    s = r * A / lv[-1]                                # (NA,)
+    rec = np.sign(X) * quant(np.abs(X) / s[:, None], lv) * s[:, None]
+    acc = (WX * (rec - X) ** 2).sum(axis=1) / np.maximum(CDF_A, 1e-14)
+    emax = (s * quant(A / s, lv) - A) ** 2
+    return float((((K - 1) / K) * acc + emax / K).dot(F_A) * DA)
 
 
 print("The scale axis: how distortion responds to a multiplicative scale error\n")
