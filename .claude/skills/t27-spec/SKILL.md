@@ -4104,3 +4104,35 @@ assuming it.
 `filled >= neurons_per_layer` is satisfiable with `neurons_per_layer == 0` and
 the solver simply picks that. A probe over a parameterised design is only as
 sharp as the configurations it excludes.
+
+## Wave 617 — audit the bounds; and write predictions down so they can be wrong
+
+**Re-prove every bounded claim at 2× and 4× its bound.** Only the *proves*
+direction can be depth-fragile, so that is exactly the audit surface. Four
+wrappers, no flips — and the strongest datum was `dma_controller` surviving to
+`seq 320` against a CI bound of 80, which retroactively justifies the 12 → 80
+raise an earlier wave made for tractability rather than principle.
+
+**"Undecided" is a result; do not retry until it yields a number.** One wrapper
+went undecided at 4×. That is not a flip and not a failure — it is the honest
+boundary, and rerunning with a longer timeout until something prints would have
+converted an honest boundary into a fabricated one.
+
+**Audit partially and say which parts.** Four of twelve wrappers, because each
+4× run costs real time. A partial audit reported as partial beats a complete one
+reported without its cost — and the alternative on offer was to keep the wave
+open indefinitely.
+
+**Write predictions into the report so the next wave can refute them.** I ended
+a wave predicting, in writing, that phase-conditioning would generalise to the
+other probes. It does not: five candidates, none bites, because the fault it
+caught *stalls a phase* and the remaining ones do not stall anything. Because
+the prediction was recorded, refuting it took one measurement instead of being
+quietly forgotten or quietly assumed.
+
+**When a class of probe cannot work, say what would.** The four remaining
+mutations change *values* while leaving every activity reachable — a latch reset
+to the wrong constant, an accumulator decrementing, a status word with a stray
+bit. No reachability probe of any phase sees those. Naming the required shape
+(safety claims about data, where the existing suite is about control) is what
+stops the next attempt beginning with another probe.
