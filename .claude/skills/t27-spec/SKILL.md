@@ -3715,3 +3715,57 @@ counter increments on the *done edge*, in the same cycle the FSM returns to IDLE
 and can accept the next start. Guard on the event too (`done || runs != 0`).
 When a control does not bite, the first hypothesis is that the control is wrong,
 not that the probe is blind.
+
+## Wave 608 — measure the absence, don't look for it
+
+Six instrument defects across two waves, all the same shape. Four were found by
+*noticing*, which does not scale and does not finish. The mechanical version:
+
+**Take the subject away and run every check. Anything still green is measuring
+something else.** Empty the input directories, run each CI step verbatim, and
+require a nonzero exit. Twenty steps, eighteen correct, two not — and the sweep
+costs less than the suite it audits, because with no input the tool fails
+immediately. Ship it as a standing job, not a one-off audit.
+
+**`grep` inside an `if` condition escapes `set -e`.** This is the single highest
+-yield shell trap in a CI gate:
+
+```bash
+# if the file is missing, grep exits 1, the branch is skipped,
+# and the step prints ok and returns 0
+if grep -q "FORBIDDEN_MARKER" build/thing.sv; then
+  echo "::error::found it"; exit 1
+fi
+echo "ok  nothing forbidden"
+```
+
+`set -euo pipefail` does not reach into an `if` condition — that is what makes
+`if cmd; then` a legal idiom at all. Any gate shaped *"the bad thing is absent"*
+must assert its subject exists first, or be rewritten to enumerate files and
+fail on an empty list.
+
+**Grepping one file is a claim about one file.** That gate read
+`build/rtl/bitnet_engine_top.sv` while 22 other files could carry the same
+guard. Count what you scanned and print it — `23 files, 0 guards` is a claim;
+`ok` is not.
+
+**Parsing is not emitting.** A check that a generated artifact *parses* passes
+happily on an artifact containing nothing. Count what came out and compare it to
+what went in: *2 behaviours in, 2 assertions out*.
+
+**Exemptions must be argued in line and counted.** Both new instruments needed
+one — a step that legitimately doesn't read the input directories, a doc fence
+that quotes removed code. An exemption list is where a sweep quietly stops
+checking things, so: require a written reason next to each entry, and print the
+exemption count in the normal output so growth is visible without an audit.
+
+**If you write that something "was tested", ship the test.** Prop. 58e said the
+doc gate "was mutation-tested" — by a scratch script, run once, by hand. That is
+the identical defect to a gate claimed in the README and never wired into CI,
+committed one wave after diagnosing it. A claim in a document about a check is a
+claim that the check runs. `--self-test` subcommands make this cheap.
+
+**Expect your own new gate to catch you.** The doc gate rejected the
+proposition documenting the doc gate, because that text quotes the broken code
+it replaced. That is the gate working. Fix the rule to name the category
+honestly rather than reaching for the exemption.
