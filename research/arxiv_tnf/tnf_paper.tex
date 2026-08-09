@@ -2191,6 +2191,66 @@ our two previous attempts each defended one, and each was wrong in a different
 direction.
 
 
+
+\paragraph{The area advantage is withdrawn too, and by our own attack.}
+Table~\ref{tab:scalefrontier} was measured in one regime and with one field
+width, and both choices flattered us.
+
+\begin{theorem}[An unrolled recurrence is linear]
+\label{thm:unrolled}
+A recurrence applier unrolled to depth $K$ over $W$-bit operands costs
+$\Theta(KW)$; an additive-term applier whose shifts are compile-time constants
+costs $\Theta(W)$ independent of the scale, since a constant shift is wiring.
+Hence when the scale is frozen after training the recurrence loses for every
+$K \ge 1$.
+\end{theorem}
+
+Measured: a constant-shift APoT-2 applier costs $26$ LUTs, against $64$, $128$
+and $256$ for $\varphi^{k}$ unrolled at $K=2,4,8$. At the realistic $K=8$ that is
+$10\times$ against us, and the lines do not cross even at $K=1$.
+
+\begin{theorem}[Regime inversion]
+\label{thm:regime}
+The area ordering between the two families is a property of neither. It inverts
+with whether the scale is a compile-time constant or a runtime variable, because
+a constant shift is wiring and a variable shift is a barrel of
+$\Theta(W\log W)$.
+\end{theorem}
+
+\begin{theorem}[A barrel is priced by range, not by width]
+\label{thm:barrelrange}
+A runtime shift field need only span the workload's scale range. Across the 210
+layers measured here that range is $3.15$ octaves, so two bits suffice. An area
+comparison that sizes the field larger is measuring a competitor that would never
+be built.
+\end{theorem}
+
+At a two-bit field APoT-2 costs $130$ LUTs against our $199$. The $2.22\times$
+advantage reported above was an artefact of a five-bit field, and is withdrawn.
+
+\paragraph{An instrument limitation, stated rather than smoothed.} The APoT sweep
+is non-monotonic --- $130$, $380$, $230$, $384$ LUTs at shift widths $2$ to $5$
+--- with the parameter demonstrably applied and the tool deterministic. This is
+technology-mapping heuristics, and it means LUT counts from logic synthesis alone
+are not a reliable area metric at this granularity. A claim resting on a $30\%$
+difference between two such points is unsafe; one resting on the $10\times$ of
+Theorem~\ref{thm:unrolled} is.
+
+\paragraph{What survives.} Not the area advantage. Only
+Theorem~\ref{thm:termgrowth} remains: $\varphi^{k}$ is the sole applier whose
+area is independent of composition depth, so at $d=2$ APoT-8 costs $1217$ LUTs
+where the pair still costs $173$. That regime --- a chain with no requantisation
+between links --- is real but uncommon. The alphabet's uniqueness and the
+$\mathbb{Z}[\varphi]$ closure are machine-checked and untouched, having never
+been area claims.
+
+The pattern across three attempts at this section is one pattern. Each favourable
+number came from a comparison whose terms we chose: powers of two rather than
+APoT, a five-bit field rather than the two the workload needs, a runtime regime
+rather than the frozen one. The rule that would have caught all three is to write
+down what the competitor would build if it were trying to win, and measure that.
+
+
 \subsection{The formats a training run cannot live in}
 \label{sec:untrainable}
 
