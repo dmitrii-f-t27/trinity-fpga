@@ -4071,3 +4071,36 @@ equivalent mutants. At engine scale it cannot, so the six undetected mutations
 are recorded as *undetected* and explicitly **not** as gaps, and the headline
 number is labelled a floor rather than a coverage percentage. A measurement with
 a stated limit is worth more than a bigger number with a hidden one.
+
+## Wave 616 — a coverage number is a claim about which gates you ran
+
+**Name the gates, not just the mutants.** I reported "1 of 7 detected" after
+running the safety properties. The design's gate set was safety **∪ liveness**,
+and the liveness half caught one more on its own. The count was not wrong
+arithmetic — it was *a complete count of an incomplete question*. Any coverage
+figure needs a scope line naming which gates were executed.
+
+**Liveness probes that ask "can X happen at all" are blind to phase-specific
+stalls.** A fault that kills an activity in one ping-pong phase leaves it
+happening in the other, so a global reachability probe still refutes and the
+build stays green. Condition the probe on the phase:
+`!(mac_valid_q && !use_buffer_a)`. Same technique applies to any design with
+alternating modes, banks, or channels.
+
+**A probe run at too shallow a depth does not answer "unknown" — it answers
+wrong.** At `seq 22` my new probe *proved*, i.e. reported the activity
+unreachable; at `seq 40` it refuted. The shallow answer is the one that looks
+like a passing gate, which is the worst possible direction for the error. Give
+probes per-probe depths and record why each one needs its own.
+
+**Only the `proves` direction is depth-fragile — check those, trust the others.**
+A refutation found at depth N is a real counterexample at any depth. So audit
+exactly the probes whose expected verdict is *proves*: mine held at 22 / 40 / 60
+for 5 s / 11 s / 20 s, which is cheap enough that there was no excuse for
+assuming it.
+
+**Watch for the degenerate configuration when a probe fails to bite.**
+`!(input_ready && !use_buffer_a)` refuted on the mutant too — because
+`filled >= neurons_per_layer` is satisfiable with `neurons_per_layer == 0` and
+the solver simply picks that. A probe over a parameterised design is only as
+sharp as the configurations it excludes.
