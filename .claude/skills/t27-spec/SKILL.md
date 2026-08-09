@@ -3769,3 +3769,43 @@ claim that the check runs. `--self-test` subcommands make this cheap.
 proposition documenting the doc gate, because that text quotes the broken code
 it replaced. That is the gate working. Fix the rule to name the category
 honestly rather than reaching for the exemption.
+
+## Wave 609 — every fix opens the hole it was built to close
+
+**When an auditor must skip itself, skip it by CONTENT, not by name.** The
+absence sweep runs as a step of the workflow it audits, so it has to exclude
+itself. Excluding by step *name* means a rename silently reintroduces the
+recursion; excluding by "any step whose script invokes `absence_sweep.py`" does
+not. Report the skip and count it — a silent skip is the thing being audited.
+
+**Then test the hole the exclusion just made.** Self-exclusion is a fresh way to
+examine zero items and return success — the exact failure the sweep exists to
+catch, reintroduced by the mechanism added to catch it. The self-test's decisive
+case is *a workflow whose only step is the sweep*: it must FAIL, not pass having
+looked at nothing. Every mechanism that lets a checker skip something needs a
+case proving the skip cannot become total.
+
+**A gate that fails for the wrong reason is still a defect.** `Scale ceiling`
+printed `REFUTED -- a property fails at a larger bound` when yosys had simply
+been unable to read the design. It failed, which is the safe direction, so no
+gate was ever wrongly green — but a false diagnosis in CI sends someone hunting
+a property failure that does not exist. Audit the *message*, not just the exit
+code; "fails safely" is not the same as "reports truthfully".
+
+**Report what happened, not what is configured.** The sweep printed `1 exempt`
+on runs where nothing was exempted, because it printed `len(EXEMPT)` instead of
+the exemptions applied. Zero consequences, and worth fixing on principle: a
+counter that reports configuration rather than events is a small lie in exactly
+the place you go looking for big ones.
+
+**`gh issue create` uses the shell's cwd, and cwd survives between commands.**
+Filed a t27 issue into trinity-fpga because an earlier command in the same shell
+had `cd`-ed there. Always pass `--repo <owner>/<name>` explicitly — the flag
+costs nothing and removes an invisible dependency on command order. Same family
+as the `identity_scan` glob: anything resolved relative to cwd is resolved
+relative to whatever ran last.
+
+**State a boundary rather than letting it be discovered.** The sweep covers both
+formal workflows and not the docs/notebook/seal ones. Writing that down as scope
+turns "we never looked" into "we looked here and not there", which is the
+difference between a gap and a lie.
