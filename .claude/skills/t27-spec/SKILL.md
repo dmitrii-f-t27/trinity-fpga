@@ -3504,3 +3504,46 @@ while separating the formal-only state costs nothing in the shipped artifact.
 Worth measuring once for any test harness that shares a build with its subject: fixtures,
 instrumentation, assertion state, mocks. When the harness dominates, optimise the harness —
 and know that before spending a wave on the subject.
+
+---
+
+## A small minority of checks often dominates the cost — measure before optimising the subject
+
+Twenty-six properties, and **four of them accounted for 75% of the proof time**. Those four
+needed ten pieces of dedicated tracking state; the other twenty-two needed none. Removing
+just the four took the verifiable depth from 40 back to 80 — the level the whole set had
+reached before a run of additions.
+
+The instinct when a check gets slow is to simplify the subject. The measurement said the
+subject was not the problem: **the apparatus was**, and inside the apparatus a small
+minority of it.
+
+Cheap to establish and worth doing before any optimisation: disable each check in turn (or
+in groups) and time the rest. A flat profile means the shared setup dominates; a spiked one
+names the few to isolate. Same shape as a slow test suite where three integration tests
+carry the whole runtime.
+
+## Splitting a check set is not weakening it — if every member stays gated
+
+Moving expensive checks behind their own flag looks like reducing coverage and is not, so
+long as both groups run and **the bound each is checked at rises or holds**. Here the cheap
+22 would run deeper than before and the expensive 4 exactly as deep as now.
+
+Distinguish this carefully from lowering a bar. The test: *after the split, is any property
+checked less thoroughly than before?* If no, it is a scheduling change. If yes, it is a
+reduction and must be argued as one.
+
+## Two failed attempts at the same edit are a signal about the edit's shape
+
+An edit failed twice: once because a guard boundary assumed a contiguous block that was not
+contiguous, then because a regex's greedy tail swallowed a closing delimiter and nested
+everything after it.
+
+Both failures had the same root — **the things to be wrapped are scattered, not adjacent**
+— and the second attempt is what established that. Persistence was not the missing
+ingredient; a different technique was.
+
+The rule that follows: when the same edit fails twice for related reasons, stop and
+characterise the *structure* you are editing before trying a third time. Here the answer was
+"six separate sites, hand-placed, guard depth verified in the output" — mechanical but not
+scriptable, and clearly not something to start at the end of a long session.
