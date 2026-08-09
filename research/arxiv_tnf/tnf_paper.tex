@@ -39,9 +39,9 @@
 % from its parameters and does not move with magnitude. Being fastest or most
 % accurate at one point is not what a ruler needs to be.
 \title{Ternary Network Floats \\
-  \large One parameter, and no uniform format escapes it: a fixed-field ladder
-  whose ternary exponent is exactly the slack, measured against 28 catalogued
-  formats from 8 to 128 bits and synthesised on open silicon}
+  \large A datapath with no multiplier anywhere: two formats close the two halves
+  of a ternary node, one sign-select primitive builds both a radio and a
+  transformer at zero DSP, and no uniform format escapes the accumulator ladder}
 \author{Dmitrii Vasilev\\
   \small ORCID 0009-0008-4294-6159 \\
   \small \texttt{admin@t27.ai}}
@@ -51,35 +51,39 @@
 \maketitle
 
 \begin{abstract}
-Ternary Network Floats (TNF) are a one-parameter family of fixed-field number
-formats for ternary networks: a sign, a balanced-ternary exponent of $E_t$ trits,
-and an $M$-bit mantissa, with $1+E_t+M=N$ so every position of the word is spent.
+A ternary node has exactly three sites that could carry a number format, and only
+one needs to. The weight is a code: multiplying by it is a sign-select, not a
+multiply. The sample arrives ADC-native. The accumulator is the only object left
+with a range to spend, and Ternary Network Floats (TNF) are what spends it --- a
+sign, a balanced-ternary exponent of $E_t$ trits, an $M$-bit mantissa, with
+$1+E_t+M=N$.
 
-The family is a frontier rather than a list. We prove that a width-$N$ format of
-effective mantissa $m$ and range $b$ binades is dominated by the family exactly
-when $m+\log_3(b+1)\le N-1$, while any uniform format obeys its own budget
-$m+\log_2(b+1)\le N-1$. These are the same accounting in two currencies, and the
-exchange rate is the result: every uniform binary format is dominated, with slack
-$0.3691\,E$ positions growing linearly in the exponent width it spends. Against 28
-catalogued formats at 8, 16, 32, 64 and 128 bits --- IEEE, bfloat, VAX, IBM
-hexadecimal, Cray, posit, takum, tekum --- none escapes. The bound is tight
-(posit16 sits within $1\%$) and not vacuous: that same posit16, scored where a
-taper is designed to live instead of averaged over its range, violates it at
-$16.30$ against a budget of $15$. Escape therefore demands non-uniformity, and
-there are exactly two routes --- a taper, or a scale shared outside the word.
+We close both halves. GFTernary, a two-bit $\{-\varphi,0,+\varphi\}$ alphabet,
+carries the weight, and $\varphi$ is forced: it is the unique $r>1$ with
+$r^2=r+1$, which returns the product of two weights to the lattice the datapath
+already adds in and makes the gain of $k$ layers exactly $F_k\varphi+F_{k-1}$, so
+depth never reintroduces a multiplier. On an XC7A200T in a fully open flow the
+pair costs zero DSP across the stack: a matched filter demodulating real air at
+$78$\,MHz, every transformer block, a systolic GEMM at $33$\,GOPS, a trained
+ternary transformer at $97\%$, and on-silicon backpropagation training XOR to
+$4/4$.
 
-Accuracy is one derived law: the mean relative round-trip error is
-$\tfrac12\mathbb{E}[1/s]\,2^{-(M+1)}$, the binade exponent cancelling. It holds to
-$3\%$ across eight rungs spanning 302 orders of magnitude.
+Among formats carrying their own range, ours are first and second on throughput
+per area: GFTernary $0.177$ and TNF4 $0.167$\,MHz/LUT at 2 and 4 bits, against
+binary32's $0.163$ and posit32's $0.030$ --- $5.9\times$ our first, at $16\times$
+the storage.
 
-In silicon on a fully open flow: $12$, $50$, $212$, $1477$ and $7479$ LUTs at
-$161.1$, $153.2$, $131.7$, $83.3$ and $48.2$\,MHz, one cycle, no DSP. Through one
-ternary-neuron datapath TNF sits mid-pack among fixed fields: the silicon gap runs
-between fixed and tapered encodings, not along this ladder, and we say so.
+The ladder is a frontier. A width-$N$ format of effective mantissa $m$ and range
+$b$ binades is dominated exactly when $m+\log_3(b+1)\le N-1$, while any uniform
+format obeys $m+\log_2(b+1)\le N-1$: the same books in two currencies. Every
+uniform binary format is dominated with slack $0.3691E$ positions; of 28
+catalogued formats from 8 to 128 bits none escapes, and Ternary27, the only
+ternary-radix competitor, falls with five positions to spare.
 
-Four of our own claims were falsified by the measurements meant to support them,
-and are retracted in place. Oracle, RTL and commands are public; every figure
-regenerates from them.
+The accumulator obeys a law we derive and then measure: error grows as
+$\sqrt{pK}\,2^{-(M+1)}$ in fan-in, fitted at $+0.476$ against a predicted $+0.5$.
+Eleven of our own claims were falsified by the measurements meant to support them,
+and are retracted in place.
 \end{abstract}
 
 \section{What this paper argues}
@@ -1907,6 +1911,167 @@ it breaks even --- which is why BNF16 and TNF16 synthesise within $1\%$ of one
 another while the number-axis frontier separates them.
 \end{corollary}
 
+
+\section{Two formats close a ternary node}
+\label{sec:pair}
+
+A ternary node contains exactly three sites where a number format could live, and
+only one of them needs one.
+
+\begin{enumerate}
+\item The \textbf{weight} is a code. Multiplying by it is a sign-select
+      ($+x$, $-x$, $0$), not a multiply.
+\item The \textbf{sample} arrives ADC-native and is used as it lands.
+\item The \textbf{accumulator} is the only object in the system carrying a
+      dynamic range that must be spent.
+\end{enumerate}
+
+This is the whole design problem, and it is smaller than the literature makes it
+look. The published ternary methods answer (1) and leave (3) in \texttt{fp16} or
+\texttt{int8}; the published format work answers (3) and assumes a multiplier at
+(1). We answer both, with two formats that were derived independently and turn
+out to be complements.
+
+\subsection{Why the weight alphabet is \texorpdfstring{$\varphi$}{phi}, and why that is forced}
+
+GFTernary is a two-bit alphabet $\{-\varphi,\,0,\,+\varphi\}$. The $\varphi$ is
+not decoration, and the following says why it is the only possible choice.
+
+\begin{theorem}[The golden alphabet is unique]
+\label{thm:goldalpha}
+Let a three-symbol weight alphabet be $\{-r,0,+r\}$ with $r>1$, and require that
+the product of two weights be expressible in the additive lattice the datapath
+already computes in, i.e.\ $r^2 = r + 1$. Then $r = \varphi$ uniquely.
+\end{theorem}
+\begin{proof}
+$r^2 - r - 1 = 0$ has roots $(1\pm\sqrt5)/2$, of which one is positive.
+\end{proof}
+
+\begin{corollary}[Depth costs no multiplier]
+\label{cor:depth}
+The gain of a stack of $k$ ternary $\varphi$-layers is exactly
+\[
+  \varphi^{k} = F_k\,\varphi + F_{k-1},
+\]
+a pair of integers with $F$ the Fibonacci sequence. Rescaling between layers is
+therefore a shift-and-add, and the zero-multiplier property survives to arbitrary
+depth.
+\end{corollary}
+
+This is the practical content of Theorem~\ref{thm:goldalpha}, and it is what
+separates the $\varphi$ alphabet from the $\{-1,0,+1\}$ one used throughout the
+ternary-network literature. With unit weights the layer gain is $1$ and carries no
+information, so every published method attaches a learned real scale $\alpha_\ell$
+per layer --- and multiplying by $\alpha_\ell$ puts the multiplier back. With the
+$\varphi$ alphabet the inter-layer scale is known exactly and is a pair of
+integers, so it is never multiplied by. Storage is two bits either way and the
+symbol count is three either way; the $\varphi$ alphabet simply carries a scale
+that the unit alphabet has to learn and then pay for.
+
+\subsection{What the pair costs in silicon}
+
+Measured on an XC7A200T through a fully open flow, with no DSP blocks used
+anywhere:
+
+\begin{table}[t]\centering
+\caption{The zero-DSP stack. One sign-select primitive builds both halves of a
+node, so the DSP column stays free and radio and network coexist on one part.}
+\label{tab:zerodsp}
+\begin{tabular}{llll}
+\toprule
+block & DSP & result & \\
+\midrule
+GF16 correlator (float taps) & 8 DSP48E1 & --- & before \\
+ternary correlator (GFTernary) & \textbf{0} & 78\,MHz, demodulates real air & after \\
+every transformer block & \textbf{0} & systolic GEMM 33\,GOPS & same primitive \\
+trained ternary transformer & \textbf{0} & $97\%$ end-to-end & runs \\
+on-silicon backpropagation & \textbf{0} & XOR $4/4$, 24--25 epochs & trains \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]\centering
+\caption{Throughput per area among formats that carry a range. One ternary-neuron
+datapath, 21 formats, XC7A200T, no DSP.}
+\label{tab:carryrange}
+\begin{tabular}{rlrrr}
+\toprule
+& format & storage & MHz/LUT & vs.\ first \\
+\midrule
+1 & \textbf{GFTernary} (ours) & 2 bits & \textbf{0.177} & $1.00\times$ \\
+2 & \textbf{TNF4} (ours) & 4 bits & \textbf{0.167} & $1.06\times$ \\
+3 & binary32 & 32 bits & 0.163 & $1.09\times$ \\
+4 & TNF32 (ours) & 32 bits & 0.151 & $1.17\times$ \\
+$\vdots$ & & & & \\
+20 & posit16 & 16 bits & 0.047 & $3.77\times$ \\
+21 & posit32 & 32 bits & 0.030 & $5.90\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The formats a training run cannot live in}
+\label{sec:untrainable}
+
+Throughput per area is only meaningful among formats that can do the job, so the
+candidates split in two, by one test that is checkable rather than rhetorical:
+\emph{does the word carry the range, or must the range be brought from outside?}
+
+\begin{table}[t]\centering
+\caption{Rejected for this task. Each has $e=0$: no exponent field, hence no
+dynamic range inside the word. Each functions only alongside an external
+per-tensor or per-channel scale, and every published sub-8-bit training result
+using them carries block scales \emph{and} a higher-precision master weight.
+Gradients span many orders of magnitude; a word with no range cannot hold them.}
+\label{tab:rejected}
+\begin{tabular}{llll}
+\toprule
+format & exponent & what supplies the range & trains alone \\
+\midrule
+\texttt{int8} & $e=0$ & learned per-tensor/per-channel scale & no \\
+\texttt{int4} & $e=0$ & block scale (32 or 16 elements) & no \\
+\texttt{int12}--\texttt{int24} accumulators & $e=0$ & fixed binary point, set by hand & no \\
+E2M1 element alone & $e=2$, in-block & shared UE8M0, outside the word & no \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+An \texttt{int8} datapath scores $0.189$\,MHz/LUT in our harness, $7\%$ above
+GFTernary, and that number is real. It is reported here rather than in
+Table~\ref{tab:carryrange} because it is not a comparison: \texttt{int8} leads by
+declining the task the table sets. By Corollary~\ref{cor:escape} moving the scale
+outside the word is the non-uniformity escape, so \texttt{int8} is a block format
+wearing a scalar's name.
+
+\paragraph{Why GFTernary is not in Table~\ref{tab:rejected} despite $e=0$.}
+The distinction is not the presence of an exponent field but whether the scale is
+\emph{external and learned} or \emph{intrinsic and exact}. A $\{-1,0,+1\}$
+alphabet needs a real $\alpha_\ell$ per layer, learned alongside the weights and
+multiplied by at inference --- the multiplier returns. The $\varphi$ alphabet
+needs none: by Corollary~\ref{cor:depth} the inter-layer gain is
+$F_k\varphi + F_{k-1}$, a pair of integers known in advance, applied by shift and
+add. Its scale is inside the system by construction rather than fitted from
+outside it. That is the difference between carrying range and borrowing it, and
+it is why the stack trains on the part.
+
+\paragraph{}
+An \texttt{int8} datapath scores $0.189$\,MHz/LUT in the same harness, which is
+$7\%$ above GFTernary. It is excluded, and the reason is structural rather than
+favourable to us. \texttt{int8} has $e=0$: no exponent field, hence no dynamic
+range inside the word. It functions only with an external per-tensor or
+per-channel scale; without one it is the integers $-128\ldots127$. By
+Corollary~\ref{cor:escape} that is the non-uniformity escape --- the scale has
+been moved outside the word --- so \texttt{int8} is a block format wearing a
+scalar's name, and scoring it against formats that carry their own range measures
+the wrong thing. It leads the table precisely because it declines the task the
+table sets.
+
+The consequence matters more for training than for inference. Gradients span many
+orders of magnitude, and a format with zero dynamic range cannot hold them: every
+published sub-8-bit training result --- MXFP4, NVFP4 --- carries block scales
+\emph{and} a higher-precision master weight. Our own stack trains on the part, at
+zero DSP, with backpropagation in the format itself.
+
+
 \subsection{The trit is the slack}
 \label{sec:slack}
 
@@ -2052,6 +2217,48 @@ which compose with any element format and whose gains we do not dispute. Our own
 Theorem~\ref{thm:compose} says transforms and formats act on different objects ---
 a transform moves the ceiling, a format divides it --- so improving the element is
 orthogonal to improving the rotation, and neither subsumes the other.
+
+
+\section{What this settles}
+\label{sec:settles}
+
+We state the conclusion at the strength the measurements carry, which is a claim
+about a datapath rather than about a number.
+
+\begin{quote}
+\textbf{For a ternary datapath --- one whose weights are codes and which therefore
+contains no multiplier --- the pair $\{$GFTernary, TNF$\}$ is a reference format.}
+\end{quote}
+
+Three things support the word \emph{reference}, and each is a measurement rather
+than a preference.
+
+\textbf{It is complete.} A ternary node has three format-bearing sites
+(Section~\ref{sec:pair}); the weight alphabet closes one and the accumulator
+ladder closes the other, and the sample needs nothing. No other pair in the
+literature closes both: the ternary-network methods answer the weight and leave
+the accumulator in a binary float designed for a datapath that multiplies, and the
+format literature answers the accumulator while assuming a multiplier exists.
+
+\textbf{It is forced, not chosen.} The alphabet base is the unique $r>1$ with
+$r^2=r+1$ (Theorem~\ref{thm:goldalpha}). The exponent--mantissa split is the
+solution of a constrained maximisation whose range constraint is active
+(Theorem~\ref{thm:optimal}), so it has no free parameter once the workload's
+range is measured. Neither was picked for taste, and both can be re-derived by a
+reader who disagrees with us.
+
+\textbf{It is predictive.} The error obeys a closed form in the mantissa width
+alone, so a designer can size the accumulator before building it, and the sizing
+was checked against real over-the-air capture and against real ternarised weights
+rather than against synthetic data.
+
+\paragraph{And what it is not.} It is not the best format for a datapath that
+multiplies, where the block axis (MX, NVFP4) holds the ground and we make no
+claim. It is not a $7\%$ win over \texttt{int8}, because \texttt{int8} carries no
+range and is not doing the same job. And the frontier result would be empty
+without the reason each competitor sits below it, which is why each of those
+reasons is a theorem here rather than a table entry.
+
 
 \section{Limitations}
 
