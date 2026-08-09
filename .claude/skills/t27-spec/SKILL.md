@@ -2367,3 +2367,63 @@ to remember it.
 Worth pairing with the inverse, added when the last one closed: a gate asserting **no
 expected-refutation guard remains**. Together they make "what is knowingly broken" a
 checked property of the repository instead of institutional memory.
+
+---
+
+## A bounded result is a claim about (system, scale) — publish both
+
+"All properties proved" is not a property of a design. It is a property of the design
+*paired with the bound the checker ran at*, and the two are inseparable: a bounded model
+check at depth N says nothing about a counterexample needing N+1 steps. Two modules once
+"proved" an address never wraps while both wrapped, because the wrap needed 4096 writes
+and the bound was 24.
+
+So measure the ceiling and publish it with the claim:
+
+```
+seq  DEPTH  verdict     time
+ 40      4  PROVED      40.7s     <- what CI runs
+ 60      4  PROVED     246.1s     <- 1.5x the bound, still holds
+ 80      4  undecided   >300s     <- the ceiling
+ 40      8  PROVED      70.5s
+ 60      8  PROVED     219.7s     <- both axes at once
+```
+
+Two things this buys that a single number does not. **Headroom**: the claim holds at 1.5×
+what CI uses, so it is not perched on the edge of its own tractability. And **cost
+shape**: 1.5× the unrolling cost 6× the time, while doubling memory cost 1.7×. Knowing
+which axis is expensive tells you which one you can afford to raise later.
+
+Raise the axes **together** at least once. Each alone can pass while the combination does
+not, and a single-axis sweep would never show it.
+
+Generalises to any bounded search: fuzzing iterations, property-test case counts, load-test
+concurrency, soak-test duration. Report the largest setting you verified, not just the one
+you run by default.
+
+## Undecided is a third verdict — do not fold it into pass or fail
+
+A timeout means the solver ran out of time. It is not a failure (nothing was shown wrong)
+and not a pass (nothing was shown right). Folding it into "fail" is alarmist and gets the
+result ignored; folding it into "pass" is false, and it is the direction people drift
+because green is comfortable.
+
+Give it its own column. In this sweep, four modules of five extended to 4× their bound and
+one became **intractable at 2×** — its proof is real at its own bound and *nothing is known
+beyond it*. That is the single most useful line in the table: it names the one place a
+deeper defect could sit unseen. Collapsing it into either binary would have erased it.
+
+The same applies to skipped tests, flaky retries, and partial rollouts. A result you did
+not obtain is information, and it belongs in the report at the same prominence as the ones
+you did.
+
+## Check the ceiling, or it drifts
+
+Recording "proved at depth 40" in a document is a snapshot. The design grows, the state
+space grows, and one day the depth that used to complete no longer does — silently,
+because nothing re-runs the larger configurations.
+
+A scheduled gate that re-establishes each documented scale, and fails when one starts
+refuting **or stops completing**, turns the ceiling into a checked property rather than a
+remembered one. Both failure directions matter: a refutation means a real defect at depth,
+a new timeout means the claim quietly shrank.
