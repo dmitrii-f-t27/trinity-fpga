@@ -74,12 +74,16 @@ per area: GFTernary $0.177$ and TNF4 $0.167$\,MHz/LUT at 2 and 4 bits, against
 binary32's $0.163$ and posit32's $0.030$ --- $5.9\times$ our first, at $16\times$
 the storage.
 
-The ladder is a frontier. A width-$N$ format of effective mantissa $m$ and range
-$b$ binades is dominated exactly when $m+\log_3(b+1)\le N-1$, while any uniform
-format obeys $m+\log_2(b+1)\le N-1$: the same books in two currencies. Every
-uniform binary format is dominated with slack $0.3691E$ positions; of 28
-catalogued formats from 8 to 128 bits none escapes, and Ternary27, the only
-ternary-radix competitor, falls with five positions to spare.
+The ladder is a frontier, and its reach is smaller than a position count
+suggests. Counting positions, a width-$N$ format of effective mantissa $m$ and
+range $b$ is dominated when $m+\log_3(b+1)\le N-1$ against a uniform budget of
+$m+\log_2(b+1)\le N-1$, an apparent slack of $0.3691E$. Counting \emph{bits},
+a realisable member obeys $3^{E_t}2^{M}\le 2^{N-1}$, and the condition collapses
+to $m+\log_2(b+1)\le N-1$ --- identically the uniform budget, since
+$\log_2 3\,\log_3 x = \log_2 x$. At equal storage the family ties every uniform
+binary format that spends all its bits, dominates those that waste budget
+(6 of 17 sampled), and is escaped by tapers measured where they concentrate
+precision. The slack is real only where a position is physically ternary.
 
 The accumulator obeys a law we derive and then measure: error grows as
 $\sqrt{pK}\,2^{-(M+1)}$ in fan-in, fitted at $+0.476$ against a predicted $+0.5$.
@@ -2393,6 +2397,51 @@ orders of magnitude, and a format with zero dynamic range cannot hold them: ever
 published sub-8-bit training result --- MXFP4, NVFP4 --- carries block scales
 \emph{and} a higher-precision master weight. Our own stack trains on the part, at
 zero DSP, with backpropagation in the format itself.
+
+
+
+\subsection{Withdrawal: the frontier at equal storage}
+\label{sec:packedfrontier}
+
+Corollary~\ref{cor:nosurvivors} and Corollary~\ref{cor:slack} count positions.
+A format is stored in bits, and that difference is the whole of the slack.
+
+\begin{theorem}[Packed coverage]
+\label{thm:packedcov}
+A family member realisable in $N$ bits obeys $3^{E_t}2^{M} \le 2^{N-1}$.
+Substituting the minimal $E_t = \log_3(b+1)$ gives
+\[
+  m + \log_2 3 \cdot \log_3(b+1) \;=\; m + \log_2(b+1) \;\le\; N-1 ,
+\]
+identically the uniform binary budget of Theorem~\ref{thm:budget}, since
+$\log_2 3 \cdot \log_3 x = \log_2 x$.
+\end{theorem}
+
+\begin{corollary}[The slack is a position artefact]
+\label{cor:slackartefact}
+A ternary exponent encoding provides no budget slack at equal storage. The
+$0.3691E$ of Corollary~\ref{cor:slack} exists only at equal \emph{position}
+count, that is on a fabric where a position is physically ternary.
+\end{corollary}
+
+Measured at equal storage against the catalogue, $6$ of $17$ sampled formats are
+dominated rather than all of them. Every uniform binary format spending all its
+bits ties exactly: binary16 at $15.06$ against a budget of $15$, binary32 at
+$31.10$ against $31$, binary64 at $63.27$ against $63$. Those dominated are the
+ones wasting budget --- posit32 by $5.12$ positions, posit64 by $14.24$, takum32
+by $0.82$, tekum32 by $0.90$, \texttt{cray\_float} by $0.65$, and our own gf8 by
+$0.70$. Several tapered formats escape outright: posit8 by $1.16$, posit16 by
+$2.37$, takum16 by $1.53$, tekum16 by $1.49$. That is consistent with
+Corollary~\ref{cor:escape} --- escape requires non-uniformity, a taper is
+non-uniform, and a uniform family cannot catch it at equal storage.
+
+\paragraph{Why this went unseen.} The same defect appears twice elsewhere in this
+paper, as Theorem~\ref{thm:nofree} and as the observation that TNF4 with $E_t=2$
+does not exist in four bits because $3^{2}=9>8$. Both were recorded as local
+facts about packing, and neither was carried back to the result that rests on the
+same quantity. The rule we adopt is that a correction invalidating a comparison
+must be applied to every claim resting on that quantity, not only to the one
+where it surfaced.
 
 
 \subsection{The trit is the slack}
