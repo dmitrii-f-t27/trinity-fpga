@@ -135,3 +135,49 @@ for n, m in lins:
 
 print("\n  Prediction under test: the MX spec's ceiling rule should be the WORST of the")
 print("  E8M0 rows, and shrinking the scale below the block maximum should help.")
+
+
+# ---------------------------------------------------------------------------
+# CORRECTION: what the OCP MX spec actually prescribes.
+#
+# The rows above label a CEILING-rounded E8M0 as "MX spec". Checking the OCP Microscaling
+# Formats specification, that is not what it says. The shared scale is
+#
+#     X = 2 ^ ( floor(log2(max_i |V_i|)) - emax_elem )
+#
+# with emax_elem the largest exponent of the element format (2 for E2M1, whose maximum is
+# 6 = 1.5 x 2^2). So the spec uses a FLOOR on the block maximum's exponent, not a ceiling.
+# Writing amax = m * 2^E with m in [1,2), the spec's scale corresponds to a ratio
+#
+#     r = 1.5 / m ,   m in [1,2)  =>  r in (0.75, 1.5]
+#
+# i.e. it SHRINKS whenever m > 1.5 and grows otherwise, and it deliberately tolerates
+# clipping of the maximal element by up to 25%. My ceiling implementation gives r in [1,2) --
+# always growing, which scale_theory.py identifies as the worst region. So the earlier
+# "true MXFP4" perplexity was measured against a rule HARSHER than the standard, and that
+# label was wrong.
+#
+# This block measures the spec rule alongside the others so the comparison is honest.
+# (Stated as my reading of the spec; the formula is what is implemented and can be checked.)
+
+def scale_ocp_mx(s, offset):
+    """OCP MX shared scale. `s` arrives as amax/top, so recover amax = s*top."""
+    amax = s * float(E2M1[-1])
+    E = torch.floor(torch.log2(amax.clamp(min=1e-30)))
+    return torch.pow(2.0, E - 2.0)
+
+
+print("\n\nCORRECTION -- the OCP MX spec uses a FLOOR rule, not the ceiling used above\n")
+EXTRA = [
+    ("E2M1 + OCP MX spec rule (floor)", E2M1, scale_ocp_mx, 0.0, 1.0),
+    ("E2M1 + E8M0 ceiling (what I called MX)", E2M1, scale_e8m0, 0.5, 1.0),
+    ("E2M1 + E8M0 nearest", E2M1, scale_e8m0, 0.0, 1.0),
+]
+print(f"  {'configuration':<42}{'perplexity':>12}{'vs fp32':>10}")
+for name, lv, fn, off, sh in EXTRA:
+    for n, m in lins:
+        m.weight.copy_(quantise(base[n].double(), lv, fn, off, sh).to(m.weight.dtype))
+    p = ppl()
+    print(f"  {name:<42}{p:>12.3f}{p - p0:>+10.3f}")
+for n, m in lins:
+    m.weight.copy_(base[n])
