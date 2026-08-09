@@ -3459,3 +3459,48 @@ cycle the probe examines — the answer is often "exactly this, and it is fine".
 
 Related to an earlier lesson in reverse: an unconstrained input makes a correct design look
 broken; an over-strict property does the same, and both cost a wave if reported as findings.
+
+---
+
+## Re-measure a published number when its subject has changed underneath it
+
+A scale ceiling was measured, published in a README, and gated in CI. Ten defect fixes and
+six new properties later it was re-measured: **three of six configurations that previously
+passed no longer complete**. The published claim had been false for some time, and nothing
+had reported it — the gate only re-checked the scales it was given, never whether those were
+still the right ones.
+
+The general shape: a measurement is a fact about a system at a moment. Every claim derived
+from one has an implicit "as of", and the things most likely to invalidate it are the very
+changes the team is proudest of.
+
+**Put the re-measurement on the same schedule as the changes, not the calendar.** A
+performance number, a coverage figure, a capacity estimate, a benchmark — after a run of
+substantive change, re-measure before citing.
+
+## Re-baselining is maintenance; say so, and distinguish it from weakening
+
+The gate demanded scales that no longer complete. Left alone it would have been a permanent
+red — the worst state for a gate, because people learn to skip its output and it stops
+protecting anything at all.
+
+It was re-baselined to the scales that hold, and the commit says explicitly *why*: the
+subject moved, so the claim moved with it, and both were re-verified. That sentence is what
+separates maintenance from quietly lowering a bar.
+
+The test to apply before relaxing any gate: **can I state what changed in the world that
+makes the old expectation wrong?** If yes, re-baseline and record it. If the honest answer
+is "nothing changed, it just fails now", that is a defect, not a stale baseline.
+
+## Measure your verification apparatus separately from your system
+
+At the same scale: the design alone proved in **5.5 s**; with its properties and their
+formal-only tracking state, **126.7 s**. The scaffolding cost **23×** the thing it verifies.
+
+That reframes every optimisation instinct. The slowdown blamed on new interlocks was mostly
+the properties added alongside them — so shrinking the design would have bought little,
+while separating the formal-only state costs nothing in the shipped artifact.
+
+Worth measuring once for any test harness that shares a build with its subject: fixtures,
+instrumentation, assertion state, mocks. When the harness dominates, optimise the harness —
+and know that before spending a wave on the subject.
