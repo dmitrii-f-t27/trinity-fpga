@@ -2136,3 +2136,51 @@ The rule that keeps this honest: **after two failed attempts, the next action is
 counterexample read carefully, not a third patch.** Patches that follow a wrong model
 compound — each one adds behaviour that the next investigation must account for, and by
 the fourth you are debugging your own repairs.
+
+---
+
+## Scanning for the broken form of a shape only finds what nobody fixed
+
+After finding a defect shape twice, the instinct is to grep for it. That scan returned
+**zero** candidates — because both instances had just been repaired. The scan was
+searching for the *symptom* of an unfixed bug, so a clean result meant nothing about the
+rest of the codebase.
+
+Enumerate the **class**, not the symptom. The symptom was "a self-incremented address
+co-assigned with a write-enable". The class is "every write port" — and the right question
+is semantic: *does this port present address, data and enable from the same stage?*
+Enumerating the class found a third port that had never been checked at all, and proved it.
+
+The general form: when a scan for a known bug pattern comes back empty, ask whether it
+could have found the bug *before* you fixed it. If the answer is "only in the exact form I
+already repaired", the scan measured your memory, not the code.
+
+## A property a known defect would have passed is the wrong property
+
+The first property written for the wrap defect required the write address to *increase*.
+It passes a design that skips slot 0 entirely — which is precisely what the second defect
+did. Monotonicity was too weak, and nothing revealed that until a second bug hid inside
+the gap.
+
+The check to run at the moment a defect is fixed: **would my property have failed on the
+code I just repaired?** Run it against the pre-fix version. If it passes, strengthen it
+before moving on — you have written a property that describes the fix rather than the
+requirement.
+
+Here the requirement was contiguity — no gap, no repeat, starting at zero — which is
+strictly stronger than monotonicity and catches both defects. Cheapest possible moment to
+discover that: right then, with the broken version still in reach.
+
+## Do not diagnose with a tool that just contradicted itself
+
+A counterexample extraction reported a trace in which the guard signal was low the whole
+time — which cannot violate a property guarded on that signal. That is the tool telling
+you it is unreliable, not the design telling you something subtle.
+
+The disciplined response is to stop, record the finding as-is, and fix the instrument
+before using it again — ideally by validating it against a property with a *known*
+counterexample. Continuing to reason from a self-contradictory trace produces confident
+conclusions from noise, which is worse than having no trace at all.
+
+Same rule as the baseline check, one level up: **verify the instrument on a case whose
+answer you already know, before trusting it on one you don't.**
