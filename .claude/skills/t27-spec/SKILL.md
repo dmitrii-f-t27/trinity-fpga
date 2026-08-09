@@ -3958,3 +3958,41 @@ answer you want.
 shadow model of the request refuted; the temptation is to weaken the property
 until it passes. Recording "this shadow model is wrong, not shipped" is worth
 more than a property that proves because it was bent to.
+
+## Wave 613 — "detects nothing" has three causes, only one is a problem
+
+**Give every property a verdict, and classify the silent ones.** A detection
+matrix alone defames properties that are doing their job. Three outcomes, and
+the probe that separates them:
+
+| verdict | test |
+|---|---|
+| **BITES** | catches mutants, and not a subset of another property's set |
+| **INNOCENT** | catches nothing *because* mutations that could violate it make its **guard** unreachable — probe: assert the guard is impossible; it refutes on the original, proves on those mutants |
+| **SUBSUMED** | its detection set is contained in another's |
+| **DEAD** | guard reachable throughout, not subsumed, still catches nothing |
+
+Running this over 24 shipped properties gave 18 / 1 / 5 / **0**. Zero dead is
+worth measuring for: it is the difference between "the suite is large" and "the
+suite is lean", and nobody can assert it without the sweep.
+
+**Subsumed is not deletable.** All five subsumed properties were kept, because a
+suite is read as well as run: two state an AXI rule in the specification's own
+form, one is the *regression witness* for a defect that actually shipped.
+Deleting a regression witness because a newer property happens to cover it
+discards the record of what went wrong. **Write the verdict next to the
+property** — otherwise the next person to run a detection matrix deletes them
+thinking it is cleanup.
+
+**Symmetry does not predict detection power.** `a_awvalid_stable` bites
+uniquely, its read-side twin is subsumed, its write-data sibling is innocent —
+three properties of identical shape over three channels, three different
+verdicts. Never reason about a suite by analogy between channels; measure each.
+
+**When the disk fills, preserve the work before anything else.** Bash and Write
+both fail with ENOSPC — Bash cannot create its output file, Write cannot create
+its temp file, so *no* tool call succeeds. When space fluctuates back, spend the
+first successful calls on `git add` + `commit` + `push`, not on diagnosis. And
+do not delete to make room while unattended: on a shared APFS container `df /`
+can report a repo-sized number while the real consumer is another volume
+entirely, so the obvious cleanup target is usually the wrong one.
