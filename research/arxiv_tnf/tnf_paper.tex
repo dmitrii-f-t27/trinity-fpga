@@ -2251,6 +2251,87 @@ rather than the frozen one. The rule that would have caught all three is to writ
 down what the competitor would build if it were trying to win, and measure that.
 
 
+
+\subsection{The operating point}
+\label{sec:operatingpoint}
+
+The previous subsections withdraw an accuracy claim and an area claim. What
+remains is a statement about operation profiles, and it is the first in this
+section that names its own boundary rather than being pushed to it.
+
+A number system is used through two operations, and the three candidates each buy
+one cheaply and pay for the other.
+
+\begin{table}[t]\centering
+\caption{Cost of each operation, one harness, XC7A200T, DSP inference off. The
+logarithmic row is our own measurement of \texttt{takum32\_decode} from
+Section~\ref{sec:hardware}.}
+\label{tab:bothops}
+\begin{tabular}{lll}
+\toprule
+system & multiplication & addition \\
+\midrule
+LNS, takum & exponents add: \textbf{free} & $\log(1+2^{x})$ table: $10{,}967$ LUT, $84$ RAMB36 \\
+fixed point, APoT & multiplier, or wiring if frozen & adder: \textbf{cheap} \\
+$\mathbb{Z}[\varphi]$ & Fibonacci step, one adder & componentwise: $64$ LUT \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+$\mathbb{Z}[\varphi]$ is the only one cheap under both. Its price is that free
+multiplication is restricted to powers of $\varphi$ rather than general, and the
+following says why that price is not paid in this datapath.
+
+\begin{theorem}[The required multiplication set]
+\label{thm:reqmul}
+In a datapath where every weight is a code applied by sign-select, the layer
+scale is a power of the alphabet base, and accumulation is the only remaining
+operation, the multiplications the datapath must perform are exactly
+$\{\text{base}^{k}\}$. General multiplication is never requested.
+\end{theorem}
+
+\begin{corollary}[Sufficiency]
+\label{cor:sufficiency}
+A ring closed under addition and under multiplication by powers of its generator
+is sufficient for such a datapath. $\mathbb{Z}[\varphi]$ is such a ring with both
+operations at $\Theta(W)$.
+\end{corollary}
+
+\begin{corollary}[The other two are mis-provisioned]
+\label{cor:misprov}
+LNS is over-provisioned: it buys general multiplication, which this datapath
+never asks for, and pays in addition, which it performs on every term of every
+inner product. Fixed point is under-provisioned in the opposite direction:
+addition is free, scale multiplication is not, unless the scale is frozen.
+\end{corollary}
+
+The restriction of $\mathbb{Z}[\varphi]$ coincides with the restriction the
+ternary datapath already carries. That coincidence is the result; it is not a
+claim that the format is better, only that it is matched.
+
+\begin{theorem}[Compile-time composition is free]
+\label{thm:compilecomp}
+If all $d$ scales of a chain are known before execution, their product is known,
+and any representation applies it at the cost of a single scale. The term growth
+of Theorem~\ref{thm:termgrowth} occurs if and only if $d$ or the scales become
+known only at runtime.
+\end{theorem}
+
+This removes three of the four cases where we had claimed a depth advantage. A
+low-rank factorisation, a folded convolution and batch norm, and a residual
+branch scalar are all fixed after training, so their product is precomputed and
+no composition occurs in hardware. One case survives: accumulation along a mesh
+route without renormalisation, where the hop count is a runtime quantity. The
+depth advantage is real and it lives there rather than in the network.
+
+\paragraph{Stated boundaries.} This is not an area win over APoT, which was
+measured and withdrawn. It is not an accuracy win, where APoT-2 is $15\times$
+ahead. And where a scale is frozen there is nothing to win, because a frozen
+scale is wiring. It is a claim about which system matches an operation profile,
+holding where the scale is not frozen: a shared engine serving many layers, or a
+composition whose depth is not known until execution.
+
+
 \subsection{The formats a training run cannot live in}
 \label{sec:untrainable}
 
