@@ -90,6 +90,25 @@ for nm, r in rtl.items():
                      f"({100*(1-tcap/bcap):.1f}% less) -- an area comparison between them "
                      f"is not at equal capability")
 
+# --- 5. implementation orphans -------------------------------------------
+# A module that synthesises and measures but has no catalogue row is checked by
+# nothing: specification gates do not see it, and instrument checks only confirm
+# it does what it does. Its numbers reach a report with the same weight as
+# verified ones.
+for nm, r in rtl.items():
+    cid = nm if nm in cat else ALIAS.get(nm, "")
+    c = cat.get(cid)
+    if not c:
+        continue
+    if r["ternary"] and r["trits"] is not None:
+        match = [k for k, v in cat.items()
+                 if v["ternary"] and v["e"] == r["trits"] and v["m"] == r["m"]
+                 and v["N"] == r["width"]]
+        if not match:
+            fails.append(f"[orphan] {nm} implements Et={r['trits']}, M={r['m']} in "
+                         f"{r['width']} bits, which matches no catalogue row -- "
+                         f"synthesised and measured but specified nowhere")
+
 print(f"catalogue rows parsed: {len(cat)}   RTL decoders parsed: {len(rtl)}")
 if fails:
     print(f"\nFAIL: {len(fails)} disagreement(s)\n")
