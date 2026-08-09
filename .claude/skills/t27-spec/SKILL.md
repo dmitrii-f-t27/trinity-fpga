@@ -2628,3 +2628,66 @@ greater than 1 means the members interact, and isolating them buys real headroom
 
 Same reasoning applies to test fixtures, container startup in CI shards, and any harness
 where a costly setup is amortised across cases.
+
+---
+
+## A stub measures cost, not behaviour — and the baseline check tells you which
+
+To find where a solver's time goes, replacing a subsystem with a same-interface stub is a
+fast and legitimate experiment: it answered "the datapath is 31% of the cells and 87% of
+the time" in two runs.
+
+What it cannot answer is anything about correctness. Under the stub, **all twenty
+properties failed — including a tautology**. A trivially true assertion cannot be broken
+by swapping a multiplier, and the baseline check confirmed why: the stubbed build did not
+pass with *no properties at all*. The build was unsound, so every verdict from it was
+noise.
+
+Keep the two apart deliberately:
+- **timings** from a stub are usable, because they measure how long the tool ran;
+- **verdicts** are not, because they describe a system you did not build.
+
+Run the baseline on the modified build before reading any pass/fail from it. This is the
+same rule that applies to mutation harnesses and probe rigs, and this was the first time
+it caught *my own replacement* rather than someone's change to the design.
+
+## Cell count is a poor proxy for solving cost
+
+The stub removed 31% of cells and 0.4% of flops, and cut solve time by **8×**. The
+expensive part was combinational — a wide parallel multiply and its adder tree — and
+unrolling a bounded check multiplies combinational logic once per step while sequential
+state grows only linearly.
+
+So when a bounded proof is slow, look for **wide combinational structures**, not for
+register count. Arithmetic, comparators, priority encoders and crossbars dominate; state
+machines and counters usually do not.
+
+The same intuition misleads in reverse elsewhere: a design that looks small by flop count
+can be very expensive to verify, and a design with many registers but simple logic can be
+cheap.
+
+## A knob exists only if someone built one
+
+Memory depth was scalable for proofs because it was already a module parameter — one flag,
+no edits. The datapath was not, and no amount of tool knowledge changes that: the width
+was a literal at 26 sites across six generators, and the lane count 37 times in one.
+
+**Scalability for testing is a property of the code, not of the tool.** When a system
+resists being shrunk for a test, the finding is usually "this quantity was never
+parameterised", and the fix is a refactor with its own risk — not a flag you have yet to
+discover.
+
+Worth recording as a design habit: quantities you will one day want to shrink for a test —
+widths, lane counts, queue depths, batch sizes, retry limits — are cheap to parameterise
+when written and expensive to parameterise later.
+
+## Do not start an invasive refactor to serve a measurement, late
+
+The obvious follow-through was to thread a width parameter through six generators. It was
+measured, scoped, and **not attempted** — a change touching every consumer of a datapath,
+made at the end of a long session, motivated by a proof budget rather than by the design,
+is how correct code acquires defects.
+
+Deliberately stopping at "measured and scoped" leaves the next session a task that starts
+fresh with the full picture. The alternative — a half-finished refactor plus a tired
+reviewer — trades a known cost for an unknown one.
