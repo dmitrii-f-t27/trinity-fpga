@@ -3547,3 +3547,52 @@ The rule that follows: when the same edit fails twice for related reasons, stop 
 characterise the *structure* you are editing before trying a third time. Here the answer was
 "six separate sites, hand-placed, guard depth verified in the output" — mechanical but not
 scriptable, and clearly not something to start at the end of a long session.
+
+---
+
+## For a conditional-compilation edit, verify the structure of the output — in every configuration
+
+An edit that adds `#ifdef`-style guards has a failure mode that compiling does not catch:
+the guard can land in the right place for the configuration you test and the wrong place
+for the one you don't. Here a guard closed *before* its block's closing `end`, which was
+invisible with the define set and would have orphaned two lines without it — the
+configuration CI runs most often.
+
+Three separate checks, and the second is what caught it:
+
+1. **every configuration elaborates** — none, core, and full
+2. **the partition is exactly what you intended** — per-item guard depth from the *output*,
+   not from the edit: 22 items at depth 1, 4 at depth 2
+3. **the guards balance** — depth returns to 0 at end of file
+
+Checking "it compiled" would have passed the broken version. Checking the structure of the
+generated artifact is what distinguishes an edit that happens to work from one that is
+right.
+
+## Scattered things look contiguous until you print their positions
+
+Two attempts at the same edit failed because four items and their ten dependencies were
+assumed to sit in one block. They form **four** regions — and one unrelated item sits inside
+what looks like a fifth.
+
+The third attempt began by printing every relevant line number and reading the region, which
+took a minute and made the shape obvious. That is the whole difference between the attempts:
+not more care in the edit, but **establishing the structure before editing at all**.
+
+When a batch edit fails on structure, stop editing and dump the structure. Line numbers,
+nesting depth, what sits between the things you meant to group. The map is cheap; two
+reverts are not.
+
+## Splitting work by cost, not by importance, can raise every bound at once
+
+Four checks needed dedicated state and cost 75% of the runtime; twenty-two needed none.
+Splitting them by *cost* — not by how much anyone cares about them — let the cheap group run
+four times deeper while the expensive group kept its old depth.
+
+The move only counts as free when **every item's coverage rises or holds**. Say that
+explicitly and check it, because the same restructuring done carelessly is how coverage
+quietly drops.
+
+Generalises to any suite where a minority dominates: split the fast majority into a
+frequent, deep run and let the slow minority keep a shallower one, rather than letting the
+slowest member set the depth for everything.
