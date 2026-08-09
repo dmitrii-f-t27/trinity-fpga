@@ -2865,3 +2865,62 @@ When scanning configuration or code for a feature, match on the **structure**, n
 text: the parsed command line, the AST node, the actual key — never a substring of the
 whole blob. If only a text scan is available, strip comments first, and treat any hit
 inside prose as a negative.
+
+---
+
+## Mutation-test a gate on the day you write it, in the same step
+
+A new gate was written to catch a class of defect found by hand the wave before. The gate
+and its own control ship together, in one CI step:
+
+```
+scanned 67 assertion bodies; 0 discharged by syntax
+ok   gate flags self-comparison
+ok   gate flags nested self-comparison
+ok   gate flags unsigned >= 0
+ok   gate flags literal true
+ok   gate passes a real property      <- the control that matters most
+```
+
+The four positive cases prove it fires. The negative case proves it is not simply firing on
+everything — which is the failure mode that scores perfectly on positives alone.
+
+Doing this at authoring time costs minutes; retrofitting it later means auditing a gate you
+have already trusted for months. The rule generalises: **a check that is not itself checked
+is an assumption wearing a green tick.**
+
+## A detector that produces false positives is worse than no detector
+
+An attempt at a stronger, semantic version of the same gate compared cell counts before and
+after neutralising a property, on the theory that a free property adds no logic. It flagged
+six **real** properties — including ones that had caught genuine defects — because
+common-subexpression elimination lets a genuine property add zero net cells.
+
+That detector was withdrawn, not tuned. A gate that cries wolf on real work gets disabled by
+whoever hits it next, and takes the true positives with it.
+
+Three more attempts failed for unrelated reasons, and the honest response after the fourth
+was to ship the weaker, verified check and **write the dead ends into the module**:
+
+```python
+# A SEMANTIC layer was attempted and did not land. Recorded so the next attempt
+# starts from what was learned rather than repeating it:
+#   * cell counts are UNSOUND (CSE) -- flagged six real properties
+#   * `chformal -lower` needs `async2sync`, after which the guard folds into A
+#   * before lowering, every $check's A reads 1'1 for real and free alike
+#   * useful: after async2sync the cells are NAMED after their property labels
+```
+
+Four recorded dead ends are worth more to the next attempt than a broken tool in the
+pipeline, and cost nothing to carry.
+
+## Ship the smaller thing, and state what it does not do
+
+The gate that shipped catches the shapes that actually occurred. It does not decide whether
+an arbitrary property can ever fail, and its docstring says so in the same paragraph as its
+purpose.
+
+That sentence is what stops the next reader — often you — from citing the gate as broader
+evidence than it is. The pattern across this campaign: every overstated claim was
+overstated at the moment of writing, by someone who knew the limit and did not write it
+down.
