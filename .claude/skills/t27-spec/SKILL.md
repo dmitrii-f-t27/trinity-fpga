@@ -3361,3 +3361,50 @@ Harmless here, and the general shape is not: a checker built from an allowlist r
 violations that are really gaps in the list. Every such gate needs its own negative control
 — a known-good input that must pass — for the same reason the positive cases need one.
 Prop. 28's discipline applies to the gate's *recognition*, not only to its detection.
+
+---
+
+## Every place that can constrain behaviour needs a check that behaviour remains
+
+A campaign added reachability witnesses to its top-level integration suite and never to the
+module suites — because the top level was where interlocks were being added, and stalling
+was the visible risk there. Twenty-four waves later, an over-constraint appeared in a
+*module* file and was caught by a *top-level* witness. Coverage overlap, not design.
+
+The gap is structural, not an oversight: an assumption file with no reachability probe is a
+place where over-constraint is **invisible by construction**. Adding a constraint makes
+every property in that file easier to prove, so the symptom is everything getting greener.
+
+Rule: wherever behaviour can be constrained — assumptions, mocks, fixtures, test doubles,
+feature flags that disable paths — put a check that the constrained thing still happens.
+Twelve probes across five suites cost one wave and closed a gap that had existed since the
+suites were written.
+
+## A "no findings" sweep needs a control run, every time
+
+Twelve probes, twelve clean results. That is indistinguishable from twelve broken probes
+until you show one failing:
+
+```
+reinstate the known over-constraint
+  wp_props/bram_we          -> PROVES   <- the failure signal, as designed
+  wp_props/prefetch_active  -> PROVES
+```
+
+The control is cheap because a real instance was already in the campaign's history —
+reinstating a known-bad state is the least effort and the strongest evidence. Where no
+historical instance exists, inject one deliberately.
+
+This is the third wave in a row where the control mattered more than the result: a clean
+sweep is a claim about the instrument first and the subject second.
+
+## Scope a negative result by what it cannot see
+
+The probes here check that each module's *main activity* is still reachable. A constraint
+that removes a rare interleaving while leaving the main activity alone passes all twelve —
+and that sentence belongs in the result, not in a follow-up when someone finds the gap.
+
+The pattern from this campaign: every overstated claim was overstated at the moment of
+writing, by someone who knew the limit. Writing the limit in the same paragraph as the
+finding costs one sentence and is the difference between a bounded result and one that gets
+cited later as broader than it was.
