@@ -38,9 +38,10 @@
 % The thesis is what the ladder is FOR: a reference whose error is predictable
 % from its parameters and does not move with magnitude. Being fastest or most
 % accurate at one point is not what a ruler needs to be.
-\title{Ternary Network Floats: a fixed-field ladder with no regime to decode \\
-  \large A balanced-ternary exponent over a binary radix, from 4 to 1024 bits,
-  measured against the published posit and takum codecs on open silicon}
+\title{Ternary Network Floats \\
+  \large One parameter, and no uniform format escapes it: a fixed-field ladder
+  whose ternary exponent is exactly the slack, measured against 28 catalogued
+  formats from 8 to 128 bits and synthesised on open silicon}
 \author{Dmitrii Vasilev\\
   \small ORCID 0009-0008-4294-6159 \\
   \small \texttt{admin@t27.ai}}
@@ -50,84 +51,35 @@
 \maketitle
 
 \begin{abstract}
-A reference format is not the one that is fastest, or the most accurate at any one
-magnitude. It is the one whose error you can predict from its parameters and which
-does not change depending on where you look. We describe \textbf{Ternary Floats}
-(TNF), a ladder built for that role: the exponent is a balanced-ternary integer of
-$E_t$ trits, the mantissa is a constant $M$ bits, and the fields are fixed.
+Ternary Network Floats (TNF) are a one-parameter family of fixed-field number
+formats for ternary networks: a sign, a balanced-ternary exponent of $E_t$ trits,
+and an $M$-bit mantissa, with $1+E_t+M=N$ so every position of the word is spent.
 
-The foundation is a law rather than a table. Across every rung the mean relative
-round-trip error is $\tfrac12\mathbb{E}[1/s]\,2^{-(M+1)}$
-(Theorem~\ref{thm:law}), derived rather than fitted: the binade exponent cancels,
-leaving a closed form in the mantissa width and the significand distribution
-alone. Measured across eight rungs spanning 302 orders of magnitude the constant
-holds to $\pm3\%$, and within each rung the error varies by at most $7\%$ from one
-end of a 76-binade workload to the other.
+The family is a frontier rather than a list. We prove that a width-$N$ format of
+effective mantissa $m$ and range $b$ binades is dominated by the family exactly
+when $m+\log_3(b+1)\le N-1$, while any uniform format obeys its own budget
+$m+\log_2(b+1)\le N-1$. These are the same accounting in two currencies, and the
+exchange rate is the result: every uniform binary format is dominated, with slack
+$0.3691\,E$ positions growing linearly in the exponent width it spends. Against 28
+catalogued formats at 8, 16, 32, 64 and 128 bits --- IEEE, bfloat, VAX, IBM
+hexadecimal, Cray, posit, takum, tekum --- none escapes. The bound is tight
+(posit16 sits within $1\%$) and not vacuous: that same posit16, scored where a
+taper is designed to live instead of averaged over its range, violates it at
+$16.30$ against a budget of $15$. Escape therefore demands non-uniformity, and
+there are exactly two routes --- a taper, or a scale shared outside the word.
 
-The law's consequence is that a format's costs become commensurable. A mantissa
-bit has a marginal area $\lambda$, so a variable-length exponent field costs a
-measurable number of mantissa bits of silicon (Theorem~\ref{thm:convert}).
-Synthesising the regime codecs of both tapered families under one harness on an
-XC7A200T, net of harness: a unary regime costs $438$ LUTs and a length-prefixed
-one $40$, against $0$ for a fixed field, which at the 16-bit class are $8.98$ and
-$0.82$ mantissa bits. The first exceeds TNF16's entire mantissa; the second is
-small. On that axis the argument is decisive against posit and weak against takum,
-and we say so rather than averaging the two.
+Accuracy is one derived law: the mean relative round-trip error is
+$\tfrac12\mathbb{E}[1/s]\,2^{-(M+1)}$, the binade exponent cancelling. It holds to
+$3\%$ across eight rungs spanning 302 orders of magnitude.
 
-Synthesising the \emph{published} decoders rather than our models of them then
-moves the main result somewhere else, and we had been measuring the smaller half.
-\texttt{posit32\_decode} costs $480$ LUTs, as its structure predicts.
-\texttt{takum32\_decode} evaluates $2^{f}$ from a $65536\times 48$-bit table and
-costs $10{,}967$ LUTs and $84$ RAMB36 tiles --- $23\%$ of the device's block
-memory --- because takum's value law is logarithmic and a linear datapath needs
-the exponential. TNF's exponent path is wires. Theorem~\ref{thm:valuelaw} makes
-this a second axis, orthogonal to tapering: what a format costs to \emph{read} is
-set by whether its value law is $s\cdot 2^{e}$ or $2^{\ell}$, not by how it spends
-precision. Unlike the accuracy result, Theorem~\ref{thm:floor} places no range
-bound on it. One asymmetry is stated rather than left implicit: a logarithmic law
-turns multiplication into addition, and a design that stays in the logarithmic
-domain never pays this.
+In silicon on a fully open flow: $12$, $50$, $212$, $1477$ and $7479$ LUTs at
+$161.1$, $153.2$, $131.7$, $83.3$ and $48.2$\,MHz, one cycle, no DSP. Through one
+ternary-neuron datapath TNF sits mid-pack among fixed fields: the silicon gap runs
+between fixed and tapered encodings, not along this ladder, and we say so.
 
-What remains against takum is accuracy, and Theorem~\ref{thm:floor} bounds how far
-that claim may be taken. The exponent's encoding is a prefix code, so by Kraft no
-format of unbounded range tapers more gently than one bit per doubling; takum's
-regime is asymptotically optimal and nothing, TNF included, beats it beyond its
-own range. Inside TNF16's range it is $3.70\times$ and $11.21\times$ more accurate
-at mid and far magnitudes, and $3.70\times$ near unity where the unfilled rung
-used to lose.
-
-Turned around, the law is an instrument. The mantissa width a format
-\emph{behaves} as having, measured band by band inside each format's own range,
-resolves an 83-format catalogue into four staircase forms and only four: constant
-(38 formats), wobble (3, at exactly $\log_2 r$ bits, reproducing IBM
-hexadecimal's textbook figure), arithmetic ($5$; posit at exactly $2^{-es}$ per
-binade, confirmed at three widths) and geometric ($8$; takum and tekum at one bit
-per doubling).
-
-In silicon on an entirely open flow: $12$, $50$, $212$, $1{,}477$ and $7{,}479$
-LUTs at $161.1$, $153.2$, $131.7$, $83.3$ and $48.2$\,MHz for TNF4 through
-TNF64, one cycle of latency, no DSP blocks.
-
-We report what the measurements cost us. Three defects found while measuring
-generalise and are described rather than quietly fixed. Four claims of our own
-were falsified by the measurements meant to support them, including a predicted
-area for TNF64 that came in $1.57\times$ low, and each is retracted in place.
-
-Read together the results compose into a claim about the design space rather than
-about one format. It has four axes; three admit answers that do not depend on the
-workload. The radix of the scale is fixed at two unconditionally --- scaling is a
-shift only for $r = 2^{k}$, and on that set the error constant is strictly
-increasing, so the optimum is not the unconstrained extremum near $r = 1.9$ but
-the best point that can be built. The radix of the exponent's encoding is fixed by
-the fabric. Fixed fields or a taper is a genuine choice with exactly two options.
-The exponent--mantissa split follows once a range is named. Name the fabric, the
-range and the side of the dichotomy, and the format is determined. TNF is what
-that returns for one triple, which makes it forced rather than designed --- and
-carries no claim off those arguments.
-
-\medskip
-\noindent\textbf{Artifacts.} Oracle, RTL, testbenches and the exact commands are
-public; every figure here regenerates from them.
+Four of our own claims were falsified by the measurements meant to support them,
+and are retracted in place. Oracle, RTL and commands are public; every figure
+regenerates from them.
 \end{abstract}
 
 \section{What this paper argues}
@@ -1824,6 +1776,99 @@ field, but verifying it at the boundary is not always possible: at $E_t = 49$ th
 edge of the range is $2^{1.4 \times 10^{23}}$, which no exact arithmetic can
 construct. Above roughly $E_t = 30$ the range is a fact about the encoding rather
 than a measured quantity, and is reported as such.
+
+
+
+\subsection{The trit is the slack}
+\label{sec:slack}
+
+Corollary~\ref{cor:nosurvivors} is a fact about a list. It becomes a fact about
+the design space once one asks what a competitor would have to do to escape.
+
+\begin{theorem}[Coverage condition]
+\label{thm:coverage}
+$\mathcal{F}_N$ contains a member dominating a format of effective mantissa $m$
+and range $b$ binades if and only if
+\[
+  m + \lceil \log_3 (b+1) \rceil \;\le\; N-1 .
+\]
+\end{theorem}
+\begin{proof}
+A member $E_t$ has mantissa $N-1-E_t$ and range $3^{E_t}-1$. Domination requires
+$N-1-E_t \ge m$ and $3^{E_t}-1 \ge b$, i.e.\ $\lceil\log_3(b+1)\rceil \le E_t \le
+N-1-m$. Such an integer exists exactly when the stated inequality holds.
+\end{proof}
+
+\begin{theorem}[Position budget of a uniform format]
+\label{thm:budget}
+Let a \emph{uniform} format of width $N$ carry a sign, a scale field of $E$ binary
+positions and a significand of $m$ bits held at every representable magnitude.
+Then $b+1 \le 2^{E}$ and $1+E+m \le N$, hence
+\[
+  m + \log_2(b+1) \;\le\; N-1 .
+\]
+\end{theorem}
+
+The two budgets are the same accounting in different currencies, and the exchange
+rate is the whole result.
+
+\begin{corollary}[The ternary exponent is the slack]
+\label{cor:slack}
+Every uniform binary format of width $N$ is dominated by a member of
+$\mathcal{F}_N$, with slack
+\[
+  \Delta \;=\; E\,\bigl(1 - \log_3 2\bigr) \;=\; 0.3691\,E \quad\text{positions},
+\]
+strictly positive for $E \ge 1$ and growing linearly in the competitor's own
+exponent width.
+\end{corollary}
+\begin{proof}
+By Theorem~\ref{thm:budget}, $b+1 \le 2^E$ and $m \le N-1-E$. Then
+$m + \log_3(b+1) \le (N-1-E) + E\log_3 2 = (N-1) - E(1-\log_3 2)$, which satisfies
+Theorem~\ref{thm:coverage} with the stated margin.
+\end{proof}
+
+Measured, in positions: $1.48$ at \texttt{fp8\_e4m3}, $1.85$ at
+\texttt{binary16}, $2.95$ at \texttt{binary32}, $4.06$ at \texttt{binary64},
+$5.54$ at \texttt{binary128}. The margin is not a coincidence of the catalogue; it
+is $0.3691$ per exponent bit the competitor spends.
+
+This is worth stating plainly because it cuts against
+Theorem~\ref{thm:nofreerange}, which says a packed ternary exponent never carries
+more values \emph{per bit} than a binary one, and which we confirmed in silicon:
+BNF16 and TNF16 differ by $1\%$ in LUTs. Both are true, on different axes. Per
+\emph{position} a trit spans $\log_2 3$ binades against a bit's one, which is
+where $\Delta$ comes from; per \emph{bit of binary fabric} the packing gives it
+all back. The ternary encoding earns on the number axis and breaks even on the
+silicon axis, and a claim that does not name its axis is not a claim.
+
+\begin{corollary}[Escape requires non-uniformity]
+\label{cor:escape}
+A width-$N$ format escaping $\mathcal{F}_N$ must violate the hypothesis of
+Theorem~\ref{thm:budget}: either its significand is not held at every magnitude
+(a taper), or its scale field is not inside the word (a block).
+\end{corollary}
+
+\paragraph{The bound is tight, and it is not vacuous.} Equality in
+Theorem~\ref{thm:coverage} is attained by construction, since the width rule
+spends every position. Among the catalogued formats \texttt{posit16} comes within
+$1\%$: $10.55 + \log_3 113 = 14.85$ against a budget of $15$. And the escape route
+of Corollary~\ref{cor:escape} is real rather than hypothetical --- the same
+\texttt{posit16}, scored where a taper is designed to live rather than averaged
+over its range, carries $12$ fraction bits while keeping all $112$ binades:
+\[
+  12 + \log_3 113 \;=\; 16.30 \;>\; 15 .
+\]
+It escapes, as it should: concentrating precision where the workload sits is what
+tapering is \emph{for}. A bound no format can violate would be measuring nothing.
+
+\paragraph{What this predicts.} Corollary~\ref{cor:escape} names the only two
+routes out, and both are open questions rather than results of this paper. The
+taper route is bounded by Theorem~\ref{thm:floor} and costs what
+Section~\ref{sec:silicon} measures. The block route --- MX and its descendants,
+where one scale serves 32 elements --- lies outside every budget stated here,
+because the scale is not in the word. We report it as the frontier of this work
+and not as territory held.
 
 
 \section{Limitations}

@@ -1,0 +1,29 @@
+Ternary Network Floats (TNF) are a one-parameter family of fixed-field number
+formats for ternary networks: a sign, a balanced-ternary exponent of E_t trits,
+and an M-bit mantissa, with 1+E_t+M=N so every position of the word is spent.
+
+The family is a frontier rather than a list. We prove that a width-N format of
+effective mantissa m and range b binades is dominated by the family exactly
+when m+log_3(b+1)<= N-1, while any uniform format obeys its own budget
+m+log_2(b+1)<= N-1. These are the same accounting in two currencies, and the
+exchange rate is the result: every uniform binary format is dominated, with slack
+0.3691 E positions growing linearly in the exponent width it spends. Against 28
+catalogued formats at 8, 16, 32, 64 and 128 bits -- IEEE, bfloat, VAX, IBM
+hexadecimal, Cray, posit, takum, tekum -- none escapes. The bound is tight
+(posit16 sits within 1%) and not vacuous: that same posit16, scored where a
+taper is designed to live instead of averaged over its range, violates it at
+16.30 against a budget of 15. Escape therefore demands non-uniformity, and
+there are exactly two routes -- a taper, or a scale shared outside the word.
+
+Accuracy is one derived law: the mean relative round-trip error is
+(1/2)E[1/s]2^-(M+1), the binade exponent cancelling. It holds to
+3% across eight rungs spanning 302 orders of magnitude.
+
+In silicon on a fully open flow: 12, 50, 212, 1477 and 7479 LUTs at
+161.1, 153.2, 131.7, 83.3 and 48.2 MHz, one cycle, no DSP. Through one
+ternary-neuron datapath TNF sits mid-pack among fixed fields: the silicon gap runs
+between fixed and tapered encodings, not along this ladder, and we say so.
+
+Four of our own claims were falsified by the measurements meant to support them,
+and are retracted in place. Oracle, RTL and commands are public; every figure
+regenerates from them.
