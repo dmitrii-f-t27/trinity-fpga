@@ -2590,3 +2590,41 @@ branch. Cheap here; silent and confusing had it merged.
 be read back from that tool's output before being embedded anywhere.** Sequential-looking
 identifiers are the dangerous case, because a wrong guess is well-formed, plausible, and
 points at something real.
+
+---
+
+## When you name a measurement error, audit your own record for it
+
+One wave established that *a partition produced by a timeout is a partition of the
+timeout*. The obvious follow-through — search the campaign's own published numbers for
+that shape — found a ceiling published a wave earlier as "undecided at depth 80" which
+in fact **proves in 396 s** against the 300 s budget that had been used. The design was
+never the limit; the budget was.
+
+The correction cost one re-run. It was found only because naming the error prompted a
+sweep of prior results rather than just future ones.
+
+**A newly understood failure mode is a query to run against everything you have already
+published.** Not the next measurement — the previous ones. Every claim of the form "we
+could not do X" that came from a resource limit rather than a hard result is a candidate,
+and the resource limit is rarely recorded next to the claim.
+
+The practical habit: when a run is cut short, write the budget into the result — "undecided
+within 300 s", never "undecided". Then a later reader, including you, can tell a limit from
+a finding at a glance.
+
+## Batch overhead tells you where the cost lives
+
+Two suites, both batched, opposite profiles:
+
+- One suite's batch was **worse than the sum of its parts** — a single instance containing
+  every property was superlinearly harder. Cost lives in the properties; splitting helps.
+- The other's batch cost **1.4× a single property** — twenty properties for barely more
+  than one. Cost lives in the shared model; splitting cannot help.
+
+That ratio is a cheap diagnostic on its own: time the batch, time one member, divide. Near
+1 means a shared fixture dominates and the only lever is making the fixture cheaper. Much
+greater than 1 means the members interact, and isolating them buys real headroom.
+
+Same reasoning applies to test fixtures, container startup in CI shards, and any harness
+where a costly setup is amortised across cases.
