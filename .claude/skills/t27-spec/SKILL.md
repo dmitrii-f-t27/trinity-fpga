@@ -3809,3 +3809,60 @@ relative to whatever ran last.
 formal workflows and not the docs/notebook/seal ones. Writing that down as scope
 turns "we never looked" into "we looked here and not there", which is the
 difference between a gap and a lie.
+
+## Wave 610 — measuring what a property suite actually constrains
+
+**Ask detection power, not "re-prove the rest".** Neutralising one property and
+re-proving the others tells you nothing: they are independent assertions about
+the same design, so removing one can never make another fail. The question with
+content is *for each way the design can break, which properties notice?* Run
+each property ALONE — every sibling neutralised to `assert (1'b1)` — against
+each mutant, and read off a property × mutant matrix.
+
+**Mutation operators must be masked to code, and chosen from the code.** Two
+separate mistakes, both mine, in one afternoon:
+
+1. The operators ran over the whole file. Every module here opens with a banner
+   of `=` characters, so `==` produced 75 mutants inside `// =========`. All 76
+   parsed, all proved, and "0 detected" was one step from being published as
+   evidence the suite was weak. It measured ASCII art. Mask comments first, and
+   assert it: *a fully-commented-out copy of a module must yield zero mutants.*
+2. After masking, the textbook operator list matched **nothing** — the module is
+   23 non-comment lines of `?:`, `|`, `{}` and sized literals. Operators are a
+   property of the code under test, not of the mutation literature. Read the RTL
+   and write operators for it.
+
+**An implausible zero is a gift — check it against something known.** The only
+reason the ASCII-art result got caught is that the shipped CI harness kills an
+`interrupt_controller` mutation, so "this suite detects nothing" contradicted a
+fact already in the repository. Keep one known-true result to test new
+measurements against.
+
+**"Undetected" is not "missed" until you rule out equivalent mutants.** Mutation
+testing's standing confound: an edit the design is insensitive to. Separate them
+with a bounded sequential equivalence miter (`miter -equiv -flatten
+-make_assert`, then `sat -seq N`) — and let yosys build the miter. Hand-writing
+the wrapper by parsing port lists broke on parameterised widths
+(`[C_ADDR_W-1:0]`) and again on a header the port regex misread. Note also that
+`prep` before `miter` picks its own top and discards the module you wanted to
+compare against.
+
+**Run the expensive measurement twice at different budgets.** 90 s and 20 s
+miter caps gave the same 133 real gaps; the only movement was two proofs that
+finished at 90 s and not at 20 s, correctly reported *undecided* rather than
+counted equivalent. Agreement across budgets is cheap evidence the number is
+real, and it only works if UNDECIDED is a first-class outcome.
+
+**Mutation adequacy and vacuity interact — this is the subtle one.** A property
+guarded in its `always` header (`if (rst_n && $past(wvalid) && !$past(wready))`)
+is not violated by a mutation that suppresses `wvalid`; the guard becomes
+unreachable and the property proves **vacuously**. In a detection matrix that is
+recorded identically to "this property is too weak to notice". Before calling a
+zero-detection property dead, probe its guard: assert the guard is impossible,
+and compare the verdict on the original against the mutant.
+
+**Report every subsumption claim with its denominator.** Four
+`interrupt_controller` properties had identical detection sets — over **six**
+mutants, which is what one expects from almost any pair. A subsumption claim is
+exactly as strong as the mutant set behind it, and someone will otherwise delete
+a property on six data points.
