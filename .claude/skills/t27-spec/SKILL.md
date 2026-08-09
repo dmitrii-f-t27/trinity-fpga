@@ -3649,3 +3649,69 @@ already separates the two, which is why that distinction was built first.
 completions in one trace costs roughly double: `seq 24` for DMA against 12 for
 its activity probes, `seq 30` for prefetch against 14. Budget for it or the
 witness times out and looks like a proof.
+
+## Wave 607 — an absence read as a pass
+
+Four instrument defects in one wave, all the same shape. Every one of them
+turned silence into a green result:
+
+| instrument | the silence | what it scored |
+|---|---|---|
+| shell verdict classifier | output truncated before the verdict line | "did not refute" |
+| mutation harness | yosys crashed instead of deciding | "mutant killed" |
+| free-property scan | zero files matched the glob | "0 problems" |
+| documentation gate | never wired into CI at all | claimed in the README |
+
+**When a probe returns an implausible answer, check the classifier before the
+subject.** A repetition witness said "two layer runs are unreachable" — which
+reads as a restart defect — and I went and read the RTL looking for one. Yosys
+had said `proof did fail`. Cost: one RTL read. The tell was that the answer was
+*surprising in a way the design made unlikely*; that is the moment to re-run the
+same check a different way, not to start debugging.
+
+**`echo "$captured_output" | grep` is not portable and can flip a verdict.**
+Yosys prints signal names backslash-prefixed (`\chunk_id`, `\rst_n`). A shell
+whose `echo` expands escapes reads `\c` as **stop output here**:
+
+```bash
+printf '%s\n' 'x \chunk_id' 'ERROR: proof did fail!' > /tmp/t
+out=$(cat /tmp/t)
+echo "$out"          | grep -c "proof did fail"   # zsh 0, bash 1
+printf '%s\n' "$out" | grep -c "proof did fail"   # 1 in both
+```
+
+31 966 bytes became 4 893. Always `printf '%s\n'`. And note the `%s`: writing
+the sample with `printf '...\chunk_id...'` truncates too — the demonstration
+destroyed by the escape it demonstrates.
+
+**`returncode != 0` is not a verdict.** It folds "the property was refuted"
+together with "the tool could not read the design". In a mutation harness that
+fold is not neutral — it scores an unparseable mutant as a *killed* one, so the
+suite reports every mutant killed while testing strictly fewer. Three outcomes,
+always: proved / refuted / no verdict, and the third fails loudly naming what
+was skipped.
+
+**Verify a fix against the shipped code, not a copy.** The control for that
+classifier extracts `yos()` out of the workflow YAML with `yaml.safe_load` and
+`exec`s it, then runs it on three inputs whose answers are known — proving
+script, refuting script, unparseable mutant. Retyping the function into the test
+would have tested the retyped version.
+
+**A scan that scans nothing must fail, not pass.** Anchor default globs to
+`pathlib.Path(__file__).resolve().parent.parent`, never to the caller's cwd, and
+add an explicit `if total == 0: return 1`. Both, not either — the anchor fixes
+today's bug, the counter catches the day the naming convention moves.
+
+**Check that every gate you cite actually exists.** The README described a
+documentation gate for many waves; nothing implemented it. The check for this is
+one grep for the gate's own error string across `.github/` — if the only place
+it appears is prose, it is prose. Then mutation-test it before believing it: my
+doc gate had to catch a removed `Gate:` line, a fence whose only verb is `echo`,
+a bare `t27c`, and a changed heading convention.
+
+**Suspect the control before the probe — second wave running.** A control
+guarding on a counter (`no start while runs != 0`) failed to bite because the
+counter increments on the *done edge*, in the same cycle the FSM returns to IDLE
+and can accept the next start. Guard on the event too (`done || runs != 0`).
+When a control does not bite, the first hypothesis is that the control is wrong,
+not that the probe is blind.
