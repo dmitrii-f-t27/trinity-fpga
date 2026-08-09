@@ -3038,3 +3038,54 @@ open**.
 Three waves have gone into this one defect: two to attribute it, one to eliminate a fix
 shape. That is progress only if the eliminations are visible from the code, otherwise the
 fourth wave re-derives the second.
+
+---
+
+## Bisect a failing property with assumptions, not with theories
+
+Six waves went into one failing check. Trace reading was inconclusive twice, a discriminator
+proved invalid, and a fix attempt was withdrawn. What finally located it took three runs:
+
+```
+unconstrained                          -> REFUTED
+assume (neurons_per_layer != 0)        -> PROVED
+assume (neurons != 0 && chunks != 0)   -> PROVED
+```
+
+One assumption separated the failing configuration from every other. That is a **bisection
+of the input space**, and it is far more reliable than reading a counterexample: each run
+is a yes/no answer to a question you chose, rather than an exercise in interpreting a dump.
+
+The method generalises to any failing test with a large input space. Constrain a dimension,
+re-run, and see whether the failure survives. A handful of runs partitions the space into
+"fails here" and "holds everywhere else", which is usually the whole diagnosis.
+
+Do it *before* reading traces, not after. Traces answer "what happened in this one run";
+assumptions answer "which class of runs is affected".
+
+## A module-level guard does not travel to the paths that bypass it
+
+A sequencer was proved — in isolation, non-vacuously — to emit no work for a zero-sized
+job. That proof was correct and did not prevent the engine from performing a read for that
+same job: the read address came straight from a counter, and the consumer's valid came from
+pipeline skew registers. Neither path passed through the guard that had been proved.
+
+**Proving a guard at a module boundary says nothing about consumers that do not go through
+that boundary.** The integration properties are where this shows up, and only if they
+mention the bypassing path — which is why the read side sat unexamined for eight waves
+while the write side accumulated five defect findings.
+
+When a guard is proved locally, enumerate its consumers and check which of them actually
+read the guarded signal. Those that derive the same information independently — a parallel
+counter, a cached copy, a skewed replica — are exactly where the guard's guarantee stops.
+
+## Degenerate inputs deserve the same sweep on every side of a datapath
+
+Zero-sized requests were swept exhaustively on the write side and produced four defects
+across four modules. The read side was never asked, and the fifth member of the family was
+waiting there.
+
+A sweep is defined by two things: the property class, and the surface it covers. Recording
+"we swept zero-sized inputs" without recording *which surface* leaves the impression of
+completeness. The honest form is "zero-sized inputs, write paths only" — which makes the
+gap visible to the next reader instead of hiding it behind a finished-sounding claim.
