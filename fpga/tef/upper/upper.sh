@@ -19,17 +19,17 @@ module up_$1 (input wire clk, input wire rst_n, output wire [7:0] led);
     am <= wide[$((M-1)):0]; bm <= wide[$((M+7)):8];
   end
   wire [$((OW-1)):0] o; wire [$((M-1)):0] m;
-  gft_mul_wp #(.MANT_W($M), .OFF_W($OW), .BIAS($BI), .OFFSET_MAX($OM)) u
+  tef_mul_wp #(.MANT_W($M), .OFF_W($OW), .BIAS($BI), .OFFSET_MAX($OM)) u
     (.clk(clk), .rst_n(rst_n), .a_off(ao), .a_mant(am), .b_off(bo), .b_mant(bm),
      .out_off(o), .out_mant(m));
   assign led = o[7:0] ^ m[7:0];
 endmodule
 V
-  yosys -q -p "read_verilog up_$1.v gft_mul_wp.v; synth_xilinx -flatten -nodsp -top up_$1 -json up_$1.json" > ys_$1.log 2>&1
+  yosys -q -p "read_verilog up_$1.v tef_mul_wp.v; synth_xilinx -flatten -nodsp -top up_$1 -json up_$1.json" > ys_$1.log 2>&1
   $NP --chipdb $CDB --xdc bench.xdc --json up_$1.json --write up_$1_r.json > up_$1.log 2>&1
   L=$(grep -oE "SLICE_LUTX: *[0-9]+" up_$1.log|tail -1|grep -oE "[0-9]+")
   F=$(grep -oE "Max frequency for clock '[^']*': [0-9.]+" up_$1.log|tail -1|grep -oE "[0-9.]+$")
   echo "$1 M=$M Et=$Et LUT=$L Fmax=$F"
 }
-run gft64 56 7
-run gft128 119 8
+run tef64 56 7
+run tef128 119 8

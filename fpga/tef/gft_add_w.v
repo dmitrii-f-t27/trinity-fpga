@@ -1,13 +1,13 @@
-// gft_add with widths derived from the format parameters.
+// tef_add with widths derived from the format parameters.
 //
 // The original declares every port and every intermediate 32 bits wide and masks
-// the alignment shift to five bits (`d[4:0]`). Both are fine at GF-T16 and both
+// the alignment shift to five bits (`d[4:0]`). Both are fine at TEF16 and both
 // break higher up:
 //
-//   * `sum` holds (MANT_ONE + hi_m) + sb, which reaches 2^(MANT_W+2). At GF-T64
+//   * `sum` holds (MANT_ONE + hi_m) + sb, which reaches 2^(MANT_W+2). At TEF64
 //     that is 54 bits in a 32-bit wire.
 //   * `d[4:0]` wraps for d >= 32. The guard `d >= SIG_BITS` hides it only while
-//     SIG_BITS <= 32; at GF-T64, SIG_BITS is 53, so differences in [32, 53) take
+//     SIG_BITS <= 32; at TEF64, SIG_BITS is 53, so differences in [32, 53) take
 //     a shift of d-32 instead of d.
 //
 // Nothing here changes the arithmetic. The widths are the size of the values, and
@@ -16,7 +16,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module gft_add_w #(
+module tef_add_w #(
     parameter integer MANT_W     = 9,
     parameter integer OFF_W      = 7,
     parameter [31:0]  OFFSET_MAX = 80

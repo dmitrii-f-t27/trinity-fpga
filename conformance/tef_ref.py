@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-gft_ref.py — parameterized bit-exact oracle for the WHOLE GF-T ladder.
+tef_ref.py — parameterized bit-exact oracle for the WHOLE TEF ladder.
 
-One oracle for every rung (GF-T4 .. GF-T1024): a GoldenFloat whose exponent is a
+One oracle for every rung (TEF4 .. TEF1024): a GoldenFloat whose exponent is a
 balanced-ternary number of `exp_trits` trits (offset in [0, 3^Et - 1], balanced
 exponent e = offset - (3^Et-1)/2) and a `mant_bits` binary mantissa. No regime
 decode; add/mul are decode -> exact Fraction -> re-encode (round-to-nearest-even).
 
 Off-path conformance oracle (like gf_ref.py / tekum_ref.py). Supersedes the
-single-width gft16_ref.py (GF-T16 == GFTFormat(4, 9)).
+single-width tef16_ref.py (TEF16 == TEFFormat(4, 9)).
 """
 
 from fractions import Fraction
@@ -33,7 +33,7 @@ def _pow2(e: int) -> Fraction:
 
 
 @dataclass(frozen=True)
-class GFTFormat:
+class TEFFormat:
     exp_trits: int
     mant_bits: int
 
@@ -53,7 +53,7 @@ class GFTFormat:
         # Derived, not fixed. This was hardcoded to 24 — "room for wide exp/mant" —
         # which holds only while the payload stays below that bit. At mant_bits of
         # 21 or 25 the exponent field reaches bit 24 and the sign lands inside the
-        # payload: encoding 1.5 through GF-T32 returned -1.5. Wider mantissas were
+        # payload: encoding 1.5 through TEF32 returned -1.5. Wider mantissas were
         # corrupted too, silently, whenever bit 24 of the significand happened to
         # be set — which is why a spot check on 1.5 passed at mant_bits=52.
         #
@@ -68,7 +68,7 @@ class GFTFormat:
     def range_decades(self): return 2 * self.exp_offset * math.log10(2)
 
 
-def encode(fmt: GFTFormat, value) -> int:
+def encode(fmt: TEFFormat, value) -> int:
     if value == 0:
         return 0
     sign = 1 if value < 0 else 0
@@ -94,11 +94,11 @@ def encode(fmt: GFTFormat, value) -> int:
     return (sign << fmt.sign_shift) | (offset << fmt.exp_shift) | fl
 
 
-def is_special(fmt: GFTFormat, raw: int) -> bool:
+def is_special(fmt: TEFFormat, raw: int) -> bool:
     return ((raw >> fmt.exp_shift) & ((1 << fmt.exp_bits) - 1)) == fmt.offset_max
 
 
-def decode(fmt: GFTFormat, raw: int):
+def decode(fmt: TEFFormat, raw: int):
     sign = (raw >> fmt.sign_shift) & 1
     offset = (raw >> fmt.exp_shift) & ((1 << fmt.exp_bits) - 1)
     m = raw & (fmt.mant - 1)
@@ -110,13 +110,13 @@ def decode(fmt: GFTFormat, raw: int):
     return -val if sign else val
 
 
-def gft_add(fmt: GFTFormat, a: int, b: int) -> int:
+def tef_add(fmt: TEFFormat, a: int, b: int) -> int:
     if is_special(fmt, a) or is_special(fmt, b):
         return (fmt.offset_max << fmt.exp_shift) | 1
     return encode(fmt, decode(fmt, a) + decode(fmt, b))
 
 
-def gft_mul(fmt: GFTFormat, a: int, b: int) -> int:
+def tef_mul(fmt: TEFFormat, a: int, b: int) -> int:
     if is_special(fmt, a) or is_special(fmt, b):
         return (fmt.offset_max << fmt.exp_shift) | 1
     return encode(fmt, decode(fmt, a) * decode(fmt, b))
@@ -124,15 +124,15 @@ def gft_mul(fmt: GFTFormat, a: int, b: int) -> int:
 
 # Canonical ladder rungs (exp_trits, mant_bits) per nominal width.
 LADDER = {
-    4:   GFTFormat(2, 1),
-    8:   GFTFormat(3, 4),
-    16:  GFTFormat(4, 9),
-    32:  GFTFormat(5, 21),
-    64:  GFTFormat(7, 52),
-    128: GFTFormat(8, 115),
-    256: GFTFormat(9, 242),
-    512: GFTFormat(10, 497),
-    1024: GFTFormat(11, 1006),
+    4:   TEFFormat(2, 1),
+    8:   TEFFormat(3, 4),
+    16:  TEFFormat(4, 9),
+    32:  TEFFormat(5, 21),
+    64:  TEFFormat(7, 52),
+    128: TEFFormat(8, 115),
+    256: TEFFormat(9, 242),
+    512: TEFFormat(10, 497),
+    1024: TEFFormat(11, 1006),
 }
 
 
@@ -150,14 +150,14 @@ def _selftest():
             return s * (Fraction(1) + m) * (Fraction(2) ** k)
         for _ in range(3000):
             x, y = rv(), rv()
-            if gft_add(f, encode(f, x), encode(f, y)) != gft_add(f, encode(f, y), encode(f, x)):
+            if tef_add(f, encode(f, x), encode(f, y)) != tef_add(f, encode(f, y), encode(f, x)):
                 bad += 1
-            if gft_mul(f, encode(f, x), encode(f, y)) != gft_mul(f, encode(f, y), encode(f, x)):
+            if tef_mul(f, encode(f, x), encode(f, y)) != tef_mul(f, encode(f, y), encode(f, x)):
                 bad += 1
-        print(f"GF-T{w:<4} {f.exp_trits:>3} {f.mant_bits:>5} {f.range_decades():11.0f} {('%d violations' % bad):>28}")
+        print(f"TEF{w:<4} {f.exp_trits:>3} {f.mant_bits:>5} {f.range_decades():11.0f} {('%d violations' % bad):>28}")
     F16 = LADDER[16]
-    assert abs(float(decode(F16, gft_mul(F16, encode(F16, 1.5), encode(F16, 2.0)))) - 3.0) < 1e-2
-    print("GF-T16 1.5*2.0 =", float(decode(F16, gft_mul(F16, encode(F16, 1.5), encode(F16, 2.0)))))
+    assert abs(float(decode(F16, tef_mul(F16, encode(F16, 1.5), encode(F16, 2.0)))) - 3.0) < 1e-2
+    print("TEF16 1.5*2.0 =", float(decode(F16, tef_mul(F16, encode(F16, 1.5), encode(F16, 2.0)))))
 
 
 if __name__ == "__main__":
