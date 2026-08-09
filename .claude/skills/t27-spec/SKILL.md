@@ -2065,3 +2065,74 @@ prominence as the number.
 The pattern across several audits: every method has a ceiling, and the useful artifact is
 the number **plus** the ceiling. A result reported without its ceiling gets cited later as
 if it had none — usually by the person who produced it, two waves on.
+
+---
+
+## Before believing a bounded proof, ask how far away a violation is
+
+A bounded model check proves a property over N steps. If a counterexample needs more than
+N steps, the tool reports success and has established nothing:
+
+```
+a_addr_never_wraps  -seq 24  ->  PROVES
+# the address is 12 bits; wrapping needs 4096 writes. The bound is 24.
+```
+
+That "proof" says *no wrap within 24 cycles*, which nobody doubted. Two modules passed
+it while both contained a wrap that silently corrupts data.
+
+The fix is to **scale the model until the counterexample fits** — narrow the address,
+shrink the memory, reduce the queue depth. Both modules refuted within one cycle of the
+scaled bound. Scaling changes what you proved, so say so: the claim becomes "this design,
+at this scale, does not wrap", plus the argument that the width is a parameter and not
+the mechanism.
+
+Generalises past formal: a fuzz run that never reaches a 10,000-element list, a load test
+that stops below the connection limit, a soak test shorter than the leak's doubling time.
+**A green result from a search that could not have found the bug is not evidence.** Ask
+what the smallest failing input looks like, then confirm the search reaches it.
+
+## When a correct fix does not make the property pass, look again
+
+The most valuable defect in this wave was found because a *second* defect kept the
+property red after the first was fixed correctly. The temptation at that moment is to
+assume the fix was wrong and revert it, or to weaken the property. Both destroy the
+signal.
+
+A property that stays red after a fix you believe is right is telling you there is a
+second cause. Two things make this actionable:
+
+- Verify the fix independently (the fix's own unit test passes, the shape matches a known
+  good module).
+- Then read the counterexample rather than patching again.
+
+The second defect here — data, write-enable and address registered together, so the
+memory sees a *post-increment* address and index 0 is never written — had nothing to do
+with the sizing question being investigated. It was found only because the first fix's
+failure was treated as information.
+
+## An unconstrained input is an adversary
+
+Two refutations in this wave were faults in my own harness, not the design: a tracker that
+compared state across two different transfers, and a free `rlast` that let the solver play
+a bus slave which never ends a burst. Both looked exactly like design defects.
+
+Under formal, every unconstrained input is chosen by something actively trying to break
+you. That is the tool's value and its main trap: **a refutation is a claim about the
+environment until the environment is pinned down.** Before reporting one, ask what
+protocol the real driver obeys that your harness has not been told about — then either
+assume it explicitly, or instantiate the compliant model.
+
+Same discipline in ordinary testing: a failure with an unspecified mock is a fact about
+the mock.
+
+## Stop patching after the second attempt
+
+Two fixes were applied to one refuting property; neither closed it. The third attempt was
+not made. The property is recorded as an expected refutation with a CI gate, so closing
+it turns the build red and asks for promotion.
+
+The rule that keeps this honest: **after two failed attempts, the next action is a
+counterexample read carefully, not a third patch.** Patches that follow a wrong model
+compound — each one adds behaviour that the next investigation must account for, and by
+the fourth you are debugging your own repairs.
