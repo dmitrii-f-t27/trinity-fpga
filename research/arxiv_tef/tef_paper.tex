@@ -1525,6 +1525,76 @@ and a design that stays in the logarithmic domain never pays it. That is the
 regime in which LNS accelerators are built, and against those the argument of
 Corollary~\ref{cor:zeropath} does not apply at all.
 
+
+\section{Is there an optimal format, and in what sense}
+\label{sec:optimal}
+
+The results above are individually bounding: each says what a format cannot have,
+or what a claim may not be extended to. Read together they are stronger than that.
+They reduce the design space to four axes, three of which admit unconditional
+answers, so that once three inputs are named the format is determined rather than
+chosen.
+
+\begin{theorem}[The binary scale is the unique implementable optimum]
+\label{thm:radixopt}
+Let a format scale by $r^{e}$. Scaling is a shift --- and by
+Theorem~\ref{thm:valuelaw} free of any polynomial or table --- if and only if
+$r = 2^{k}$ for integer $k \geq 1$. On that set $\kappa(r) = (r-1)^2/(r\ln r)$ is
+strictly increasing, taking $0.7213$, $1.6230$, $2.9455$ and $5.0720$ at
+$r = 2, 4, 8, 16$. Hence $r = 2$ minimises the expected relative error among all
+radices whose scaling is implementable without a transcendental, and it does so
+uniquely.
+\end{theorem}
+
+The unconstrained minimiser is not $2$: sweeping $r$ continuously puts it near
+$1.9$, worth $7.9\%$ in error. That gain is unavailable, because any
+$r \neq 2^{k}$ makes $r^{e}$ a transcendental evaluation, and
+Corollary~\ref{cor:tradecurve} prices those at $84$ RAMB36 tiles --- $23\%$ of
+this device --- for a binary32 target. Trading $23\%$ of a chip for $7.9\%$ of a
+mantissa bit is not a trade anyone makes. Theorem~\ref{thm:radixopt} is therefore
+the interesting kind of optimality result: the optimum is not the extremum, it is
+the best point that can be built.
+
+\begin{corollary}[Three inputs determine the format]
+\label{cor:determined}
+The design space has four axes, and only one of them is a free choice.
+\begin{enumerate}
+\item \emph{Radix of the scale.} Fixed at $2$ by Theorem~\ref{thm:radixopt},
+unconditionally.
+\item \emph{Radix of the exponent's encoding.} Fixed by the fabric.
+Theorem~\ref{thm:nofree} shows a ternary exponent never spans more values per bit
+than a binary one when packed into bits, so it pays on a ternary fabric and
+nowhere else.
+\item \emph{Fixed fields or a taper.} A genuine choice, and by
+Theorem~\ref{thm:dichotomy} exactly two options exist: bounded range at constant
+precision, or unbounded range at precision decaying no more gently than one bit
+per doubling (Theorem~\ref{thm:floor}).
+\item \emph{The split between $E$ and $M$.} Determined once a required range is
+named, by Theorem~\ref{thm:law} --- and \emph{only} then, since the error depends
+on $M$ alone and the range on $E$ alone.
+\end{enumerate}
+Name the fabric, the required range, and which side of the dichotomy the workload
+sits on, and the format follows.
+\end{corollary}
+
+So the question ``is there an ideal format'' has an answer, provided it is asked
+with its three arguments supplied. Asked without them it is not underdetermined
+but ill-posed: Corollary~\ref{cor:pair} already says a budget cannot be
+recommended without a workload, and Theorem~\ref{thm:dichotomy} says no single
+format can serve both sides.
+
+\begin{corollary}[What this makes TEF]
+\label{cor:whatitmakes}
+For the arguments (ternary fabric; a range the workload actually visits; fixed
+fields), Corollary~\ref{cor:determined} returns a binary-radix float with a
+balanced-ternary exponent field and a uniform mantissa split by
+$M = N - 1 - E_t$. That is TEF, and it is forced rather than designed. It follows
+that TEF is optimal exactly on those arguments and carries no claim off them ---
+in particular none on a binary fabric, where axis 2 returns a binary exponent
+instead, and none against a tapered format outside TEF's own range, where
+Theorem~\ref{thm:floor} forbids it.
+\end{corollary}
+
 \section{Limitations}\label{sec:limits}
 
 \begin{enumerate}[leftmargin=*]
