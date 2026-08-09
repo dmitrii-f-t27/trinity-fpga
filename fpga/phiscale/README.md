@@ -32,9 +32,14 @@ multiply to map. That is a structural property, not a synthesis outcome.
   unrolled or barrel variant would be one cycle at more area; not built.
 - **No Fmax.** `nextpnr-xilinx` is not installed on this machine, so this is
   area only. Saying "faster" here would be unsupported.
-- **Only `k ≥ 0`.** Scales below 1 need the inverse step, which is
-  `(a,b) → (b−a, a)` since `φ⁻¹ = φ − 1` — one subtraction, same cost class.
-  A stated gap with a known fix, not a hidden one.
+- **The built direction is not the one deployed.** Real layer scales are below
+  one — `α = mean|W| ≈ 0.02` gives `k = round(log_φ α) ≈ −8` — so a deployed
+  layer needs the *inverse* step `(a,b) → (b−a, a)`, from `φ⁻¹ = φ − 1`. That
+  is one subtraction where the built circuit does one addition, so the area
+  transfers directly and the count above stands. It is nevertheless the forward
+  direction that was synthesised and simulated here, and the inverse variant is
+  not yet built. Stated because a reader would otherwise assume the measured
+  circuit is the deployable one.
 
 ## Correctness before area
 
