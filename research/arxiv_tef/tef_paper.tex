@@ -92,7 +92,7 @@ What remains against takum is accuracy, and Theorem~\ref{thm:floor} bounds how f
 that claim may be taken. The exponent's encoding is a prefix code, so by Kraft no
 format of unbounded range tapers more gently than one bit per doubling; takum's
 regime is asymptotically optimal and nothing, TEF included, beats it beyond its
-own range. Inside TEF16's range it is $3.70\times$ and $11.37\times$ more accurate
+own range. Inside TEF16's range it is $3.70\times$ and $11.21\times$ more accurate
 at mid and far magnitudes, and $3.70\times$ near unity where the unfilled rung
 used to lose.
 
@@ -874,7 +874,7 @@ in any row is worse than the unfilled rung.}
 variant & positions & mean rel.\ error & decades & vs.\ takum16 (far) \\
 \midrule
 unfilled, $E_t{=}4$, $M{=}9$  & $14$ & $3.37\mathrm{e}{-4}$ & $24$  & $5.46\times$ \\
-$\mathbf{E_t{=}4}$, $\mathbf{M{=}11}$ (adopted) & $\mathbf{16}$ & $\mathbf{8.63\mathrm{e}{-5}}$ & $24$ & $\mathbf{22.28\times}$ \\
+$\mathbf{E_t{=}4}$, $\mathbf{M{=}11}$ (adopted) & $\mathbf{16}$ & $\mathbf{8.63\mathrm{e}{-5}}$ & $24$ & $\mathbf{22.68\times}$ \\
 $E_t{=}5$, $M{=}10$           & $16$ & $1.69\mathrm{e}{-4}$ & $73$  & --- \\
 $E_t{=}6$, $M{=}9$            & $16$ & $3.37\mathrm{e}{-4}$ & $\mathbf{219}$ & --- \\
 \bottomrule
@@ -893,9 +893,17 @@ already clips nothing at $\pm 40$ binades --- zero clips in 2000 values. $E_t = 
 would have bought $\pm 364$ binades at bit-identical error, which is range nobody
 spends at sixteen bits. So $M = 11$: the error falls by exactly $4.00$, and
 against takum16 the rung moves from $0.92\times / 2.88\times / 5.49\times$ to
-$3.70\times / 11.37\times / 22.28\times$, no longer losing the near bin. In
+$3.70\times / 11.21\times / 22.68\times$, no longer losing the near bin. In
 silicon it costs $443$ LUTs against $372$, a $19\%$ increase, at $136.44$\,MHz
 against $131.73$ --- no frequency penalty.
+
+All three ratios in this section and in Figure~\ref{fig:accuracy} come from one
+script, \texttt{gen\_figures.py}, which computes them from the oracles at seed
+$20260809$ rather than transcribing them. They were hardcoded until 2026-08-09 and
+had drifted: the figure still carried $M = 9$ and the label \texttt{tekum16} after
+the rung moved and the oracle was shown to decode identically to takum. A figure
+that disagrees with the table it illustrates is the same defect class as a gate
+that cannot go red.
 
 Conformance was re-run in full rather than assumed: round-trip with sign
 2000/2000, encoding monotone with zero inversions, $\pm$ symmetry with zero
