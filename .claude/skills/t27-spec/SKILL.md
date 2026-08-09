@@ -3309,3 +3309,55 @@ reporting that something passes, confirm the tree is clean, or say explicitly wh
 uncommitted changes are in play. Found here by accident, while checking whether an
 experiment had touched the repo — the check that should have been routine was the one that
 caught it.
+
+---
+
+## Strengthening an assumption can silently disable the checks that would catch it
+
+A property refuted. The obvious fix was to constrain the environment more tightly — stop an
+input changing at a moment the design does not expect. It worked: the property proved.
+
+It also pinned that input to zero **forever**, because the added constraint referenced the
+value's own history from cycle zero. Two reachability witnesses stopped firing. Every
+property in the file still passed, the suite still reported success, and two of the checks
+that exist to detect exactly this over-constraint had gone quiet.
+
+> **An assumption is not a local edit.** It removes behaviours from every property in the
+> file, including the ones asserting that behaviours are reachable.
+
+Two habits follow. When a fix is *an added constraint* rather than a changed implementation,
+re-run the reachability checks, not just the property that motivated it. And prefer fixing
+the property over constraining the environment — the property is scoped to itself; the
+assumption is scoped to everything.
+
+This was caught only because the suite contains checks that must **fail**. A suite composed
+entirely of things that must pass cannot detect its own over-constraint: making the system
+do less makes every such check greener.
+
+## Turn an explanation into a target list
+
+An observation emerged from a long campaign: every defect found was two pieces of state
+tracking one quantity and disagreeing, while derived state never held a defect because it
+cannot drift from its source.
+
+That is an explanation, and explanations are cheap. Converting it into a **census** — every
+counter and every derived copy in the design, sorted into "independent" and "derived" —
+turned it into three named pairs to attack and a demonstration that the rest of the design
+cannot hold that defect class.
+
+The yield was modest: one new proved property, one honest non-result. But the census is
+reusable and the scope statement is now precise, which beats a rule of thumb that has to be
+re-derived by whoever reads the campaign next.
+
+**When a pattern explains your past findings, enumerate where else it applies before
+looking for the next instance by hand.**
+
+## A gate's own pattern list is where its false positives hide
+
+A documentation gate flagged a perfectly runnable `git status …` block as containing no
+command — `git` was simply missing from the list of recognised commands.
+
+Harmless here, and the general shape is not: a checker built from an allowlist reports
+violations that are really gaps in the list. Every such gate needs its own negative control
+— a known-good input that must pass — for the same reason the positive cases need one.
+Prop. 28's discipline applies to the gate's *recognition*, not only to its detection.
