@@ -113,6 +113,18 @@ generalise and are described rather than quietly fixed. Four claims of our own
 were falsified by the measurements meant to support them, including a predicted
 area for TEF64 that came in $1.57\times$ low, and each is retracted in place.
 
+Read together the results compose into a claim about the design space rather than
+about one format. It has four axes; three admit answers that do not depend on the
+workload. The radix of the scale is fixed at two unconditionally --- scaling is a
+shift only for $r = 2^{k}$, and on that set the error constant is strictly
+increasing, so the optimum is not the unconstrained extremum near $r = 1.9$ but
+the best point that can be built. The radix of the exponent's encoding is fixed by
+the fabric. Fixed fields or a taper is a genuine choice with exactly two options.
+The exponent--mantissa split follows once a range is named. Name the fabric, the
+range and the side of the dichotomy, and the format is determined. TEF is what
+that returns for one triple, which makes it forced rather than designed --- and
+carries no claim off those arguments.
+
 \medskip
 \noindent\textbf{Artifacts.} Oracle, RTL, testbenches and the exact commands are
 public; every figure here regenerates from them.
@@ -1662,7 +1674,17 @@ instead, and none against a tapered format outside TEF's own range, where
 Theorem~\ref{thm:floor} forbids it.
 \end{corollary}
 
-\section{Limitations}\label{sec:limits}
+\section{Limitations}
+
+\paragraph{The fabric this format is optimal on does not exist to buy.}
+Theorem~\ref{thm:nofree} confines the ternary encoding's benefit to a ternary
+fabric, and no such process is commercially available. Every hardware figure in
+this paper is therefore measured on a binary FPGA, where the ternary exponent
+neither gains nor loses --- the enumeration in Section~\ref{sec:whyternary} shows
+it ties a binary encoding exactly at the widths tested. The claims that survive on
+silicon you can buy are the fixed-field ones: no regime codec, no exponential to
+evaluate. The ternary claim is architectural and is labelled as such throughout.
+\label{sec:limits}
 
 \begin{enumerate}[leftmargin=*]
 \item \textbf{The comparison is against takum16, not tekum16.} The oracle
@@ -1706,9 +1728,10 @@ is computed in, so the figure it returns describes the metric rather than the
 format. Measuring the upper rungs requires exact rationals throughout, as the
 oracle itself already uses.
 
-\item \textbf{Four of nine rungs are measured in hardware.} TEF4 through TEF32 fit the
-device; TEF64 and TEF128 are within reach of a larger part and TEF256 upwards
-exceed a single Artix-7 fabric entirely. Table~\ref{tab:spec} is the
+\item \textbf{Five of nine rungs are measured in hardware.} TEF4 through TEF64 fit
+the device, TEF64 at $7{,}479$ LUTs and $48.20$\,MHz. TEF128 at $M = 119$ does not
+converge in routing on this part and is not claimed; TEF256 upwards exceed a
+single Artix-7 fabric entirely. Table~\ref{tab:spec} is the
 specification and the oracle's coverage; Table~\ref{tab:ladder} is what was
 placed and routed. We keep them apart on purpose.
 
