@@ -1791,3 +1791,88 @@ The general form applies well beyond hardware: after tightening validation, rate
 permissions, or retry conditions, the tests that still pass are not evidence the system
 works — they are evidence it does not do the forbidden thing, which an inert system also
 achieves. Add a check that the permitted thing still happens.
+
+---
+
+## A verdict harness must prove its own baseline before any verdict is evidence
+
+A probe harness that decides "the probe refuted" from a nonzero exit code cannot tell
+*your property failed* from *something else failed*. While one interlock attempt was in
+the tree, an obligation `yosys` generates itself (`async2sync`) began failing, and every
+row of a six-row liveness table silently flipped to "refutes" — including the row whose
+expected answer was "proves". The table was reporting on a failure no probe had caused.
+Diagnosis took four rounds, and each round produced a confident, wrong attribution:
+first "my interlock created concurrency", then "it's the implicit-net shadowing", then
+"it's the async reset". All three were wrong, and the harness said nothing.
+
+The fix is one cheap run, placed first:
+
+```bash
+# baseline: no probe, no -DFORMAL. If this does not prove, no probe verdict means anything.
+yosys -q -p "read_verilog -sv -formal <design>; prep -top <top> -flatten; memory_map; \
+             async2sync; chformal -lower; sat -verify -prove-asserts -seq N -set-init-zero"
+```
+
+Generalises to any pass/fail harness that collapses a rich outcome into an exit code:
+integration suites, lint gates, benchmark regressions. **Before trusting a differential
+verdict, establish that the undisturbed system passes.** If it does not, every difference
+you measure is against a broken reference.
+
+## A reference above its declaration silently forks the signal
+
+Emitting a block that reads `dma_local_we` at line 125 when the wire is declared at line
+262 does not error. Verilog's implicit-net rule conjures a fresh one-bit wire at first
+use, so the block reads an **undriven twin** with the same name. The solver was then free
+to fabricate DMA writes, and refuted a property that had nothing to do with the change.
+No warning, and the emitted file reads correctly to a human.
+
+When a generator inserts code, **the insertion point is a correctness property, not
+formatting.** The safe shape is to split declaration from driver:
+
+```verilog
+wire start;                       // early, where consumers are
+...
+assign start = a && b && c;       // after every signal it reads is declared
+```
+
+Applies to any code generator that splices into an ordered document — Verilog nets, C
+declarations before use, import blocks, migration ordering. If insertion order can change
+meaning, pin it with a test that asserts the relative position, not just the presence.
+
+## Completion is not evidence that work was done
+
+Third instance of one shape in this campaign: zero neurons, zero words, and now zero
+bytes. **A zero-sized job satisfies its completion contract without doing anything**, so
+gating on "the transfer finished" admits a transfer that wrote nothing. Gate on the
+observable effect — a write actually asserted — not on the done flag.
+
+When you find the same defect shape twice, look for the third before it finds you: sweep
+every module that reports completion and ask what its zero-sized case does.
+
+## An open finding needs a gate, or it rots
+
+A property that refutes and cannot be fixed today has three possible homes. Weakening it
+until it passes destroys the finding. A comment in a doc gets forgotten. The third is
+best: keep the property, put it behind its own guard so the green set stays green, and
+**gate in CI that it still refutes**.
+
+```yaml
+- name: Prop. 25 is still open (must refute)
+  run: |
+    if yosys -q -p "... -DFORMAL_OPEN ..."; then
+      echo "::error::now PROVES -- promote it out of the open guard and update the docs"
+      exit 1
+    fi
+```
+
+The day someone fixes it, the build goes red and tells them to promote it. An expected
+refutation is a real gate: it pins the *boundary* of what is proved, and a boundary that
+moves without anyone noticing is how a known gap turns into a forgotten one.
+
+## Withdraw a fix that costs more than it buys
+
+Three interlocks were tried for one refuting property. None closed it, and each broke
+something that had been proving. All three were withdrawn and the finding was recorded
+instead. The instinct to ship *something* after that much work is the thing to resist:
+a fix that does not fix the target and regresses the baseline is strictly worse than an
+honest open finding, and the sunk effort is not an argument for it.
