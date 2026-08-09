@@ -2011,3 +2011,57 @@ none, because it stops anyone looking again.
 
 The follow-up is the vacuity oracle applied to gates: break each gate deliberately and
 confirm the claim it guards actually goes red.
+
+---
+
+## Test that your gates bite, not just that they exist
+
+Establishing that every claim *has* a check is the easy half. The hard half is that the
+check *fails when the claim is false*. Redirect the vacuity oracle at the gates
+themselves: for each gate, apply one mutation that should violate the claim it guards,
+and require the gate to go red.
+
+```
+gate                     mutation                                    verdict
+Prop 7 interrupt_ctrl    revert clear-then-set -> set-then-clear      red
+Prop 24 liveness         tie start off, stalling the engine           red
+Prop 27 doc gate         make a block cite a binary not on PATH       red
+```
+
+**Three phases, and the first two are what make the third mean anything:**
+
+| phase | requirement | catches |
+|---|---|---|
+| baseline | unmutated, every gate passes | "went red" not caused by the mutation |
+| control | semantically neutral edit, every gate still passes | a gate that fires on *any* change and scores 100% detecting nothing |
+| mutation | each gate goes red for its own mutation | the actual claim |
+
+Skipping the control is the subtle failure: a gate that reports failure unconditionally
+passes every mutation test perfectly. Add a dead variable, an unused import, a reordered
+comment — anything semantically inert — and require green.
+
+**A clean sweep is a reason to check the harness, not to celebrate.** 13/13 on a first
+run is precisely the moment to ask what would have to be broken for the harness to
+report that anyway.
+
+## The mutation a safety check cannot see
+
+Stalling the system under test leaves every safety property true — something that does
+nothing violates nothing. Only a liveness check notices. When choosing mutations, include
+at least one that makes the system *inert* rather than *wrong*, because that is the
+mutation that distinguishes a suite which proves behaviour from one which merely proves
+absence of misbehaviour.
+
+If no gate goes red when you disable the feature entirely, the suite is measuring
+silence.
+
+## State the lower bound your method gives you
+
+Mutation testing bounds from below and never from above: each gate detected *the*
+mutation chosen for it, which is one point per claim, not coverage over all possible
+violations. Write that limit into the result, in the same document, at the same
+prominence as the number.
+
+The pattern across several audits: every method has a ceiling, and the useful artifact is
+the number **plus** the ceiling. A result reported without its ceiling gets cited later as
+if it had none — usually by the person who produced it, two waves on.
