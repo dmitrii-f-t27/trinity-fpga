@@ -27,16 +27,24 @@ value  = (-1)^sign · (1 + M/2^9) · 2^e,   e = Σ tᵢ·3ⁱ  ∈ [−40, +40]
 
 ## Measured accuracy (relative error on round-trip, binned by magnitude)
 
-Workload: 6000 values, 2^−38…2^38 (~23 decades), random sign, ±30% intra.
+Workload: 6000 values, 2^−38…2^38, random sign, ±30% intra.
 
-| magnitude bin | GF16 (φ) | **GF-T16 (ours)** | tekum16 |
+> **Axis corrected 2026-08-08.** The bins below are in **powers of two** (|e|),
+> not decades. Re-measured independently against the same oracles and the
+> ratios reproduce exactly — 0.92× / 2.84× / 5.53× — but only under that reading.
+> Binned in *decades* the far column is not a win at all: GF-T16's exponent
+> reaches ±40 in powers of two, about ±12 decades, so beyond that it overflows
+> and tekum16's unbounded regime keeps working. Labelling those bins "dec"
+> invited a reviewer to check the one way that makes the result look invented.
+
+| magnitude bin (powers of two) | GF16 (φ) | **GF-T16 (ours)** | tekum16 |
 |---|---|---|---|
-| near unity (\|e\|<8) | 3.43e-4 (0 clip) | **3.43e-4** | 3.16e-4 |
-| mid (8–20 dec) | 3.57e-4 (0 clip) | **3.57e-4** | 1.01e-3 |
-| far (20–38 dec) | 6.98e-3 (**479 clipped**) | **3.55e-4** | 1.93e-3 |
+| near unity (\|e\| < 8) | 3.43e-4 (0 clip) | **3.43e-4** | 3.16e-4 |
+| mid (\|e\| 8–20) | 3.57e-4 (0 clip) | **3.57e-4** | 1.01e-3 |
+| far (\|e\| 20–38) | 6.98e-3 (**479 clipped**) | **3.55e-4** | 1.93e-3 |
 
 **Reading.**
-- **vs tekum16:** GF-T16 ties near unity and **wins 3× (mid) and 5.5× (far)** — its
+- **vs tekum16:** GF-T16 ties near unity and **wins 2.84× (mid) and 5.53× (far)** — reproduced independently 2026-08-08 — its
   uniform 9-bit mantissa beats tekum16's tapered 4-bit at the extremes.
 - **vs GF16:** GF-T16 matches near unity and **eliminates clipping** at the far
   range (the balanced-ternary exponent extends range to ~24 decades; GF16's

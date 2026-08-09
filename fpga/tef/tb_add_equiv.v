@@ -4,12 +4,12 @@
 module tb_add_equiv;
   reg [31:0] ao32, am32, bo32, bm32;
   wire [31:0] r_off, r_m;
-  gft_add #(.OFFSET_MAX(80), .MANT_ONE(512), .SIG_BITS(10)) u_ref
+  tef_add #(.OFFSET_MAX(80), .MANT_ONE(512), .SIG_BITS(10)) u_ref
     (.a_off(ao32), .a_mant(am32), .b_off(bo32), .b_mant(bm32), .out_off(r_off), .out_mant(r_m));
 
   reg [6:0] ao, bo; reg [8:0] am, bm;
   wire [6:0] w_off; wire [8:0] w_m;
-  gft_add_w #(.MANT_W(9), .OFF_W(7), .OFFSET_MAX(80)) u_w
+  tef_add_w #(.MANT_W(9), .OFF_W(7), .OFFSET_MAX(80)) u_w
     (.a_off(ao), .a_mant(am), .b_off(bo), .b_mant(bm), .out_off(w_off), .out_mant(w_m));
 
   integer x,y,p,q, errors, checks;
