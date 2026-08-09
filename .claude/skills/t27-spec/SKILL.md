@@ -2924,3 +2924,72 @@ That sentence is what stops the next reader — often you — from citing the ga
 evidence than it is. The pattern across this campaign: every overstated claim was
 overstated at the moment of writing, by someone who knew the limit and did not write it
 down.
+
+---
+
+## Two independent formulations of one claim is a working discriminator
+
+After two failed attempts to decide whether a failing check meant "the system is wrong" or
+"my check is wrong", what worked was writing the **same claim a second, structurally
+different way** and comparing:
+
+| formulation | verdict |
+|---|---|
+| bound: read address ≤ highest address ever written | fails |
+| exact: per-slot written bitmap | fails |
+
+Agreement exonerates the weaker formulation and implicates the system. Disagreement would
+have implicated the approximation. Either way the answer is attributable, which neither
+previous attempt achieved.
+
+This beats staring at a trace because it does not depend on reading the tool's output
+correctly — only on two checks agreeing or not. Applies wherever a measurement is in doubt:
+compute the metric a second way, from a different source, and compare.
+
+## Validate a new instrument against what it must *not* say
+
+Before believing the discriminator above, two checks confirmed it was alive:
+
+```
+the tracker is ever non-zero    -> must REFUTE   (it does)
+the tracker can reach all-ones  -> must REFUTE   (it does)
+```
+
+A tracker stuck at zero would make the property fail for a reason unrelated to the system,
+which is exactly how the two earlier attempts went wrong. **Assert the negation of what
+you expect and require a counterexample** — that proves the instrument can move, where
+asserting the expected value proves nothing.
+
+Two waves of wrong attribution were the price of skipping this; the checks themselves cost
+one run each.
+
+## A boolean is not a count, and "some" is not "enough"
+
+A defect was closed by tracking *whether* a buffer had been written. The finer defect
+underneath: nothing related **how many** slots a consumer would read to **how many** a
+producer had written. Buffer-written is not slot-written.
+
+That progression — flag, then count, then per-element — recurs whenever a resource is
+filled by one stage and consumed by another: a connection pool marked "initialised" but not
+sized, a cache marked "warm" with only some keys present, a buffer marked "ready" shorter
+than the reader's stride.
+
+When a guard answers *did anything happen*, ask what happens when **less than enough**
+happened. That is usually a distinct, live defect rather than a variation of the one just
+fixed.
+
+## `$past(x)[1:0]` is not legal Verilog
+
+Part-selecting a system function call is rejected by the parser, and the tool reports it as
+a generic error rather than a syntax hint. Register the value first:
+
+```verilog
+reg [11:0] fv_prev_rd;
+always @(posedge clk) fv_prev_rd <= buf_read_addr;
+... fv_bm_a[fv_prev_rd[1:0]] ...
+```
+
+Worth noting for what it nearly cost: under a harness that reads any nonzero exit as a
+verdict, this would have appeared as a **refuted property** and sent the investigation
+somewhere false. It appeared as a tool error only because that separation was already in
+place — a guard paying off two waves after it was written.
