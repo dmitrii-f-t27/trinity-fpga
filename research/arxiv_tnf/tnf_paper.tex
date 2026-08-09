@@ -1647,16 +1647,25 @@ a zero. No multiplier is instantiated, for any format. The datapath is
 against an adder.
 
 \begin{table}[t]\centering
-\caption{One ternary neuron, synthesised as a single design on XC7A200T with no
-DSP. The two variants differ in exactly one block: posit decodes its regime before
-the add, TNF reads its fields directly.}
+\caption{One ternary neuron, matched width against matched width, one harness,
+XC7A200T, no DSP. Every candidate decodes a \emph{packed} word. An earlier
+version of this table reported $440$ against $895$ LUTs, a $5.1\times$ ratio; that
+comparison handed TNF pre-widened fields while the competitors unpacked theirs,
+and is withdrawn. The corrected ratio is $3.1\times$ at 16 bits and $5.6\times$ at
+32, and the gap belongs to the regime scan rather than to the ladder.}
 \label{tab:tnet}
-\begin{tabular}{lrrr}
+\begin{tabular}{lrrrr}
 \toprule
-format & LUTs & $F_{\max}$ & throughput per LUT \\
+width & format & LUTs & $F_{\max}$ & MHz/LUT \\
 \midrule
-\textbf{TNF} & $\mathbf{440}$ & $\mathbf{80.73}$\,MHz & $\mathbf{0.184}$\,MHz/LUT \\
-posit        & $895$ & $31.81$\,MHz & $0.036$\,MHz/LUT \\
+8 bits  & \textbf{TNF8}  & $\mathbf{487}$ & $71.64$\,MHz & $\mathbf{0.147}$ \\
+8 bits  & posit8         & $560$ & $43.55$\,MHz & $0.078$ \\
+\addlinespace
+16 bits & \textbf{TNF16} & $\mathbf{495}$ & $71.90$\,MHz & $\mathbf{0.145}$ \\
+16 bits & posit16        & $774$ & $36.30$\,MHz & $0.047$ \\
+\addlinespace
+32 bits & \textbf{TNF32} & $\mathbf{499}$ & $75.49$\,MHz & $\mathbf{0.151}$ \\
+32 bits & posit32        & $955$ & $28.33$\,MHz & $0.030$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1991,20 +2000,36 @@ on-silicon backpropagation & \textbf{0} & XOR $4/4$, 24--25 epochs & trains \\
 \end{table}
 
 \begin{table}[t]\centering
-\caption{Throughput per area among formats that carry a range. One ternary-neuron
-datapath, 21 formats, XC7A200T, no DSP.}
+\caption{Throughput per area among formats that carry a range, complete. One
+ternary-neuron datapath, one harness, XC7A200T, no DSP anywhere. Twenty formats;
+\texttt{int8} is not among them and is reported in Table~\ref{tab:rejected}
+instead, for the reason given there. Ours are set in bold.}
 \label{tab:carryrange}
-\begin{tabular}{rlrrr}
+\small
+\begin{tabular}{rlrrrrr}
 \toprule
-& format & storage & MHz/LUT & vs.\ first \\
+& format & storage & LUT & MHz & MHz/LUT & vs.\ first \\
 \midrule
-1 & \textbf{GFTernary} (ours) & 2 bits & \textbf{0.177} & $1.00\times$ \\
-2 & \textbf{TNF4} (ours) & 4 bits & \textbf{0.167} & $1.06\times$ \\
-3 & binary32 & 32 bits & 0.163 & $1.09\times$ \\
-4 & TNF32 (ours) & 32 bits & 0.151 & $1.17\times$ \\
-$\vdots$ & & & & \\
-20 & posit16 & 16 bits & 0.047 & $3.77\times$ \\
-21 & posit32 & 32 bits & 0.030 & $5.90\times$ \\
+1 & \textbf{GFTernary} (ours) & 2 bits & 466 & 82.51 & \textbf{0.177} & $1.00\times$ \\
+2 & \textbf{TNF4} (ours) & 4 bits & 469 & 78.28 & \textbf{0.167} & $1.06\times$ \\
+3 & binary32 & 32 bits & 479 & 78.23 & 0.163 & $1.09\times$ \\
+4 & \textbf{TNF32} (ours) & 32 bits & 499 & 75.49 & \textbf{0.151} & $1.17\times$ \\
+5 & \textbf{TNF8} (ours) & 8 bits & 487 & 71.64 & \textbf{0.147} & $1.20\times$ \\
+6 & fp8 e4m3 & 8 bits & 490 & 71.95 & 0.147 & $1.20\times$ \\
+7 & \textbf{TNF16} (ours) & 16 bits & 495 & 71.90 & \textbf{0.145} & $1.22\times$ \\
+8 & \textbf{GF+8} (ours) & 8 bits & 507 & 72.91 & \textbf{0.144} & $1.23\times$ \\
+9 & VAX F & 32 bits & 524 & 73.88 & 0.141 & $1.26\times$ \\
+10 & \textbf{GF10} (ours) & 10 bits & 538 & 73.14 & \textbf{0.136} & $1.30\times$ \\
+11 & fp8 e5m2 & 8 bits & 481 & 65.33 & 0.136 & $1.30\times$ \\
+12 & \textbf{GF14} (ours) & 14 bits & 590 & 73.13 & \textbf{0.124} & $1.43\times$ \\
+13 & binary16 & 16 bits & 552 & 62.69 & 0.114 & $1.55\times$ \\
+14 & minifloat & 8 bits & 570 & 62.38 & 0.109 & $1.62\times$ \\
+15 & takum16 & 16 bits & 817 & 64.16 & 0.079 & $2.24\times$ \\
+16 & posit8 & 8 bits & 560 & 43.55 & 0.078 & $2.27\times$ \\
+17 & IBM hex32 & 32 bits & 683 & 49.71 & 0.073 & $2.42\times$ \\
+18 & LNS16 & 16 bits & 659 & 43.11 & 0.065 & $2.72\times$ \\
+19 & posit16 & 16 bits & 774 & 36.30 & 0.047 & $3.77\times$ \\
+20 & posit32 & 32 bits & 955 & 28.33 & 0.030 & $5.90\times$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2334,6 +2359,51 @@ $0.3691E$ advantage is collected in full and none of the packing loss is
 incurred. On the binary fabric that is actually purchasable today, it is not.
 That is a narrower claim than the field usually makes, and unlike the broader one
 it survives our own measurements.
+
+
+
+\section{What the golden ratio completes}
+\label{sec:completes}
+
+Two lines of argument run through this paper, and they were developed
+independently and for unrelated reasons. It is worth setting them side by side at
+the end, because they meet at a single number.
+
+The first line is arithmetic and old. Radix economy makes three the best integer
+base; Fowler built a machine on it around 1840, Brusentsov and Sobolev built a
+working computer on it in 1958, and the line has continued into CNTFET, memristor
+and photonic devices. Section~\ref{sec:history} shows why it stalled rather than
+spread: the moment a ternary position is stored in a binary word, $3^{E_t}$ fails
+to divide a power of two and the remainder is lost --- a quarter of the alphabet
+at four bits. The obstruction is arithmetic, so no implementation removes it, and
+our own three measurements confirm it against us.
+
+The second line is geometric and, in this context, new. If the weights of a
+network are to be symbols rather than numbers, the datapath must multiply without
+a multiplier, and that is possible exactly when the product of two symbols falls
+back into the sum the datapath already forms. Written down, that requirement is
+$r^2 = r + 1$. It has one positive solution, so the alphabet is not designed but
+determined: $\{-\varphi, 0, +\varphi\}$ and nothing else
+(Theorem~\ref{thm:goldalpha}). The consequence is that composition is closed ---
+the gain of $k$ layers is $F_k\varphi + F_{k-1}$, a pair of integers
+(Corollary~\ref{cor:depth}) --- so depth is free of multipliers as well, which the
+$\{-1,0,+1\}$ alphabet never achieved because its learned per-layer scale is a
+real number and must be multiplied by.
+
+The two lines answer each other. What the ternary programme needed was not a
+better fabric but a base under which its symbols compose; what the golden ratio
+had, and had had since Euclid divided a line in extreme and mean ratio, was
+exactly the property $r^2 = r + 1$. Placing it in the weight alphabet turns the
+sixty-eight-year argument from a claim about storage density into a statement
+about arithmetic closure --- and the measurements in Section~\ref{sec:pair}
+follow: zero DSP through a radio, through every transformer block, and through
+backpropagation on the part itself.
+
+We put this at the end rather than the front because it is a reading of the
+results and not one of them. Every component is stated and measured above:
+the uniqueness is two lines of algebra, the Fibonacci closure is arithmetic, the
+packing loss is a table of integers, and the zero-DSP stack is placed and routed.
+What they amount to together is left to the reader.
 
 
 \section{Limitations}
