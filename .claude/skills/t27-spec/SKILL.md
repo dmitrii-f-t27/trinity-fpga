@@ -1708,3 +1708,48 @@ than entrenched as four that nearly do.
 This is the same distinction as request-versus-acknowledge in a handshake, one level up: a
 supervisor that can be *asked* to stop is not one that *has* stopped, and any interlock
 built on the ask inherits the gap.
+
+## Replacing a compound guard is where terms get dropped
+
+A four-condition interlock was replaced with one better condition — the module's own idle
+state, exported specifically so the guard could ask the right question. The new guard was
+more principled, shorter, and **still wrong**.
+
+`seq_idle` subsumed three of the four old terms. It did not subsume `!reg_ctrl[0]`, which
+was there for a different hazard entirely: a host setting two control bits **in the same
+write**. At that instant the sequencer genuinely *is* idle, so the new condition permits
+exactly the case the dropped term existed to block.
+
+**Before replacing a compound guard, write down what each term was for.** A replacement
+that covers three of four leaves a hole precisely where the fourth was — and the hole is
+harder to see than the original mess, because the new guard *looks* like it was derived
+from first principles.
+
+The tell that this had happened: the failure survived a fix that was independently correct.
+That is the same signal as elsewhere in this file — a refutation surviving a real fix means
+another cause — and here the other cause was something the fix itself removed.
+
+## Time spent understanding why a fix fails is not lost from fixing it
+
+One property stayed open across four waves:
+
+| Wave | Action | Outcome |
+|---|---|---|
+| 1 | recorded as open rather than weakened | property preserved |
+| 2 | two narrowings (state register; symmetric guard) | window smaller, still open |
+| 3 | third narrowing attempted; **diagnosis** produced instead | cause identified |
+| 4 | act on diagnosis | closed, five lines |
+
+Waves 2 and 3 look like failure and were not. Wave 1 preserved the information; waves 2–3
+bounded the problem until wave 3 could say *why no top-level fix could work*; wave 4 was
+trivial once that was known.
+
+**The strong temptation in the middle of this is to weaken the property so the run goes
+green.** Each wave offered that exit and each refusal is why the final fix was five lines
+in the right place rather than a fifth condition in the wrong one.
+
+Two habits worth carrying: **when successive fixes each narrow without closing, spend the
+next attempt on a trace rather than a fix** — the pattern is diagnostic, not just
+frustrating. And **a diagnosis that names a concrete change is a complete deliverable**; it
+converts an open bug into scoped work, and the person who acts on it may well be you next
+session with no memory of the reasoning.
