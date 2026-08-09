@@ -2307,3 +2307,63 @@ exposed the next cause underneath.
 The practical consequence: judge a systematic sweep by total defects found, not by hit
 rate against its stated target. A sweep that finds nothing of its named kind but four
 other real bugs has done its job.
+
+---
+
+## A blocker you recorded rather than forced can dissolve on its own
+
+Three fixes for one defect were tried and withdrawn because each broke an unrelated
+baseline that nobody could explain. The defect was recorded as open and gated, not
+patched around. Eight waves later the same fix was re-applied unchanged and the baseline
+proved — the blocker had gone away with three *other* defects fixed in the meantime.
+
+Had the original fix been forced through by weakening the baseline check, the three later
+defects would have had one less signal pointing at them, and the weakened check would
+still be in the tree.
+
+**When a fix is blocked by something you cannot explain, record the blockage and move on
+to work that is explainable.** Unexplained blockers are frequently symptoms of defects you
+have not found yet; fixing those retires the blocker for free. The cost is carrying an
+open item; the alternative is carrying a silent workaround.
+
+## A global flag cannot answer a per-instance question
+
+The defect: a consumer could read a buffer nothing had written. Three attempts gated on a
+single `input_loaded` bit — *has anything been written* — when the property asked *was the
+buffer this reader reads written*. No tuning of one bit answers a question indexed by
+which instance is in play.
+
+The tell is a mismatch of arity between the flag and the property. If the property
+mentions a selector (`use_buffer_a ? ... : ...`, a channel id, a tenant, a shard), the
+state backing it must be indexed by that same selector. One flag per instance, set by the
+actual event, not one flag for the system.
+
+This shape recurs far outside hardware: a global `initialized` boolean guarding
+per-connection state, one `dirty` flag for a set of caches, a single retry counter across
+independent requests.
+
+## Prefer an observable error to a stall, when refusing is the only alternative
+
+Given "this operation cannot safely proceed", the tempting fix is to refuse to start it.
+That deadlocks whenever the unsafe condition is *legitimate* — here, a layer that
+correctly produces no output, which is a valid case the system deliberately supports.
+
+And a stalled system passes every safety property, because something that does nothing
+violates nothing. So the failure mode is invisible to exactly the checks that motivated
+the change.
+
+The better shape: **do not perform the unsafe operation, complete anyway, and raise an
+error the caller can observe.** Here that meant not starting the layer *and* driving an
+error interrupt — no garbage computed, no deadlock, and the host learns why. Verify with
+liveness witnesses that the system still does its work afterwards.
+
+## An expected-refutation gate is how an open defect closes itself
+
+The property was kept in the codebase, guarded, with CI asserting it **must still fail**.
+When the fix finally worked, the build went red and said: promote this. That is the whole
+value — an open defect that announces its own resolution rather than waiting for someone
+to remember it.
+
+Worth pairing with the inverse, added when the last one closed: a gate asserting **no
+expected-refutation guard remains**. Together they make "what is knowingly broken" a
+checked property of the repository instead of institutional memory.
