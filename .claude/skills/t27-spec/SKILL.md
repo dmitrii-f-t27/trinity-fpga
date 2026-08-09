@@ -2487,3 +2487,51 @@ before building an argument on it.** Assert the relation at each candidate offse
 which one proves — that is a directed experiment with three outcomes, versus a guess with
 two. Guessing it inside a larger property means every failure is ambiguous between "wrong
 offset" and "wrong idea".
+
+---
+
+## Check what kind of result you have before measuring how far it extends
+
+A verification campaign spent a wave measuring how deep each proof holds, and produced a
+careful table of ceilings. Two of the six entries had no ceiling: they were proved by
+k-induction, which holds for all time, and the sweep had re-measured them with plain
+bounded checking and reported "proved to 8× the bound" — **understating a result that was
+already unbounded.**
+
+Nothing in the aggregate output distinguished the two modes. One flag in the invocation
+did, and it was never checked.
+
+Before quantifying a result, classify it. A bounded search and a proof by induction are
+different kinds of claim, and so are a sampled benchmark versus an exhaustive one, a
+statistical test versus a deterministic check, a spot audit versus a full reconciliation.
+**Measuring the extent of a claim that does not have an extent produces a number that is
+worse than no number**, because it looks like a limit where none exists.
+
+## The same parameter name can mean different things in different modes
+
+Acting on the measurement above, bounds were raised across the suites — including one
+where the parameter is an *induction depth*, not a search bound. Raising it there buys
+nothing and costs a great deal: the proof was already unbounded.
+
+`-seq 80` reads identically in both invocations. Only the presence of another flag changes
+what it means.
+
+When a tool's parameter changes meaning by mode, the safe move is to key any bulk edit on
+the **mode**, not on the parameter. Grep for the mode flag first, partition the call sites,
+and apply the change only to the partition where it means what you intend. The bulk edit
+that treats all call sites alike is the one that quietly does the wrong thing to a subset.
+
+## An aggregate can be uninformative in a way that looks informative
+
+Six suites, six verdicts, all green. That summary was accurate and told you almost
+nothing: two of the numbers meant something categorically different from the other four,
+and one was the minimum over three members whose costs differed by two orders of
+magnitude.
+
+The fix is not more precision in the aggregate but **a per-member map**: one row per
+property, with its own depth and its own cost. That converts "everything passes" into a
+picture that names the single genuinely shallow item — which is the only part of the
+summary anyone can act on.
+
+Worth doing once for any suite whose members are heterogeneous. The cost is one sweep; the
+result is knowing which of your green checks are load-bearing.
