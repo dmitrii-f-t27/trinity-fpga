@@ -3408,3 +3408,54 @@ The pattern from this campaign: every overstated claim was overstated at the mom
 writing, by someone who knew the limit. Writing the limit in the same paragraph as the
 finding costs one sentence and is the difference between a bounded result and one that gets
 cited later as broader than it was.
+
+---
+
+## An item that has resisted three honest attempts is a decision, not a queue entry
+
+One invariant took three waves and never landed. Each attempt was reasonable, each produced
+a real measurement, and each ended one insight short — which is exactly the shape that keeps
+a task alive indefinitely.
+
+The fourth wave was not spent. Instead the item was closed, with the reasoning written down:
+the pair it would have constrained is already covered by two properties that *did* land, so
+the marginal value of a third was small against a cost already at three waves.
+
+**Carrying a "nearly done" item is not free.** It occupies the top of the queue, it
+justifies the next attempt by the sunk cost of the last, and it makes every plan slightly
+dishonest. Closing it explicitly — with a written reason someone can disagree with — is
+cheaper than a fourth attempt and strictly more useful than silence.
+
+The test: *if this were proposed fresh today, with no history, would it be worth doing?* If
+not, the history is the only thing keeping it alive.
+
+## Negative results are worth keeping only where the next attempt will look
+
+Three waves of failed attempts produced four concrete measurements. They live as a comment
+**in the file that would have to change**, above the properties that did land — not only in
+a commit message, an issue, or a design document.
+
+```
+// A CONSERVATION property was attempted across three waves and is ABANDONED:
+//   * against the live input: REFUTED (stability assumption misses the load cycle)
+//   * against a latched copy: REFUTED
+//   * strengthening the environment: proved it AND killed two vacuity witnesses
+//   * the load point at three offsets: all REFUTED -- not a fixed offset
+```
+
+That placement is the whole value. A negative result filed where nobody looks is
+indistinguishable from never having run it, and the next person will spend the same three
+waves.
+
+## Before believing a refutation, check your probe is not simply too strict
+
+Several probes refuted and looked like design defects. They were not: a status output
+cleared in a terminal state lags its state register by one cycle, so any property asserting
+the two move together fails on correct hardware.
+
+The tell is that the refutation appears immediately and for a structural reason rather than
+a specific input. Before reporting, ask what the *correct* implementation does at the exact
+cycle the probe examines — the answer is often "exactly this, and it is fine".
+
+Related to an earlier lesson in reverse: an unconstrained input makes a correct design look
+broken; an over-strict property does the same, and both cost a wave if reported as findings.
