@@ -3142,3 +3142,61 @@ only argument for it is the bug it failed to fix, withdraw it.
 
 That distinction keeps a codebase from accumulating speculative changes while still
 allowing genuine improvements found along the way.
+
+---
+
+## A rejected fix is rejected against a design, not for all time
+
+An interlock was tried, analysed, and withdrawn with a conclusion that read like a law:
+*a start-time count cannot enforce a per-cycle claim*. Three waves later the same interlock
+was re-applied unchanged and closed the defect.
+
+The conclusion was never wrong. It was **conditional on the design at that moment** — the
+quantity being checked could change mid-operation, so a check at the start said nothing
+about the rest. A separate fix later latched that quantity, and the condition the rejection
+depended on stopped holding.
+
+What made the re-attempt cheap was recording the **reason** beside the code, not just the
+verdict:
+
+```verilog
+// A COUNT version was attempted in Wave 594 and withdrawn: it neither closed
+// the property nor left the proved set intact. Why it cannot close it: the
+// property compares the read address at the moment of the read, while a
+// start-time gate says nothing about writes and reads interleaving WITHIN a
+// layer.
+```
+
+A verdict ("we tried this, it failed") closes the door. A reason ("it failed *because* X")
+leaves it open for the day X stops being true. **When you record a rejected approach,
+record the condition it failed under** — that is the part with a shelf life.
+
+## Some defects need several changes, none of which look like progress alone
+
+The defect took three changes across eight waves, and each one individually left the
+property still failing:
+
+1. per-instance written flags — closed a coarser version, left the fine one
+2. latching configuration at operation start — fixed a real race, did not close it
+3. carrying the fill extent across the handover — closed it
+
+Under a strict "withdraw anything that does not fix the target" rule, changes 1 and 2 would
+both have been reverted, and change 3 would never have worked. The rule that saved them was
+the refinement: **withdraw a fix that misses its target *and costs something*; keep one
+that is right on its own terms.**
+
+The test is: *would I write this having seen the code fresh, with no knowledge of the open
+bug?* Both survivors passed it — a state machine should not have its terminator moved
+mid-run, whatever else is broken.
+
+## Building the instrument is most of the work
+
+The defect was one line of missing state. Finding it took a trace reader (the tool's own
+JSON output was malformed), a free-property gate (five properties proved by syntax alone),
+and an assumption-bisection method — plus two wrong attributions published before the right
+one.
+
+That ratio is normal and worth planning for rather than apologising about. When a bug
+resists two honest attempts, the next move is usually not a third attempt at the bug but a
+first attempt at **seeing it**: what would make the failure legible, and is that thing
+trustworthy? Two of the three instruments here caught their own defects on first use.
