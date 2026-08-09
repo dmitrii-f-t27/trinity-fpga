@@ -3596,3 +3596,56 @@ quietly drops.
 Generalises to any suite where a minority dominates: split the fast majority into a
 frequent, deep run and let the slow minority keep a shallower one, rather than letting the
 slowest member set the depth for everything.
+
+
+## Wave 606 — probe the interleavings, not just the activities
+
+**A reachability probe per activity does not cover the reachability of their
+combinations.** Twelve probes each said "this module does its job." A constraint
+that removes a rare *interleaving* — two transfers back to back, both directions,
+two prefetches — leaves every one of those twelve refuting and is invisible. The
+limit was written down five waves before it was closed; writing it down is what
+made it a task instead of an assumption.
+
+**Choose the interleavings from defect history, not from combinatorics.** Two
+modules × a handful of events is a large space and enumerating it is not the
+point. The three that got written are the shapes this campaign's defects actually
+took: state carried across a completion boundary (that was a real defect), a
+field sampled once at start (pinning it deletes half the design), a per-layer
+operation (allowing only the first leaves every later one unverified).
+
+**Validate each probe by removing its own target, one at a time.** The rule "a
+sweep that finds nothing must demonstrate it could have" applies per-probe, not
+to the sweep as a whole. `assume (direction == 0)` must make the both-directions
+witness prove. If it does not, the witness is decoration.
+
+**A control that fails to remove the thing it targets tests nothing — and reads
+exactly like a blind probe.** The first attempt at the back-to-back-prefetch
+control did not actually forbid a second completion; the witness kept refuting,
+which looks identical to "this witness cannot detect anything." The difference is
+only visible by checking that the control does what it claims. Suspect the
+control before the probe.
+
+**`$past` inside `always @(posedge clk or negedge rst_n)` is rejected outright.**
+`ERROR: Async reset \rst_n yields non-constant value` from `async2sync`. Edge
+detection in a witness must be a synchronous block with an explicit
+previous-value register:
+
+```verilog
+reg [1:0] n; reg done_q;
+always @(posedge clk)
+    if (!rst_n) begin n <= 2'd0; done_q <= 1'b0; end
+    else begin
+        done_q <= done;
+        if (done && !done_q && n != 2'd3) n <= n + 2'd1;
+    end
+always @(posedge clk) if (rst_n) w: assert (n < 2'd2);
+```
+
+This is a **tool error, not a verdict** — worth nothing unless the harness
+already separates the two, which is why that distinction was built first.
+
+**Interleaving witnesses need more depth than activity witnesses.** Two
+completions in one trace costs roughly double: `seq 24` for DMA against 12 for
+its activity probes, `seq 30` for prefetch against 14. Budget for it or the
+witness times out and looks like a proof.
