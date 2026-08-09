@@ -2184,3 +2184,64 @@ conclusions from noise, which is worse than having no trace at all.
 
 Same rule as the baseline check, one level up: **verify the instrument on a case whose
 answer you already know, before trusting it on one you don't.**
+
+---
+
+## When two attempts stall on the same item, suspect the instrument
+
+Two waves produced nothing on one open finding. Both times the conclusion was "the design
+is subtle". It wasn't — the counterexample had never actually been parsed. An ad-hoc regex
+over the tool's text output silently dropped every row, and the resulting trace showed a
+guard signal low throughout, which cannot violate a property guarded on that signal.
+
+The signal to watch for: **a diagnosis that contradicts its own premise.** A trace where
+the failing condition never occurs, a profiler where the hot path isn't called, a log
+where the error precedes the request. That is the instrument reporting on itself.
+
+Fixing the reader took one wave and made the defect legible in the first query. Two waves
+of "the design is subtle" were the cost of not suspecting it earlier.
+
+## Validate a reader against a known answer, in CI
+
+A parser for diagnostic output has no natural test — it is *the* thing you would use to
+check itself. Break the circle with a case whose answer you already know:
+
+```python
+# the prefetch with its clamp removed MUST wrap; if the reader cannot see that,
+# the reader is broken, not the design
+refuted, trace = run_and_read(script_with_known_bug, "known.json")
+assert refuted and any(addr[t] < addr[t-1] and we[t] for t in range(1, depth))
+```
+
+Make it a CI step. A diagnostic tool that silently degrades is worse than none, because
+its output still looks like evidence. This applies to log parsers, metric scrapers, crash
+symbolicators, coverage extractors — anything whose failure mode is "returns something
+plausible".
+
+Two concrete traps found in one tool:
+- **The format lies about being a format.** `yosys sat -dump_json` writes RTLIL names
+  verbatim, so a name containing `\e` makes the document invalid JSON. Repair before
+  parsing; do not assume a `.json` extension means parseable.
+- **Compressed formats need full expansion.** WaveJSON uses `.` for "same as previous".
+  A reader that skips those characters loses most of the trace while appearing to work.
+
+## Query the trace, do not read it
+
+Once the reader worked, the defect was found by asking a question, not by scanning a
+table: *at which timestep does the guard hold and the assertion fail?* One line, exact
+answer, `t=28: local_addr=1, expected 0`.
+
+Eyeballing a 30-cycle × 90-signal table is how the earlier misreadings happened. **Encode
+the property you are checking as a predicate over the trace and let it find the row.**
+The predicate is already written — it is the assertion that failed.
+
+## Keep a fix that misses its target only if it is right on its own terms
+
+Two fixes were applied to a refuting property; neither closed it. Earlier guidance says
+withdraw a fix that does not fix the target. The refinement: **withdraw it when it costs
+something** — a regressed property, added complexity, a weakened invariant. Keep it when
+it is independently correct and everything else still passes.
+
+Both fixes here were kept: one sequential index per transfer, and reset on every start.
+Each is defensible without reference to the property that motivated it. The test is not
+"did it work" but "would I write this if I had seen the code fresh".
