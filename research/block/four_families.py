@@ -71,7 +71,8 @@ tok = AutoTokenizer.from_pretrained(MODEL)
 model = AutoModelForCausalLM.from_pretrained(MODEL, dtype=torch.float32).eval()
 ids = tok(load_wikitext(), return_tensors="pt").input_ids
 
-base = perplexity(model, ids)
+NWIN = 40
+base = perplexity(model, ids, NWIN)
 print(f"\nЛИНЕЙКА: базовая перплексия = {base:.4f}", flush=True)
 if not (10.0 < base < 60.0):
     print("ЛИНЕЙКА СЛОМАНА — останов."); sys.exit(1)
@@ -110,7 +111,7 @@ for name, lv in CAND:
     if lv is None: continue
     for n, m in target_modules(model):
         m.weight.copy_(quant(orig[n], lv))
-    p = perplexity(model, ids)
+    p = perplexity(model, ids, NWIN)
     res.append((name, p))
     print(f"{name:44s} {len(lv):8d} {p:9.4f} {p/base:9.3f}x", flush=True)
 for n, m in target_modules(model):

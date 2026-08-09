@@ -896,7 +896,7 @@ while holding $M$ leaves the error bit-identical and multiplies the range
 ninefold.
 
 \paragraph{The positions were spent on mantissa, and the reason is a measurement.}
-Corollary~\ref{cor:pair} forbids recommending a budget without naming a workload,
+Corollary~\ref{cor:three} forbids recommending a budget without naming a workload,
 so we named one. At the 16-bit class the extra range is not consumed:
 quantised-inference tensors span roughly $2^{-14}$ to $2^{14}$, and $E_t = 4$
 already clips nothing at $\pm 40$ binades --- zero clips in 2000 values. $E_t = 6$
@@ -907,7 +907,7 @@ $3.70\times / 11.21\times / 22.68\times$, no longer losing the near bin. In
 silicon it costs $443$ LUTs against $372$, a $19\%$ increase, at $136.44$\,MHz
 against $131.73$ --- no frequency penalty.
 
-All three ratios in this section and in Figure~\ref{fig:accuracy} come from one
+All three ratios in this section and in Figure~\ref{fig:acc} come from one
 script, \texttt{gen\_figures.py}, which computes them from the oracles at seed
 $20260809$ rather than transcribing them. They were hardcoded until 2026-08-09 and
 had drifted: the figure still carried $M = 9$ and the label \texttt{tekum16} after
@@ -1610,7 +1610,7 @@ sits on, and the format follows.
 
 So the question ``is there an ideal format'' has an answer, provided it is asked
 with its three arguments supplied. Asked without them it is not underdetermined
-but ill-posed: Corollary~\ref{cor:pair} already says a budget cannot be
+but ill-posed: Corollary~\ref{cor:three} already says a budget cannot be
 recommended without a workload, and Theorem~\ref{thm:dichotomy} says no single
 format can serve both sides.
 
@@ -1779,6 +1779,66 @@ than a measured quantity, and is reported as such.
 
 
 
+
+\subsection{The width rule is an optimisation with one solution}
+\label{sec:optimal}
+
+Theorem~\ref{thm:coverage} compares against a given competitor. Stated as a
+design problem it selects a member outright, which is what makes the rule
+falsifiable: it names a winner before any measurement.
+
+\begin{theorem}[Optimal member for a named range]
+\label{thm:optimal}
+Let a workload visit $b$ binades. Among all members of $\mathcal{F}_N$ that
+represent it without overflow, the effective mantissa is maximised uniquely at
+\[
+  E_t^{*} = \bigl\lceil \log_3 (b+1) \bigr\rceil,
+  \qquad
+  M^{*} = N - 1 - \bigl\lceil \log_3 (b+1) \bigr\rceil .
+\]
+\end{theorem}
+\begin{proof}
+Representability requires $3^{E_t}-1 \ge b$, i.e.\ $E_t \ge \log_3(b+1)$, and
+$E_t$ is an integer, so $E_t \ge E_t^{*}$. By the width rule $M = N-1-E_t$ is
+strictly decreasing in $E_t$, so the constraint binds and the minimiser is unique.
+\end{proof}
+
+The rule therefore has no free parameter once the workload is named, and naming
+the workload is a measurement rather than a choice. Section~\ref{sec:ternarynet}
+uses this as a prediction: the binade span of a network's weights is measured
+first, $E_t^{*}$ is computed from it, and only then is perplexity evaluated across
+the whole family. A different winner would falsify the rule.
+
+\begin{theorem}[Regret of a misnamed range]
+\label{thm:regret}
+Sizing for $b'$ when the workload visits $b$ costs
+\[
+  R =
+  \begin{cases}
+    \lceil\log_3(b+1)\rceil - \lceil\log_3(b'+1)\rceil \ \text{mantissa bits}, & b' > b,\\[2pt]
+    \text{overflow on a set of measure } 1 - \tfrac{\log_3(b'+1)}{\log_3(b+1)}, & b' < b .
+  \end{cases}
+\]
+The penalty is asymmetric: over-sizing costs precision logarithmically, under-sizing
+costs range linearly, so when the visited range is uncertain the rule should round up.
+\end{theorem}
+
+The asymmetry is worth naming because it contradicts the intuition that a wider
+exponent is the conservative choice. It \emph{is} conservative --- but the price is
+paid in every value the format ever represents, whereas the price of being too
+narrow is paid only on the tail. Which dominates is an empirical question about
+the tail's weight, not a matter of taste.
+
+\begin{corollary}[When the trit is worth its packing]
+\label{cor:worth}
+Ternary buys $\Delta = E(1-\log_3 2)$ positions and costs
+$\kappa(3)/\kappa(2) = 1.683$ per position when packed into binary fabric, where
+$\kappa(r) = (r-1)^2/(r \ln r)$. The two cancel at $E$ satisfying
+$\Delta = 0.331\,E_t$, so on positions the trit wins outright and on binary bits
+it breaks even --- which is why BNF16 and TNF16 synthesise within $1\%$ of one
+another while the number-axis frontier separates them.
+\end{corollary}
+
 \subsection{The trit is the slack}
 \label{sec:slack}
 
@@ -1834,7 +1894,7 @@ $5.54$ at \texttt{binary128}. The margin is not a coincidence of the catalogue; 
 is $0.3691$ per exponent bit the competitor spends.
 
 This is worth stating plainly because it cuts against
-Theorem~\ref{thm:nofreerange}, which says a packed ternary exponent never carries
+Theorem~\ref{thm:nofree}, which says a packed ternary exponent never carries
 more values \emph{per bit} than a binary one, and which we confirmed in silicon:
 BNF16 and TNF16 differ by $1\%$ in LUTs. Both are true, on different axes. Per
 \emph{position} a trit spans $\log_2 3$ binades against a bit's one, which is
@@ -1865,11 +1925,65 @@ tapering is \emph{for}. A bound no format can violate would be measuring nothing
 \paragraph{What this predicts.} Corollary~\ref{cor:escape} names the only two
 routes out, and both are open questions rather than results of this paper. The
 taper route is bounded by Theorem~\ref{thm:floor} and costs what
-Section~\ref{sec:silicon} measures. The block route --- MX and its descendants,
+Section~\ref{sec:hardware} measures. The block route --- MX and its descendants,
 where one scale serves 32 elements --- lies outside every budget stated here,
 because the scale is not in the word. We report it as the frontier of this work
 and not as territory held.
 
+
+
+
+\begin{theorem}[Transforms and formats do not compose]
+\label{thm:compose}
+Let $D^{*}(b,p)$ be the best achievable distortion at $b$ bits per element under
+a fixed pre-transform $p$. A transform changes $D^{*}$ by changing the source it
+presents; a format chooses a partition attaining some $D \ge D^{*}$. Two levers
+that both act on the partition therefore share one ceiling and their gains are
+sub-additive, while a transform and a format act on different arguments and their
+composition is order-dependent.
+\end{theorem}
+
+Measured, the order-dependence reaches $2.78\times$: applying the same two levers
+in the two orders gives different results, which forbids reporting either as a
+standalone multiplier. We flag this because we made the mistake ourselves ---
+an early version of this work computed a lever's ratio against a losing baseline
+and reported the levers as nearly multiplicative. They are not.
+
+\subsection{Where the block literature is not looking}
+\label{sec:blockrelated}
+
+The block axis is the escape route Corollary~\ref{cor:escape} leaves open, and it
+is where the field's attention currently sits. It is worth being precise about
+what that work varies and what it holds fixed.
+
+The Open Compute microscaling specification fixes a block of 32 elements sharing
+one UE8M0 scale --- a bare power of two, no mantissa --- with the element at E2M1.
+NVIDIA's NVFP4 changes two things: the block shrinks to 16, and the shared scale
+becomes an E4M3 float rather than a power of two. Both are hardware-resident on
+current accelerators, which is why the stop condition for this work is stated
+against them and not against posit or takum.
+
+What the 2026 literature then varies is almost entirely the \emph{transform}
+applied before quantisation, not the format underneath it: learnable block-wise
+optimisation for outlier resilience, format-aware rounding fitted to the E2M1
+level set, augmented residual channels, and activation-sparsity coupling. Each
+reports gains, and each holds the element format at E2M1.
+
+That is exactly the variable Theorem~\ref{thm:optimal} addresses. E2M1 spends two
+of its three non-sign positions on an exponent, \emph{inside a block that already
+carries a shared scale}. The width rule says the exponent is sized for the range
+the workload visits, and inside a block normalised by its own maximum that range
+is measurable rather than assumed. If it is narrower than four binades, E2M1 is
+buying range the block already paid for, and the positions belong in the mantissa.
+We measure the within-block span directly and let the rule name a winner before
+evaluating perplexity; Section~\ref{sec:blockrelated} reports what came back,
+including the case where the rule was wrong.
+
+This is a narrower claim than it may look. It says nothing about the transforms,
+which compose with any element format and whose gains we do not dispute. Our own
+Theorem~\ref{thm:compose} says transforms and formats act on different objects ---
+a transform moves the ceiling, a format divides it --- so improving the element is
+orthogonal to improving the rotation, and neither subsumes the other.
 
 \section{Limitations}
 
