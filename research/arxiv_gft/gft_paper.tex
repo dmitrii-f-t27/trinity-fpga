@@ -63,16 +63,29 @@ alone. Measured across eight rungs spanning 302 orders of magnitude the constant
 holds to $\pm3\%$, and within each rung the error varies by at most $7\%$ from one
 end of a 76-binade workload to the other.
 
-The law's consequence is that a format's costs become commensurable, and this is
-the paper's main result. A mantissa bit has a marginal area $\lambda$, so a
-variable-length exponent field costs a measurable number of mantissa bits of
-silicon (Theorem~\ref{thm:convert}). Synthesising the regime codecs of both
-tapered families under one harness on an XC7A200T, net of harness: a unary regime
-costs $438$ LUTs and a length-prefixed one $40$, against $0$ for a fixed field.
-At the 16-bit class, where $\lambda = 48.8$ LUTs per bit, those are $8.98$ and
+The law's consequence is that a format's costs become commensurable. A mantissa
+bit has a marginal area $\lambda$, so a variable-length exponent field costs a
+measurable number of mantissa bits of silicon (Theorem~\ref{thm:convert}).
+Synthesising the regime codecs of both tapered families under one harness on an
+XC7A200T, net of harness: a unary regime costs $438$ LUTs and a length-prefixed
+one $40$, against $0$ for a fixed field, which at the 16-bit class are $8.98$ and
 $0.82$ mantissa bits. The first exceeds GF-T16's entire mantissa; the second is
-small. The area argument for fixed fields is therefore decisive against posit and
-weak against takum, and we say so rather than averaging the two.
+small. On that axis the argument is decisive against posit and weak against takum,
+and we say so rather than averaging the two.
+
+Synthesising the \emph{published} decoders rather than our models of them then
+moves the main result somewhere else, and we had been measuring the smaller half.
+\texttt{posit32\_decode} costs $480$ LUTs, as its structure predicts.
+\texttt{takum32\_decode} evaluates $2^{f}$ from a $65536\times 48$-bit table and
+costs $10{,}967$ LUTs and $84$ RAMB36 tiles --- $23\%$ of the device's block
+memory --- because takum's value law is logarithmic and a linear datapath needs
+the exponential. GF-T's exponent path is wires. Theorem~\ref{thm:valuelaw} makes
+this a second axis, orthogonal to tapering: what a format costs to \emph{read} is
+set by whether its value law is $s\cdot 2^{e}$ or $2^{\ell}$, not by how it spends
+precision. Unlike the accuracy result, Theorem~\ref{thm:floor} places no range
+bound on it. One asymmetry is stated rather than left implicit: a logarithmic law
+turns multiplication into addition, and a design that stays in the logarithmic
+domain never pays this.
 
 What remains against takum is accuracy, and Theorem~\ref{thm:floor} bounds how far
 that claim may be taken. The exponent's encoding is a prefix code, so by Kraft no
@@ -1373,26 +1386,30 @@ oracle --- and put them through the same harness on XC7A200T.
 DSP, converting to binary32. These are the real codecs rather than the structural
 models of Table~\ref{tab:regimecost}.}
 \label{tab:realcodecs}
-\begin{tabular}{lrrl}
+\begin{tabular}{lrrrl}
 \toprule
-decoder & LUTs & $F_{\max}$ & what dominates \\
+decoder & LUTs & RAMB36 & $F_{\max}$ & what dominates \\
 \midrule
-\texttt{posit32\_decode} & $480$ & $49.0$\,MHz & leading-zero count, barrel shift \\
-\texttt{takum32\_decode} & $76{,}821$ & --- & a $65536 \times 48$-bit table for $2^{f}$ \\
-GF-T32, exponent path    & $0$   & ---         & the field is read directly \\
+\texttt{posit32\_decode}          & $480$      & $0$  & $49.0$\,MHz & leading-zero count, barrel shift \\
+\texttt{takum32\_decode} as published & $76{,}821$ & $0$  & ---         & the $2^{f}$ table, built from logic \\
+\texttt{takum32\_decode} + clocked read & $10{,}967$ & $\mathbf{84}$ & $11.4$\,MHz & the same table, in block memory \\
+GF-T32, exponent path             & $0$        & $0$  & ---         & the field is read directly \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The takum figure needs stating carefully. Its decoder evaluates
-$2^{f_{\mathrm{hi}}/2^{16}}$ from a $65536 \times 48$-bit table, then applies a
-Taylor correction through a $108$-bit and an $80$-bit multiply. In this flow the
-table did not infer as block RAM --- the module lacks the
-\texttt{ram\_style="block"} attribute that the same suite's 16-bit decoder
-carries --- so it was built from logic, and $76{,}821$ LUTs is what the design as
-written costs here rather than a property of takum. Inferred correctly the table
-is $3.15$\,Mbit, which is $85$ RAMB36 tiles, $23\%$ of this device's entire block
-memory. Either way the cost is not the regime field.
+The takum row is given twice because one number alone would mislead. Its decoder
+evaluates $2^{f_{\mathrm{hi}}/2^{16}}$ from a $65536 \times 48$-bit table, then
+applies a Taylor correction through a $108$-bit and an $80$-bit multiply. As
+published the table read is combinational, which no synthesiser can map to block
+memory, so it was built from logic at $76{,}821$ LUTs. Registering that read and
+marking it \texttt{ram\_style="block"} --- one cycle of added latency, and a
+pipelined variant of the published module rather than the module itself --- puts
+the table where it belongs: $10{,}967$ LUTs and $84$ RAMB36 tiles, which is
+$3.1$\,Mbit and $23\%$ of this device's entire block memory. We predicted $85$
+tiles from the table geometry before synthesising and measured $84$. Neither
+number is a property of takum the format; both are properties of decoding a
+logarithmic value law into a linear datapath, and neither is the regime field.
 
 \begin{theorem}[Linear and logarithmic value laws]
 \label{thm:valuelaw}
@@ -1413,6 +1430,33 @@ that decode cost is set by whether the regime is scanned
 (Theorem~\ref{thm:scan}) --- describes only the field-extraction term. It remains
 correct within that term, and Table~\ref{tab:realcodecs} shows the term is not
 where the money is for a logarithmic format.
+
+
+\begin{theorem}[The logarithmic decode costs by target precision, not by source width]
+\label{thm:targetprec}
+Evaluating $2^{f}$ to $P$ bits with a $2^{k}$-entry table and a degree-$d$
+polynomial correction requires $k \approx P/(d+1)$, so the table is
+$P \cdot 2^{P/(d+1)}$ bits: exponential in the target precision and reducible only
+by raising the polynomial degree, which trades memory for multipliers. The width
+of the source format does not enter.
+\end{theorem}
+
+Theorem~\ref{thm:targetprec} is falsifiable against the suite and survives. The
+takum32 decoder carries $d = 2$ and $k = 16$, and $48/3 = 16$ exactly, where 48 is
+the table's output width. If the cost were set by the source width, the takum64
+decoder would need a larger table; if it is set by the target, it would need the
+same one. It reads \texttt{takum32\_2frac.mem} --- \emph{the same file} --- and
+emits binary32, as do the takum8, takum16 and takum64 decoders. One table serves
+four source widths because all four target one datapath.
+
+\begin{corollary}[Where the logarithmic law becomes unaffordable]
+Decoding into binary32 needs $P = 48$, so $k = 16$ and $3.1$\,Mbit --- large but
+buildable, as measured. Into binary64 it needs $P = 105$, so $k = 35$ and roughly
+$3.6$\,Tbit at $d = 2$, which is not a design; the degree must rise instead, and
+the cost reappears as multipliers. A linear value law needs no polynomial at any
+target precision, because the significand is already in the datapath's
+representation.
+\end{corollary}
 
 \begin{corollary}[What GF-T's exponent path costs]
 \label{cor:zeropath}
