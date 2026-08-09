@@ -38,10 +38,11 @@
 % The thesis is what the ladder is FOR: a reference whose error is predictable
 % from its parameters and does not move with magnitude. Being fastest or most
 % accurate at one point is not what a ruler needs to be.
-\title{Ternary Network Floats \\
-  \large A datapath with no multiplier anywhere: two formats close the two halves
+\title{%
+  \fontsize{30}{34}\selectfont\bfseries Trinity S\textsuperscript{3}AI: Ternary Network Floats\\[10pt]
+  \normalfont\large A datapath with no multiplier anywhere: two formats close the two halves
   of a ternary node, one sign-select primitive builds both a radio and a
-  transformer at zero DSP, and no uniform format escapes the accumulator ladder}
+  transformer at zero DSP, and the multiply-free path is exact}
 \author{Dmitrii Vasilev\\
   \small ORCID 0009-0008-4294-6159 \\
   \small \texttt{admin@t27.ai}}
@@ -2091,6 +2092,104 @@ instead, for the reason given there. Ours are set in bold.}
 \bottomrule
 \end{tabular}
 \end{table}
+
+
+\subsection{The scale applier, and a claim we withdraw}
+\label{sec:scaleapplier}
+
+Section~\ref{sec:pair} closes the multiplier out of the weight and the
+accumulation. The layer scale is the third site, and our first two attempts at it
+were each wrong in a different direction. Both are recorded, because the
+correction is the result.
+
+A ternary network stores weights in $\{-1,0,+1\}$ and a real per-layer scale
+$\alpha = \mathbb{E}|W|$. Applying $\alpha$ is a genuine multiply, so the
+multiplier the ternary weights removed returns at the layer boundary. Snapping
+$\alpha$ to a grid removes it again, and the question is which grid.
+
+\paragraph{First claim, withdrawn.} We reported that the $\varphi^{k}$ grid beats
+powers of two, with excess reconstruction error $2.44\%$ against $4.86\%$ over 210
+layers --- a ratio of $0.501$ against $0.500$ predicted from the density
+$\log 2 / \log\varphi = 1.440$. That measurement reproduces and is correct. It was
+compared against the wrong baseline. The deployed state of the art for
+multiplier-free scales is not plain powers of two but \textbf{APoT}, whose levels
+are sums of power-of-two terms. Measured identically, APoT-2 costs $0.1651\%$ and
+APoT-3 costs $0.0054\%$, both in one cycle against our $k$. On accuracy the
+$\varphi$ grid loses by $15\times$, and that claim is withdrawn.
+
+\paragraph{Second claim, bounded.} Theorem~\ref{thm:exact} states the linear path
+is exact because $\mathbb{Z}[\varphi]$ is a ring. It is machine-checked and
+remains true, but we had presented it as an advantage. An APoT scale is a dyadic
+rational, and $\mathbb{Z}[1/2]$ is also a ring closed under the datapath's
+operations: a fan-in-512 layer with an APoT-2 scale and Q8 inputs accumulates to a
+denominator of $2^{15}$, exact in ordinary fixed point. Binary arithmetic has had
+this since fixed point existed. The theorem stands; its significance does not.
+
+\paragraph{What measuring area then showed.} Both attempts compared accuracy. The
+appliers differ more in area, and in a way neither of us predicted.
+
+\begin{table}[t]\centering
+\caption{Scale appliers, XC7A200T primitives, one harness, DSP inference off.
+Composition depth $d$ counts scales multiplied without requantisation between
+them.}
+\label{tab:scalefrontier}
+\begin{tabular}{lrrrl}
+\toprule
+applier & LUT & cycles & excess error & \\
+\midrule
+multiplier, real $\alpha$ & 1215 & 1 & $0.0000\%$ & or 2 DSP48 \\
+APoT-2, $d=0$ & 384 & 1 & $0.1651\%$ & two barrel shifts \\
+APoT-4, $d=1$ & 659 & 1 & --- & four shifts \\
+APoT-8, $d=2$ & 1217 & 1 & --- & eight shifts \\
+\textbf{$\varphi^{k}$, any $d$} & \textbf{173} & $k$ & $2.4420\%$ & no shifter \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{theorem}[Term growth]
+\label{thm:termgrowth}
+A value represented as a sum of $n$ terms from a multiplicatively closed
+generating set, composed through $d$ scale multiplications without
+requantisation, has $n^{d+1}$ terms. A value in $\mathbb{Z}[\varphi]$ has two
+components for every $d$, since $\varphi^{a}\varphi^{b} = \varphi^{a+b}$ adds
+exponents rather than multiplying terms.
+\end{theorem}
+
+\begin{theorem}[Shifter cost]
+\label{thm:shifter}
+A runtime-variable shift over $W$ bits costs $\Theta(W\log W)$ LUTs; a fixed
+permutation costs zero. An $n$-term APoT applier is therefore
+$\Theta(nW\log W)$ and a Fibonacci step is $\Theta(W)$.
+\end{theorem}
+
+This is the effect we had missed, and it is larger than the one we predicted. We
+had been calling APoT ``shift-add'' and treating that as free. A shift by a
+\emph{constant} is free; a shift by a \emph{variable} is a barrel, measured here
+at 192 LUTs each on 32 bits, and a scale that must serve any layer is variable by
+construction. The Fibonacci step contains no shifter at all.
+
+\begin{corollary}[Crossover with the multiplier]
+\label{cor:crossover}
+Since APoT area grows as $n^{d+1}$ while the multiplier's does not grow, there is
+a depth $d^{*}$ at which APoT costs what it was introduced to avoid. Measured at
+$W=32$, $n=2$: $d^{*}=2$, where APoT-8 costs 1217 LUTs against 1215.
+\end{corollary}
+
+\begin{theorem}[No single winner]
+\label{thm:threevertex}
+In $(\text{area}, \text{latency}, \text{error})$ no applier dominates another.
+The multiplier is exact and largest, $\varphi^{k}$ smallest and least accurate,
+APoT-2 between and beaten by neither; all three are vertices of the frontier.
+\end{theorem}
+
+\paragraph{The recommendation is therefore a rule, not a winner.} Use
+$\varphi^{k}$ where the scale path is area-bound, or composed without
+requantisation --- a low-rank factorisation, a folded convolution and batch norm,
+a residual branch scalar, or accumulation along a mesh route. Use APoT where it is
+latency- or accuracy-bound. We state this rather than defend one answer because
+our two previous attempts each defended one, and each was wrong in a different
+direction.
+
 
 \subsection{The formats a training run cannot live in}
 \label{sec:untrainable}
