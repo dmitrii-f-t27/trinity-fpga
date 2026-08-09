@@ -1941,3 +1941,73 @@ Pair the two halves or you get neither: assert the request completes *and* asser
 performed no work. The first alone permits a module that lies; the second alone permits
 one that hangs. In CI that means a gate with deliberately mixed polarity — some
 properties must PROVE, others must REFUTE — so write the expected verdict next to each.
+
+---
+
+## A rule with no gate is a preference
+
+The clearest result of the documentation audit: two reproduce blocks were added that
+violated a rule recorded **in the same file** — *evidence citing a command that does not
+exist is not evidence* — written by the same author, in the two waves immediately after
+that rule was written down. Neither block was ever executed. Both cited a binary not on
+PATH.
+
+Writing a rule down does not apply it. Restating it does not either. The only thing that
+applies a rule is a check that fails when it is broken:
+
+```python
+# in CI: no ```bash block may cite a binary that is not on PATH
+if re.search(r"^\s*t27c ", block, re.M):
+    fail(f"L{n}: cites bare `t27c` (binary is at ./target/release/t27c)")
+```
+
+Applies to every convention you're tempted to record in a style guide, a CLAUDE.md, or a
+review checklist. **If you find yourself writing a rule, ask in the same breath what
+would fail when it is violated.** If the answer is "someone would notice in review", the
+rule will be violated, and most likely by the person who wrote it.
+
+## Documentation is evidence, so audit it like evidence
+
+A markdown document full of ```` ```bash ```` fences reads as reproducible. Classify the
+blocks before believing that:
+
+| class | test |
+|---|---|
+| **runnable** | contains a line matching a command pattern |
+| **template** | contains `<placeholders>` — never meant to run |
+| **transcript** | contains no command; it's showing output |
+
+Fourteen of nineteen were transcripts wearing a command's clothes. A reader cannot
+distinguish them, and neither can a future maintainer deciding whether a claim still
+holds. Transcripts belong in ```` ```text ````; the fence is a type annotation, not
+decoration.
+
+Then run the runnable ones. Not "check they look right" — execute them, and check the
+exit for 127 specifically, since *command not found* is the failure that makes a block
+look plausible while proving nothing.
+
+## Trace claims to gates mechanically, then check the misses by hand
+
+To ask "is every claim in this document still checked?", extract the identifiers each
+claim cites — function names, property names, file paths, commands — and grep the CI
+workflows and test files for them. Claims whose identifiers appear nowhere are candidates
+for *unchecked*.
+
+**Candidates, not conclusions.** Of six that matched nothing, four were false negatives:
+the extractor could not see prose labels like `'DMA can start'` that appear verbatim in
+the workflow. Checking those six by hand cost minutes and prevented publishing four wrong
+"ungated" claims — which would have been the exact error the audit existed to find.
+
+A heuristic that produces a shortlist is doing its job. Treating its output as a verdict
+is how an audit becomes the thing it was auditing.
+
+## Distinguish "has a check" from "the check is sufficient"
+
+The gate map establishes that each claim *has* something re-checking it. It does not
+establish the check is *adequate*: one gate counts conformance files without measuring
+whether the vectors inside them test anything. Recording that limit inside the audit is
+what keeps the audit honest — an audit that overstates its own coverage is worse than
+none, because it stops anyone looking again.
+
+The follow-up is the vacuity oracle applied to gates: break each gate deliberately and
+confirm the claim it guards actually goes red.
