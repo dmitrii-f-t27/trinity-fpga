@@ -23,6 +23,7 @@ records are the source of truth for what is actually established:
 | mesh, ledger, adversary rejection | `VERIFIED_SW` (42 Zig tests) |
 | three *physical* nodes exchanging work | not done — one board exists |
 | a trained IGLA CODER model | does not exist on this workstation |
+| a spec-first GF-T on-chip **trainer** (forward+backprop+update) | **exists + CI-proven bit-exact** in t27 (`emit-bitexact-gate`, Verilog=C=Rust=model, fuzz-hardened) — but simulated/synth only; not yet flashed (JTAG down). The *learning* complement to IGLA RACE's *inference* |
 | a receipt proves work ran on an FPGA | **false**, and must not be claimed |
 
 **Do not cite gfternary as a ternary-compute hardware result.** That cell

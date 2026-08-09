@@ -1,5 +1,12 @@
 # Ready-to-paste — GF-T16, a ternary-native GoldenFloat that beats tekum16
 
+> ⚠️ **SUPERSEDED 2026-08-08 by `ARXIV_GFT16_v2.md`.** Two things below will not
+> survive review. The table's bins are labelled "dec" but are **powers of two** —
+> checked in decades the far column is an overflow, not a win. And the caveat
+> saying the hardware argument is architectural rather than synthesized is now out
+> of date: the multiplier measures 219 LUTs, zero DSP48 and 147.32 MHz post-route,
+> and the ladder is 50/212/1477 LUTs at 153/132/83 MHz. Paste from v2.
+
 > For the catalog paper (arXiv:2606.09686) and/or GoldenFloat paper (2606.05017).
 > New format, strongest single result: a fixed-field GoldenFloat with a
 > balanced-ternary exponent that beats tekum16 on measured accuracy at range.
