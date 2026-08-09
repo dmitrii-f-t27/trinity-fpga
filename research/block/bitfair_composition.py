@@ -51,11 +51,16 @@ def q_escape(blk, levels, esc_bits):
     """Escape the largest element; it is stored at esc_bits precision, not exactly."""
     j = max(range(len(blk)), key=lambda i: abs(blk[i]))
     esc = blk[j]
-    if esc_bits < 32:                      # quantise the escaped value honestly too
-        elv = fp_levels(4, esc_bits - 5) if esc_bits >= 8 else fp_levels(3, esc_bits - 4)
-        top = max(elv)
-        s = abs(esc) / top if esc else 1.0
-        esc = (-1.0 if esc < 0 else 1.0) * min(elv, key=lambda L: abs(L - abs(esc) / s)) * s
+    if esc and esc_bits < 32:
+        # Quantise the escaped value ARITHMETICALLY. Enumerating a 16-bit level set is
+        # 32768 entries scanned per block -- that mistake hung the first run.
+        mb = esc_bits - 5 if esc_bits >= 8 else esc_bits - 4   # sign + exponent field
+        e = math.floor(math.log2(abs(esc)))
+        frac = abs(esc) / 2.0 ** e - 1.0
+        m = round(frac * (1 << mb))
+        if m == (1 << mb):
+            e, m = e + 1, 0
+        esc = (-1.0 if esc < 0 else 1.0) * (1 + m / (1 << mb)) * 2.0 ** e
     rest = [v for i, v in enumerate(blk) if i != j]
     qr = q_block(rest, levels)
     out, k = [], 0
