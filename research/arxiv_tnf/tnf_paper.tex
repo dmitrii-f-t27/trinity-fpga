@@ -2260,6 +2260,82 @@ without the reason each competitor sits below it, which is why each of those
 reasons is a theorem here rather than a table entry.
 
 
+
+\section{Where this sits in a sixty-eight-year argument}
+\label{sec:history}
+
+The claim that three is the better radix is not ours, and stating whose it is
+makes the contribution of this paper smaller and more defensible.
+
+\paragraph{The people who made the case.} Radix economy $\rho(r) = r/\ln r$ is
+minimised at $r = e$, and three is the nearest integer: ternary sits $0.46\%$
+above the optimum where binary sits $6.15\%$ above it. The argument was made
+mechanically before it was made electronically --- Thomas Fowler built a
+balanced-ternary calculating machine in Devon around 1840, and the recorded
+motivation was the same economy of digits. It became a working computer in 1958,
+when \textbf{Nikolay Brusentsov} built \emph{Setun} at Moscow State University
+with the backing of \textbf{Sergei Sobolev}, using paired ferrite cores to hold
+three stable states. Roughly fifty machines were produced between 1959 and 1965.
+Brusentsov followed it with \emph{Setun-70} in 1970, whose instruction-set ideas
+anticipated arguments later made independently for RISC; it never reached serial
+production, and the ternary line was ended administratively rather than
+technically. \textbf{Donald Knuth} kept the idea in circulation, calling balanced
+ternary ``perhaps the prettiest number system'' in \emph{The Art of Computer
+Programming}. The line continues in device work rather than architecture: CNTFET
+and memristor ternary logic, and more recently silicon-photonic balanced-ternary
+proposals, all of which build a fabric whose \emph{position} is physically
+ternary.
+
+\paragraph{What is new here is the boundary, not the claim.} We add no support to
+``ternary beats binary'' as a general statement. We measured it three times and it
+went against us each time --- see Theorem~\ref{thm:nofree} and
+Sections~\ref{sec:hardware} and~\ref{sec:blockrelated}. What we contribute is the
+condition under which the sixty-eight-year-old argument applies, stated exactly:
+
+\begin{theorem}[The radix argument holds on positions, not on bits]
+\label{thm:boundary}
+Write the economy as $\text{cost} = r \times \log_r V$. If the position is the
+physical unit, the first factor is common to all radices and only the second is
+compared, giving ternary an unconditional advantage of $E(1-\log_3 2) = 0.3691E$
+positions. If the position must itself be encoded in bits, the format is bounded
+by $3^{E_t} 2^{M} \le 2^{N-1}$, and since $3^{E_t}$ never divides a power of two
+the remainder is lost.
+\end{theorem}
+
+The remainder is arithmetic, not engineering, and it is largest exactly where
+modern formats live:
+
+\begin{table}[t]\centering
+\caption{Codes lost to packing when a ternary exponent is stored in a binary
+word. The loss is a property of the integers, not of an implementation.}
+\label{tab:packloss}
+\begin{tabular}{rlrr}
+\toprule
+width & best packed member & codes used & lost \\
+\midrule
+4 bits & $E_t{=}1$, $M{=}1$ & 6 / 8 & $25.0\%$ \\
+6 bits & $E_t{=}3$, $M{=}0$ & 27 / 32 & $15.6\%$ \\
+8 bits & $E_t{=}3$, $M{=}2$ & 108 / 128 & $15.6\%$ \\
+16 bits & $E_t{=}5$, $M{=}7$ & 31{,}104 / 32{,}768 & $5.1\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Prior work anticipated the mechanism: Parhami's analysis of binary-encoded
+balanced ternary treats exactly this encoding penalty. Our contribution is to
+measure what it costs in a live network and in placed-and-routed silicon rather
+than in operation counts, and to state it as a condition a designer can check.
+
+\paragraph{Read as a prescription rather than a verdict.} The result says what
+fabric must exist for the radix argument to pay: one where a ternary position is
+held physically, as Setun's paired cores held it and as CNTFET, memristor and
+photonic ternary devices propose to hold it again. On such a fabric the
+$0.3691E$ advantage is collected in full and none of the packing loss is
+incurred. On the binary fabric that is actually purchasable today, it is not.
+That is a narrower claim than the field usually makes, and unlike the broader one
+it survives our own measurements.
+
+
 \section{Limitations}
 
 \paragraph{The fabric this format is optimal on does not exist to buy.}
