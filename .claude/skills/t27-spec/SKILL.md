@@ -2761,3 +2761,58 @@ write", ask about "no read past what was written".
 Here two mirrors proved immediately (the read path was sound) and one refuted, which is a
 good outcome either way: proving a mirror costs one run and converts an assumption into a
 fact.
+
+---
+
+## A self-comparison is not an undefined-value detector
+
+To decide whether a property was failing because of the design or because its operands were
+undefined, I asserted the obvious thing:
+
+```verilog
+assert (fv_maxwr_a == fv_maxwr_a);   // PROVED -- and meaningless
+```
+
+The optimiser folds `a == a` to constant true before any value is considered. The check
+proves on a signal that is undefined, unconstrained, or does not exist at all. Same for
+`x != x`, `a - a == 0`, `a & ~a == 0` — every algebraic identity is discharged
+structurally, never by reading the signal.
+
+The generalisation is worth holding onto: **a probe whose result is determined by its own
+syntax tests nothing.** Before trusting a diagnostic assertion, ask what input would make
+it fail. If the answer is "none", the tool will happily confirm it forever.
+
+Valid alternatives depend on the tool: compare against a *known* value, drive the signal
+from a controlled stimulus and check the expected response, or make the probe fail
+deliberately once to prove it can.
+
+## Re-check the results a broken method touched — do not reason about them
+
+Discovering that a foundational check never did what it claimed raises an obvious question:
+which conclusions were affected? The tempting move is to reason it out — *those results
+were safety properties, they would not have been changed by extra assertions* — and that
+reasoning happened to be correct here.
+
+It was still worth running. Six witnesses, six re-runs, six identical verdicts, and now the
+claim is measured instead of argued. The re-run also surfaced the precise condition under
+which it *would* have mattered: had any of the compiled-in properties been an `assume`
+rather than an `assert`, the probes would have explored a constrained state space and every
+verdict could have differed — a distinction the old setup could never have revealed.
+
+**When a method turns out to be mis-specified, the cheap and honest response is to re-run
+what it touched.** Reasoning about the blast radius produces a defensible answer; re-running
+produces a fact, and occasionally a surprise.
+
+## A property that is syntactically true has always been counted
+
+The same folding trap sits inside the property set itself: one long-standing "proved"
+property is literally `assert (bram_addr == bram_addr)`. It has been counted among the
+proved set for dozens of waves and has never tested anything.
+
+Vacuity checking as normally practised asks whether a property's *guard* is reachable. It
+does not ask whether the property's *body* is discharged by the optimiser. Both are ways a
+property can be free, and only one of them is usually gated.
+
+Worth a one-time sweep of any assertion set: look for bodies that mention a signal only on
+both sides of a comparison, tautological ranges (`x >= 0` on an unsigned), and conditions
+implied by their own guard.
