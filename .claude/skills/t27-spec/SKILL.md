@@ -1753,3 +1753,41 @@ next attempt on a trace rather than a fix** — the pattern is diagnostic, not j
 frustrating. And **a diagnosis that names a concrete change is a complete deliverable**; it
 converts an open bug into scoped work, and the person who acts on it may well be you next
 session with no memory of the reasoning.
+
+## After adding constraints, prove the behaviour still exists
+
+Four consecutive sessions were spent adding interlocks — each one narrowing what a system
+was allowed to do, each one correct. Every safety property passed at the end.
+
+That is exactly when a green result means least. **An over-tight guard makes every safety
+property hold by making the system do nothing**, and no safety property can distinguish
+"the bad thing cannot happen" from "nothing happens".
+
+So the next session audited instead of extending. Six probes, each asserting an activity is
+*impossible*, where a **refutation** is the evidence it still occurs:
+
+| Probe | Expected | Meaning |
+|---|---|---|
+| `!dma_busy` | refutes | the DMA can still start |
+| `!mac_valid_q` | refutes | compute can still run |
+| `!(dma_busy && mac_valid_q)` | **proves** | ...and never together |
+
+The last line is the pair that carries the claim. **A safety property and a liveness
+witness together say something neither says alone**: "this combination is impossible" is
+only interesting once "each of these is possible" is established.
+
+Two habits:
+
+**Order matters — audit before extending.** The natural next step was a new property built
+on top. On a stalled engine it would have proved trivially and the error would have
+compounded into everything after it. One session of checking bought certainty for all the
+work that follows.
+
+**Write the liveness witnesses as CI, not as a one-off.** The hazard is not that today's
+guard is too tight; it is that tomorrow's will be, and every safety property will keep
+passing while it happens.
+
+The general form applies well beyond hardware: after tightening validation, rate limits,
+permissions, or retry conditions, the tests that still pass are not evidence the system
+works — they are evidence it does not do the forbidden thing, which an inert system also
+achieves. Add a check that the permitted thing still happens.
