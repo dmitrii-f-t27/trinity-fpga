@@ -2427,3 +2427,63 @@ A scheduled gate that re-establishes each documented scale, and fails when one s
 refuting **or stops completing**, turns the ceiling into a checked property rather than a
 remembered one. Both failure directions matter: a refutation means a real defect at depth,
 a new timeout means the claim quietly shrank.
+
+---
+
+## A batch verdict is the minimum over its members
+
+A checker that verifies a whole suite in one invocation returns one answer, and that
+answer describes its *worst* member:
+
+```
+a_sanity                  PROVED    0.2s
+a_no_overwrite            PROVED   87.2s
+a_rready_implies_active   PROVED    0.4s
+all three together        undecided >240s
+```
+
+Two separate problems here. The parts sum to under 90 seconds while the whole exceeds
+240 — a combined instance can be superlinearly harder than its pieces, so batching costs
+real verification depth. And the single number concealed that two members were verified
+four times deeper than the third.
+
+Splitting bought a 2.9× deeper bound at the same wall time, and it names the failure:
+a red batch says *something in here broke*; per-member runs say which.
+
+**When members of a suite differ by orders of magnitude in cost, an aggregate describes
+one of them and none of the others.** Run them separately and report a table. Applies
+directly to test suites with one slow integration test, benchmark runs reported as a
+single mean, and any pass/fail gate over a heterogeneous set.
+
+## A limit attributed to the system may be a limit of the question
+
+One module was recorded as "the one place a deeper defect could hide" because its proof
+would not extend. Re-asking the same question one property at a time removed the limit
+entirely — the module was never the problem.
+
+Before concluding that a component is intractable, expensive, or unverifiable, check
+whether the *shape of the query* is what is intractable. Batching, an over-broad scope, a
+join that fetches more than needed, a test that exercises ten behaviours at once: each
+turns a tractable question into an intractable one and then attributes the difficulty to
+the subject.
+
+The tell is a large gap between the cost of the whole and the sum of the parts. If you
+have never measured the parts, you do not know which you are looking at.
+
+## Replacing a global count with a local invariant is the right instinct — establish the alignment first
+
+The expensive property bounded a wide counter across an entire unrolling. The natural
+replacement is a *local* invariant relating that counter to something already constrained,
+plus an existing property covering the rest — cheap for a solver because it needs no
+history.
+
+The attempt refuted twice, both times on the sampling alignment between a counter
+registered off one signal and an address assigned from another on the same edge. The idea
+was sound; what was missing was one concrete fact about *when* each signal holds which
+value.
+
+The lesson is about order: **establish the alignment as its own small measured question
+before building an argument on it.** Assert the relation at each candidate offset and see
+which one proves — that is a directed experiment with three outcomes, versus a guess with
+two. Guessing it inside a larger property means every failure is ambiguous between "wrong
+offset" and "wrong idea".
