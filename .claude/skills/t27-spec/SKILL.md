@@ -2691,3 +2691,73 @@ is how correct code acquires defects.
 Deliberately stopping at "measured and scoped" leaves the next session a task that starts
 fresh with the full picture. The alternative — a half-finished refactor plus a tired
 reviewer — trades a known cost for an unknown one.
+
+---
+
+## Verify that a guard actually guards
+
+Fifteen waves of a verification campaign rested on a "baseline" run — the design compiled
+*without* its properties — used to distinguish "your check failed" from "something else
+failed". It never excluded a single property. The tool's `-formal` flag **predefines the
+`FORMAL` macro**, so every `` `ifdef FORMAL `` block was compiled whether or not the define
+was passed.
+
+The test costs one three-line module and two runs:
+
+```verilog
+module guardtest(input wire clk, input wire a, output reg q);
+    always @(posedge clk) q <= a;
+`ifdef FORMAL
+    always @(posedge clk) g: assert (q != a);   // must vanish without the define
+`endif
+endmodule
+```
+
+Compare the cell counts with and without. Identical means the guard is not a guard. Fixing
+it was a rename to a macro the tool does not own — after which the excluded build had **0**
+assertion cells instead of 28.
+
+Generalises to every conditional-compilation scheme: debug builds, feature flags, test-only
+code paths, `NDEBUG`, sampling switches. **A flag that quietly implies another define turns
+conditional code into unconditional code**, and nothing in the output says so. Assert the
+absence, not just the presence: a test that the guarded thing *disappears* is the one
+nobody writes.
+
+The deeper cost was diagnostic, not correctness. An earlier wave spent four rounds trying
+to separate a failing probe from a failing property. No flag existed that could separate
+them — the confusion was structural, and invisible.
+
+## Distinguish "the tool failed" from "the check failed"
+
+A harness reported `REFUTED` in 0.1 seconds. A refutation that fast is not a refutation —
+the input file was missing, the tool errored, and a nonzero exit was read as a verdict.
+
+```python
+if rc == 0:                       return "PROVED"
+if "proof did fail" in output:    return "REFUTED"
+return f"TOOL ERROR: {first_error_line(output)}"
+```
+
+Third time this shape appeared in one campaign: a trace reader that returned an empty trace
+on a parse error, a stub build whose unsoundness read as twenty property failures, and now
+a missing file. Each time the failure was *plausible* — it looked exactly like the thing
+being measured.
+
+Two habits close it: parse the tool's own words for the specific outcome rather than
+trusting the exit code, and treat implausible timings as evidence. A check that normally
+takes 40 seconds and "fails" in 0.1 has not run.
+
+## Add the mirror of every property you have
+
+A campaign accumulated forty propositions, and every one constrained **writes** — write
+addresses, write enables, write ordering, writes-before-reads. The read path had no
+coverage at all, and nobody noticed because the write properties kept finding real defects.
+
+Reading the existing set as a list of *shapes* rather than of facts makes the gap obvious:
+if you have "the write strobe is a pulse", ask about the read strobe; if you have "the
+write address is contiguous", ask about the read address; if you have "no read before
+write", ask about "no read past what was written".
+
+Here two mirrors proved immediately (the read path was sound) and one refuted, which is a
+good outcome either way: proving a mirror costs one run and converts an assumption into a
+fact.
