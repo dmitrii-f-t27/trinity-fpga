@@ -65,17 +65,24 @@ def uniform_levels(nbits):
     return [i / n for i in range(n + 1)]
 
 def tnf_levels(nbits, Et):
-    """Width rule inside a block: 1 sign + Et exponent + M mantissa = nbits."""
-    M = nbits - 1 - Et
-    if M < 0: return None
+    """Width rule says 1 + Et + M = nbits in POSITIONS. Binary fabric addresses
+    only 2^(nbits-1) magnitudes, so the realisable format obeys
+        3^Et * 2^M <= 2^(nbits-1)
+    and the gap between the two accountings IS the packing loss -- the no-free-
+    range theorem, concretely. Sizing M from the position count alone and then
+    truncating the sorted table put the top level at 0.25 instead of 1.0 and
+    produced a 100x perplexity artefact against our own format."""
+    cap = 1 << (nbits - 1)
+    nexp = 3 ** Et
+    if nexp > cap: return None
+    M = 0
+    while nexp * (1 << (M + 1)) <= cap: M += 1
     out = {0.0}
-    nexp = 3 ** Et if Et > 0 else 1
-    nexp = min(nexp, 64)
     for e in range(nexp):
         for m in range(1 << M):
             out.add((1 + m / (1 << M)) * (2.0 ** -e))
     v = sorted(out)
-    return [x / v[-1] for x in v][: (1 << (nbits - 1))]
+    return [x / v[-1] for x in v]
 
 def quant(w, lv, scale="e8m0"):
     lv_t = torch.tensor(sorted(lv), dtype=torch.float64)
@@ -127,11 +134,11 @@ orig = {n: m.weight.detach().clone() for n, m in target_modules(model)}
 CANDS = [
     ("MXFP4  E2M1 + E8M0 (эталон отрасли)", fp_levels(2, 1)),
     ("int4   равномерный + E8M0",            uniform_levels(4)),
-    ("TNF4   Et=1 (правило ширины)",         tnf_levels(4, 1)),
-    ("TNF4   Et=2",                          tnf_levels(4, 2)),
+    ("TNF4   Et=1 (упакован)",               tnf_levels(4, 1)),
+    ("TNF4   Et=2 (упакован)",               tnf_levels(4, 2)),
     ("MXFP6  E2M3 + E8M0",                   fp_levels(2, 3)),
-    ("TNF6   Et=1",                          tnf_levels(6, 1)),
-    ("TNF6   Et=2",                          tnf_levels(6, 2)),
+    ("TNF6   Et=1 (упакован)",               tnf_levels(6, 1)),
+    ("TNF6   Et=2 (упакован)",               tnf_levels(6, 2)),
 ]
 print(f"{'кандидат':38s} {'уровней':>8s} {'ppl':>9s} {'Δ к fp32':>10s}")
 print(f"{'fp32 (эталон)':38s} {'—':>8s} {base:9.4f} {'1.000x':>10s}")

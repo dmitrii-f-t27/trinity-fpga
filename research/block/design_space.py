@@ -124,8 +124,17 @@ def lloyd(vals, dy, nlev, pin_top=True, iters=200):
 
 # ---------------------------------------------------------------- incumbents
 def fp_levels(eb, mb):
+    """Element magnitudes INCLUDING SUBNORMALS.
+
+    The original version emitted only normal numbers, which cost E2M1 its 0.5 level -- 7
+    magnitudes instead of 8. That single missing level made the reference format measure 37%
+    worse than it is, and accounted for essentially the whole advantage this programme
+    claimed. Subnormals are m/2^mb * 2^(1-bias) for m = 1 .. 2^mb - 1.
+    """
     bias = (1 << (eb - 1)) - 1
     out = {0.0}
+    for m in range(1, 1 << mb):
+        out.add((m / (1 << mb)) * 2.0 ** (1 - bias))
     for e in range(1 - bias, (1 << eb) - bias):
         for m in range(1 << mb):
             out.add((1 + m / (1 << mb)) * 2.0 ** e)

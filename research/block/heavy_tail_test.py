@@ -44,6 +44,8 @@ torch.set_grad_enabled(False)
 def fp_levels(eb, mb):
     bias = (1 << (eb - 1)) - 1
     out = {0.0}
+    for m in range(1, 1 << mb):                      # SUBNORMALS -- the level E2M1 was missing
+        out.add((m / (1 << mb)) * 2.0 ** (1 - bias))
     for e in range(1 - bias, (1 << eb) - bias):
         for m in range(1 << mb):
             out.add((1 + m / (1 << mb)) * 2.0 ** e)

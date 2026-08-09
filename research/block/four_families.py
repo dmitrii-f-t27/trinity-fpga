@@ -25,11 +25,20 @@ MODEL, SEQLEN = os.path.join(W, "smollm2"), 2048
 PHI2 = ((1 + 5 ** 0.5) / 2) ** 2
 
 def levels(N, E, radix):
-    """Value set of +/-(1 + m/2^M) * 2^e over the whole exponent field."""
-    M = N - 1 - E
-    if M < 0 or E < 0: return None
+    """Value set of +/-(1 + m/2^M) * 2^e over the whole exponent field.
+
+    Positions say M = N-1-E. Binary fabric says the whole table must fit in
+    2^(N-1) magnitudes. For radix 2 the two agree exactly; for radix 3 they do
+    not, and the shortfall in M is the packing loss the no-free-range theorem
+    predicts. Charging it here is what makes GF-T and TNF comparable to GF and
+    BNF on the same silicon."""
+    if E < 0: return None
     nexp = (3 ** E if radix == 3 else 2 ** E)
-    if nexp > 4096: return None
+    cap = 1 << (N - 1)
+    if nexp > cap or nexp > 4096: return None
+    M = 0
+    while nexp * (1 << (M + 1)) <= cap: M += 1
+    if M < 1: return None
     half = nexp // 2
     out = {0.0}
     for e in range(-half, nexp - half):
@@ -55,10 +64,11 @@ def load_wikitext():
     t = pq.read_table(os.path.join(W, "wikitext2-test.parquet"))
     return "\n\n".join(t.column("text").to_pylist())
 
-def perplexity(model, ids):
+def perplexity(model, ids, limit_windows=None):
     flat = ids.reshape(-1)
     n = (flat.numel() // SEQLEN) * SEQLEN
     x = flat[:n].view(-1, SEQLEN)
+    if limit_windows: x = x[:limit_windows]
     nll = cnt = 0.0
     for i in range(x.shape[0]):
         c = x[i:i + 1]
