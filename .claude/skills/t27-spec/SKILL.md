@@ -2245,3 +2245,65 @@ it is independently correct and everything else still passes.
 Both fixes here were kept: one sequential index per transfer, and reset on every start.
 Each is defensible without reference to the property that motivated it. The test is not
 "did it work" but "would I write this if I had seen the code fresh".
+
+---
+
+## A strobe assigned in only one branch holds everywhere else
+
+The defect that had survived four waves of inspection:
+
+```verilog
+READ_DATA: if (rvalid) begin ... local_we <= 1'b1; ... end
+           else local_we <= 1'b0;      // runs ONLY while in READ_DATA
+READ_ADDR: begin ... end               // local_we not mentioned -> it HOLDS
+```
+
+The `else` looks like it deasserts the strobe, and it does — in exactly one state. Every
+other state leaves the register untouched, so a signal meant as a one-cycle pulse stays
+high across state transitions and keeps firing at a stale address.
+
+The fix is a default assignment before the `case`, so any state that does not explicitly
+set the strobe leaves it low. **Any signal whose meaning is "this cycle, do X" needs a
+default, not a per-branch clear.**
+
+The same trap outside hardware: a flag set inside one branch of a dispatch and cleared in
+that branch's `else`, while other branches never touch it. Set defaults at the top of the
+handler, not at the bottom of one path.
+
+## Scale everything the scaled signal touches
+
+Half a wave was lost to a false lead. A model was scaled by narrowing a signal from 12
+bits to 3 so a counterexample would fit the bound — but the test harness still declared
+the matching wire at 12 bits. Nine bits undriven, every comparison against them `x`, and
+`x` fails every comparison. The result is a **confident refutation of an innocent design**,
+indistinguishable from a real defect.
+
+Two rules fall out:
+- When you shrink a parameter for tractability, shrink it at every boundary that touches
+  it — DUT, wrapper, reference model, expected values.
+- In a trace, learn what your reader prints for `x` versus for *no data*. Reading `-` as
+  "unparsed" instead of "undefined" is what hid this. **An `x` in a comparison is a
+  defect in the harness until proven otherwise.**
+
+## Report each property's discriminating power separately
+
+Two properties were added for one defect. Both proved after the fix. Only one of them
+*also* refuted when the fix was reverted; the other proved either way at that bound, so it
+distinguishes nothing and is evidence of nothing.
+
+Reporting "2 properties proved" would have been true and misleading. **A property that
+passes on both the fixed and the broken design contributes zero information**, and saying
+so is the difference between a result and a number. Check each property against the broken
+version separately, and record which ones actually discriminate.
+
+## A sweep's value is not only what it was aimed at
+
+A sweep for oversized-request handling produced five distinct defects, and **four had
+nothing to do with request size** — an off-by-one in write pairing, a dual-role pointer, a
+misplaced reset, a held strobe. They surfaced because the sweep forced attention onto code
+paths nothing else had exercised, and because each fix that failed to close the property
+exposed the next cause underneath.
+
+The practical consequence: judge a systematic sweep by total defects found, not by hit
+rate against its stated target. A sweep that finds nothing of its named kind but four
+other real bugs has done its job.
