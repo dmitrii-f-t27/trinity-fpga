@@ -2816,3 +2816,52 @@ property can be free, and only one of them is usually gated.
 Worth a one-time sweep of any assertion set: look for bodies that mention a signal only on
 both sides of a comparison, tautological ranges (`x >= 0` on an unsigned), and conditions
 implied by their own guard.
+
+---
+
+## A vacuous check can inflate the metric designed to detect vacuity
+
+A verification suite gated itself on a count: *fail if fewer than N checks exist*, on the
+sound reasoning that a green run over an empty set proves nothing. Five properties in that
+set had bodies of the form `X == X`, folded by the optimiser to constant true — they proved
+unconditionally and tested nothing.
+
+They still emitted a check cell each. **The padding was counted by the very gate meant to
+catch an all-vacuous set.** Removing them dropped two suites below their thresholds, which
+is the correct signal arriving several years late.
+
+Two distinct notions of "free" are at play, and typically only one is gated:
+- the **guard** is unreachable — the usual vacuity check;
+- the **body** is discharged by the optimiser — almost never checked.
+
+Any count-based health metric deserves the same scrutiny: a test that always passes still
+increments the test count, a log line that always fires still satisfies "we have
+telemetry", a retry that never retries still appears in the resilience inventory.
+
+## When a change appears to break something, reproduce the failure without the change
+
+Removing a property made an unrelated suite refute. I attributed it to my edit, then to a
+subtle interaction, and built a plausible theory for each. Both were wrong. Re-running the
+**unchanged** file with the same command refuted identically: the failure predated the
+edit, and I had simply been invoking a mode the pipeline does not use.
+
+One run, before any theory. It separates "I broke it" from "it was already so", and the
+cost of skipping it is not a wasted run — it is a confident, documented, wrong explanation.
+
+The corollary: when your reproduction differs from the pipeline's, the difference is the
+first suspect. The pipeline's own comment had explained why it used a different mode, and I
+had read past it twice.
+
+## A detector that searches text will match prose
+
+Classifying pipeline steps by searching each step's text for a flag reported that two
+suites used an unbounded proof method. Only one did. The other step contained the flag name
+**inside a comment explaining why that method was not used there** — the detector matched
+the explanation of its own absence.
+
+That misclassification survived into a published proposition and a README claim.
+
+When scanning configuration or code for a feature, match on the **structure**, not the
+text: the parsed command line, the AST node, the actual key — never a substring of the
+whole blob. If only a text scan is available, strip comments first, and treat any hit
+inside prose as a negative.
