@@ -3200,3 +3200,55 @@ That ratio is normal and worth planning for rather than apologising about. When 
 resists two honest attempts, the next move is usually not a third attempt at the bug but a
 first attempt at **seeing it**: what would make the failure legible, and is that thing
 trustworthy? Two of the three instruments here caught their own defects on first use.
+
+---
+
+## A sweep that finds nothing must demonstrate that it could have
+
+A clean sweep and a broken sweep produce the same report. Three properties were added over
+paths never previously checked, all three proved, and no defect was found — a result worth
+nothing until each property was shown capable of failing:
+
+```
+body replaced by assert(1'b0) under the same guard:
+  a_zero_chunks_no_mac          -> refutes   (guard reachable)
+  a_zero_chunks_no_weight_walk  -> refutes
+  a_zero_neurons_no_act_walk    -> refutes
+```
+
+The failure mode is properties whose guards are unreachable: they prove instantly, cost
+nothing, and report safety. Without the check, "we looked and saw nothing" is
+indistinguishable from "we did not look".
+
+Applies to every negative result. A test suite that passes on a feature nobody exercises, a
+scan with a pattern that matches nothing, a monitor whose alert has never fired — before
+reporting the absence of a problem, show the instrument reacting to one.
+
+## Derived state cannot drift; independent state does
+
+Across a long verification campaign the defect distribution was lopsided: four defects on
+the write paths, one on the read paths. That was not attention bias, and the reason
+generalises.
+
+The write paths each carried their **own counter** — one per stage, independently updated.
+Every defect found was two of those pieces disagreeing: an address advanced while its data
+did not, a pointer serving two roles, a strobe held while its address moved on.
+
+The read paths were **derived**: one pointer *was* another signal, another advanced only
+when a valid fired. Derived state has no opportunity to disagree with its source.
+
+The design rule that falls out: **when two registers track the same quantity, that is a
+defect site.** Prefer deriving to duplicating; when duplication is unavoidable, the
+relation between the copies is exactly the property worth asserting. It also predicts where
+to look next — a census of same-quantity register pairs is a target list, not a guess.
+
+## State the surface a sweep covered, not just the class
+
+"We swept zero-sized inputs" sounds complete and is not. The honest form names the surface:
+*zero-sized inputs, on the write paths*. That phrasing is what later made the read-side gap
+visible instead of hiding it behind a finished-sounding claim.
+
+Same for this wave's result: the read pointers **named here** were asked; two other read
+paths were not, because neither is indexed by a configurable count. Writing that sentence
+costs nothing and is the difference between a bounded result and an overclaim that someone
+— usually you — cites later as broader than it was.
