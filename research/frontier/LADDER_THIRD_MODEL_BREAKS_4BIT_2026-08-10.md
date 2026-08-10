@@ -164,3 +164,37 @@ asks for it.
 Downloads of GPT-2 and OPT-125m are in progress; a first attempt destroyed both weight files
 through a `curl -f … || rm` guard followed by a resume against an already-complete file. Nothing
 is measured yet, and the 3- and 5-bit claims still rest on three families.
+
+## B — fourth family: OPT-125m holds both surviving budgets
+
+`more_families.py`. Only 3 and 5 bits are measured — 4 bits is closed as model-dependent, so runs
+there would add nothing.
+
+**OPT-125m** (2022, different tokenizer, different init, 197 tensors), fp32 baseline measured:
+
+| bits | measured | winner | expected | |
+|---|---|---|---|---|
+| 3 | shift 842.10, phi 4 260.16, plastic 5 494.44, supergold 5 764.51 | shift | shift | **HOLDS** |
+| 5 | plastic 29.646, supergold 30.012, phi 30.522, shift 35.023 | plastic | plastic | **HOLDS** |
+
+**Four families now agree on both surviving budgets**: SmolLM2 (Llama), Qwen (Qwen2), Pythia
+(GPT-NeoX), OPT.
+
+Worth stating: the 5-bit margin on OPT is thin — plastic beats supergolden by **1.2 %**, against
+14–21 % on the earlier models. The 5-bit result holds on OPT but not comfortably, which is a
+reminder that the ladders below shift are close to each other and the ordering is easier to
+disturb than the 3-bit case.
+
+### A trap avoided, and one not avoided
+
+**Avoided:** GPT-2's projections are `Conv1D`, not `nn.Linear`, and store weights as `[in, out]`.
+A filter on `nn.Linear` alone would have quantised **nothing** on GPT-2 and silently reported the
+fp32 perplexity four times — four identical numbers that look like a clean result. The script
+matches both types, checks the layer count, refuses to report if nothing matched, and transposes
+the scaling axis for Conv1D.
+
+**Not avoided:** the GPT-2 download was corrupted by resuming (`curl -C -`) onto a file left by an
+earlier partial attempt, splicing two different byte streams. **The size check passed** — the file
+reached its expected length — and only `safetensors` refusing to parse the header revealed it.
+A length check is not an integrity check; nothing here verifies content hashes, and that gap is
+now known rather than assumed away.

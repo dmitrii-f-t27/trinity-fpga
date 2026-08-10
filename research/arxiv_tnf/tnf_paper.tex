@@ -557,7 +557,10 @@ in the gap; the answer corrects a suggestion we made before building them.
 
 \section{Accuracy}\label{sec:accuracy}
 
-Mean relative error over an encode--decode round trip, 6{,}000 values spanning
+Section~\ref{sec:ruler} predicts a rung's error from its mantissa width without
+measuring it. This section measures it, against the format the ladder was built
+to be compared with. The metric is mean relative error over an encode--decode
+round trip, 6{,}000 values spanning
 $2^{-38}\ldots2^{38}$ with random sign, binned by binary-exponent magnitude
 $|e|$. Table~\ref{tab:acc} and Figure~\ref{fig:acc}.
 
@@ -2037,8 +2040,9 @@ that the unit alphabet has to learn and then pay for.
 \subsection{The linear path is exact}
 \label{sec:exact}
 
-Theorem~\ref{thm:goldalpha} is usually read as removing a multiplier. It does
-more than that, and the stronger statement is the one worth making.
+Theorem~\ref{thm:goldalpha} is usually read as removing a multiplier. It removes
+the rounding with it: on the alphabet it fixes, the entire linear path of a
+network is computed exactly.
 
 Represent a value as an integer pair $(a,b)$ standing for $a + b\varphi$. Then
 \[
@@ -2935,7 +2939,7 @@ down what the competitor would build if it were trying to win, and measure that.
 Every silicon figure in this paper was originally measured through a harness that
 combined the decoder with a shared accumulator and observed part of its output.
 Three separate defects in that arrangement are described in
-Appendix~\ref{sec:limits}; each changed a headline number by 10 to 50 percent
+Section~\ref{sec:selfcheck}; each changed a headline number by 10 to 50 percent
 without any individual measurement being wrong. The table below is measured on
 the only harness that passes the observation gate we wrote afterwards: decoder
 alone, every output bit folded into the observed reduction, median of five
@@ -3319,7 +3323,7 @@ the workload visits, and inside a block normalised by its own maximum that range
 is measurable rather than assumed. If it is narrower than four binades, E2M1 is
 buying range the block already paid for, and the positions belong in the mantissa.
 We measure the within-block span directly and let the rule name a winner before
-evaluating perplexity; Section~\ref{sec:blockrelated} reports what came back,
+evaluating perplexity; Section~\ref{sec:blockbound} reports what came back,
 including the case where the rule was wrong.
 
 This is a narrower claim than it may look. It says nothing about the transforms,
