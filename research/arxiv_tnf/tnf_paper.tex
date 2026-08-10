@@ -2176,15 +2176,27 @@ bits & shift ($2$) & $\varphi$ ($1.618$) & supergold ($1.4656$) & plastic ($1.32
 \end{tabular}
 \end{table}
 
+The same sweep on Qwen2.5-0.5B --- a different architecture at four times the
+parameters, with a different tokenizer and different training data --- returns
+the same winner at every budget and the same complete ordering at every budget:
+shift $2384.96$, then $\varphi$ $\mathbf{16.24}$ against supergolden $17.98$ and
+plastic $47.41$, then plastic $\mathbf{13.17}$ against supergolden $14.09$ and
+$\varphi$ $15.33$, from an \texttt{fp32} baseline of $12.27$. At four bits the
+larger model separates $\varphi$ from supergolden by $10.7\%$, where the smaller
+one gave $2.7\%$ and no separation.
+
 A ladder of ratio $r$ with $n$ magnitudes spans $r^{\,n-1}$, so finer steps are
 bought with span. At three bits nothing spans enough and the coarsest wins; at
 four the balance sits at $\varphi$; at five the finest tested wins outright.
 This is the range-against-precision law of Section~\ref{sec:law} applied to the
 scale hierarchy rather than to a field layout, and it says plainly that
-$\varphi$ is optimal at a budget, not everywhere. At four bits $\varphi$ and
-supergolden differ by $2.7\%$ over twelve windows, which this measurement cannot
-separate; the accurate statement is that they tie and supergolden costs a
-register. One bit up, the plastic number wins by $28\%$.
+$\varphi$ is optimal at a budget, not everywhere. At four bits the two models bracket the comparison: SmolLM2 separates
+$\varphi$ from supergolden by $2.7\%$, which twelve windows cannot resolve,
+while Qwen separates them by $10.7\%$, which they can. $\varphi$ is at worst
+tied there and ahead on the larger model, and supergolden costs a register
+either way. One bit up, the plastic number wins on both, by $28\%$ and $14\%$,
+with $\varphi$ third of four --- and by then the affordable part of the
+hierarchy has been passed as well.
 
 The choice does not need the network. Ranking the ladders by mean squared
 quantisation error on the weights alone reproduces the perplexity order exactly
