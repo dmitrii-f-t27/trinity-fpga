@@ -16,7 +16,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 W = ("/private/tmp/claude-501/-Users-ssdm4-Desktop-PROJECTS-CLAUDE/"
      "0e868af8-ab2d-4d00-be03-8fea94ba48e4/scratchpad/weights")
-MODEL = os.path.join(W, "smollm2")
+MODEL = os.path.join(W, sys.argv[1] if len(sys.argv) > 1 else "smollm2")
+TAG = os.path.basename(MODEL)
 SEQLEN, WINDOWS = 2048, 12
 torch.set_grad_enabled(False)
 
@@ -52,7 +53,7 @@ def perplexity(model, ids):
         cnt += SEQLEN - 1
     return float(np.exp(nll / cnt))
 
-print("loading ...", flush=True)
+print(f"loading {MODEL} ...", flush=True)
 tok = AutoTokenizer.from_pretrained(MODEL)
 import pyarrow.parquet as pq
 text = "\n\n".join(pq.read_table(os.path.join(W, "wikitext2-test.parquet"))
@@ -80,5 +81,5 @@ for bits in (3, 4, 5):
         del m
 json.dump([{"bits": b, "ladder": n, "r": r, "codes": c, "span": s, "ppl": p}
            for b, n, r, c, s, p in rows] + [{"bits": None, "ladder": "fp32", "ppl": base}],
-          open("ladder_ppl.json", "w"), indent=1)
-print("written ladder_ppl.json")
+          open(f"ladder_ppl_{TAG}.json", "w"), indent=1)
+print(f"written ladder_ppl_{TAG}.json")
