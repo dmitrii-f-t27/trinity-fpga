@@ -20,6 +20,7 @@ DOCS = sorted(set(list(ROOT.glob("research/**/*.md")) + list(ROOT.glob("*.md"))
 PATHY = re.compile(r'`([A-Za-z0-9_./-]+\.(?:py|v|sh|tex|yml|yaml|md|t27|json))`')
 
 fails, checked, refs = [], 0, 0
+cross, vendored = [], []
 for d in DOCS:
     try: txt = d.read_text(errors="ignore")
     except Exception: continue
@@ -30,6 +31,12 @@ for d in DOCS:
         # A temporary path is expected to be gone; naming one is not a broken
         # reference, it is a note about a run that has finished.
         if p.startswith(("/tmp/", "/private/tmp/", "/var/")): continue
+        rel = str(d.relative_to(ROOT))
+        if p.startswith("external/") or rel.startswith("external/"):
+            # A vendored document carries paths relative to ITS OWN root.
+            # A vendored document carries paths relative to ITS OWN root,
+            # so resolving them against ours measures the wrong tree.
+            vendored.append(f"{rel}: names `{p}`"); continue
         # A document may name a file precisely to record that it is missing --
         # SCRIPT_ROT names tef_mul_wp.v as the module a build script instantiates
         # and nothing defines. Flagging that would be flagging the finding.
@@ -45,9 +52,24 @@ for d in DOCS:
         # a bare filename may live anywhere in the tree
         if "/" not in p:
             if any(ROOT.rglob(p)): continue
-            if any(any((ROOT.parent / sib).rglob(p))
-                   for sib in ("t27", "trinity-s3ai", "claim-audit-lab", "tri-net")
-                   if (ROOT.parent / sib).is_dir()): continue
+            _hit = next((sib for sib in ("t27", "trinity-s3ai", "claim-audit-lab",
+                                         "tri-net", "trios-mesh", "zig-golden-float")
+                         if (ROOT.parent / sib).is_dir()
+                         and any((ROOT.parent / sib).rglob(p))), None)
+            if _hit:
+                # Excluded, but RECORDED. An exclusion nobody can see reads as
+                # coverage. These references resolve only in a sibling repo, so
+                # CI -- which has no siblings -- cannot tell them from rot; that
+                # is a reason to name them, not to drop them silently.
+                cross.append(f"{str(d.relative_to(ROOT))}: names `{p}`" f" -> resolves in {_hit}")
+                continue
+        _sib = next((sib for sib in SIBLINGS if (ROOT.parent / sib / p).exists()), None)
+        if _sib and not (ROOT / p).exists():
+            # Same rule as the bare-name case: excluded, but named. CI has no
+            # siblings, so it cannot tell this from rot -- which is why the
+            # exclusion belongs in a file rather than in the checker's silence.
+            cross.append(f"{str(d.relative_to(ROOT))}: names `{p}` -> resolves in {_sib}")
+            continue
         if any(c.exists() for c in cands): continue
         fails.append(f"{d.relative_to(ROOT)}: names `{p}`, which does not exist")
 
@@ -56,6 +78,10 @@ for d in DOCS:
 import sys as _s
 BASE = pathlib.Path(__file__).with_name("doc_refs_baseline.txt")
 print(f"documents scanned: {checked}   path references: {refs}")
+print(f"excluded as cross-repo (target exists in a sibling): {len(cross)}")
+print(f"excluded as vendored (relative to their own root):   {len(vendored)}")
+(pathlib.Path(__file__).with_name("doc_refs_crossrepo.txt")
+ .write_text("\n".join(sorted(cross)) + ("\n" if cross else "")))
 uniq = sorted(set(fails))
 if "--update-baseline" in _s.argv:
     BASE.write_text("\n".join(uniq) + ("\n" if uniq else ""))
