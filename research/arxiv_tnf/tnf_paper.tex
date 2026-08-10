@@ -120,6 +120,13 @@ width alone. Inverted, the same law reads a format's behaviour back out of its
 round-trip error and resolves an 83-format catalogue into four staircase forms
 and no fifth.
 
+TNF is one corner of a square, and Section~\ref{sec:fourfamilies} draws it. Two
+rules fix an exponent budget --- the golden-ratio rule
+$E=\operatorname{round}((N-1)/\varphi^{2})$ and the width rule $1+E+M=N$ --- and
+two radices encode it, binary or balanced ternary. The four families are GF,
+GF-T, BNF and TNF, each a distinct format rather than a renaming of another, and
+at eight bits the two rules turn out to name the identical layout.
+
 The alphabet is where the multiplier is decided, and the deciding property is
 algebraic. Section~\ref{sec:closure} shows that removing a multiplier --- as
 against making one cheaper --- requires the weight lattice to be \emph{closed}
@@ -2001,6 +2008,67 @@ another while the number-axis frontier separates them.
 \end{corollary}
 
 
+\section{Four families on two axes}\label{sec:fourfamilies}
+
+TNF is one corner of a square, and the square is worth drawing because the two
+rules that define its axes were derived separately and for unrelated reasons.
+
+One axis is the \emph{rule that fixes the exponent budget}. The golden-ratio
+rule takes $E=\operatorname{round}\!\bigl((N-1)/\varphi^{2}\bigr)$ and produces
+the GF ladder; the width rule takes $1+E+M=N$ and produces the BNF ladder. The
+other axis is the \emph{radix of the exponent's encoding}: binary, or balanced
+ternary. Crossing them gives four families --- GF and GF-T on the golden-ratio
+rule, BNF and TNF on the width rule --- and each is a distinct format rather
+than a renaming of another.
+
+\begin{table}[t]\centering
+\caption{The four families at eight bits, one workload, one metric.
+SmolLM2-135M on wikitext-2, 40 windows of 2048 tokens, per-tensor scale,
+baseline $14.4874$ verified in band before any comparison. The predictions were
+printed \emph{before} the perplexities were computed.}
+\label{tab:fourfam}
+\begin{tabular}{llrrr}
+\toprule
+family & rule, radix & magnitudes & ppl & vs \texttt{fp32} \\
+\midrule
+\texttt{fp32} reference & --- & --- & $14.4874$ & $1.000\times$ \\
+\midrule
+\textbf{GF8}, $E{=}3$   & golden ratio, binary  & $129$ & $\mathbf{14.6130}$ & $1.009\times$ \\
+GF-T8, $E_t{=}3$        & golden ratio, ternary & $109$ & $15.5147$ & $1.071\times$ \\
+\textbf{BNF8}, $E{=}3$  & width rule, binary    & $129$ & $\mathbf{14.6130}$ & $1.009\times$ \\
+\textbf{TNF8}, $E_t{=}2$& width rule, ternary   & $73$  & $\mathbf{14.7012}$ & $1.015\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The two rules name the same format, and neither predicted it.}
+GF8 at $E=3$ and BNF8 at $E=3$ return $14.6130$ --- the same number, not a close
+one, because at eight bits the two derivations select the identical layout,
+$E=3$ and $M=4$. That is a stronger statement than either rule alone and one we
+did not set out to find.
+
+\paragraph{And the width rule's prediction was falsified twice.} It named BNF8
+$E=4$ and TNF8 $E_t=3$; the measured winners are $E=3$ ($14.6130$ against
+$14.6592$) and $E_t=2$ ($14.7012$ against $15.5147$). Both predictions were one
+step too wide. The rule's \emph{form} survives and is visible in the sweep ---
+a single optimum, both directions from it worse, and the penalty asymmetric
+exactly as Theorem~\ref{thm:regret} requires, with $E=1$ giving $4.5$ million
+and $E=2$ giving $288$ while $E=4$ costs $0.3\%$ and $E=5$ costs $6\%$. What was
+wrong is the estimator of the range the workload visits, not the rule that
+consumes it: we measured the span from the $0.1$st percentile to the maximum,
+which credits a tail carrying almost no energy. Recorded rather than quietly
+re-tuned, because a rule that names its winner before the measurement can be
+wrong, and this one was.
+
+\paragraph{Ternary loses on a binary fabric here too, for the third independent
+time.} GF-T8 carries $109$ magnitudes where GF8 carries $129$, and pays $15.51$
+against $14.61$; TNF8 at $E_t=2$ carries $73$. Three measurements now agree from
+different directions: BNF16 and TNF16 within $1\%$ in placed silicon, GF8
+against GF-T8 here, and MXFP4 against TNF4 on the block axis
+(Section~\ref{sec:blockbound}). The ternary exponent earns on positions and pays
+on bits, exactly as Theorem~\ref{thm:nofree} requires, and this fabric charges
+in bits.
+
 \section{Two formats close a ternary node}
 \label{sec:pair}
 
@@ -2849,8 +2917,9 @@ observed reduction, median of five placement seeds.
 
 \begin{table}[t]\centering
 \caption{One accumulation step, xc7a200t, median of five seeds. The non-closed
-unit is the greedy Zeckendorf normaliser, oracle-checked $40/40$ for both the
-sum and the no-two-adjacent-digits property.}
+unit is the greedy Zeckendorf normaliser, oracle-checked exhaustively over all
+$65{,}536$ inputs for the sum, the no-two-adjacent-digits property, and
+agreement with an independently written greedy model.}
 \label{tab:closure}
 \begin{tabular}{lrr}
 \toprule

@@ -44,7 +44,8 @@ times per neuron, and that is the number above.
 ## What this does and does not establish
 
 **Does.** For the straightforward normaliser -- greedy Zeckendorf, oracle-checked
-at 40/40 for both the sum and the no-two-adjacent-ones property -- returning to
+exhaustively at 65,536/65,536 for both the sum and the no-two-adjacent-ones
+property, and for agreement with an independently written greedy model -- returning to
 a non-closed set costs an order of magnitude more area than the entire closed
 accumulation, and two orders on frequency.
 

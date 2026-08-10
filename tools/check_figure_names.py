@@ -16,7 +16,11 @@ import subprocess, pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FIGDIR = ROOT / "research" / "arxiv_tnf"
-SUPERSEDED = ["TEF", "GF-T", "tekum", "GFT"]
+# GF-T is NOT superseded: it is one of the four families -- golden-ratio rule on
+# a ternary axis -- and appears legitimately beside GF, BNF and TNF. Listing it
+# here would have failed the paper for naming its own format. TEF is superseded
+# (the ladder that carried it is now TNF) and tekum was a misreading of takum.
+SUPERSEDED = ["TEF", "tekum"]
 
 fails, checked = [], 0
 for f in sorted(FIGDIR.glob("*.pdf")):
