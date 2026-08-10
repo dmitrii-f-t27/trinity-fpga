@@ -758,6 +758,12 @@ carry test, a saturating exponent add and a bit select.
 
 \section{Two width defects, and why they generalise}\label{sec:width}
 
+Section~\ref{sec:hardware} reports what the datapath costs once every bus is
+derived from the format's own parameters. It was not measured that way first.
+The two defects below --- one of area, one of correctness --- are the same
+mistake, a width chosen by hand, and they are reported because that mistake is
+not specific to TNF.
+
 \subsection{Interface width dominated the arithmetic}
 
 Our first synthesisable realisation declared every port and the significand
@@ -2531,6 +2537,25 @@ thirty-two share one and the clipped ones are a fifth of the block.
 Reading the hierarchy by degree, and taking the cost to be the minimal ratio
 available at each degree, hides the result. Read along a family instead.
 
+\begin{theorem}[Three digits are forced]\label{thm:cardinal}
+Parallel addition in base $\varphi$ --- a digit-set conversion in which each
+output digit depends on a bounded window of input digits --- requires an
+alphabet of three digits and admits one~\cite{frougny2011}. The minimality is of
+\emph{cardinality} and not of the particular set: $\{-1,0,1\}$ is one such
+alphabet and $\{0,1,2\}$ is another, verified by construction. No two-digit
+alphabet suffices at any window size.
+\end{theorem}
+
+Ternary is therefore forced and the particular letters are not, which is the
+strongest form the statement takes and weaker than the one we first wrote down.
+Two further limits belong with it. The window is not small: the published
+algorithm on $\{-1,0,1\}$ is $21$-local, with memory $10$ and anticipation $10$,
+so ``constant time'' read as ``cheap'' would be wrong by an order of magnitude.
+And the theorem concerns the digit alphabet of a positional representation,
+while our accumulator is a pair of integers never reduced to a canonical digit
+string --- so what transfers is the impossibility for two letters, and not any
+claim that our alphabet is unique.
+
 \begin{theorem}[Siegel's floor bounds the family]\label{thm:siegel}
 A Pisot--Vijayaraghavan number is a real algebraic integer above one whose
 conjugates all lie strictly inside the unit circle. Siegel~\cite{siegel1944}
@@ -2581,6 +2606,44 @@ is paid per weight, and a six-bit ladder needs $j$ up to $31$. The element form
 is therefore a coordinate table --- the code selects a vector in
 $\mathbb{Z}[r]$ directly --- and Table~\ref{tab:elemsil} prices it against what
 it buys.
+
+\paragraph{The assembled node.} Every silicon figure above prices a part. The
+figure asked from outside is LUTs per neuron, and Table~\ref{tab:node} is the
+assembled thing: fan-in $N$, weights from the alphabet, accumulator in
+$\mathbb{Z}[\varphi]$, 8-bit samples, harness subtracted.
+
+\begin{table}[t]\centering
+\caption{A complete ternary neuron, xc7a200t, median of five seeds, harness
+subtracted, \texttt{-nodsp}. The first column is the implementation this paper
+first built; the second folds the negation into the accumulation tree, which is
+where it belonged.}
+\label{tab:node}
+\begin{tabular}{lrrrrr}
+\toprule
+fan-in & LUT/weight & folded & $F_{\max}$ & folded & DSP \\
+\midrule
+8  & $82.5$ & $\mathbf{28.0}$ & $109.35$ & $87.29$ & \textbf{0} \\
+16 & $87.1$ & $\mathbf{33.1}$ & $91.43$ & $73.42$ & \textbf{0} \\
+32 & $119.0$ & $\mathbf{33.2}$ & $66.53$ & $58.22$ & \textbf{0} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two's complement is $(\lnot x)+1$ and the $+1$ of every lane is a single bit, so
+the fold is an exclusive-or with the weight's sign plus a narrow second tree
+carrying the ones, added once at the root. Equivalence was checked before
+synthesis: $0$ mismatches in $400$ random $(x,w)$ vectors. Area falls by
+$2.9$--$3.6\times$ and lands on the hand count --- a three-way select of a
+16-bit value at roughly $16$ LUT6 plus a 16-bit add at roughly $8$, so $24$ to
+$30$ per lane --- which is what confirms the negation was the whole gap rather
+than part of it. Frequency falls about $20\%$, the carry tree's root addition
+sitting after the main one; on throughput per area the trade is worth
+$2.35$--$2.87\times$.
+
+So a ternary neuron costs \textbf{28 LUT per weight at fan-in 8 and no DSP at
+any fan-in}. We report the unfolded column beside it because that number was
+published first, with a caveat naming the negation as its likely cause, and the
+cause turned out to be the whole of it.
 
 \begin{table}[t]\centering
 \caption{Element decoders as coordinate tables, isolated, median of five seeds,
@@ -3917,6 +3980,9 @@ D.~Shah et al.
 \bibitem{elias1975} P.~Elias, ``Universal codeword sets and representations of the integers,'' \emph{IEEE Trans. Inform. Theory}, vol.~21, no.~2, pp.~194--203, 1975.
 \bibitem{positgap} Closing the Gap Between Float and Posit Hardware Efficiency, arXiv:2603.01615.
 \bibitem{mlformats} Performance-Efficiency Trade-off of Low-Precision Numerical Formats in Deep Neural Networks, arXiv:1903.10584.
+\bibitem{frougny2011} C.~Frougny, E.~Pelantov\'a, and M.~Svobodov\'a,
+``Parallel addition in non-standard numeration systems,'' \emph{Theoretical
+Computer Science}, vol.~412, no.~41, pp.~5714--5727, 2011.
 \bibitem{siegel1944} C.~L.~Siegel, ``Algebraic integers whose conjugates lie in
 the unit circle,'' \emph{Duke Math.\ J.}, vol.~11, no.~3, pp.~597--602, 1944.
 \bibitem{berend1994} D.~Berend and C.~Frougny, ``Computability by finite automata
