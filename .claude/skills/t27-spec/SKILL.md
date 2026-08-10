@@ -5134,3 +5134,36 @@ rather than restating it.** Prop. 98 said four defects were found and fixed. Tha
 was accurate at the time and wrong as a summary of the review. Recording the
 sequence — four claimed, six found, six fixed — is more useful to the next reader
 than silently correcting the number.
+
+## Wave 639 — report what you did not check, as prominently as what you did
+
+**Sweep a defect's mechanism, not just its instance.** One gate declined two
+expression forms in silence. Rather than fix that gate and move on, every bare
+`continue` in all ten gates was asked a single question: does this mean "not my
+subject", or "my subject, which I could not check"? Two more instances fell out
+immediately, in gates nobody suspected.
+
+**Record the negative result.** Eight of the ten were clean, and writing that
+down is worth as much as the two fixes — it stops the same sweep being repeated
+next wave, and it says which gates are *known* total rather than merely
+untested.
+
+**"0 problems" over an unstated number of declines reads exactly like "0
+problems" over none.** That is the whole defect class, in one sentence. Any gate
+whose summary reports only findings is one silent `continue` away from reporting
+nothing at all. Print the skip counts beside the finding counts.
+
+**A gate can commit the exact error its own comments warn against, one category
+over.** One sweep's code carried a careful note explaining why it reports
+*applied* exemptions rather than the size of the exemption list — "reporting the
+list size says '1 exempt' on a run where nothing was exempted, a small lie of
+exactly the kind this file exists to find" — while a second exclusion class,
+six steps wide, went entirely uncounted a few lines above. Having articulated a
+principle is not the same as having applied it everywhere it holds.
+
+**A deliberate import creates an invisible coupling.** One gate imports another's
+enumeration function so the two cannot drift — a good decision, from an earlier
+wave. It also means changing that function's signature breaks a gate in a
+different file, and neither file mentions the other at the call site. When you
+change a shared helper, grep for its importers before assuming the blast radius
+is local.
