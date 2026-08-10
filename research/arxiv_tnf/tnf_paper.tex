@@ -2782,7 +2782,36 @@ sitting after the main one; on throughput per area the trade is worth
 $2.35$--$2.87\times$.
 
 So a ternary neuron costs \textbf{28 LUT per weight at fan-in 8 and no DSP at
-any fan-in}. We report the unfolded column beside it because that number was
+any fan-in}.
+
+\paragraph{And one pipeline register, where it pays.} The critical path is the
+whole adder tree, so cutting it once at the halfway level trades a cycle and
+$N/2$ registers for frequency --- worth measuring rather than assuming, and the
+answer is not uniform. Equivalence checked first: $0$ mismatches in $398$ random
+$(x,w)$ vectors, the pipelined output trailing by exactly one cycle.
+
+\begin{table}[t]\centering
+\caption{One pipeline cut in the accumulation tree. The register cost overtakes
+the frequency gain between sixteen and thirty-two, so the unpipelined form is
+the better one at fan-in 32 --- the opposite of the usual advice, which is why it
+was measured.}
+\label{tab:nodepipe}
+\begin{tabular}{lrrr}
+\toprule
+fan-in & LUT/weight & $F_{\max}$ (MHz) & MHz per LUT \\
+\midrule
+8  & $28.0\to\mathbf{32.4}$ & $87.29\to\mathbf{126.73}$ & $0.390\to0.489$ (\textbf{$+25.6\%$}) \\
+16 & $33.1\to\mathbf{34.9}$ & $73.42\to\mathbf{106.38}$ & $0.139\to0.191$ (\textbf{$+37.6\%$}) \\
+32 & $33.2\to47.3$ & $58.22\to75.68$ & $0.055\to0.050$ ($-8.7\%$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At fan-in 8 and 16 the cut buys $45\%$ more frequency for $16\%$ and $5\%$ more
+area; at 32 it buys $30\%$ for $42\%$. The crossover is where $N/2$ registers
+stop being cheap relative to the tree they cut. The configuration to quote is
+therefore fan-in 8 or 16 with one stage: $32.4$ LUT per weight at $126.73$\,MHz,
+or $34.9$ at $106.38$, both at zero DSP. We report the unfolded column beside it because that number was
 published first, with a caveat naming the negation as its likely cause, and the
 cause turned out to be the whole of it.
 
