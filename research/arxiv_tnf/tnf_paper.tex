@@ -2556,14 +2556,32 @@ $r^8=r+1$              & $225$ & 212 & $\mathbf{815.66}$ & $\mathbf{4.625\%}$ & 
 \end{tabular}
 \end{table}
 
+Measured as a block scale on two networks, the one-adder ratio matches the
+geometric ratio beside it at both widths: at five bits $21.5040$ against
+$21.5872$ on SmolLM2 and $14.7342$ against $14.7814$ on Qwen, at six bits
+$19.3209$ against $20.0199$ and $13.8528$ against $13.8915$. The geometric
+grid's advantage of Theorem~\ref{thm:geoscale} is therefore available with no
+multiplier at all.
+
 This also resolves the tension left by Theorem~\ref{thm:geoscale}. The grid
 minimising relative error is geometric with ratio $R^{1/N}$, an arbitrary real
 needing a multiplier --- in general. Where a block scale actually lives, the
 occupied range being $8.32$ to $9.12$ binades and the width four to six bits,
 the nearest multiply-free ratio matches the optimum to within $0.06\%$:
 $1.551532$ against $1.551145$ at four bits, $1.236506$ against $1.236662$ at
-five, $1.110187$ against $1.110180$ at six. At eight bits the spectrum has a gap
-and the optimum falls in it, but eight bits is four more than the range needs.
+five, $1.110187$ against $1.110180$ at six. At eight bits our first enumeration reported a gap, and that was our own search
+bound rather than a property of the spectrum: stopping at degree $8$ the nearest
+ratio was $1.049852$ against a target of $1.026159$, while degree $9$ reaches
+$1.036380$ and degree $10$ reaches $1.027738$. Allowing coefficients in
+$\{0,\pm1,\pm2\}$ --- still addition and wiring, since $\pm2$ is a shift ---
+degree $9$ reaches $1.026129$, within $0.003\%$, out of $734{,}533$ enumerated
+roots.
+
+What is a real limit is the one-adder family itself. At the same eight-bit
+target its best member is $1.0850702$ under $\{0,\pm1\}$ and $1.0510545$ under
+$\{0,\pm1,\pm2\}$, errors of $5.6\%$ and $2.4\%$, and these do not improve with
+degree. Any ratio is reachable multiply-free if adders are spent; a coarser set
+is reachable with one.
 
 \paragraph{The hierarchy is cheap only as far as degree three.}
 Table~\ref{tab:deg4} adds the smallest degree-4 scale, the root of
