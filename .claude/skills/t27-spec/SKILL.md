@@ -4581,3 +4581,66 @@ a number the tree already knows, derive it from the same code the tree uses.
 **Adding a gate is a good moment to audit adjacent claims.** The stale count was
 found only because the new step changed a total. Whenever you add to a set
 something else counts, re-run the counter.
+
+## Wave 631 — a width is only safe relative to a contract
+
+**Ask what bounds an accumulator, and then ask where that bound is written.** A
+16-bit accumulator summing values of range [-27,+27] overflows after 1214 terms.
+It was safe — but only because a *different module* walks its chunk counter over
+an 8-bit port. Nothing in the accumulating module knew that: no chunk counter,
+no `num_chunks` input, no comment. A width is never "wide enough" on its own,
+only wide enough for a bound, and if the bound lives in another file the safety
+is an accident that the next ordinary change deletes.
+
+**An equation in N bits cannot detect an N-bit overflow.** The property
+`result == $past(result) + $past(dot)` looks like it pins the arithmetic
+completely, and it holds *modulo 2^N* — a wrapping accumulator satisfies it
+exactly. If you want to catch a wrap, state the claim in a wider type than the
+signal you are checking. This generalises past hardware: any assertion written
+in the same type as the value it checks is blind to that type's overflow.
+
+**When the counterexample is thousands of cycles away, bounded proof is worse
+than no proof.** Every feasible depth returns "proves", which reads as a passing
+build and means nothing. That is the shape to watch for: a property whose
+violation requires a long run. Reach for induction there — an inductive
+invariant is checked one step at a time and carries no depth caveat, so it says
+something true about run 10,000 that no bounded run can.
+
+**Prove the facts your proof depends on, separately and unconditionally.** The
+accumulator bound needs |dot| <= 27. An existing property gave the dot product's
+exact value but only under a validity assumption about input encodings. The
+*bound* needs no such assumption. Had it been taken from the conditional
+property, the accumulator proof would have silently inherited an assumption
+about memory contents that nothing enforces. Assumptions inherited through a
+cone are invisible; assumptions stated at the top of a file are not.
+
+**Deleting one instance from a wrapper was 800x.** The same properties in a
+wrapper carrying a shadow copy of a 27-input adder tree did not finish in 18
+minutes; without it, 1.3 seconds. Before optimising a slow proof, look at what
+is in its cone that the properties do not actually reference.
+
+**I folded a tool error into a verdict — in the wave whose own notes cite that
+trap.** Two runs exited 1 and were nearly recorded as "refuted, so the
+assumption is load-bearing". They were `ERROR: File not found`: an earlier `cd`
+in a chained command had moved the shell. Knowing a failure mode is not
+protection from it. Use absolute paths in verification commands, and when a run
+exits nonzero, read *what it printed* before naming the verdict.
+
+**A check whose pattern stops matching reports nothing and is counted as
+passing.** The claims gate compared documentation numbers against the tree by
+regex. Reword the sentence and the regex matches nothing — no output, no error,
+and the summary still says the claim is covered. Every pattern-driven gate needs
+a "matched zero times" failure, not just a "matched and disagreed" failure. It
+fired on its own first run, on a sentence I had just reworded.
+
+**An assertion that must fail is not a proved property.** Non-vacuity oracles
+assert something false so that a refutation proves an assumption admits inputs.
+Counting them alongside real properties inflates the headline by exactly the
+number of assumptions being audited. Separate the two, and correct the published
+figure forward rather than rewriting the old one.
+
+**Adding to a set is the moment to re-derive everything that counts it.** One
+new CI step moved a swept-step total; a module-coverage split had drifted from
+"8 direct, 8 indirect" to "16 and 0" across four waves while the prose sat
+still. Both had gone stale silently. If prose states a number the tree knows,
+derive it by importing the code the tree uses — never by recounting.
