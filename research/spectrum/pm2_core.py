@@ -134,7 +134,9 @@ def roots_of_batch(A: np.ndarray, hi: float):
     if rows.size == 0:
         return np.empty(0), np.empty(0, dtype=np.int64)
     r0 = w.real[rows, cols]
-    P = deflate_at_one(np.stack([poly_desc(A[i]) for i in rows]))
+    sel = A[rows]
+    P = deflate_at_one(np.concatenate(
+        [np.ones((sel.shape[0], 1), dtype=np.int64), -sel[:, ::-1]], axis=1))
     alive = np.abs(P).sum(axis=1) != 0
     Pf = P.astype(np.float64)
     r = _newton_vec(Pf, r0)
@@ -173,42 +175,63 @@ def certify_root(c_desc, r: float, rel: float = 1e-9) -> bool:
     return (a < 0 < b) or (b < 0 < a)
 
 
+def _trim(p):
+    """Strip leading (highest-degree) zero coefficients from a descending list."""
+    i = 0
+    while i < len(p) and p[i] == 0:
+        i += 1
+    return p[i:]
+
+
+def _prem(a, b):
+    """Remainder of a / b, both descending lists of Fractions."""
+    a, b = _trim(list(a)), _trim(list(b))
+    if not b:
+        raise ZeroDivisionError
+    while a and len(a) >= len(b):
+        f = a[0] / b[0]
+        for i in range(len(b)):
+            a[i] -= f * b[i]
+        a = _trim(a)
+    return a
+
+
+def _deriv(p):
+    n = len(p) - 1
+    return _trim([p[i] * (n - i) for i in range(n)])
+
+
+def _gcd_poly(a, b):
+    a, b = _trim(list(a)), _trim(list(b))
+    while b:
+        a, b = b, _prem(a, b)
+    return a
+
+
 def sturm_chain(c_desc):
-    """Sturm chain of the squarefree part, exact rational coefficients."""
-    def norm(p):
-        while p and p[0] == 0:
-            p = p[1:]
-        return p
-
-    def divmod_poly(a, b):
-        a = list(a)
-        q = []
-        while len(a) >= len(b) and a:
-            f = Fraction(a[0], 1) / b[0]
+    """Canonical Sturm chain of the SQUAREFREE PART, exact rationals."""
+    p = _trim([Fraction(int(x)) for x in c_desc])
+    g = _gcd_poly(p, _deriv(p))
+    if len(g) > 1:                       # divide out repeated factors
+        q, rem = [], list(p)
+        while rem and len(rem) >= len(g):
+            f = rem[0] / g[0]
             q.append(f)
-            for i in range(len(b)):
-                a[i] = a[i] - f * b[i]
-            a = norm(a[1:] if abs(a[0]) == 0 else a)
-            if a and a[0] == 0:
-                a = norm(a)
-            if len(a) >= 1 and len(q) > len(c_desc):
-                break
-        return q, norm(a)
-
-    p0 = [Fraction(int(x)) for x in c_desc]
-    p1 = [Fraction(int(x)) * (len(p0) - 1 - i) for i, x in enumerate(c_desc)][:-1]
-    p1 = norm(p1)
-    chain = [p0, p1]
+            for i in range(len(g)):
+                rem[i] -= f * g[i]
+            rem = _trim(rem)
+        p = _trim(q)
+    chain = [p, _deriv(p)]
     while len(chain[-1]) > 1:
-        _, rem = divmod_poly(chain[-2], chain[-1])
-        if not rem:
+        r = _prem(chain[-2], chain[-1])
+        if not r:
             break
-        chain.append([-x for x in rem])
+        chain.append([-x for x in r])
     return chain
 
 
 def sturm_count(c_desc, lo: Fraction, hi: Fraction) -> int:
-    """Exact number of distinct real roots in (lo, hi]."""
+    """Exact number of DISTINCT real roots in (lo, hi]."""
     chain = sturm_chain(c_desc)
 
     def sign_changes(x):
@@ -219,7 +242,9 @@ def sturm_count(c_desc, lo: Fraction, hi: Fraction) -> int:
                 s.append(1 if v > 0 else -1)
         return sum(1 for i in range(len(s) - 1) if s[i] != s[i + 1])
 
-    return sign_changes(lo) - sign_changes(hi)
+    n = sign_changes(lo) - sign_changes(hi)
+    assert n >= 0, f"Sturm returned {n}: chain is wrong, do not trust this count"
+    return n
 
 
 # ----------------------------------------------------------------- metrics ---
