@@ -46,7 +46,7 @@
 \author{Dmitrii Vasilev\\
   \small ORCID 0009-0008-4294-6159 \\
   \small \texttt{admin@t27.ai}}
-\date{9 August 2026}
+\date{11 August 2026}
 
 % Floats were sitting flush against the text above them. Set the three
 % float separations once rather than nudging tables individually.
@@ -2197,7 +2197,7 @@ At 32 bits the refinement costs $2.2\%$ of the area and $6.4\%$ of the
 frequency. That is close enough to free that the choice is a question about the
 network rather than about the arithmetic, so we asked the network.
 
-\subsection{Which rung, and why the answer moves}\label{sec:ladderlaw}
+\section{Which rung to use, and how the answer moves}\label{sec:ladderlaw}
 
 Table~\ref{tab:ladderlaw} quantises every $2$-D linear weight of SmolLM2-135M to
 $\pm r^{k}$ with a per-output-channel scale, the codebook sized to exactly
@@ -2323,7 +2323,7 @@ with $\ln r^{*}$ halving per bit as doubling the code count halves the available
 log-spacing.
 \end{theorem}
 
-\subsection{The block axis belongs to MXFP4, and the bound says why}
+\section{The block axis, and the half of it that is ours}
 \label{sec:blockbound}
 
 Everything above concerns per-channel scaling. The other deployed axis shares
@@ -2548,7 +2548,7 @@ clipping at the weight's own squared magnitude, which is right when a scale is
 shared by thousands of weights and the clipped ones are a tail, and wrong when
 thirty-two share one and the clipped ones are a fifth of the block.
 
-\subsection{Fineness costs registers, not adders}\label{sec:oneadder}
+\section{Fineness costs registers, not adders}\label{sec:oneadder}
 
 Reading the hierarchy by degree, and taking the cost to be the minimal ratio
 available at each degree, hides the result. Read along a family instead.
@@ -2920,7 +2920,7 @@ addressing or branching, which are not lattice problems and gain nothing from
 $\varphi$.
 
 
-\subsection{What the pair costs in silicon}
+\section{What the pair costs in silicon}
 
 Measured on an XC7A200T through a fully open flow, with no DSP blocks used
 anywhere:
