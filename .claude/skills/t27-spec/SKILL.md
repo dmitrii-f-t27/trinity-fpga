@@ -4436,3 +4436,31 @@ without producing a memory fault. Reporting 0/3 alone reads as a weak property.
 Run the faults the component can *actually* have — read the wrong address, ignore
 the write enable, write to the read address, off-by-one — and report both
 numbers. Four of four caught says what 0/3 does not.
+
+## Wave 627 — check the logic around a component without trusting the component
+
+**Instantiate the sub-block a second time as a shadow.** To constrain an
+accumulator that wraps a dot-product primitive, drive a second copy of that
+primitive with the same inputs and compare against it. This assumes *nothing*
+about whether the primitive is correct — it states what the surrounding logic
+must do with whatever the primitive returns, and leaves the primitive's own
+correctness as a separate, explicitly unmade claim. Far cleaner than either
+trusting the sub-block or reimplementing its function in the property.
+
+**Adding a property can corrupt the map that measures properties, and the
+corruption reads as progress.** My coverage map defined "covered" as *some suite
+instantiates this module* — and the shadow instance made a primitive look
+directly verified when nothing says anything about it. **An auxiliary instance is
+not coverage.** Key the map on the instance under test (a `dut` naming
+convention works), and re-check the map whenever you add a wrapper that
+instantiates more than one thing.
+
+**Write the pair of properties that distinguish restart from accumulate.** "A
+first chunk restarts the sum" and "every later chunk adds exactly its own
+contribution" are two claims, and a datapath that confuses them satisfies neither
+by accident. Both mechanical operator swaps that produce that confusion —
+`+`→`-` and ternary-arm exchange — were caught by exactly these.
+
+**Add the "held while idle" property.** A datapath that recomputes on idle cycles
+satisfies both of the above and still corrupts results between chunks. The
+absence property is the cheap one to forget and the one that pins the pipeline.
