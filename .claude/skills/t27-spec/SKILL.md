@@ -5318,3 +5318,34 @@ classification scheme quietly shapes what you are able to notice.
 so in the catalogue.** Both shape-6 instances were in the timing harness I built
 two waves earlier, verifiable by reading five lines of my own code. That is the
 most useful possible place to find them, and the least comfortable.
+
+## Wave 641b — the rule a document is built on may never have been checked
+
+**Ask what a gate actually opens.** A documentation gate enforcing "every claim
+names the CI step that keeps it true" checked only that a line was *present*. It
+never opened the workflow directory. A quarter of the citations named steps that
+had been renamed or deleted — including, in one case, the citation belonging to
+that gate's own proposition. The rule the whole document is built on had never
+been checked once.
+
+**Resolve a citation, do not merely detect one.** "A reference exists" and "the
+reference resolves" differ exactly when something is renamed, which is the case
+you care about. If a document names an artifact — a step, a file, a function —
+the gate should look the artifact up.
+
+**Writing a check for one failure mode is an excellent way to commit its
+opposite.** Adding a check for *reading a claim as the design* introduced two
+**over-detection** defects in a row: reading bold text as a step name, then
+treating parentheticals and ellipses as step names. Both failed correct
+artifacts. After adding any new check, run it against a known-good tree before
+believing its first red.
+
+**The guard on the guard needs an anchor that does not move.** A "this check
+would pass on nothing" guard resolved paths relative to the *document under
+test*. Under the self-test, which copies that document to a temp directory, it
+found nothing and correctly failed the unmutated case. Anchor auxiliary lookups
+to the tool's own location, not to whatever it is currently pointed at.
+
+**Fix the citations in the same change as the check.** Adding resolution without
+repointing the 25 stale lines would have landed CI red, and a gate that lands red
+on arrival gets disabled rather than obeyed.
