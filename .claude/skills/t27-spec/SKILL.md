@@ -4522,3 +4522,62 @@ repeating, and it is rarely the most expensive instrument you own.
 238 s for 22 properties now costs 422 s for 24. The ceiling had not moved but
 the headroom had, and nobody would have noticed until a future property pushed
 it over.
+
+## Wave 630 — the defect that was written down next to itself
+
+**When a defect is found, ask whether it was legible before you found it.** The
+Wave 628 arithmetic bug had its own correct range stated in a comment on the
+line above the declaration that could not hold it, from Wave 33 to Wave 628.
+Nothing mechanical compared the two numbers and no human read them as numbers.
+A defect that was *documented and still shipped* is not a testing gap — it is a
+missing comparison, and comparisons are cheap to automate. Before writing the
+next property, check whether the last defect was already written down somewhere
+in the tree.
+
+**A test can protect a defect, not just miss it.** The unit test asserted the
+buggy width verbatim (`assert!(body.contains("wire signed [3:0] l2"))`). Any
+fix would have failed the suite. Tests that pin an emitter's exact output are
+regression locks pointed in whichever direction the output happened to face
+when they were written — when a test asserts a *value*, ask what would happen if
+that value were wrong.
+
+**The obvious static check can be unsound in your own domain.** Worst-case
+arithmetic over declared widths is the textbook overflow check, and here it
+fails a *correct* design: a trit needs three values, two bits carry four, so
+reasoning from bit-width over-approximates by exactly the encoding's slack.
+Level 1 would have been reported as overflowing when it does not. Where an
+encoding is narrower in value than in bits, propagate documented ranges instead
+— and where the domain has that shape, expect every generic analysis to need
+the same correction.
+
+**Comment conventions the emitter writes consistently are a machine-checkable
+specification.** `range [-N, +M] -> signed [W:0]` was prose to every reader for
+595 waves and a checkable claim the moment someone parsed it. Look at what your
+generators already write by habit; some of it is a spec nobody has run.
+
+**My own new gate reproduced the campaign's signature failure on its first
+run.** It reported zero findings on the shipped tree *and* zero on an injected
+defect. Two independent causes: an eight-line comment block outran a three-line
+lookahead, and a `+` inside an array index (`val[i*3+1]`) made an operand count
+disagree with a term count, so the check silently declined to run on the very
+tree it was written for. It printed a clean result either way. **A new
+instrument's first duty is to fail on a defect you plant in it**, and the fix
+is a coverage counter in the output — "3 reductions checked" makes silence
+measurable where "0 findings" does not.
+
+**Assert that your injected defect actually landed.** The first self-test
+replaced a two-line string that did not exist in the file (the lines were eight
+apart), so every mutation case graded the scan on *unmodified* source. A
+mutation test whose mutation silently no-ops reports a pass. Compare the text
+before and after injecting, and fail if nothing moved.
+
+**Two independent counters of the same thing will drift.** The README claimed
+the absence sweep runs 22 checking steps; it ran 32. Nothing malfunctioned —
+steps were added across ~20 waves and nobody recounted. The fix is not a
+corrected number but a derived one: `claims_check` now *imports*
+`absence_sweep.collect` rather than re-implementing the count. When prose states
+a number the tree already knows, derive it from the same code the tree uses.
+
+**Adding a gate is a good moment to audit adjacent claims.** The stale count was
+found only because the new step changed a total. Whenever you add to a set
+something else counts, re-run the counter.
