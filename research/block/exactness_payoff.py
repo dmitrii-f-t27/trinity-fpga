@@ -168,8 +168,11 @@ def selftests(qc, names):
     #      (b) after the .float() cast used for inference, phi^m is NOT a float32 number,
     #          so the best achievable is float32 rounding: eps/ln(phi) = 6e-8/0.4812 = 1.2e-7.
     #          A deviation materially above that would mean a real grid error; below it is
-    #          just storage. This bound is itself worth stating: the phi grid is already
-    #          ~1e-7 inexact the moment it is stored in float32.
+    #          just storage. Worth stating on its own: the phi grid is already inexact the
+    #          moment it is stored in float32, by 4.9e-8 relative (measured 1.01e-7 in
+    #          exponent units x ln phi) -- the same order as, though ~11x smaller than, the
+    #          5.2e-7 relative order-scatter of a 2048-term float32 dot product that
+    #          exactness would remove. Neither is close to mattering; see exactness_width.py.
     m0 = fresh()
     dev64, dev32, lo, hi = 0.0, 0.0, 99, -99
     for nm, mod in targets(m0)[:12]:
