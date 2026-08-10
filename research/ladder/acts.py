@@ -33,14 +33,18 @@ m = AutoModelForCausalLM.from_pretrained(MODEL, dtype=torch.float32); m.eval()
 import pyarrow.parquet as pq
 text = "\n\n".join(pq.read_table(os.path.join(W, "wikitext2-test.parquet"))
                    .column("text").to_pylist())
-ids = tok(text, return_tensors="pt").input_ids[0][:2048*4].reshape(4, 2048)
+ids = tok(text, return_tensors="pt").input_ids[0][:2048*2].reshape(2, 2048)
 
 # ловлю ВХОДЫ линейных слоёв -- это то, что умножается на веса
 caught = []
 def hook(mod, inp, out):
     a = inp[0].detach().reshape(-1, inp[0].shape[-1]).abs().to(torch.float64)
     s = a.amax(dim=1, keepdim=True).clamp_min(1e-12)          # нормировка на строку, как у весов на канал
-    caught.append((a/s)[::37].flatten().cpu().numpy().astype(np.float32))
+    # Take a fixed small sample per layer. The first version kept every
+    # activation of all 210 layers and did not finish; a sweep that cannot
+    # complete measures nothing.
+    v = (a/s).flatten()
+    caught.append(v[::max(1, v.numel()//20000)].cpu().numpy().astype(np.float32))
 hs = [mod.register_forward_hook(hook) for nm, mod in m.named_modules()
       if isinstance(mod, torch.nn.Linear) and "lm_head" not in nm]
 for i in range(ids.shape[0]): m(ids[i:i+1])
@@ -54,7 +58,8 @@ for nm, mod in m.named_modules():
     if isinstance(mod, torch.nn.Linear) and "lm_head" not in nm:
         w = mod.weight.data.to(torch.float64)
         s = w.abs().amax(dim=1, keepdim=True).clamp_min(1e-12)
-        ws.append((w/s).abs().flatten()[::37].cpu().numpy().astype(np.float32))
+        vv = (w/s).abs().flatten()
+        ws.append(vv[::max(1, vv.numel()//20000)].cpu().numpy().astype(np.float32))
 wv = np.concatenate(ws).astype(np.float64); del ws
 print(f"  весов (та же выборка):  {wv.size:,}\n")
 
