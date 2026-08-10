@@ -4785,3 +4785,64 @@ sub-proposition recording what was measured, what was wrong, and how it was
 caught — plus a comment on the issue that carried the bad number — rather than
 quietly editing the figure. The two most-quoted corrections in this campaign
 were both captions on instruments that worked correctly; this is a third.
+
+## Wave 634 — code with no callers may be a specification nobody wrote down
+
+**"Dead or missing plumbing" can be a false dichotomy.** Six primitives sat
+UNREACHED for five waves under exactly that question. The third answer was that
+they are an **algebra** — min, max, negation, product, balanced addition — and an
+algebra can be stated as theorems and proved outright. Before deleting
+unreferenced code, ask whether it is a specification of something the rest of the
+system assumes.
+
+**State theorems before coding properties.** Writing T1–T5 as mathematics first
+— "and = min and or = max, so the triple is a De Morgan algebra" — produced
+properties phrased as the order-theoretic *definitions* rather than as a
+restatement of the RTL's case split. A property that restates the implementation
+proves only that the implementation equals itself.
+
+**Separate theorems that are about the mathematics from theorems that are about
+your implementation.** Four of the five would survive any faithful
+implementation. One — comparison — is correct only because the bit encoding
+happens to be monotone in the value it encodes. That distinction is where the
+risk lives, and it is invisible unless you ask which of your proofs would break
+under a refactor that changes nothing semantic.
+
+**Test the dependency by breaking it, and expect the experiment to surprise
+you.** Permuting the encoding was supposed to refute one theorem. It refuted
+two. The second was a primitive with the encoding baked in as literals while
+every sibling — including its own sub-instances — used named constants, so any
+renumbering would move them and leave it behind silently. The experiment found a
+real defect I had not predicted; had I only reasoned about it, I would have
+written the note about T4 and shipped.
+
+**A fix found by an experiment should be verified by re-running that
+experiment.** Not by re-reading the code, and not by a fresh proof of the fixed
+version alone — by the exact procedure that exposed it, now producing the
+predicted result and only the predicted result.
+
+**Two modules in one file answering the same question differently is a defect
+even when unreachable.** One adder mapped the reserved code to 0, its sibling to
+−1. Unreachable today because of who feeds whom. That is how a later change
+picks the wrong answer.
+
+**Give timings the provenance you give proofs.** A proof discharges or it does
+not, regardless of what else runs. A timing is a claim about contention, cores
+and thermal state. Run both arms alternating in one invocation, record the
+machine, repeat, and **refuse to print a ratio** when the arms' observed ranges
+overlap — if some run of the slower arm beat some run of the faster one, no
+ordering is supportable.
+
+**An implausible measurement is evidence about the instrument.** The new harness
+reported that adding two properties made a proof *faster*. That was not a
+discovery; it was the harness saying it was not measuring what its labels
+claimed — the RTL had been regenerated a third of the way through the run. A
+benchmark whose **inputs** move mid-run is exactly as broken as one whose machine
+is contended, and neither shows up in the seconds. Fingerprint the files under
+test, not just the machine.
+
+**When search is unavailable, prove instead of citing — and say which you did.**
+This wave could not fetch external literature, so no citations were added to a
+section explicitly labelled *verified* citations. The theorems were stated and
+exhaustively machine-checked instead, and the report says so plainly. An
+unverifiable citation is worse than none.
