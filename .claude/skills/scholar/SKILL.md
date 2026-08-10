@@ -32,6 +32,30 @@ Parse $ARGUMENTS to determine mode:
 
 ## Phase 1: SCAN
 
+### Phase 0: what we already settled (run BEFORE searching outside)
+
+`research/frontier/INDEX.md` indexes the 76 frontier/block documents. Read it
+first — four separate sessions have re-derived results that were already on
+disk, because a search that does not know the filename finds nothing and an
+empty search reads as an open question.
+
+Two traps, both paid for:
+
+- **An index entry is not a verdict.** The grouping is mechanical (it reads
+  titles for "closed", "withdrawn", "still"), and all three entries it filed
+  under "open ends" were in fact closed — two by documents sitting in another
+  section of the same index, with no link between the entries. That section is
+  now hand-resolved with supersession links; the other sections are not.
+- **Read to the end before citing a title.** One document of the 76,
+  `LADDER_THIRD_MODEL_BREAKS_4BIT`, carries a follow-up appended below a rule
+  that withdraws the result its own title announces.
+
+The instrument you navigate by sits inside the failure domain: if the index is
+stale, every search that starts from it inherits the staleness. Confirm an entry
+against the document's *conclusion* before starting work on it, and when you
+discover a stale entry, fix the index in the same pass — otherwise the next
+session pays for it again.
+
 ### Context Collection (ALWAYS run first)
 ```bash
 # Current project state — feeds into search queries
