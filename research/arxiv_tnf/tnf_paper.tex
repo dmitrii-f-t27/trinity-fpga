@@ -2256,6 +2256,69 @@ down what the competitor would build if it were trying to win, and measure that.
 
 
 
+
+\subsection{The silicon table, measured on an audited harness}
+\label{sec:cleantable}
+
+Every silicon figure in this paper was originally measured through a harness that
+combined the decoder with a shared accumulator and observed part of its output.
+Three separate defects in that arrangement are described in
+Appendix~\ref{sec:limits}; each changed a headline number by 10 to 50 percent
+without any individual measurement being wrong. The table below is measured on
+the only harness that passes the observation gate we wrote afterwards: decoder
+alone, every output bit folded into the observed reduction, median of five
+placement seeds.
+
+\begin{table}[t]\centering
+\caption{Decode cost, isolated. \texttt{nextpnr-xilinx} 1743d0f, XC7A200T, no
+DSP, median of five seeds. A bare wire in the same harness costs 112 LUT at
+$827.81$\,MHz.}
+\label{tab:cleandecode}
+\small
+\begin{tabular}{rlrrr}
+\toprule
+& format & kind & LUT & $F_{\max}$ \\
+\midrule
+1 & \textbf{GFTernary} & fixed & \textbf{66} & \textbf{974.66} \\
+2 & \texttt{int8} & fixed & 76 & 925.93 \\
+3 & binary32 & fixed & 112 & 886.52 \\
+4 & \textbf{TNF16} & fixed & 101 & 407.66 \\
+6 & \textbf{BNF16} & fixed & 97 & 388.35 \\
+9 & VAX F & fixed & 100 & 311.14 \\
+13 & binary16 & fixed & 164 & 235.18 \\
+14 & IBM hex32 & fixed & 243 & 111.10 \\
+15 & LNS16 & logarithmic & 270 & 93.17 \\
+16 & posit8 & \textbf{tapered} & 214 & 77.75 \\
+17 & posit16 & \textbf{tapered} & 302 & 62.39 \\
+18 & posit32 & \textbf{tapered} & 517 & 49.05 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{theorem}[A taper is paid in delay, not in area]
+\label{thm:taperdelay}
+A tapered format's decode contains a scan, a serial dependency whose length grows
+with the word. A serial dependency costs critical path directly and area only
+incidentally, whereas a radix-heavy fixed format costs a wide shift, which is
+area-heavy and shallow. The two families therefore separate on frequency and not
+on area.
+\end{theorem}
+
+Measured: all fourteen fixed fields sit above all three tapers on frequency, the
+worst fixed leading the best taper by $1.43\times$; on area they overlap, posit8
+at 214 LUT against IBM hexadecimal's 243. The overlap is predicted by the theorem
+rather than excused.
+
+GFTernary against posit32 is $7.8\times$ on area and $19.9\times$ on frequency.
+GFTernary costs 66 LUT where a bare wire costs 112, because decoding a two-bit
+alphabet lets the synthesiser simplify the downstream register further than
+passing 32 raw bits does.
+
+The area--frequency correlation on the isolated decoder is $-0.60$, against
+$-0.90$ on the combined harness. The axes carry independent information here,
+which is why they are reported separately and no ratio of them appears.
+
+
 \subsection{The operating point}
 \label{sec:operatingpoint}
 
