@@ -15,6 +15,10 @@ The grouping below is mechanical -- it reads the title for words like "closed",
 "standing results" may have been superseded by one two lines below it. The
 filename and the title are reliable; the bucket is a convenience.
 
+The one exception is "Negative results and open ends", which has been resolved
+by hand and carries supersession links, because a wrong entry there costs the
+most: it is the section a reader goes to for something to work on.
+
 ## Closed — do not re-open without new evidence (7)
 
 - **Pipelining does not rescue the non-closed path -- it hits a ceiling**  
@@ -32,14 +36,41 @@ filename and the title are reliable; the bucket is a convenience.
 - **Three regimes, not one law — why the closed form gets 3 and 5 bits and misses 4**  
   `research/frontier/LADDER_THREE_REGIMES_2026-08-10.md`
 
-## Negative results and open ends (3)
+## Negative results and open ends (1 open, 2 since closed)
+
+This is the one section where the mechanical grouping was actively harmful, so
+it has been resolved by hand. It listed three open ends; two of them had already
+been closed by documents filed under "standing results", with nothing linking
+the two entries. A reader who trusted the bucket -- this one did -- re-opened a
+solved problem. Each entry below now says what closed it, or what is still
+missing.
+
+**Open.**
 
 - **A third family breaks the 4-bit result — and with it the fitted λ**  
-  `research/frontier/LADDER_THIRD_MODEL_BREAKS_4BIT_2026-08-10.md`
-- **The block axis, attacked a second way, and still lost**  
-  `research/frontier/BLOCK_AXIS_SECOND_ATTEMPT_2026-08-10.md`
-- **The complete node: LUTs per neuron, and why the figure is not yet the format's**  
-  `research/frontier/NODE_SILICON_2026-08-10.md`
+  `research/frontier/LADDER_THIRD_MODEL_BREAKS_4BIT_2026-08-10.md`  
+  Genuinely open, and the gap is named in `LADDER_THREE_REGIMES` itself: the
+  two-term criterion that recovers all six winners is *a one-parameter fit to
+  six outcomes*, with no out-of-sample test. Until it predicts a model it was
+  not fitted on, it describes the six rather than explaining them. The next step
+  is a fourth checkpoint, chosen before the criterion is run on it.
+
+**Closed since this index was written.**
+
+- ~~The block axis, attacked a second way, and still lost~~  
+  `research/frontier/BLOCK_AXIS_SECOND_ATTEMPT_2026-08-10.md`  
+  → closed by `BLOCK_AXIS_CLOSED_2026-08-10.md`: a Lloyd-Max bound on the
+  within-block distribution (18,850,950 values, block of 32, E8M0 scale) shows a
+  fourth attempt is not warranted. The axis is decided, on a measurement rather
+  than on fatigue.
+- ~~The complete node: LUTs per neuron, and why the figure is not yet the format's~~  
+  `research/frontier/NODE_SILICON_2026-08-10.md`  
+  → closed by `NODE_FOLDED_2026-08-10.md`, which did the fold that document
+  named as its own next step: **82.5 → 28.0 LUT per weight** at fan-in 8, and
+  33.2 at fan-in 32. Then `NODE_PIPELINED_2026-08-11.md` cut the tree once more,
+  +25.6 % and +37.6 % MHz/LUT at fan-in 8 and 16 — and −8.7 % at 32, so the cut
+  is not free at every width. The RTL is `fpga/phiscale/tern_node3.v`; the
+  negation is already an XOR plus a carry summed in a second narrow tree.
 
 ## Withdrawn — claims this project retracted itself (15)
 
