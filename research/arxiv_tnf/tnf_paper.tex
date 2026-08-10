@@ -2197,6 +2197,62 @@ mean squared error minimises perplexity, up to pairs whose error differs by less
 than the evaluation resolves.
 \end{theorem}
 
+The error itself has a closed form, so the rung follows from a histogram.
+Normalising each channel by its maximum puts the levels at $r^{-k}$ for
+$k=0,\dots,n-1$ with $n=(2^{b}-1)/2$, and
+\[
+  \mathrm{MSE}(r,b)\;\approx\;c(r)^{2}\,\mathbb{E}\!\left[x^{2}\mathbf{1}_{x>t}\right]
+  \;+\;\mathbb{E}\!\left[x^{2}\mathbf{1}_{x<t}\right],\qquad t=\tfrac12 r^{-(n-1)},
+\]
+where $c(r)^2$ is the mean square \emph{relative} rounding error of a geometric
+ladder of ratio $r$ --- a one-dimensional integral over log-position within a
+bin, independent of the data. The first term falls as $r$ falls and the second
+rises as the clipping threshold does; the minimum is the crossover. Against the
+measured error over $106{,}168{,}320$ normalised weights the form agrees to
+within $1$--$9\%$ at four and five bits and selects the same ladder at all three
+budgets. At three bits it underestimates by a third, for a reason worth stating:
+at seven codes the regime is absolute truncation, not relative rounding, and the
+model is built on the latter.
+
+\begin{theorem}[Optimal ratio]\label{thm:optratio}
+For a weight distribution and a code budget, the optimal multiply-free ratio is
+the minimiser of $\mathrm{MSE}(r,b)$, and the degree required is the smallest
+whose minimal scale does not exceed it. Minimising over continuous $r$ gives
+$r^{*}=2.054,\,1.4115,\,1.1999,\,1.1050,\,1.0576,\,1.0319$ at $3$ to $8$ bits,
+with $\ln r^{*}$ halving per bit as doubling the code count halves the available
+log-spacing.
+\end{theorem}
+
+\paragraph{The hierarchy is cheap only as far as degree three.}
+Table~\ref{tab:deg4} adds the smallest degree-4 scale, the root of
+$r^4=-r^3+r^2+r+1$, whose map $(x_0,x_1,x_2,x_3)\mapsto(x_3,\,x_0{+}x_3,\,
+x_1{+}x_3,\,x_2{-}x_3)$ was verified exact over $3000$ random coordinate
+vectors.
+
+\begin{table}[t]\centering
+\caption{One scale application, xc7a200t, 32-bit, median of five seeds. Degrees
+2 and 3 both cost one addition; at degree 4 the coefficient vector stops being
+sparse and the cost jumps.}
+\label{tab:deg4}
+\begin{tabular}{lrrrrr}
+\toprule
+scale & LUT & FF & $F_{\max}$ & level error & add/sub \\
+\midrule
+$\varphi$ (deg 2)      & \textbf{223} & 192 & \textbf{247.10} & $23.61\%$ & 1 \\
+plastic (deg 3)        & 228 & 200 & 231.21 & $13.97\%$ & 1 \\
+$1.1787$ (deg 4)       & 469 & 320 & 184.98 & $\mathbf{8.20\%}$ & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This places the alphabet exactly. $\varphi$ is the right rung at four bits,
+where $r^{*}=1.4115$ falls between it and supergolden and the two tie. It is the
+wrong rung at five and above --- and by five, the affordable part of the
+hierarchy has been left behind too, since degree 4 costs $2.1\times$ the area.
+The regime in which a multiply-free datapath is worth building is the one where
+degrees 2 and 3 are the only rungs one can pay for, and that regime is three to
+five bits.
+
 A first predictor failed and the failure is informative: choosing the finest
 ladder whose span covers the weights' channel dynamic range --- $268.95\times$
 median over $155{,}520$ channels --- selects the coarsest rung at every budget,
