@@ -20,11 +20,17 @@ DOCS = sorted(set(list(ROOT.glob("research/**/*.md")) + list(ROOT.glob("*.md"))
 PATHY = re.compile(r'`([A-Za-z0-9_./-]+\.(?:py|v|sh|tex|yml|yaml|md|t27|json))`')
 
 fails, checked, refs = [], 0, 0
-cross, vendored = [], []
+cross, vendored, by_design = [], [], []
 for d in DOCS:
     try: txt = d.read_text(errors="ignore")
     except Exception: continue
     checked += 1
+    # A document whose purpose IS to record names that no longer exist -- a
+    # rename map, a rot inventory -- declares it once at the top rather than
+    # phrasing every row to dodge the checker. An explicit exclusion is
+    # auditable; a phrasing trick is not.
+    if "<!-- doc-refs: names-absent-files-by-design -->" in txt:
+        by_design.append(str(d.relative_to(ROOT))); continue
     for m in PATHY.finditer(txt):
         p = m.group(1); refs += 1
         if p.startswith("http"): continue
@@ -80,6 +86,8 @@ BASE = pathlib.Path(__file__).with_name("doc_refs_baseline.txt")
 print(f"documents scanned: {checked}   path references: {refs}")
 print(f"excluded as cross-repo (target exists in a sibling): {len(cross)}")
 print(f"excluded as vendored (relative to their own root):   {len(vendored)}")
+print(f"excluded by declaration (documents recording absent names): {len(by_design)}")
+[print(f"    {b}") for b in by_design]
 (pathlib.Path(__file__).with_name("doc_refs_crossrepo.txt")
  .write_text("\n".join(sorted(cross)) + ("\n" if cross else "")))
 uniq = sorted(set(fails))

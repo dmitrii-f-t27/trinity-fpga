@@ -1,3 +1,4 @@
+<!-- doc-refs: names-absent-files-by-design -->
 # What the old names became
 
 Forty-one references in our own research notes name files that exist nowhere.
