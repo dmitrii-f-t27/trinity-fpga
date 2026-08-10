@@ -2381,8 +2381,11 @@ outside it. That is the difference between carrying range and borrowing it, and
 it is why the stack trains on the part.
 
 \paragraph{}
-An \texttt{int8} datapath scores $0.189$\,MHz/LUT in the same harness, which is
-$7\%$ above GFTernary. It is excluded, and the reason is structural rather than
+An \texttt{int8} datapath scores $0.180$\,MHz/LUT at a median of five placement
+seeds, against GFTernary's $0.181$ --- a difference of $0.4\%$ inside a $16\%$
+seed spread, so the two are indistinguishable on this flow. An earlier version of
+this paper reported $0.189$ against $0.177$ and called it a $7\%$ lead; that came
+from a single placement run and is withdrawn. It is excluded, and the reason is structural rather than
 favourable to us. \texttt{int8} has $e=0$: no exponent field, hence no dynamic
 range inside the word. It functions only with an external per-tensor or
 per-channel scale; without one it is the integers $-128\ldots127$. By
