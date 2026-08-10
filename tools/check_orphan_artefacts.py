@@ -49,8 +49,11 @@ def produced(a):
     #   f"scale_frontier_{TAG}.json"                       -> prefix + "_{"
     #   f"zphi_acc_width{'_row' if ROWMODE else ''}.json"  -> prefix + "{"
     # so try every prefix of the stem, longest first, against both shapes. A
-    # prefix shorter than six characters is too weak to mean anything.
-    for cut in range(len(stem), 5, -1):
+    # prefix shorter than three characters is too weak to mean anything -- and
+    # six was too strict: awq_test.py writes f"awq_{TAG}.json" and the whole
+    # family read as orphaned. The extension must appear in the same file too,
+    # which is what keeps a three-letter prefix from matching anything.
+    for cut in range(len(stem), 2, -1):
         pref = stem[:cut]
         for needle in (pref + "{", pref + "_{"):
             if any(needle in src and ext in src for _, src in producers):
