@@ -5216,3 +5216,36 @@ result informative instead of confirmatory.
 sounding, specific, and false. Writing "reported as verified; not reproducible,
 here is the counter-check" costs three lines and stops the next wave
 re-litigating it.
+
+## Wave 640 — a gate can spend twenty waves asking the wrong question
+
+**Compare a gate's stated purpose against the predicate it actually evaluates.**
+One was written to answer "is this property file run by CI" and evaluated "does
+this filename appear anywhere in the workflow file". Those coincide right up
+until they don't: a `#` comment, a step with `if: false`, a `grep` that reads the
+file and proves nothing, and a workflow triggered `on: [release]` all satisfied
+the second and none satisfied the first. Read the docstring, then read the
+condition, and ask whether they are the same sentence.
+
+**The most dangerous version of this is a gate whose own history supplies the
+camouflage.** The workflow already carried retrospective comments naming the
+file whose absence the gate was built to catch. Deleting its executable
+references left a byte-identical healthy summary — the comments *narrating* the
+old defect would have concealed its return. When a gate matches text, every
+comment about that gate becomes a potential false positive for it.
+
+**Prefer "is it an argument to the thing that does the work" over "is it
+mentioned".** Searching runnable steps was better than searching the whole file,
+and still credited a `grep`. Requiring the file to appear alongside an invocation
+that could actually prove or load it is the predicate that matches the intent.
+
+**A repair that is wrong should fail at the top of its voice.** The first
+delimiter fix excluded the path separator, so every `formal/<name>.sv` reference
+stopped matching and the gate declared all fifteen files orphaned. That is the
+correct failure mode — loud, immediate, unmistakable — and far better than a fix
+that quietly drifts by one.
+
+**When you fix a defect, grep the tree for the same shape before moving on.**
+Twice now the identical defect on the identical regex has been fixed in one file
+and left standing in a sibling for another wave. The cost of the grep is
+seconds; the cost of not doing it has been two waves running.
