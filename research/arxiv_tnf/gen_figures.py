@@ -131,3 +131,71 @@ ax.annotate("0 DSP48", (2, 219 * 0.45), ha="center", fontsize=8, color="white")
 ax.set_ylim(0, 1450)
 fig.savefig("tnf_width.pdf")
 print("tnf_width.pdf")
+
+# ── 4. the 16-bit field, against the class ──────────────────────────────────
+#
+# This figure and the next had NO generator: the PDFs sat in the tree and the
+# code that drew them did not. They still carried "GF-T", the format's name two
+# renames ago, because a file nobody regenerates is a file nobody renames. Both
+# now derive from the tables they illustrate (tab:field and tab:ladderacc), so a
+# figure that disagrees with its table is a build away from being noticed.
+FIELD = [
+    ("TNF16 (ours)",  [3.56e-4, 3.52e-4, 3.53e-4], [0, 0, 0],       "#0a7a4c"),
+    ("GF16 (phi)",    [3.56e-4, 3.52e-4, 6.76e-3], [0, 0, 478],     "#b9c6c1"),
+    ("takum16",       [3.27e-4, 1.00e-3, 1.95e-3], [0, 0, 0],       "#7d8f99"),
+    ("posit16",       [1.36e-4, 8.31e-4, 1.43e-2], [0, 0, 0],       "#c8912f"),
+    ("IEEE binary16", [1.76e-4, 1.28e-3, 1.57e-1], [0, 299, 2479],  "#b04a4a"),
+    ("bfloat16",      [1.45e-3, 1.38e-3, 1.41e-3], [0, 0, 0],       "#4a5b8c"),
+    ("LNS16",         [8.39e-4, 7.63e-4, 6.66e-4], [1324, 1808, 2849], "#9b8bb4"),
+]
+bins3 = ["|e| < 8", "|e| 8-20", "|e| 20-38"]
+x = np.arange(len(bins3)); w = 0.115
+fig, ax = plt.subplots(figsize=(7.2, 3.1))
+for k, (name, vals, clip, col) in enumerate(FIELD):
+    off = (k - (len(FIELD) - 1) / 2) * w
+    ax.bar(x + off, vals, w, label=name, color=col)
+    for i, (v, c) in enumerate(zip(vals, clip)):
+        if c:
+            ax.annotate(f"{c}✂", (x[i] + off, v * 1.25), ha="center",
+                        va="bottom", fontsize=6, color="#b04a4a", rotation=90)
+ax.set_yscale("log")
+ax.set_ylabel("mean relative round-trip error")
+ax.set_xticks(x); ax.set_xticklabels(bins3)
+ax.set_title("16-bit-class formats on one workload (✂ = values that overflowed)")
+ax.legend(frameon=False, ncol=2, fontsize=7.5)
+fig.savefig("tnf_competition.pdf")
+print("tnf_competition.pdf")
+
+# ── 5. the ladder's accuracy, rung by rung ──────────────────────────────────
+LADDER = [
+    ("TNF4",    2,     None),
+    ("TNF8",    8,     [1.22e-2, None, None]),
+    ("TNF16",   24,    [3.45e-4, 3.69e-4, 3.66e-4]),
+    ("TNF32",   219,   [5.27e-9, 5.63e-9, 5.58e-9]),
+    ("TNF64",   658,   [4.33e-17, 4.22e-17, 4.12e-17]),
+    ("TNF128",  1975,  [4.25e-36, 4.55e-36, 4.51e-36]),
+    ("TNF256",  5925,  [2.76e-74, 2.69e-74, 2.63e-74]),
+    ("TNF512",  17775, [4.32e-151, 4.62e-151, 4.58e-151]),
+    ("TNF1024", 53326, [2.84e-304, 2.77e-304, 2.71e-304]),
+]
+fig, ax = plt.subplots(figsize=(6.4, 3.4))
+names = [r[0] for r in LADDER]
+xr = np.arange(len(LADDER)); ww = 0.26
+for j, (band, col) in enumerate(zip(bins3, ["#0a7a4c", "#4f9e7a", "#9cc4b2"])):
+    ys, xs = [], []
+    for i, (_, _, vals) in enumerate(LADDER):
+        if vals and vals[j] is not None:
+            xs.append(xr[i] + (j - 1) * ww); ys.append(vals[j])
+    ax.bar(xs, ys, ww, label=band, color=col)
+for i, (_, _, vals) in enumerate(LADDER):
+    if vals is None or vals[1] is None:
+        ax.axvspan(xr[i] - 0.45, xr[i] + 0.45, color="#c8912f", alpha=0.13)
+ax.set_yscale("log")
+ax.set_ylabel("mean relative error (exact rationals)")
+ax.set_xticks(xr); ax.set_xticklabels(names, rotation=30, ha="right")
+ax.set_title("Error is flat in magnitude, and its exponent doubles per rung")
+ax.legend(frameon=False, title="", fontsize=8)
+ax.annotate("workload overruns these rungs", (0.5, 0.93), xycoords="axes fraction",
+            fontsize=7.5, color="#8a6a20")
+fig.savefig("tnf_ladder_acc.pdf")
+print("tnf_ladder_acc.pdf")
