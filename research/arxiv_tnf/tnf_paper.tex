@@ -2085,6 +2085,77 @@ $\{1,1,2,3,5,8,13,\dots\}$ --- so the product leaves the representable set and
 must be transformed back into it.
 \end{proof}
 
+\subsection{How many multiply-free scales are there}\label{sec:hierarchy}
+
+Closure explains why $\varphi$ works. It does not by itself say $\varphi$ is the
+only choice, and the honest answer is that it is not --- it is the only choice at
+its size.
+
+A scale $r$ can be applied without a multiplier exactly when $r$ is an algebraic
+integer whose companion matrix has entries in $\{0,\pm1\}$: writing
+$r^{d}=a_{d-1}r^{d-1}+\dots+a_0$, multiplication by $r$ maps the coordinate
+vector $(x_0,\dots,x_{d-1})$ to $(a_0x_{d-1},\;x_0+a_1x_{d-1},\;\dots)$, and any
+$|a_i|>1$ reintroduces a constant multiply. The condition is finite, so the
+scales can be enumerated rather than argued about.
+
+\begin{theorem}[The multiply-free scales, by degree]\label{thm:hierarchy}
+Over coefficients in $\{0,\pm1\}$:
+\begin{itemize}
+\item \textbf{Degree 1} admits $r\in\{0,\pm1\}$, which is no scaling, and
+      $r=\pm2^k$, free by shifting. One register, ratio $2$.
+\item \textbf{Degree 2} admits exactly two equations with a real root of modulus
+      other than $0$ or $1$: $r^2=r+1$ and $r^2=-r+1$, whose roots are $\varphi$
+      and $\varphi^{-1}$ --- the same ladder. One addition, two registers,
+      ratio $1.618$.
+\item \textbf{Degree 3} admits three: $r^3=r+1$ (plastic, $1.3247$),
+      $r^3=r^2+1$ (supergolden, $1.4656$), $r^3=r^2+r+1$ (tribonacci,
+      $1.8393$). At most two additions, three registers.
+\end{itemize}
+\end{theorem}
+\begin{proof}
+Exhaustive over the nine degree-2 and twenty-seven degree-3 coefficient triples;
+the degree-2 discriminants $a^2+4b$ are negative for four cases, and the
+remaining five give roots in $\{0,\pm1\}$ except for $b=1,a=\pm1$.
+\end{proof}
+
+\begin{corollary}\label{cor:nothing-between}
+Nothing lies between the shift and $\varphi$. $\varphi$ is the unique
+multiply-free refinement of the power-of-two ladder available at two registers.
+\end{corollary}
+
+So the multiply-free scale is not a point but a hierarchy indexed by algebraic
+degree, and each degree buys finer granularity for one more register.
+Table~\ref{tab:hierarchy} measures the trade at the first two rungs where it is
+a trade at all. The plastic step
+$(a,b,c)\mapsto(c,\,a+c,\,b)$ costs the same single addition as the Fibonacci
+step and one more register, and its ladder is finer: successive levels differ by
+$13.97\%$ against $\varphi$'s $23.61\%$.
+
+\begin{table}[t]\centering
+\caption{One scale application, xc7a200t, median of five seeds. Matched: neither
+unit has a direction mux. Level error is $(r-1)/(r+1)$, the worst relative gap
+on a ladder of ratio $r$.}
+\label{tab:hierarchy}
+\begin{tabular}{lrrrr}
+\toprule
+scale & LUT & FF & $F_{\max}$ (MHz) & level error \\
+\midrule
+$\varphi$, 16-bit          & \textbf{149} & 128 & 307.69 & $23.61\%$ \\
+plastic, 16-bit            & 186 & 160 & 318.47 & $\mathbf{13.97\%}$ \\
+\addlinespace
+$\varphi$, 32-bit          & \textbf{223} & 192 & \textbf{247.10} & $23.61\%$ \\
+plastic, 32-bit            & 228 & 200 & 231.21 & $\mathbf{13.97\%}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At 32 bits the refinement costs $2.2\%$ of the area and $6.4\%$ of the
+frequency. That is close enough to free that the choice is a question about the
+network rather than about the arithmetic, and we state it as an open one: our
+alphabet is the degree-2 member of a family, chosen because two registers is the
+smallest ring that scales at all, not because the finer members were measured
+and lost.
+
 The distinction is between quantizing to \emph{Fibonacci numbers} and working in
 \emph{the ring those numbers are the coordinates of}. $F_iF_j$ escapes the set;
 $\varphi\cdot(a+b\varphi)$ does not. What the escape costs is exactly the two
