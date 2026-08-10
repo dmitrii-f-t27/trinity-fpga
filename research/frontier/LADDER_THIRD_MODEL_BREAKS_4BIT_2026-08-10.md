@@ -130,13 +130,19 @@ The first version of this table **guessed two of the polynomials and both were w
 had its coefficients reversed, and the degree-4 ratio was given `r⁴ = r³ + 1`, which has no root
 at 1.1787. A numerical root check caught both. The minimal polynomials, found by search:
 
-| ladder | recurrence | degree | adders | root check | LUT | reg | Fmax |
-|---|---|---|---|---|---|---|---|
-| shift | r = 2 | 1 | **0** | 0 | — | — | — |
-| phi | r² = 1 + r | 2 | 1 | 0 | 223 | 192 | 247.10 |
-| supergold | r³ = 1 + r² | 3 | 1 | 4e-16 | — | — | — |
-| plastic | r³ = 1 + r | 3 | 1 | 0 | 228 | 200 | 231.21 |
-| deg-4 | r⁴ = 1 + r + r² − r³ | 4 | **3** | 8e-10 | 469 | 320 | 184.98 |
+| ladder | recurrence | degree | adders | root check |
+|---|---|---|---|---|
+| shift | r = 2 | 1 | **0** | 0 |
+| phi | r² = 1 + r | 2 | 1 | 0 |
+| supergold | r³ = 1 + r² | 3 | 1 | 4e-16 |
+| plastic | r³ = 1 + r | 3 | 1 | 0 |
+| deg-4 | r⁴ = 1 + r + r² − r³ | 4 | **3** | 8e-10 |
+
+⚠️ **The LUT/register/Fmax columns that stood here are withdrawn.** `nextpnr-xilinx` is not
+installed on this machine and there are no place-and-route artefacts, so the Fmax figures quoted
+from `LADDER_COST_AND_LAW_2026-08-10.md` have no possible source; the area figures do not
+reproduce either. See `WITHDRAWAL_FMAX_UNSOURCED_2026-08-10.md`. What survives is the algebra
+above, which needs no synthesis run.
 
 The derived adder count for degree 4 is **3**, which matches the independently measured value in
 the earlier synthesis run — a check that the method is sound rather than a restatement of it.
@@ -152,12 +158,10 @@ model-dependent, and where supergolden costs the same single adder. A node imple
 shifter plus one degree-3 recurrence** covers every budget whose winner holds across three
 families. The degree-2 rung buys nothing robust.
 
-Price of the surviving rung, from the measured synthesis: plastic against φ is **1.022× LUT,
-1.042× registers, 0.936× Fmax** — 2.2 % more area and 6.4 % less clock. That is the entire cost of
-using the ladder that actually wins at 5 bits.
-
-The degree-4 cliff stands: 3 adders, 2.1× the area, Fmax down to 185 MHz. Nothing that survived
-asks for it.
+**Price of the surviving rung: not measured.** The earlier "1.022× LUT, 1.042× registers,
+0.936× Fmax" is withdrawn along with the table it came from. What can be said without a synthesis
+run is that **plastic costs the same single adder as φ**, and that the degree-4 cliff is a jump
+from one adder to three — a property of the minimal polynomials, not of any fabric.
 
 ## B — fourth and fifth families
 
