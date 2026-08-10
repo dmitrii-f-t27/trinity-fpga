@@ -5100,3 +5100,37 @@ survives.** A guard split was justified by a measured cost; the cost is now
 negative. The split remains right for a second reason given at the time. That is
 worth writing down, because the next such decision might have rested on the
 justification that vanished.
+
+## Wave 638 — a summary of an adversarial review is not the review
+
+**Read the full result before acting on it.** A workflow notification arrived
+truncated at ~90 KB with the untruncated text on disk and the path printed in the
+diagnostics line. I read four findings off the summary, fixed them, wrote a
+proposition, filed an issue and pushed. The full report held **six** for that one
+gate. The two I missed were verified, and both survived my fixes. Acting on the
+part that was easy to see is exactly the failure an adversarial review exists to
+prevent — so the review's own output deserves the same suspicion as the code.
+
+**Re-test the findings you did not fix before assuming a fix covered them.** It
+would have been natural to suppose the reduction-loop rewrite happened to catch
+the other two. It did not. Both were still missed, and one command established
+that in under a minute.
+
+**"Declining to check" must be counted, never silent.** Two whole expression
+forms — a constant addend, and any subtraction — fell out of a gate's matcher and
+`continue`d, while the coverage counter still reported full. Declining is a
+legitimate choice; declining invisibly is the campaign's recurring defect. Count
+every decline and print it, so the number of things you did not check is as
+visible as the number you did.
+
+**A guard that trips at exactly zero is a guard against nothing happening, not
+against something going missing.** Three separate defects hid behind `if count ==
+0`. Losing one of three annotations, or dropping a declaration out of the
+parser's view, left a summary indistinguishable from a healthy one. Set a floor
+at the tree's actual numbers and require a deliberate raise.
+
+**When a claim you published turns out incomplete, say "true and incomplete"
+rather than restating it.** Prop. 98 said four defects were found and fixed. That
+was accurate at the time and wrong as a summary of the review. Recording the
+sequence — four claimed, six found, six fixed — is more useful to the next reader
+than silently correcting the number.
