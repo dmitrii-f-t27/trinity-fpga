@@ -192,31 +192,35 @@ def apply_gptq(bits):
 
 
 p0 = ppl()
-print(f"RULER CHECK -- fp32 baseline {p0:.4f} (windows {LO}-{HI-1}, calib {18}-{18+NCAL-1})")
-if not (5.0 < p0 < 60.0):
-    sys.exit("baseline implausible")
 
 PROM = np.full(NL, 4)
 PROM[np.argsort(DPPL)[-10:]] = 5
 U4, U5 = np.full(NL, 4), np.full(NL, 5)
 
-res = {}
-for label, fn, bits in (("RTN  uniform 4-bit", apply_rtn, U4),
-                        ("RTN  uniform 5-bit", apply_rtn, U5),
-                        ("RTN  promote-only 4.333", apply_rtn, PROM),
-                        ("GPTQ uniform 4-bit", apply_gptq, U4),
-                        ("GPTQ uniform 5-bit", apply_gptq, U5),
-                        ("GPTQ promote-only 4.333", apply_gptq, PROM)):
-    fn(bits)
-    res[label] = ppl()
-    restore()
-    print(f"  {label:<26}{res[label]:>10.4f}  {res[label] - p0:>+8.4f}")
-
-print("\n  share of each method's own 4->5 gain captured by promote-only (33.3% of the bits):")
-for pre in ("RTN", "GPTQ"):
-    d4 = res[f"{pre}  uniform 4-bit"] - p0
-    d5 = res[f"{pre}  uniform 5-bit"] - p0
-    dp = res[f"{pre} promote-only 4.333"] - p0 if pre == "GPTQ" else \
-        res[f"{pre}  promote-only 4.333"] - p0
-    print(f"    {pre:<5}{(d4 - dp) / (d4 - d5) * 100:>7.1f}%")
-print("\n  GPTQ materially below RTN => GPTQ has already absorbed the sensitivity signal.")
+# The experiment runs only when this file is executed directly. Importing it (gptq_gate.py does)
+# must NOT re-run six full quantisation sweeps -- the first version had no guard, so the gate's
+# import silently re-ran everything and then died on a KeyError, producing an empty output file
+# that looked exactly like "still running".
+if __name__ == "__main__":
+    print(f"RULER CHECK -- fp32 baseline {p0:.4f} "
+          f"(windows {LO}-{HI-1}, calib 18-{18+NCAL-1})")
+    if not (5.0 < p0 < 60.0):
+        sys.exit("baseline implausible")
+    res = {}
+    for label, fn, bits in (("RTN uniform 4-bit", apply_rtn, U4),
+                            ("RTN uniform 5-bit", apply_rtn, U5),
+                            ("RTN promote-only 4.333", apply_rtn, PROM),
+                            ("GPTQ uniform 4-bit", apply_gptq, U4),
+                            ("GPTQ uniform 5-bit", apply_gptq, U5),
+                            ("GPTQ promote-only 4.333", apply_gptq, PROM)):
+        fn(bits)
+        res[label] = ppl()
+        restore()
+        print(f"  {label:<26}{res[label]:>10.4f}  {res[label] - p0:>+8.4f}")
+    print("\n  share of each method's own 4->5 gain captured by promote-only "
+          "(33.3% of the bits):")
+    for pre in ("RTN", "GPTQ"):
+        d4 = res[f"{pre} uniform 4-bit"] - p0
+        d5 = res[f"{pre} uniform 5-bit"] - p0
+        dp = res[f"{pre} promote-only 4.333"] - p0
+        print(f"    {pre:<5}{(d4 - dp) / (d4 - d5) * 100:>7.1f}%")

@@ -40,13 +40,31 @@ was plausible: the fp32 perplexity ruler check (refuses to compare unless the ba
 for the model size), and the GPTQ gate (refuses to use a GPTQ baseline that loses to
 round-to-nearest at 4 bits — which the first implementation did).
 
-### 1.3 Bug blast-radius is bounded by import structure
+### 1.3 A filter that shows only success makes failure look identical to silence
+
+Three background runs produced **empty output files**, each indistinguishable from "still
+running", each a different mechanism:
+
+1. a script copied to `/tmp` whose `competitors` import failed — the traceback was swallowed by
+   `sed -n '/RULER/,$p'`, which prints nothing when the start pattern never appears;
+2. `gptq_gate.py` importing `gptq_baseline.py`, which had no `__main__` guard, so the import
+   silently re-ran six full quantisation sweeps and then died on a `KeyError`;
+3. output buffering through `sed` on a long run, where nothing appears until the process exits.
+
+**Practice:** filter background output with `tail -N`, which always shows something, rather than a
+success-pattern range. And guard every experiment behind `if __name__ == "__main__":` — a module
+that runs work on import turns any future import into a silent, expensive failure.
+
+This is the same class as the `done 1` false-successes and the partial-`.bit` file recorded
+elsewhere: **a channel that reports only the happy path cannot distinguish failure from quiet.**
+
+### 1.4 Bug blast-radius is bounded by import structure
 
 Scripts that never reference a competitor cannot be affected by competitor bugs. Checking this by
 grep took seconds and identified four load-bearing results as structurally immune, avoiding
 unnecessary re-runs.
 
-### 1.4 Layer selection must be pinned explicitly
+### 1.5 Layer selection must be pinned explicitly
 
 Two MSE tables disagreed by 1.6× because one enumerated tensors by alphabetically-sorted keys and
 the other by module order — `layers.10` sorts before `layers.2`, so "the held-out half" meant
