@@ -4846,3 +4846,61 @@ This wave could not fetch external literature, so no citations were added to a
 section explicitly labelled *verified* citations. The theorems were stated and
 exhaustively machine-checked instead, and the report says so plainly. An
 unverifiable citation is worse than none.
+
+## Wave 635 — a refuting property is not yet evidence of a defect
+
+**Check which of the design and the specification is wrong, every time.** A
+lemma about a full adder's carry refuted on first run. The adder was fine; the
+assertion used `(x+1 - (x+1) % 3) / 3`, and Verilog's `%` takes the sign of its
+dividend, so it gave 0 where the carry was −1. Isolating the assertion proved
+the design clean in seconds. Earlier waves found real RTL defects exactly this
+way, which is precisely why a refutation cannot be read as one without the
+check — the same signal means both things.
+
+**Lemmas buy localisation, not just confidence.** An exhaustive proof of an
+assembled tree tells you the tree is right and nothing about where a future
+failure would be. Proving the half adder and full adder underneath it means a
+later refutation separates "the arithmetic is wrong" from "the wiring is wrong"
+without any new work. Compose proofs downward even when the top-level one
+already passes.
+
+**Redundant and wrong are independent.** The discarded assertion was redundant —
+conservation plus validity already determined the carry uniquely — *and* it was
+incorrect. Only the incorrectness surfaced it. A redundant-but-correct property
+would have sat there indefinitely looking like coverage.
+
+**An experiment with a good hit rate should become a gate.** Permuting the trit
+encoding found a real defect on its first run. Once is an anecdote; wired into
+CI it is a standing check that no primitive acquires a hidden dependency on a
+literal encoding.
+
+**A gate that only asserts "nothing broke" passes when its perturbation becomes
+a no-op.** So declare which things are *supposed* to break and require them to.
+The encoding gate asserts that the one encoding-dependent theorem still refutes;
+without that, a permutation that stopped permuting — a renamed constant, an
+edited macro — would report a clean sweep while testing nothing.
+
+**A perturbation must be semantics-preserving to be informative.** Permuting the
+encoding on only one side breaks every theorem trivially and proves nothing
+about any of them. What makes a surviving theorem evidence of independence is
+that the change was a genuine relabelling.
+
+**Turn a new instrument on your own published claims first.** Building a
+timing harness because one figure was wrong immediately raised: what else rests
+on numbers measured the same way? Two published figures came back 16% and 27%
+high, and an inference built on one of them had to be **withdrawn rather than
+restated with a smaller coefficient** — because its other endpoint described a
+configuration that no longer exists and could not be re-measured at all. An
+inference is only as reproducible as its least reproducible endpoint.
+
+**Withdraw, don't deflate.** The tempting move was to keep the "headroom is
+narrowing" conclusion with corrected numbers. But the corrected comparison rests
+on one figure nobody can reproduce, so the honest outcome is no conclusion plus
+a defensible baseline — which is worth more to the next wave than a weakened
+claim it would have to re-litigate.
+
+**My own scripted doc edit broke two claim patterns, and last wave's guard
+caught it.** A README rewrite moved `**` emphasis markers so two claims-check
+regexes matched nothing. The UNMET check added one wave earlier fired; without
+it both claims would have silently left the gate while the summary still counted
+them as covered. Guards you build for the codebase apply to your own edits too.
