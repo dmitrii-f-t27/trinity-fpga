@@ -2226,6 +2226,59 @@ budgets. At three bits it underestimates by a third, for a reason worth stating:
 at seven codes the regime is absolute truncation, not relative rounding, and the
 model is built on the latter.
 
+\subsection{The four-bit transposition, and an explanation that failed}
+\label{sec:salience}
+
+The form above ranks correctly at three and five bits and transposes the top
+pair at four, choosing supergolden where perplexity chooses $\varphi$. The
+transposition reproduces on both models in the same direction, so it is an
+effect and not noise. We do not have a mechanism for it, and record the
+candidate we tested and rejected because the rejection is informative.
+
+Mean squared error treats every weight alike, while the output error of a linear
+layer is $\sum_j \delta w_{ij}x_j$, so a weight multiplying a large input
+channel should cost more. The channels are far from equal: measuring the RMS of
+every input channel of every linear projection, the first attention projection
+spans $28\times$ between its largest channel and its median on SmolLM2-135M and
+$22.4\times$ on Qwen2.5-0.5B. This is the observation AWQ~\cite{awq} is built
+on --- salience follows the activation distribution rather than the weight
+distribution --- and it predicts that weighting the error by $a_j^{2}$ should
+move the choice toward the coarser ladder, which is the direction the
+transposition needs.
+
+It does so on one model and not the other.
+
+\begin{table}[t]\centering
+\caption{Ranking by $\sum_j a_j^2\delta w_{ij}^2$ against ranking by
+$\sum \delta w^2$. The weighting reverses the four-bit pair on SmolLM2, matching
+perplexity, and leaves it unchanged on Qwen, where it does not.}
+\label{tab:salience}
+\begin{tabular}{llll}
+\toprule
+model, bits & by MSE & by weighted error & by perplexity \\
+\midrule
+SmolLM2, 4 & supergolden & \textbf{$\varphi$} & \textbf{$\varphi$} \\
+SmolLM2, 5 & plastic & plastic & plastic \\
+Qwen, 4    & supergolden & supergolden & \textbf{$\varphi$} \\
+Qwen, 5    & plastic & plastic & plastic \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The reason the correction fails on the second model is visible in the numbers
+rather than hidden in them. On SmolLM2 the weighting scales the four candidates
+by factors between $0.12$ and $0.24$, so it reorders them; on Qwen it scales all
+four by very nearly $1.09$, so it cannot. Channel salience is therefore
+correlated with the quantisation error pattern in one model and close to
+independent of it in the other, and an explanation that requires the correlation
+is not general.
+
+We leave the transposition open. What survives it is narrower and still useful:
+at four bits the two ladders are within $2.7\%$ on the smaller model and
+$10.7\%$ on the larger, both in $\varphi$'s favour on the measurement that
+matters, and the unweighted form remains the best available predictor at three
+and five bits.
+
 \begin{theorem}[Optimal ratio]\label{thm:optratio}
 For a weight distribution and a code budget, the optimal multiply-free ratio is
 the minimiser of $\mathrm{MSE}(r,b)$, and the degree required is the smallest
@@ -3500,6 +3553,10 @@ D.~Shah et al.
 \bibitem{elias1975} P.~Elias, ``Universal codeword sets and representations of the integers,'' \emph{IEEE Trans. Inform. Theory}, vol.~21, no.~2, pp.~194--203, 1975.
 \bibitem{positgap} Closing the Gap Between Float and Posit Hardware Efficiency, arXiv:2603.01615.
 \bibitem{mlformats} Performance-Efficiency Trade-off of Low-Precision Numerical Formats in Deep Neural Networks, arXiv:1903.10584.
+\bibitem{awq} J.~Lin, J.~Tang, H.~Tang, S.~Yang, W.-M.~Chen, W.-C.~Wang,
+G.~Xiao, X.~Dang, C.~Gan, and S.~Han, ``AWQ: Activation-aware Weight
+Quantization for On-Device LLM Compression and Acceleration,'' in
+\emph{Proc. MLSys}, 2024. arXiv:2306.00978.
 \bibitem{fqp} X.~Yang, Y.~Wang, Y.~Qin, J.~Wang, S.~Wei, Y.~Hu, and S.~Yin,
 ``FQP: A Fibonacci Quantization Processor with Multiplication-Free Computing and
 Topological-Order Routing,'' in \emph{Proc. 61st ACM/IEEE Design Automation

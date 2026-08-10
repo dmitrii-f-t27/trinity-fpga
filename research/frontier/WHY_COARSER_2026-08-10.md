@@ -1,4 +1,37 @@
-# Why the network prefers a coarser ladder than mean squared error does
+# WITHDRAWN -- the salience correction fails on the second model
+
+**T34 as stated below is withdrawn.** It was verified on SmolLM2-135M and
+refuted by Qwen2.5-0.5B within the hour, by the same replication step that has
+caught eighteen earlier claims.
+
+On Qwen the activation weighting scales all four candidates by very nearly the
+same factor (1.09) and therefore cannot reorder them; supergolden stays ahead of
+`phi` on the weighted error while perplexity still prefers `phi`. On SmolLM2 the
+factors ranged 0.12--0.24 and the reordering was real.
+
+So channel salience correlates with the quantisation error pattern in one model
+and is close to independent of it in the other. An explanation that needs the
+correlation is not a law, and the four-bit transposition stays open.
+
+| model, bits | by MSE | by weighted error | by perplexity |
+|---|---|---|---|
+| SmolLM2, 4 | supergolden | **phi** | **phi** |
+| SmolLM2, 5 | plastic | plastic | plastic |
+| Qwen, 4 | supergolden | supergolden | **phi** |
+| Qwen, 5 | plastic | plastic | plastic |
+
+What survives: at four bits `phi` leads on perplexity on both models, by 2.7%
+and 10.7%. The unweighted closed form remains the best available predictor at
+three and five bits and is wrong at four on both.
+
+The lesson is the one the night keeps repeating in a new costume. This
+explanation was *more* attractive than the usual because it came with a
+citation, a measured 28x channel spread, and a correct prediction on the first
+dataset. None of that is replication.
+
+---
+
+## (withdrawn) Why the network prefers a coarser ladder than mean squared error does
 
 The closed form of T33 ranked the ladders correctly at three and five bits and
 transposed the top pair at four -- picking supergolden where perplexity picked
