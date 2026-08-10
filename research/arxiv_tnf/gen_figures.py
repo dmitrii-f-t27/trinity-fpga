@@ -201,3 +201,13 @@ ax.annotate("shaded: workload overruns the rung", (0.02, 0.965),
             xycoords="axes fraction", fontsize=7.5, color="#8a6a20", va="top")
 fig.savefig("tnf_ladder_acc.pdf")
 print("tnf_ladder_acc.pdf")
+
+# The figure's data, written out so the artefact has a producer. It previously
+# sat in the tree with no code behind it, and carried "GF-T" -- the format's name
+# two renames ago -- because a file nobody regenerates is a file nobody renames.
+import json as _json
+_json.dump([{"rung": n, "decades": d,
+             "bands": dict(zip(bins3, v)) if v else None}
+            for n, d, v in LADDER],
+           open("ladder_acc.json", "w"), indent=1)
+print("ladder_acc.json")
