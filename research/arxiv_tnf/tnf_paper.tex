@@ -52,43 +52,39 @@
 \maketitle
 
 \begin{abstract}
-A ternary node has exactly three sites that could carry a number format, and only
-one needs to. The weight is a code: multiplying by it is a sign-select, not a
-multiply. The sample arrives ADC-native. The accumulator is the only object left
-with a range to spend, and Ternary Network Floats (TNF) are what spends it --- a
-sign, a balanced-ternary exponent of $E_t$ trits, an $M$-bit mantissa, with
-$1+E_t+M=N$.
+A ternary node has three sites that could carry a number format; one needs to. The weight is a code: multiplying by it is a sign-select. The sample arrives
+ADC-native. The accumulator alone has a range to spend, and
+Ternary Network Floats (TNF) spend it --- a sign, a balanced-ternary exponent of
+$E_t$ trits, an $M$-bit mantissa, with $1+E_t+M=N$.
 
-We close both halves. GFTernary, a two-bit $\{-\varphi,0,+\varphi\}$ alphabet,
-carries the weight, and $\varphi$ is forced: it is the unique $r>1$ with
-$r^2=r+1$, which returns the product of two weights to the lattice the datapath
-already adds in and makes the gain of $k$ layers exactly $F_k\varphi+F_{k-1}$, so
-depth never reintroduces a multiplier. On an XC7A200T in a fully open flow the
-pair costs zero DSP across the stack: a matched filter demodulating real air at
-$78$\,MHz, every transformer block, a systolic GEMM at $33$\,GOPS, a trained
-ternary transformer at $97\%$, and on-silicon backpropagation training XOR to
-$4/4$.
+GFTernary, a two-bit $\{-\varphi,0,+\varphi\}$ alphabet, carries the weight, and
+$\varphi$ is forced: it is the unique $r>1$ with $r^2=r+1$, so the lattice
+$\mathbb{Z}[\varphi]$ is closed under both the weight operation and accumulation,
+and the gain of $k$ layers is exactly $F_k\varphi+F_{k-1}$. Closure removes a
+multiplier rather than cheapening it: a set lacking it must return
+every accumulation to the set, a stage costing $9.6\times$ the whole closed
+accumulation at 16 bits and $24.8\times$ at 32. On an XC7A200T in a fully open
+flow the pair costs zero DSP: a matched filter
+demodulating real air at $78$\,MHz, every transformer block, a systolic GEMM at
+$33$\,GOPS, a trained ternary transformer at $97\%$, and on-silicon
+backpropagation training XOR to $4/4$.
 
 Among formats carrying their own range, ours are first and second on throughput
-per area: GFTernary $0.177$ and TNF4 $0.167$\,MHz/LUT at 2 and 4 bits, against
-binary32's $0.163$ and posit32's $0.030$ --- $5.9\times$ our first, at $16\times$
-the storage.
+per area, at $0.177$ and $0.167$\,MHz/LUT against binary32's $0.163$ and
+posit32's $0.030$.
 
-The ladder is a frontier, and its reach is smaller than a position count
-suggests. Counting positions, a width-$N$ format of effective mantissa $m$ and
-range $b$ is dominated when $m+\log_3(b+1)\le N-1$ against a uniform budget of
-$m+\log_2(b+1)\le N-1$, an apparent slack of $0.3691E$. Counting \emph{bits},
-a realisable member obeys $3^{E_t}2^{M}\le 2^{N-1}$, and the condition collapses
-to $m+\log_2(b+1)\le N-1$ --- identically the uniform budget, since
-$\log_2 3\,\log_3 x = \log_2 x$. At equal storage the family ties every uniform
-binary format that spends all its bits, dominates those that waste budget
-(6 of 17 sampled), and is escaped by tapers measured where they concentrate
-precision. The slack is real only where a position is physically ternary.
+The ladder's reach is smaller than a position count suggests. An apparent
+slack of $0.3691E$ over a uniform binary budget vanishes once positions are
+counted as bits: a realisable member obeys $3^{E_t}2^{M}\le 2^{N-1}$, and
+$\log_2 3\,\log_3 x = \log_2 x$ collapses the condition onto that budget exactly.
+At equal storage the family ties every uniform binary format that spends all its
+bits, dominates the 6 of 17 sampled that waste budget, and is escaped by tapers where
+they concentrate precision.
 
-The accumulator obeys a law we derive and then measure: error grows as
-$\sqrt{pK}\,2^{-(M+1)}$ in fan-in, fitted at $+0.476$ against a predicted $+0.5$.
-Eleven of our own claims were falsified by the measurements meant to support them,
-and are retracted in place.
+The accumulator obeys a law we derive and measure: error grows as
+$\sqrt{pK}\,2^{-(M+1)}$ in fan-in, fitted at $+0.476$ against a predicted
+$+0.5$. Eleven of our own claims were falsified by the measurements meant to
+support them, and are retracted in place.
 \end{abstract}
 
 \section{What this paper argues}
@@ -114,6 +110,12 @@ named, because the error depends on the mantissa width alone
 (Section~\ref{sec:law}). The same law, inverted, becomes an instrument that reads
 a format's behaviour back out of its round-trip error, and resolves a
 83-format catalogue into four staircase forms.
+\item \textbf{Closure under the datapath's own operations} is what decides
+whether a multiplier can be removed at all, rather than made cheaper
+(Section~\ref{sec:closure}). It is an algebraic property of the weight
+alphabet, it is machine-checked, and it separates this work from every published
+multiplication-free scheme built on Fibonacci integers, which are not closed.
+
 \item \textbf{Fixed fields or a taper} is a genuine choice with exactly two
 options, because a prefix code cannot give unbounded range and bounded precision
 at once (Section~\ref{sec:codes}). That section also shows the taper's shape is

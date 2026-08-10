@@ -42,6 +42,14 @@ def analyse(p):
     for name, w in wires.items():
         if name == port or w <= port_w: continue
         # is this wire referenced in the driving expression, and only in part?
+        # A bare reference to the whole register observes every bit of it. A
+        # reduction such as `^{q, 4'b0}` in a ternary condition does exactly
+        # that, and counting only explicit slices reported it as observing 8 of
+        # 23 bits. Checked by experiment before changing this: removing the
+        # reduction pruned 30 flip-flops, so it was protecting the logic and the
+        # report was a false positive.
+        if re.search(r'\b' + re.escape(name) + r'\b(?!\s*\[)', expr):
+            continue
         refs = re.findall(re.escape(name) + r'\s*\[(\d+):(\d+)\]', expr)
         if not refs: continue
         covered = set()
