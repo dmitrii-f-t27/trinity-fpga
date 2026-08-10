@@ -2355,6 +2355,52 @@ failed here --- a ternary-exponent float, constant-ratio ladders, and
 two-segment ladders built to imitate E2M1's spacing --- and the bound explains
 why a fourth is not warranted.
 
+\subsection{The other half of the block axis}\label{sec:scaleaxis}
+
+The bound closes the element format. It says nothing about the scale, which is
+one value per thirty-two weights and had never been varied. Its cost is
+amortised thirty-twofold, which is the regime where a finer grid is affordable
+--- and the accounting decides the comparison before any perplexity is measured.
+
+E8M0 gives the scale eight exponent bits. Over $3{,}317{,}760$ block scales the
+range actually occupied is $8.32$ binades on SmolLM2-135M and $9.12$ on
+Qwen2.5-0.5B, so four bits suffice. At four bits $2^{k}$ needs $8.3$ steps of
+the sixteen available and $\varphi^{k}$ needs $12.0$, with half the step. The
+choice at equal width is between exactly those two.
+
+\begin{table}[t]\centering
+\caption{Block scale grid, K=32, E2M1 elements, 40 windows. At equal bits
+$\varphi^{k}$ beats $2^{k}$ on both models; finer grids cost one or two more
+bits and their benefit does not replicate.}
+\label{tab:scalegrid}
+\begin{tabular}{lrrr}
+\toprule
+scale grid & bits & SmolLM2 & Qwen \\
+\midrule
+$2^{k}$ (the MX specification's) & 4 & $22.4998$ & $14.9447$ \\
+$\varphi^{k}$                    & \textbf{4} & $\mathbf{21.3545}$ & $\mathbf{14.8512}$ \\
+$\sqrt{2}^{\,k}$                 & 5 & $21.8960$ & $14.7456$ \\
+plastic$^{k}$                    & 5 & $22.7625$ & $15.0333$ \\
+$2^{k/4}$                        & 6 & $24.0791$ & $14.4328$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A stronger reading of the first column does not survive the second. On SmolLM2
+the response is non-monotone with its minimum at $\varphi$ and $2^{k/4}$ falling
+below plain $2^{k}$, which would say $\varphi$ is the optimum of the grid; on
+Qwen the response is monotone in granularity and the finest grid wins. The sign
+replicates and the size does not --- $5.09\%$ against $0.63\%$ --- and the claim
+of optimality does not replicate at all. We state only what does.
+
+Two things follow. This is not our format beating MXFP4: the element stays
+E2M1, and only the base of the shared exponent changes, so it is a contribution
+to the microscaling family rather than a defeat of it. And the grid that helps
+is ours specifically --- on a binary datapath $2^{k}$ is a shift and
+$\varphi^{k}$ is not, while on the datapath of Section~\ref{sec:closure}
+$\varphi^{k}$ is $k$ Fibonacci steps and needs no multiplier. A scale grid that
+costs everyone else a multiplier is free here.
+
 \paragraph{Scope.} This is stated for per-channel scaling and does not extend to
 short blocks. Applied to the within-block distribution under a block of $32$ and
 an E8M0 shared scale, the same form returns $r^{*}=1.3308$, which measures
