@@ -90,54 +90,73 @@ were withdrawn during the campaign and removed rather than marked.
 \section{What this paper argues}
 \label{sec:roadmap}
 
-The results below were found in the order a measurement campaign finds things,
-but they compose into a single claim, and it is easier to read them knowing it:
+The results below were found in the order a measurement campaign finds things.
+They compose into one argument, and the argument is easier to follow stated
+first.
 
-\begin{quote}
-A floating-point format has four design axes. Three of them have answers that do
-not depend on the workload. Name the fabric, the range the workload actually
-visits, and whether it wants bounded range at constant precision or unbounded
-range at decaying precision --- and the format is determined, not chosen.
-\end{quote}
+A ternary node has three sites where a number format could live, and only one of
+them needs one. The weight is a code and multiplying by it is a sign-select; the
+sample arrives ADC-native; the accumulator is the only object carrying a range
+that must be spent. So the design question is not which format to use but which
+\emph{two} objects to close --- an alphabet for the weight and a float for the
+accumulator --- and Sections~\ref{sec:format} to~\ref{sec:field} settle the
+second by a law: once a range is named, the split between exponent and mantissa
+is determined rather than chosen, because the error depends on the mantissa
+width alone. Inverted, the same law reads a format's behaviour back out of its
+round-trip error and resolves an 83-format catalogue into four staircase forms
+and no fifth.
 
-Section~\ref{sec:optimal} states that as Corollary~\ref{cor:determined} and shows
-TNF is what it returns for one particular triple. Everything before it establishes
-an axis:
+The alphabet is where the multiplier is decided, and the deciding property is
+algebraic. Section~\ref{sec:closure} shows that removing a multiplier --- as
+against making one cheaper --- requires the weight lattice to be \emph{closed}
+under the operation that applies a weight. $\mathbb{Z}[\varphi]$ is, because
+$\varphi^2=\varphi+1$, so a weight application is the Fibonacci step and an
+accumulation is componentwise integer addition; Fibonacci integers are not,
+because $F_4F_4=9$ is not a Fibonacci number, and a datapath built on them must
+carry a stage returning products to the representable set. That stage measures
+an order of magnitude more area than the entire closed accumulation, and
+pipelining does not rescue it: a normalisation cascade cannot be cut below one
+compare-and-subtract per stage, so its floor lies above a closed path's single
+addition. The closure half of the argument is machine-checked.
 
-\begin{itemize}
-\item \textbf{The split between exponent and mantissa} is fixed once a range is
-named, because the error depends on the mantissa width alone
-(Section~\ref{sec:law}). The same law, inverted, becomes an instrument that reads
-a format's behaviour back out of its round-trip error, and resolves a
-83-format catalogue into four staircase forms.
-\item \textbf{Closure under the datapath's own operations} is what decides
-whether a multiplier can be removed at all, rather than made cheaper
-(Section~\ref{sec:closure}). It is an algebraic property of the weight
-alphabet, it is machine-checked, and it separates this work from every published
-multiplication-free scheme built on Fibonacci integers, which are not closed.
+Closure does not single out $\varphi$ by itself, and Section~\ref{sec:hierarchy}
+says what it does single out. A scale is applicable without a multiplier exactly
+when it is an algebraic integer whose companion matrix has entries in
+$\{0,\pm1\}$, which is a finite condition and therefore enumerable rather than
+arguable. Degree one gives the shift; degree two gives $\varphi$ and nothing
+else; degree three gives three more, finer. Between the shift and $\varphi$
+there is nothing, and $\varphi$ is the only multiply-free refinement of the
+power-of-two ladder available at two registers. The hierarchy continues --- and
+stops being cheap at degree four, where the coefficient vector loses its
+sparsity and the cost doubles.
 
-\item \textbf{Fixed fields or a taper} is a genuine choice with exactly two
-options, because a prefix code cannot give unbounded range and bounded precision
-at once (Section~\ref{sec:codes}). That section also shows the taper's shape is
-the growth rate of a codeword length, nothing more.
-\item \textbf{The radix of the exponent's encoding} is decided by the fabric, not
-by preference: packed into bits, a ternary exponent never spans more values per
-bit than a binary one (Section~\ref{sec:whyternary}).
-\item \textbf{The radix of the scale} is fixed at two unconditionally, and this is
-the only axis with no free parameter at all. It is also the one where the optimum
-is not the extremum (Section~\ref{sec:optimal}).
-\end{itemize}
+Which rung to use is then an empirical question with a law behind it
+(Section~\ref{sec:ladderlaw}). A ladder of ratio $r$ with $n$ magnitudes spans
+$r^{n-1}$, so fine steps are bought with range, and the optimum moves down the
+hierarchy as the code budget grows: the shift at three bits, $\varphi$ at four,
+the plastic number at five, on two models with the same ordering throughout. The
+optimum has a closed form in the weight histogram, transferring between models
+to four decimals, and the one place it errs --- the four-bit pair --- is
+corrected by weighting the error with the loss curvature rather than the weight
+magnitude.
 
-Two sections are about what things cost rather than what they are.
-Section~\ref{sec:convert} makes area and precision commensurable, so a
-variable-length exponent field can be priced in mantissa bits of silicon.
-Section~\ref{sec:valuelaw} then finds that for a logarithmic format the field
-layout is the smaller half of the cost, and that we had been measuring the wrong
-half.
+Section~\ref{sec:blockbound} reports where none of this wins. On a short block
+with a shared scale the optimal eight-level codebook beats a deployed one by
+$0.9\%$, so the axis is not an element-format problem at all, and it belongs to
+MXFP4. We state it as the competition's result and give the bound that makes a
+fourth attempt of ours unwarranted.
 
-We also report what the campaign cost us. Five of our own claims were falsified by
-the measurements meant to support them, and each is retracted where it was made
-rather than quietly dropped.
+Two sections are about cost rather than kind. Section~\ref{sec:convert} makes
+area and precision commensurable, so a variable-length exponent field can be
+priced in mantissa bits of silicon; Section~\ref{sec:valuelaw} then finds that
+for a logarithmic format the field layout is the smaller half of that cost, and
+that we had been measuring the wrong half.
+
+Five of our own claims were falsified by the measurements meant to support them,
+and each is retracted where it was made rather than quietly dropped.
+Section~\ref{sec:selfcheck} generalises the shape those errors took, because in
+almost every case the measurement was correct and the comparison around it was
+not.
 
 \section{The format}\label{sec:format}
 
