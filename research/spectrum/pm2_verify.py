@@ -98,8 +98,14 @@ def exact_map_is_mult_by_x(x, y, a) -> bool:
 
 # ------------------------------------------- C: exact root certificate ------
 
-def root_high_precision(a):
-    """The unique real root > 1, to mp.dps digits, found by exact bisection."""
+def root_high_precision(a, approx):
+    """The root nearest `approx`, to mp.dps digits, by BRACKETED bisection.
+
+    A polynomial here may have several roots above 1 (r^20 = 2r^19 + ... has
+    two), so bisecting the whole of (1, 3] and assuming one sign change is
+    unsound.  Instead grow a bracket around the approximation until the sign
+    genuinely changes, then bisect inside it.
+    """
     c_desc = [int(v) for v in poly_desc(a)]
 
     def val(t):
@@ -108,13 +114,20 @@ def root_high_precision(a):
             acc = acc * t + co
         return acc
 
-    lo, hi = mp.mpf(1) + mp.mpf(10) ** -6, mp.mpf(3)
+    r0 = mp.mpf(approx)
+    w = mp.mpf(10) ** -9
+    for _ in range(60):
+        lo, hi = r0 - w, r0 + w
+        if val(lo) * val(hi) < 0:
+            break
+        w *= 2
+    else:
+        raise RuntimeError("no sign change bracket found around the approximation")
     flo = val(lo)
-    for _ in range(500):
+    for _ in range(600):
         mid = (lo + hi) / 2
-        fm = val(mid)
-        if (fm < 0) == (flo < 0):
-            lo, flo = mid, fm
+        if val(mid) * flo > 0:
+            lo, flo = mid, val(mid)
         else:
             hi = mid
     return (lo + hi) / 2

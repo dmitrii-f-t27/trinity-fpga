@@ -21,7 +21,12 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 W = ("/private/tmp/claude-501/-Users-ssdm4-Desktop-PROJECTS-CLAUDE/"
      "0e868af8-ab2d-4d00-be03-8fea94ba48e4/scratchpad/weights")
 MD = sys.argv[1]
-SEQLEN, NW = 2048, 8
+# GPT-2's context is 1024, not 2048; feeding it 2048 raises IndexError inside the positional
+# embedding. Take the limit from the model's own config instead of assuming a common value.
+import json as _json
+_cfg = _json.load(open(os.path.join(W, MD, "config.json")))
+SEQLEN = min(2048, _cfg.get("max_position_embeddings") or _cfg.get("n_positions") or 2048)
+NW = 8
 torch.set_grad_enabled(False)
 RAT = {"shift": 2.0, "phi": (1 + 5 ** 0.5) / 2,
        "supergold": 1.465571231876768, "plastic": 1.324717957244746}
@@ -73,7 +78,8 @@ m = load()
 tg = targets(m)
 nw = sum(mod.weight.numel() for _, mod in tg)
 base = ppl(m); del m
-print(f"\n  {MD}: {len(tg)} quantisable 2-D layers, {nw:,} weights, fp32 ppl {base:.4f}")
+print(f"\n  {MD}: {len(tg)} quantisable 2-D layers, {nw:,} weights, "
+      f"seqlen {SEQLEN}, fp32 ppl {base:.4f}")
 if len(tg) == 0:
     sys.exit("  no layers matched -- refusing to report a comparison")
 

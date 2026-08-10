@@ -183,17 +183,33 @@ def _trim(p):
     return p[i:]
 
 
-def _prem(a, b):
-    """Remainder of a / b, both descending lists of Fractions."""
+def _divmod_poly(a, b):
+    """(quotient, remainder) of a / b, descending lists of Fractions.
+
+    The quotient coefficient is placed by DEGREE, not by loop count: a single
+    subtraction can cancel several leading coefficients at once, and indexing
+    the quotient positionally silently drops the corresponding zeros.
+    """
     a, b = _trim(list(a)), _trim(list(b))
     if not b:
         raise ZeroDivisionError
-    while a and len(a) >= len(b):
+    if not a or len(a) < len(b):
+        return [], a
+    db = len(b) - 1
+    q = [Fraction(0)] * (len(a) - db)
+    while a and len(a) - 1 >= db:
+        shift = (len(a) - 1) - db
         f = a[0] / b[0]
+        q[len(q) - 1 - shift] = f
         for i in range(len(b)):
             a[i] -= f * b[i]
         a = _trim(a)
-    return a
+    return q, a
+
+
+def _prem(a, b):
+    """Remainder of a / b, both descending lists of Fractions."""
+    return _divmod_poly(a, b)[1]
 
 
 def _deriv(p):
@@ -213,14 +229,7 @@ def sturm_chain(c_desc):
     p = _trim([Fraction(int(x)) for x in c_desc])
     g = _gcd_poly(p, _deriv(p))
     if len(g) > 1:                       # divide out repeated factors
-        q, rem = [], list(p)
-        while rem and len(rem) >= len(g):
-            f = rem[0] / g[0]
-            q.append(f)
-            for i in range(len(g)):
-                rem[i] -= f * g[i]
-            rem = _trim(rem)
-        p = _trim(q)
+        p = _trim(_divmod_poly(p, g)[0])
     chain = [p, _deriv(p)]
     while len(chain[-1]) > 1:
         r = _prem(chain[-2], chain[-1])
