@@ -45,12 +45,16 @@ def produced(a):
     plus the extension too."""
     if any(a.name in src for _, src in producers): return True
     stem, ext = a.stem, a.suffix
-    for cut in range(len(stem) - 1, 0, -1):
-        if stem[cut] != "_": continue
+    # An f-string names the file in pieces. Two shapes occur here:
+    #   f"scale_frontier_{TAG}.json"                       -> prefix + "_{"
+    #   f"zphi_acc_width{'_row' if ROWMODE else ''}.json"  -> prefix + "{"
+    # so try every prefix of the stem, longest first, against both shapes. A
+    # prefix shorter than six characters is too weak to mean anything.
+    for cut in range(len(stem), 5, -1):
         pref = stem[:cut]
-        needle = pref + '_{'
-        if any(needle in src and ext in src for _, src in producers): return True
-        break
+        for needle in (pref + "{", pref + "_{"):
+            if any(needle in src and ext in src for _, src in producers):
+                return True
     return False
 
 orphans = [str(a.relative_to(ROOT)) for a in arts if not produced(a)]
