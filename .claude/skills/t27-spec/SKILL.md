@@ -4964,3 +4964,50 @@ the next person to the wrong file.
 above was found *after* the proposition shipped. That is survivable when the
 review actually happens and the corrections are recorded forward; it is not a
 substitute for the review happening at all.
+
+## Wave 637 — a flag's description can be wrong for a hundred waves
+
+**Check what your tool flags actually mean, not what the comment says they
+mean.** `-set-init-zero` was described throughout this campaign — since the
+proposition that chose it — as "starting from a reachable state". It starts from
+the ZERO state. Those coincide only if every register resets to zero, and nine
+here did not. The description was written once, was approximately true, and was
+quoted for a hundred waves without anyone asking.
+
+**Distinguish unsound from fragile, precisely, and say which you found.** Extra
+unreachable states in the initial set can only produce spurious *refutations*,
+never spurious proofs. So nothing verified was weakened — the finding is that a
+pure relabelling would break two proofs and the failure would read as a design
+defect. Getting this distinction right is the difference between "your proofs are
+wrong" (alarming and false) and "your setup is fragile in a way that will waste a
+future day" (true and actionable).
+
+**When you find a local workaround, ask how many other instances exist.** One
+property in one suite carried a guard whose comment described this exact problem
+and its exact cause. It was fixed there, correctly, and never generalised. A
+comment explaining *why* a workaround is needed is a description of a class —
+go count the class.
+
+**A repair that does not work is worth recording, with the reason.** The obvious
+fix was to copy the existing guard to the two affected properties. It fails,
+because the bad state persists indefinitely rather than only at time zero, so a
+one-cycle guard changes nothing. Writing that down stops the next person
+spending the same hour, and the reasoning is more useful than the fix would have
+been.
+
+**Prefer a gate that lists over a gate that forbids.** Non-zero resets are not a
+defect — an AXI slave that comes up not-ready is worse than one that does. The
+gate requires each to carry a reason, which converts an invisible modelling gap
+into a written one without pretending the design should change.
+
+**Measure the blast radius before designing the fix.** Running each property
+individually under the perturbation showed exactly one property per suite was
+affected, out of ten. That turned "two suites are fragile" into two named
+properties, and it made clear the fix belonged in the verification setup rather
+than in the design.
+
+**Confirm a perturbation is semantics-preserving by counting, not by
+believing.** Before drawing any conclusion from an FSM relabelling, count the
+references to the state signal by name versus by literal: 16/0 and 9/0. If any
+had been by literal, the relabelling would have changed behaviour and a
+refutation would have been correct rather than informative.
