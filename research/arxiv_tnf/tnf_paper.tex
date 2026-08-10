@@ -1918,7 +1918,7 @@ measurement that decides it.
 
 
 \subsection{The width rule is an optimisation with one solution}
-\label{sec:optimal}
+\label{sec:widthrule}
 
 Theorem~\ref{thm:coverage} compares against a given competitor. Stated as a
 design problem it selects a member outright, which is what makes the rule
@@ -2174,7 +2174,7 @@ network rather than about the arithmetic, so we asked the network.
 
 \subsection{Which rung, and why the answer moves}\label{sec:ladderlaw}
 
-Table~\ref{tab:ladder} quantises every $2$-D linear weight of SmolLM2-135M to
+Table~\ref{tab:ladderlaw} quantises every $2$-D linear weight of SmolLM2-135M to
 $\pm r^{k}$ with a per-output-channel scale, the codebook sized to exactly
 $2^{b}$ entries including zero and sign, and evaluates wikitext-2 perplexity
 over twelve windows of $2048$ tokens. Baseline \texttt{fp32} is $14.36$.
@@ -2183,7 +2183,7 @@ over twelve windows of $2048$ tokens. Baseline \texttt{fp32} is $14.36$.
 \caption{Perplexity by ladder and code budget, SmolLM2-135M on wikitext-2.
 Coarse ladders span range and waste precision; fine ones do the reverse. The
 best rung moves down the hierarchy as the budget grows.}
-\label{tab:ladder}
+\label{tab:ladderlaw}
 \begin{tabular}{lrrrr}
 \toprule
 bits & shift ($2$) & $\varphi$ ($1.618$) & supergold ($1.4656$) & plastic ($1.3247$) \\
@@ -2677,7 +2677,7 @@ not enough: swept to $32$ stages at 16 bits and $48$ at 32, frequency rises and
 then plateaus at $249.44$ and $111.36$\,MHz against the closed path's $299.94$
 and $239.35$, the second less than half. There is a reason.
 
-\begin{theorem}[The normalisation floor]\label{thm:floor}
+\begin{theorem}[The normalisation floor]\label{thm:normfloor}
 A normalisation cascade cannot be pipelined below one compare-and-subtract per
 stage, so its clock period is bounded below by the carry latency of a
 compare-and-subtract at the datapath width. A compare-and-subtract is strictly
@@ -3559,7 +3559,7 @@ tolerating them: constants stated beside the formula that produces them (60 of
 them, correctly absent from any data file), and rounding, where a data literal
 extending the printed digits counts as the source.
 
-Of $451$ distinctive literals, $444$ trace to a file. **Seven do not**, and they
+Of $451$ distinctive literals, $444$ trace to a file. \textbf{Seven do not}, and they
 are listed rather than deleted, because a figure that cannot be traced is not
 thereby shown to be wrong:
 
@@ -3662,8 +3662,8 @@ from $4.2$--$6.5$ to $2.1$. The remaining window dependence is confined to
 posit8, whose peak sits within $0.45$ bits of TNF8's so that any slope estimate
 divides a very small number.
 
-The point worth keeping is not the arithmetic. **A taxonomy introduced to label
-formats turns out to prescribe how they must be compared** --- arithmetic tapers
+The point worth keeping is not the arithmetic. \textbf{A taxonomy introduced to label
+formats turns out to prescribe how they must be compared} --- arithmetic tapers
 by a linear crossover, geometric ones by $2^{p-m}$. A classification that only
 labelled would not do this, and we had used it only to label for most of this
 work.
@@ -3671,7 +3671,7 @@ work.
 
 
 \begin{theorem}[A wobble admits no crossover]
-\label{thm:wobble}
+\label{thm:wobblecross}
 If a format's $M_{\mathrm{eff}}$ is periodic in $|e|$ with amplitude $A$ and
 period $P$, and a constant-form competitor's $m$ lies strictly inside the band,
 then no $x$ exists such that one leads for all $|e| < x$ and the other for all
