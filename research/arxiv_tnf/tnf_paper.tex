@@ -2151,10 +2151,59 @@ plastic, 32-bit            & 228 & 200 & 231.21 & $\mathbf{13.97\%}$ \\
 
 At 32 bits the refinement costs $2.2\%$ of the area and $6.4\%$ of the
 frequency. That is close enough to free that the choice is a question about the
-network rather than about the arithmetic, and we state it as an open one: our
-alphabet is the degree-2 member of a family, chosen because two registers is the
-smallest ring that scales at all, not because the finer members were measured
-and lost.
+network rather than about the arithmetic, so we asked the network.
+
+\subsection{Which rung, and why the answer moves}\label{sec:ladderlaw}
+
+Table~\ref{tab:ladder} quantises every $2$-D linear weight of SmolLM2-135M to
+$\pm r^{k}$ with a per-output-channel scale, the codebook sized to exactly
+$2^{b}$ entries including zero and sign, and evaluates wikitext-2 perplexity
+over twelve windows of $2048$ tokens. Baseline \texttt{fp32} is $14.36$.
+
+\begin{table}[t]\centering
+\caption{Perplexity by ladder and code budget, SmolLM2-135M on wikitext-2.
+Coarse ladders span range and waste precision; fine ones do the reverse. The
+best rung moves down the hierarchy as the budget grows.}
+\label{tab:ladder}
+\begin{tabular}{lrrrr}
+\toprule
+bits & shift ($2$) & $\varphi$ ($1.618$) & supergold ($1.4656$) & plastic ($1.3247$) \\
+\midrule
+3 & $\mathbf{2309.86}$ & $41835.53$ & $1367268.11$ & $6720092.29$ \\
+4 & $76.81$ & $\mathbf{24.43}$ & $25.10$ & $55.72$ \\
+5 & $77.52$ & $22.73$ & $18.93$ & $\mathbf{16.45}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A ladder of ratio $r$ with $n$ magnitudes spans $r^{\,n-1}$, so finer steps are
+bought with span. At three bits nothing spans enough and the coarsest wins; at
+four the balance sits at $\varphi$; at five the finest tested wins outright.
+This is the range-against-precision law of Section~\ref{sec:law} applied to the
+scale hierarchy rather than to a field layout, and it says plainly that
+$\varphi$ is optimal at a budget, not everywhere. At four bits $\varphi$ and
+supergolden differ by $2.7\%$ over twelve windows, which this measurement cannot
+separate; the accurate statement is that they tie and supergolden costs a
+register. One bit up, the plastic number wins by $28\%$.
+
+The choice does not need the network. Ranking the ladders by mean squared
+quantisation error on the weights alone reproduces the perplexity order exactly
+at three and five bits, and at four bits transposes only the pair perplexity
+cannot separate.
+
+\begin{theorem}[The ladder law]\label{thm:ladder}
+Among multiply-free ladders at a fixed code budget, the one minimising weight
+mean squared error minimises perplexity, up to pairs whose error differs by less
+than the evaluation resolves.
+\end{theorem}
+
+A first predictor failed and the failure is informative: choosing the finest
+ladder whose span covers the weights' channel dynamic range --- $268.95\times$
+median over $155{,}520$ channels --- selects the coarsest rung at every budget,
+correct at three bits and wrong at four and five. Coverage is the wrong
+criterion because clipping the smallest weights is nearly free while rounding
+the largest is not. The quantity that decides is total error, and total error is
+computable before any model runs.
 
 The distinction is between quantizing to \emph{Fibonacci numbers} and working in
 \emph{the ring those numbers are the coordinates of}. $F_iF_j$ escapes the set;
