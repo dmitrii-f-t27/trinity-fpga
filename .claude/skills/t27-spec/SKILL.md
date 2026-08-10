@@ -4644,3 +4644,53 @@ new CI step moved a swept-step total; a module-coverage split had drifted from
 "8 direct, 8 indirect" to "16 and 0" across four waves while the prose sat
 still. Both had gone stale silently. If prose states a number the tree knows,
 derive it by importing the code the tree uses — never by recounting.
+
+## Wave 632 — turn a finding into a sweep, then check the sweep against the finding
+
+**When a defect has a shape, sweep for the shape.** Prop. 83's accumulator was
+one instance of "a register safe only relative to a bound written elsewhere".
+Asking that question of every growing register in the tree took one scan and
+turned a single finding into a map: 4 bounded locally, 4 by an input port, 7 by
+nothing inside their own module. One incident is an anecdote; the same question
+asked fifteen times is a property of the codebase.
+
+**A gate can demand an argument rather than a proof.** Requiring every
+externally-bounded register to carry a `// BOUND: <name> <reason>` note proves
+nothing safe — it makes a *missing* argument visible. That is much cheaper than
+proof and catches the failure mode that actually occurred, where nobody had
+asked the question at all. Writing the fifteen notes was the real work, because
+each had to be traced to a limit that genuinely exists.
+
+**Check a new instrument against the one case whose answer you already know.**
+The scan's first draft classified the Prop. 83 accumulator — bounded by nothing,
+established by k-induction the wave before — as bounded by a contract. The cause:
+it read `<=` as a comparison, when at statement level in Verilog that is the
+nonblocking **assignment**. Every LOCAL verdict came from a reset `X <= 0` read
+as a bound; the whole table measured assignments. Nothing about the output
+looked wrong. Only the known answer exposed it. Build the acid test into the
+self-test so it stays exposed.
+
+**Prefer over-reporting in the direction that asks for an argument.** Dropping
+the ambiguous `<=`/`>=` loses genuine `if (c <= limit)` bounds, which then read
+as unbounded and demand a note. That is the right way to be wrong: the failure
+mode is a human writing one extra sentence, not an instrument inventing a bound
+that does not exist.
+
+**Read the declaration, not the use.** A first draft of a finding said the DMA's
+address registers were 32-bit and could wrap a real memory map. They are 64-bit;
+the emitter says so. The grep that suggested otherwise showed assignment lines,
+which carry no width. The finding was real but belonged to a different module,
+and the difference changed what it means. Widths, types and signedness live in
+declarations — go there before writing a claim about range.
+
+**Annotate the generator, not the generated file.** These notes belong in the
+Rust emitters; writing them into `build/rtl/` would have survived exactly until
+the next regeneration. Then verify by regenerating and confirming the emitted
+output changed only where intended.
+
+**A `git diff` of an untracked path is blank, and blank looks like clean.**
+Checking "did my change touch anything but comments" with `git diff build/rtl/`
+returned nothing — because that directory is generated and untracked, so the
+check examined zero files. The sound version diffed the *tracked emitter*
+sources and confirmed every added line emits a comment. Before trusting an empty
+diff, confirm the path is actually under version control.
