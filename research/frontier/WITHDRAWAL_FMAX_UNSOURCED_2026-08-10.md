@@ -81,3 +81,52 @@ synthesis run. **The relative-cost conclusion stands; the specific LUT/FF/Fmax n
 Install `nextpnr-xilinx` and run the openXC7 flow on `c_phi32`, `c_plas32`, `c_d4_32` — the
 Verilog is present and synthesises. Until then the honest form is **"degrees 2 and 3 both cost one
 adder; degree 4 costs three"**, with no MHz attached.
+
+---
+
+# Resolved: where each column came from, and a real timing measurement
+
+`nextpnr-xilinx` cannot be obtained here (not in `oss-cad-suite`, no prjxray database, and
+`nextpnr-himbaechel` ships only gatemate and gowin chipdbs). But **ECP5 place-and-route is fully
+available**, and running the same three designs through it settles the provenance question and
+replaces the withdrawn column with a real one.
+
+## Measured: yosys `synth_ecp5` → `nextpnr-ecp5 --25k --package CABGA381 --freq 150 --seed 1`
+
+| ladder | LUT4 | FF | **Fmax (ECP5, measured)** | reported as "xc7a200t" |
+|---|---|---|---|---|
+| phi (deg 2) | 83 | **192** | **324.68 MHz** | LUT 223, FF **192**, Fmax 247.10 |
+| plastic (deg 3) | 68 | **200** | **320.92 MHz** | LUT 228, FF **200**, Fmax 231.21 |
+| deg-4 | 140 | **320** | **308.64 MHz** | LUT 469, FF **320**, Fmax 184.98 |
+
+**The FF column matches exactly — 192, 200, 320, all three.** That column is a real measurement,
+but it came from **nextpnr-ecp5**, not from an Artix-7. The LUT column matches neither this run
+nor cleanly the `synth_xilinx` run (which gave ~239 LUT-class cells for plastic against 228
+reported), so the table appears to **mix tools and fabrics under a single "xc7a200t" heading**.
+
+**The Fmax column matches nothing.** Not the ECP5 numbers, not any artefact on disk. It remains
+unsourced and withdrawn.
+
+## And the direction of the Fmax claim is wrong, not just its provenance
+
+> "At degree 4 … the cost jumps: 2.1x the area, 1.67x the registers, **25% slower**."
+
+Measured on a real fabric:
+
+    area      deg4 140 LUT4 vs plastic 68  =  2.06x     -- holds
+    registers deg4 320 vs plastic 200      =  1.60x     -- holds
+    speed     deg4 308.64 vs phi 324.68    =  4.9% slower, NOT 25%
+
+**The area and register jumps are real and reproduce. The timing cliff does not.** Degree 4 is
+5 % slower on ECP5, not a quarter. The claim that the hierarchy "stops being cheap" at degree 4
+survives on *area and adder count* — one adder through degree 3, three at degree 4, 2× the LUTs —
+and does not survive on speed.
+
+## Corrected statement of the cost result
+
+    degrees 2 and 3   1 adder,  68-83 LUT4,  192-200 FF,  ~321-325 MHz   (ECP5, measured)
+    degree 4          3 adders, 140 LUT4,    320 FF,      ~309 MHz       (ECP5, measured)
+
+No Artix-7 number is claimed. The relative conclusion — degree 4 doubles the area and triples the
+adders, so the affordable hierarchy ends at degree 3 — is now backed by a place-and-route run that
+exists, on a fabric that is named correctly.

@@ -1,0 +1,16 @@
+tnf_paper.tex:1809: 0.145 is named in a withdrawal and used live here -- ...ats through one datapath and puts TNF mid-pack among fixed fields at $0.145$--$0.167$\,MHz per LUT. Against \t
+tnf_paper.tex:2790: 0.151 is named in a withdrawal and used live here -- ...times$ \\ 4 & \textbf{TNF32} (ours) & 32 bits & 499 & 75.49 & \textbf{0.151} & $1.17\times$ \\ 5 & \textbf{TNF
+tnf_paper.tex:2790: 75.49 is named in a withdrawal and used live here -- ...& 0.163 & $1.09\times$ \\ 4 & \textbf{TNF32} (ours) & 32 bits & 499 & 75.49 & \textbf{0.151} & $1.17\times$ \\
+tnf_paper.tex:2791: 0.147 is named in a withdrawal and used live here -- ...17\times$ \\ 5 & \textbf{TNF8} (ours) & 8 bits & 487 & 71.64 & \textbf{0.147} & $1.20\times$ \\ 6 & fp8 e4m3 &
+tnf_paper.tex:2791: 71.64 is named in a withdrawal and used live here -- ...bf{0.151} & $1.17\times$ \\ 5 & \textbf{TNF8} (ours) & 8 bits & 487 & 71.64 & \textbf{0.147} & $1.20\times$ \\
+tnf_paper.tex:2792: 0.147 is named in a withdrawal and used live here -- ...textbf{0.147} & $1.20\times$ \\ 6 & fp8 e4m3 & 8 bits & 490 & 71.95 & 0.147 & $1.20\times$ \\ 7 & \textbf{TNF1
+tnf_paper.tex:2793: 0.145 is named in a withdrawal and used live here -- ...times$ \\ 7 & \textbf{TNF16} (ours) & 16 bits & 495 & 71.90 & \textbf{0.145} & $1.22\times$ \\ 8 & \textbf{GF+
+tnf_paper.tex:2793: 71.90 is named in a withdrawal and used live here -- ...& 0.147 & $1.20\times$ \\ 7 & \textbf{TNF16} (ours) & 16 bits & 495 & 71.90 & \textbf{0.145} & $1.22\times$ \\
+tnf_paper.tex:2802: 0.078 is named in a withdrawal and used live here -- ... 64.16 & 0.079 & $2.24\times$ \\ 16 & posit8 & 8 bits & 560 & 43.55 & 0.078 & $2.27\times$ \\ 17 & IBM hex32 &
+tnf_paper.tex:2802: 43.55 is named in a withdrawal and used live here -- ... & 817 & 64.16 & 0.079 & $2.24\times$ \\ 16 & posit8 & 8 bits & 560 & 43.55 & 0.078 & $2.27\times$ \\ 17 & IBM
+tnf_paper.tex:2805: 0.047 is named in a withdrawal and used live here -- ...3.11 & 0.065 & $2.72\times$ \\ 19 & posit16 & 16 bits & 774 & 36.30 & 0.047 & $3.77\times$ \\ 20 & posit32 & 3
+tnf_paper.tex:2805: 36.30 is named in a withdrawal and used live here -- ... 659 & 43.11 & 0.065 & $2.72\times$ \\ 19 & posit16 & 16 bits & 774 & 36.30 & 0.047 & $3.77\times$ \\ 20 & pos
+tnf_paper.tex:2806: 0.030 is named in a withdrawal and used live here -- ...6.30 & 0.047 & $3.77\times$ \\ 20 & posit32 & 32 bits & 955 & 28.33 & 0.030 & $5.90\times$ \\ \bottomrule \end
+tnf_paper.tex:2806: 28.33 is named in a withdrawal and used live here -- ... 774 & 36.30 & 0.047 & $3.77\times$ \\ 20 & posit32 & 32 bits & 955 & 28.33 & 0.030 & $5.90\times$ \\ \bottomr
+tnf_paper.tex:2856: 0.1651 is named in a withdrawal and used live here -- ...a$ & 1215 & 1 & $0.0000\%$ & or 2 DSP48 \\ APoT-2, $d=0$ & 384 & 1 & $0.1651\%$ & two barrel shifts \\ APoT-4,
+tnf_paper.tex:74: 0.030 is named in a withdrawal and used live here -- ...$0.177$ and $0.167$\,MHz/LUT against binary32's $0.163$ and posit32's $0.030$. The ladder's reach is smaller t

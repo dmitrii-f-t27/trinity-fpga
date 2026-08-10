@@ -70,8 +70,7 @@ $33$\,GOPS, a trained ternary transformer at $97\%$, and on-silicon
 backpropagation training XOR to $4/4$.
 
 Among formats carrying their own range, ours are first and second on throughput
-per area, at $0.177$ and $0.167$\,MHz/LUT against binary32's $0.163$ and
-posit32's $0.030$.
+per area, $0.177$ and $0.167$\,MHz/LUT against binary32's $0.163$.
 
 The ladder's reach is smaller than a position count suggests. Apparent
 slack of $0.3691E$ over a uniform binary budget vanishes once positions are
@@ -573,14 +572,14 @@ magnitude & GF16 ($\varphi$) & \textbf{TNF16} & tekum16 & TNF16 vs tekum16 \\
 \midrule
 $|e|<8$        & $3.43\mathrm{e}{-4}$              & $3.56\mathrm{e}{-4}$ & $3.27\mathrm{e}{-4}$ & $0.92\times$ (tie) \\
 $|e|\,8$--$20$   & $3.57\mathrm{e}{-4}$              & $3.52\mathrm{e}{-4}$ & $1.00\mathrm{e}{-3}$ & $\mathbf{2.84\times}$ \\
-$|e|\,20$--$38$  & $6.98\mathrm{e}{-3}$ (479 clip)   & $3.53\mathrm{e}{-4}$ & $1.95\mathrm{e}{-3}$ & $\mathbf{5.53\times}$ \\
+$|e|\,20$--$38$  & $6.98\mathrm{e}{-3}$ (478 clip)   & $3.53\mathrm{e}{-4}$ & $1.95\mathrm{e}{-3}$ & $\mathbf{5.53\times}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[t]\centering
 \includegraphics[width=0.82\textwidth]{tnf_accuracy.pdf}
-\caption{Accuracy by binary-exponent magnitude. GF16's 6-bit exponent clips 479
+\caption{Accuracy by binary-exponent magnitude. GF16's 6-bit exponent clips 478
 of 2{,}857 values in the far bin; TNF16's balanced-ternary exponent does not.}
 \label{fig:acc}
 \end{figure}
@@ -1806,8 +1805,9 @@ the width rule forbids the second and the encoding settles the third.
 \paragraph{What this does not say.} The pair $(M_{\mathrm{eff}}, \text{range})$ is
 a property of the \emph{number}, and dominance in it is not dominance in silicon.
 Section~\ref{sec:ternarynet} measures the same formats through one datapath and
-puts TNF mid-pack among fixed fields at $0.145$--$0.167$\,MHz per LUT against
-\texttt{int8}'s $0.189$. The two are consistent: the frontier asks what a word of
+puts TNF mid-pack among fixed fields at $0.145$--$0.167$\,MHz per LUT. Against
+\texttt{int8} the two are indistinguishable once seeds are swept
+(Section~\ref{sec:rejected}). The two are consistent: the frontier asks what a word of
 a given width carries, the datapath asks what it costs to unpack, and every fixed
 field unpacks by reading fields. The gap in silicon runs between fixed and tapered
 formats, $2.4$ to $6.4\times$, and belongs to Theorems~\ref{thm:scan}
@@ -2772,7 +2772,11 @@ on-silicon backpropagation & \textbf{0} & XOR $4/4$, 24--25 epochs & trains \\
 \caption{Throughput per area among formats that carry a range, complete. One
 ternary-neuron datapath, one harness, XC7A200T, no DSP anywhere. Twenty formats;
 \texttt{int8} is not among them and is reported in Table~\ref{tab:rejected}
-instead, for the reason given there. Ours are set in bold.}
+instead, for the reason given there. Ours are set in bold. \emph{Provenance:}
+single placement run per format, unlike the decoder tables elsewhere in this
+paper, which report the median of five seeds. Seed spread on this flow measures
+$16\%$, so orderings between rows closer than that --- rows 5 and 6, rows 7 and
+8, rows 10 and 11 --- are not resolved by these data and should be read as ties.}
 \label{tab:carryrange}
 \small
 \begin{tabular}{rlrrrrr}
@@ -3131,13 +3135,6 @@ E2M1 element alone & $e=2$, in-block & shared UE8M0, outside the word & no \\
 \end{tabular}
 \end{table}
 
-An \texttt{int8} datapath scores $0.189$\,MHz/LUT in our harness, $7\%$ above
-GFTernary, and that number is real. It is reported here rather than in
-Table~\ref{tab:carryrange} because it is not a comparison: \texttt{int8} leads by
-declining the task the table sets. By Corollary~\ref{cor:escape} moving the scale
-outside the word is the non-uniformity escape, so \texttt{int8} is a block format
-wearing a scalar's name.
-
 \paragraph{Why GFTernary is not in Table~\ref{tab:rejected} despite $e=0$.}
 The distinction is not the presence of an exponent field but whether the scale is
 \emph{external and learned} or \emph{intrinsic and exact}. A $\{-1,0,+1\}$
@@ -3149,13 +3146,13 @@ add. Its scale is inside the system by construction rather than fitted from
 outside it. That is the difference between carrying range and borrowing it, and
 it is why the stack trains on the part.
 
-\paragraph{}
+\paragraph{Why \texttt{int8} is not in Table~\ref{tab:carryrange}.}
 An \texttt{int8} datapath scores $0.180$\,MHz/LUT at a median of five placement
 seeds, against GFTernary's $0.181$ --- a difference of $0.4\%$ inside a $16\%$
 seed spread, so the two are indistinguishable on this flow. An earlier version of
 this paper reported $0.189$ against $0.177$ and called it a $7\%$ lead; that came
-from a single placement run and is withdrawn. It is excluded, and the reason is structural rather than
-favourable to us. \texttt{int8} has $e=0$: no exponent field, hence no dynamic
+from a single placement run and is withdrawn. \texttt{int8} is excluded from that table even so, and the
+reason is structural rather than favourable to us. \texttt{int8} has $e=0$: no exponent field, hence no dynamic
 range inside the word. It functions only with an external per-tensor or
 per-channel scale; without one it is the integers $-128\ldots127$. By
 Corollary~\ref{cor:escape} that is the non-uniformity escape --- the scale has
