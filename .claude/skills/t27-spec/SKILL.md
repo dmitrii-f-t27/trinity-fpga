@@ -4337,3 +4337,34 @@ be right. Putting it in the current-state document is what makes it gateable.
 **A wave that ends "there was no discrepancy" is a successful wave.** The output
 was one comment block, two gated claims, and a structural fact nobody had written
 down. Chasing an artifact instead would have meant changing a correct document.
+
+## Wave 624 — one file is not one module
+
+**Never key a coverage map on filenames.** My first classifier used the file
+stem as the module name. One file defined **eleven** modules, so the map invented
+one entry that did not exist and omitted eleven that did — and those eleven fell
+into three different coverage classes, which the file-level view showed as a
+single row. Parse `^module (\w+)` and classify per module.
+
+**Follow instantiation transitively, or "unused" is wrong.** One primitive is
+reached from the top only through an intermediate module. A one-hop check calls
+it unreachable; a transitive walk finds it. The difference decides whether you
+report a library as dead.
+
+**Coverage has more than two states.** *Has properties* / *doesn't* hides the
+useful distinction: a module with no properties that the top-level instantiates
+is constrained **at one remove**, and one that nothing instantiates is
+constrained by nothing at all while still being compiled into every proof. Those
+deserve different words and different severities.
+
+**Report library findings; don't fail on them.** Six unexercised primitives are
+not a build error, and a permanently red gate is one everyone learns to ignore.
+Keep errors for the unambiguous case and make everything else a counted warning —
+*silence* is the thing that is not allowed, not imperfection.
+
+**The most useful output of a coverage map is the embarrassing row.** Here it was
+that the module implementing the subsystem responsible for the campaign's
+longest-running defect — three fixes across eight waves — has never had a
+property of its own. Every fix was made at the level where the bug was
+*observable*, and nobody went back to constrain the thing that produced it. A map
+is worth building mostly to surface that one line.
