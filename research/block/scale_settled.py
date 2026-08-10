@@ -493,8 +493,8 @@ def refine_alignment(tag, cs2, csphi, nlev=16):
             check(ok, f"{nm} c={c:.4f}: real amax/s inside [{c:.4f},{c * g:.4f})")
             res.append((nm, c, p, 100.0 * st["nsat"] / st["nblk"]))
     abort_if_failed()
-    b2 = min(r for r in res if r[0] == "2^k", key=lambda r: r[2])
-    bp = min(r for r in res if r[0] == "phi", key=lambda r: r[2])
+    b2 = min([r for r in res if r[0] == "2^k"], key=lambda r: r[2])
+    bp = min([r for r in res if r[0] == "phi"], key=lambda r: r[2])
     print(f"\n    best 2^k: c={b2[1]:.4f}  ppl={b2[2]:.4f}  (clamp {b2[3]:.2f}%)", flush=True)
     print(f"    best phi: c={bp[1]:.4f}  ppl={bp[2]:.4f}  (clamp {bp[3]:.2f}%)", flush=True)
     print(f"    BEST-AGAINST-BEST  phi - 2^k = {bp[2] - b2[2]:+.4f}   "
