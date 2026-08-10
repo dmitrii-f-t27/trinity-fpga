@@ -58,9 +58,7 @@ WDIR = ("/private/tmp/claude-501/-Users-ssdm4-Desktop-PROJECTS-CLAUDE/"
 TAG = "smollm2"
 MODEL = os.path.join(WDIR, TAG)
 K = 32                      # quantisation block
-# Fan-in of one accumulation.  512 is the campaign's operating point and the default;
-# ZPHI_FANIN sweeps it to ask which fan-in a given ACC width actually supports.
-FANIN = int(os.environ.get("ZPHI_FANIN", 512))
+FANIN = 512
 NTOK = int(sys.argv[1]) if len(sys.argv) > 1 else 32     # activation vectors per layer
 SEQLEN = 2048
 PHI = (1 + 5 ** 0.5) / 2
@@ -602,7 +600,5 @@ json.dump({"model": TAG, "fanin": FANIN, "ntok": NTOK, "tensors": len(layers),
            "worst_case_bits_measured_span": wc_meas, "worst_case_bits_span43": wc_43,
            "stats": stats},
           open("/Users/ssdm4/Desktop/PROJECTS/CLAUDE/trinity-fpga/research/block/"
-               f"zphi_acc_width{'_row' if ROWMODE else ''}"
-               f"{'' if FANIN == 512 else f'_f{FANIN}'}.json", "w"), indent=1)
-print(f"\n  -> zphi_acc_width{'_row' if ROWMODE else ''}"
-      f"{'' if FANIN == 512 else f'_f{FANIN}'}.json")
+               f"zphi_acc_width{'_row' if ROWMODE else ''}.json", "w"), indent=1)
+print(f"\n  -> zphi_acc_width{'_row' if ROWMODE else ''}.json")
