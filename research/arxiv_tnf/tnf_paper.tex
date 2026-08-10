@@ -2849,6 +2849,61 @@ packing loss is a table of integers, and the zero-DSP stack is placed and routed
 What they amount to together is left to the reader.
 
 
+
+\section{Sixteen ways a measurement can be right and its comparison wrong}
+\label{sec:selfcheck}
+
+The retractions in this paper are not incidental to it. Sixteen claims were
+withdrawn during the work, two of them later withdrawn in turn, and in almost
+every case the measurement was correct and the comparison around it was not. The
+regularities that produced them are stated here because they generalise past this
+subject, and because a reader is entitled to know the shape of the errors a paper
+has already made.
+
+\paragraph{On what is being compared.} A ratio is meaningful only if both sides
+were built as their own advocate would build them; seven times here a ratio
+changed sign or magnitude when the other side was rebuilt
+(Section~\ref{sec:scaleapplier}). Systems whose range scales differently with
+width, one exact and one approximate, have no storage-matched ratio at all --- a
+quantity depending on an unstated choice has no limit and cannot converge, which
+is why six successive instrument corrections failed to settle one number. Where
+one system's figure of merit is constant in a parameter and another's varies in
+it, the well-posed comparison is a crossover and not a verdict
+(Theorem~\ref{thm:taperdelay} and Section~\ref{sec:cleantable}), and such a
+crossover is an assertion about the workload rather than about the formats.
+
+\paragraph{On the instrument.} Under placement-seed variation LUT count is
+invariant and achieved frequency moves by $11.4\%$, so any metric combining them
+inherits the timing variance in full, and a ranking resolves only rows separated
+by more than that. A ratio over correlated factors restates the dominant one: on
+the combined harness, ranking by throughput per area reproduced ranking by
+$1/\text{area}$ at a Spearman correlation of $0.961$. And a result that moves the
+same way under every successive correction is still moving.
+
+\paragraph{On the harness.} Three defects appeared there, none visible in any
+number, each changing a headline by 10 to 50 percent. A component shared by every
+candidate is a confound rather than a constant, because it leaves area
+differences intact and delay differences not. A harness observing part of a
+design's output prunes each candidate in proportion to \emph{its own} output
+width --- observing four bits of a 32-bit datapath left 27 LUTs of 179 while
+leaving an adjacent 6-bit design nearly whole. And net-of-harness subtraction
+requires the harness to be present in full in every build, since a design
+consuming fewer of its sources prunes the rest.
+
+\paragraph{On sources.} A defect found in an abstract is a hypothesis: abstracts
+compress, and compression is indistinguishable from omission. An aggregated
+search result may combine claims from several papers into wording present in
+none. Both external criticisms we raised during this work dissolved on contact
+with the papers themselves.
+
+\paragraph{What this is worth.} Applied to our own claims the procedure produced
+sixteen retractions. Applied to two external papers read in full it produced
+none, and on both occasions it instead caught our own reading of them. We
+therefore describe it as an instrument for checking one's own work, and not as a
+method for auditing anyone else's. Three of the checks are mechanised as gates in
+continuous integration; the full statement is in the accompanying note.
+
+
 \section{Limitations}
 
 \paragraph{The fabric this format is optimal on does not exist to buy.}
