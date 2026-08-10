@@ -4368,3 +4368,41 @@ longest-running defect — three fixes across eight waves — has never had a
 property of its own. Every fix was made at the level where the bug was
 *observable*, and nobody went back to constrain the thing that produced it. A map
 is worth building mostly to surface that one line.
+
+## Wave 625 — a bite measurement needs a proving baseline, or it fabricates
+
+**Check the suite proves on the unmutated design before measuring detection.**
+One of my four properties refuted on the real design, so the *whole suite*
+refuted, so every mutant refuted too — and the first measurement read **4 of 4
+detected**. The honest figure was 2 of 4. A harness that measures "does this
+mutant refute?" against a suite that already refutes is measuring nothing and
+reporting a perfect score. Make the baseline an abort condition, not a note.
+
+**That is the baseline gate, from the other side.** An existing gate asserts the
+unprobed design proves so a *probe* verdict means something. The same requirement
+applies to a *bite* verdict and I had not connected them. When you build a second
+kind of measurement, check which existing preconditions transfer.
+
+**`-set-init-zero` breaks reset properties in a way that looks like a design
+bug.** `rst_n && !$past(rst_n)` reads as "the cycle after reset released", but
+with all registers initialised to zero, `$past(rst_n)` is 0 at time zero whether
+or not a reset happened — so the guard fires on an artifact of the convention.
+Gate it with a register that is 0 only at time zero:
+
+```verilog
+reg fv_started;
+always @(posedge clk) fv_started <= 1'b1;
+```
+
+**Fix the module where the defect lives, not only where it shows.** Three
+separate fixes for one subsystem all landed at the level where the symptom was
+observable, and the 33-line module that produced it stayed unconstrained for
+eight waves. After fixing a bug at an integration level, ask whether the unit
+that caused it can now state the invariant directly — the module-level property
+here catches the harness's own mutation that previously only the engine caught.
+
+**Adding a property suite is four edits.** The prove step, the
+assumption-liveness probes, the phantom-signal scan's suite list, and the count
+in the current-state document. Miss the third and the new suite is silently
+exempt from a gate; miss the fourth and the claims gate fails immediately —
+which is the better failure, and an argument for having both.
