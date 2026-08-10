@@ -4136,3 +4136,27 @@ to the wrong constant, an accumulator decrementing, a status word with a stray
 bit. No reachability probe of any phase sees those. Naming the required shape
 (safety claims about data, where the existing suite is about control) is what
 stops the next attempt beginning with another probe.
+
+**When a measuring tool says it cannot find something, first suppose it is
+absent.** My bound audit printed *no bound found in the workflow* for six
+wrappers and I wrote that off as a bug in my extraction, reporting them as
+"unaudited for cost". Four of them had **no CI step at all** — eight properties
+counted in the README as proved, run by no job in the repository. The tool's
+failure was the finding.
+
+**An ungated property that happens to hold is indistinguishable from a gated
+one.** All eight held, which is exactly why nobody noticed for many waves.
+Counting properties tells you nothing; count the **steps that run them**. One
+`grep` for each property file across `.github/` would have caught it at any
+point.
+
+**Awkward-to-gate is how something ends up ungated.** Half that suite consists
+of *expected refutations*, so the obvious "everything must prove" step cannot
+gate it — and so no step was written. Whenever a suite needs a per-item expected
+verdict rather than a uniform one, treat that as a marker that it is *more*
+likely to be missing its gate, not less.
+
+**An audit must reproduce the gate's method, not just its bound.** CI proves one
+suite's properties *one at a time*; my audit ran them together at the same bound
+and got "undecided", which I nearly reported as a property of the suite. Read
+how the gate invokes the tool, not only which numbers it passes.
