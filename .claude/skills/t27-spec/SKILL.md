@@ -4464,3 +4464,34 @@ by accident. Both mechanical operator swaps that produce that confusion —
 **Add the "held while idle" property.** A datapath that recomputes on idle cycles
 satisfies both of the above and still corrupts results between chunks. The
 absence property is the cheap one to forget and the one that pins the pipeline.
+
+## Wave 628 — combinational logic is decidable; prove it exhaustively
+
+**On stateless logic, `sat -seq 1` quantifies over every input.** No bound, no
+induction, no depth caveat, and nothing to re-audit later. If a module is purely
+combinational, this is the cheapest strong result available anywhere in a formal
+campaign — and it had been sitting unused for the whole of mine.
+
+**Width comments are where the defect hides in plain sight.** The adder tree's
+own comment read `range [-9, +9] -> signed [3:0]` — the correct range stated
+directly above a declaration that spans [−8,+7]. **Whenever RTL documents a
+range next to a width, check that the width holds the range**; it is a two-second
+read and it found a defect that had survived since the module was written.
+
+**A test can protect a bug.** The unit test asserted `wire signed [3:0] l2` —
+the buggy width, verbatim. The defect was not untested; it was *pinned* by a
+passing assertion. **A test that asserts a width without checking the range it
+must cover locks in whatever the generator first emitted.** Assert the property,
+not the text.
+
+**A stale build artifact can stand in for a missing build step indefinitely.**
+One source file was not in the bundle the CI emit step produces, yet every
+top-level proof listed it. Locally an old generator run had left it on disk, so
+everything passed for months. Test what a *clean checkout* produces, with the
+exact source list the gate uses — not a glob, and not your working tree.
+
+**Two harness errors nearly turned that into a false claim.** A `*.sv` glob
+picked up a file the tool cannot parse at all, and an exit status read through
+`grep` missed the error line. Both pointed at the tree; both were the test. When
+a finding is about infrastructure, the infrastructure that finds it deserves the
+same suspicion as the thing under test.
