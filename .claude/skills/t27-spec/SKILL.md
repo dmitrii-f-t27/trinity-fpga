@@ -4190,3 +4190,34 @@ field to each. The reason it was survivable is that all three reported *an
 elaboration error* rather than "unreachable", "mutant killed", or a clean bill of
 health. **That is the return on the tool-error/verdict distinction: it pays out
 on changes nobody anticipated, in harnesses nobody was thinking about.**
+
+## Wave 619 — when a property refutes, ask which of the two is wrong
+
+**A refuting property is a claim about the design that might itself be false.**
+Mine said "every DMA write consumes eight owed bytes". The trace showed a
+12-byte request writing a second word with four bytes owed — correct, because
+twelve bytes occupy two words of a word-addressed memory. *The property was
+wrong about the design's contract, not the design wrong about the property.*
+Restating it in words instead of bytes made it prove. Read the counterexample
+before touching either side; the trace tells you which one is lying.
+
+**Shadow models must arm on the observable the FSM actually uses.** A first
+attempt armed on `start && !busy`, and `start` is high in states where no
+transfer begins. The FSM triggers on `IDLE: if (start)`, so the faithful
+observable is the **rising edge of `busy`** — and any value the FSM latched at
+that moment must be read as `$past(x)`, because it changed on the same edge.
+
+**A new property can make its own gate stop terminating.** `-prove-asserts`
+solves every assertion in one SAT instance, superlinearly harder than the parts:
+adding one property took a batch from ~10 s to over 11 minutes. **Split
+one-per-invocation.** Six properties then kept a bound of 80 that the batch would
+have cost entirely, while the expensive newcomer runs at 20 — and stating the
+two bounds separately is more honest than lowering everything to the slowest.
+
+**Measure the bound; do not adopt the one next door.** The new property proves at
+`seq 20` in 16 s and is *undecided at 30*. Had I copied the suite's 80, the step
+would hang; had I guessed 40, it would hang. One ladder run settles it.
+
+**A check-cell floor set below the true count is slack, not safety.** Ours sat at
+8 against a real 12 — three properties could have vanished before the gate that
+exists to detect vanishing properties noticed. Set it to what you measured.
