@@ -5281,3 +5281,40 @@ merely unexercised.
 the thing whose whole job is to establish the gate works. A self-test that
 silently begins testing the wrong object stops being evidence, and nothing else
 in the system will notice.
+
+## Wave 641 — a prediction is only worth what its falsification costs
+
+**State the boundary before you look, and mean it.** A taxonomy of five defect
+shapes was fitted to the data that produced it, so confirming it would have
+proved nothing. What made it evidence was the sentence attached: *a sixth shape
+means this is wrong*. One audit later, two sixth shapes. The falsification is the
+whole return on having written the prediction down.
+
+**Instruct a reviewer that overturning you is the more valuable outcome.** The
+agents were told explicitly that finding a new shape beat confirming the old
+ones. A review asked to confirm will confirm. This is the same reason a
+self-test never catches its author's blind spot, applied one level up.
+
+**Then be strict about what counts as new.** Seven novelties were claimed and
+five were not new — two were an already-recorded finding, one was an existing
+shape's enumeration form. A taxonomy that absorbs every finding predicts nothing;
+admitting every claimed novelty is as useless as admitting none.
+
+**Shape 6: sampling a time-varying property at its boundaries.** A guard that
+measures contention before and after a run is blind to contention *inside* it. A
+fingerprint taken around a sequence cannot see a file that changes and reverts
+within it. The check observes the right thing, in the right units, at a correct
+threshold — and is blind only to the interval between observations. Whenever a
+property varies over the window you are checking, sample the window, not its
+ends.
+
+**Shape 7: over-detection.** Every earlier shape describes a gate failing to fire
+when it should. A gate that fails a *correct* artifact is the mirror image, and a
+taxonomy built entirely from silence has no box for noise. This shape already had
+an instance and it had been mis-filed for three waves — a reminder that a
+classification scheme quietly shapes what you are able to notice.
+
+**When your own instrument turns out to have the defect you are cataloguing, say
+so in the catalogue.** Both shape-6 instances were in the timing harness I built
+two waves earlier, verifiable by reading five lines of my own code. That is the
+most useful possible place to find them, and the least comfortable.
