@@ -4221,3 +4221,29 @@ would hang; had I guessed 40, it would hang. One ladder run settles it.
 **A check-cell floor set below the true count is slack, not safety.** Ours sat at
 8 against a real 12 — three properties could have vanished before the gate that
 exists to detect vanishing properties noticed. Set it to what you measured.
+
+## Wave 620 — a gap count is a claim about a set of properties
+
+**Name the property set, or the number is wrong.** I measured "64 gaps in
+`dma_controller`" against one wrapper, while **three** wrappers constrain that
+module. Running the residue through the siblings: 8 of them were never gaps.
+"64 gaps in module X" reads as a fact about X and was a fact about one harness.
+The form that survives contact with a second wrapper is *"N mutations of X are
+detected by none of its K suites"* — longer, and true.
+
+**Re-measure what a new property was supposed to close, rather than subtracting
+on paper.** The property's own bite count came out the same on an independent
+run, which is the cheap confirmation that the earlier figure was not an artifact
+of that day's harness state.
+
+**A flat residue means the method is spent, and that is a result.** Cluster the
+undetected mutations by source line: when the top cluster was 8 and 9 on two
+subsystems, a property was there to be written. When 33 of 42 lines have exactly
+one mutation each, there is no class left — only reset values, state encodings
+and one-off arithmetic. Continuing at that point means one property per mutation,
+which is a restatement of the RTL rather than a specification of it.
+
+**Shipping nothing is sometimes the honest wave.** This one produced a
+correction to a published number and a stopping criterion, and no new property.
+Inventing one to have an artifact would have inverted everything the preceding
+waves were for.
