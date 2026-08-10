@@ -16,7 +16,7 @@ asking what checks each.
 | **the paper** | **the measurement files** | **nothing** |
 | the skill file | repository state | **nothing** |
 | `README` | code | **nothing** |
-| `METHOD.md` | what was actually done | **nothing** |
+| `METHOD_2026-08-10.md` | what was actually done | **nothing** |
 
 **All three existing gates are code-against-code, and they occupy one region of
 the table. Every pair with a document on either side is unguarded.** That is why
