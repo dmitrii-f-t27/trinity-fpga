@@ -2278,6 +2278,64 @@ with $\ln r^{*}$ halving per bit as doubling the code count halves the available
 log-spacing.
 \end{theorem}
 
+\subsection{The block axis belongs to MXFP4, and the bound says why}
+\label{sec:blockbound}
+
+Everything above concerns per-channel scaling. The other deployed axis shares
+one scale across a short block, and there our formats lose. It is worth stating
+how thoroughly, because the answer is not a ranking but a ceiling.
+
+Lloyd--Max on the within-block distribution --- $18{,}850{,}950$ values, block of
+$32$ along the contraction axis, E8M0 shared scale as the MX specification
+mandates --- gives the eight-level codebook minimising squared error. It is
+neither multiply-free nor a ladder; it is the best any eight magnitudes can do.
+
+\begin{table}[t]\centering
+\caption{Block axis, SmolLM2-135M, 40 windows, \texttt{fp32} baseline $14.4874$.
+The optimal codebook improves squared error nearly fifteenfold and perplexity by
+$0.9\%$, and every ladder that beats MXFP4 on the first loses on the second.}
+\label{tab:blockbound}
+\begin{tabular}{lrrr}
+\toprule
+element, 8 magnitudes & squared error & $\times$ bound & ppl \\
+\midrule
+Lloyd--Max (optimum, not implementable) & $1.341\!\times\!10^{-3}$ & $1.00$ & $\mathbf{22.2976}$ \\
+MXFP4 (E2M1)                            & $2.007\!\times\!10^{-2}$ & $14.97$ & $\mathbf{22.4998}$ \\
+supergolden/plastic, 4 fine steps       & $2.068\!\times\!10^{-3}$ & $1.54$ & $27.3079$ \\
+supergolden/plastic, 3 fine steps       & $2.116\!\times\!10^{-3}$ & $1.58$ & $30.8306$ \\
+$\varphi$/supergolden, 2 fine steps     & $2.749\!\times\!10^{-3}$ & $2.05$ & $38.6471$ \\
+$\varphi$/plastic, 2 fine steps         & $2.823\!\times\!10^{-3}$ & $2.11$ & $55.4495$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{theorem}[The block axis is not an element-format problem]\label{thm:block}
+On a short block with a shared scale, the element codebook minimising squared
+quantisation error is not the one minimising perplexity, and the gap between the
+best achievable codebook and a deployed one is under one percent. Effort spent
+designing element formats for this axis cannot recover more than that.
+\end{theorem}
+
+The ranking does not merely fail to transfer; it inverts. Every two-segment
+ladder here beats MXFP4 on squared error by factors of three to ten, and every
+one loses on perplexity by $21\%$ to $146\%$.
+
+The reason is what a block is. Thirty-two weights share one scale, and squared
+error charges a clipped small weight at its own magnitude --- so a codebook
+concentrating its levels near the top of the range scores well, having put its
+resolution where the mass is. But the network does not read a block's weights
+independently; they are summed against activations, and a codebook that
+resolves the top of every block finely while collapsing its lower two-thirds
+destroys the block's ability to represent a \emph{direction}, not merely its
+magnitudes. E2M1 spends $0,\,0.5,\,1,\,1.5,\,2,\,3,\,4,\,6$: a $12\times$ span
+with levels at both ends. It scores badly on squared error precisely because it
+refuses to concentrate, and it wins on perplexity for the same reason.
+
+We record this as the competition's result, not ours. Three of our own attacks
+failed here --- a ternary-exponent float, constant-ratio ladders, and
+two-segment ladders built to imitate E2M1's spacing --- and the bound explains
+why a fourth is not warranted.
+
 \paragraph{Scope.} This is stated for per-channel scaling and does not extend to
 short blocks. Applied to the within-block distribution under a block of $32$ and
 an E8M0 shared scale, the same form returns $r^{*}=1.3308$, which measures
