@@ -5167,3 +5167,52 @@ wave. It also means changing that function's signature breaks a gate in a
 different file, and neither file mentions the other at the call site. When you
 change a shared helper, grep for its importers before assuming the blast radius
 is local.
+
+## Wave 639b — the taxonomy, and what it predicts
+
+**Every gate defect found in this campaign fits five shapes.** Enough instances
+have accumulated to state it as a class rather than a list, with counts of
+confirmed, independently reproduced cases:
+
+  1. **Matching a form, not a fact** (9) — a warning's phrasing, an identifier's
+     name where its value was meant, a literal's digits without its base.
+  2. **A decline that is not counted** (4) — a matcher `continue`s while the
+     coverage figure still reads full.
+  3. **Reading a claim as the design** (3) — assertions inside a formal guard
+     credited as design logic; assertion labels counted inside comments.
+  4. **Targeting by position, not by name** (2) — the last `endmodule`, the next
+     declaration.
+  5. **A guard that trips only at zero** (3) — losing 1 of 3 leaves a summary
+     identical to a healthy one.
+
+Use it as a checklist when writing any gate, and as the first hypothesis when
+one behaves oddly.
+
+**The self-test never catches these.** Not once, across every instance. A
+self-test is written by the gate's author from the same mental model that
+produced the defect, so its cases all sit at one point on whichever axis
+matters — every undriven-wire injection was one bit wide, every reduction a bare
+identifier sum. This is the argument for adversarial review by someone (or
+something) instructed to *refute*: it is not that the author is careless, it is
+that the author cannot vary the axis they did not know was an axis.
+
+**Defects cluster in the newest code.** Of 25 findings in one audit, the three
+confirmed were all in code less than 48 hours old, while gates that had survived
+twenty waves were comparatively clean. Audit what you just changed, in
+preference to what has been running for months.
+
+**Fixing an instance is not fixing the pattern — grep for it.** A
+comment-counting defect was fixed in one gate; the identical regex in a sibling
+file had the identical defect and survived another wave, because nobody searched
+for other copies. After any fix, search the tree for the same shape.
+
+**State a falsifiable prediction before the next audit.** If the five shapes are
+exhaustive, the next audit finds only these categories, mostly in recently
+modified gates. A sixth shape means the taxonomy is wrong and needs correcting
+rather than defending. Writing the prediction down first is what makes the next
+result informative instead of confirmatory.
+
+**Record the findings that did NOT reproduce.** One reported defect was real-
+sounding, specific, and false. Writing "reported as verified; not reproducible,
+here is the counter-check" costs three lines and stops the next wave
+re-litigating it.
