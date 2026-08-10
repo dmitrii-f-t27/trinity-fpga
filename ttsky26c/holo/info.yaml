@@ -12,6 +12,12 @@ project:
     SKU: tt_um_qbrain_holo. One brain, many dies, one frozen hash.
   language:    "Verilog"
   top_module:  "tt_um_qbrain_holo"
+  # Declared explicitly: a Tiny Tapeout shuttle builds from this list, and
+  # leaving it out means the build depends on whatever the tooling happens
+  # to glob. Found by pointing our own checker at our own chips.
+  source_files:
+    - "tt_um_qbrain_holo.v"
+
   tiles:       "1x2"
 
   # I/O usage
