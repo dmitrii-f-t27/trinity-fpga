@@ -88,3 +88,79 @@ and flush fractions at 4 bits are already measured; the question is whether they
 supergolden side of a boundary that also places SmolLM2 and Qwen on the φ side. If one boundary
 separates all three, that is a law with no fitted parameter. If it does not, the 4-bit budget
 should simply be reported as measured per model.
+
+---
+
+# Follow-up: no parameter-free boundary, and the cost table rebuilt on what survived
+
+## A — is there a boundary that separates the 4-bit winners?
+
+`boundary.py`. Five parameter-free quantities, computed from each model's own weights, asked to
+put Pythia (supergolden) on one side and SmolLM2/Qwen (φ) on the other:
+
+| quantity | SmolLM2 | Qwen | Pythia | separates? |
+|---|---|---|---|---|
+| excess kurtosis of \|w\|/rowmax | 0.4171 | 0.7698 | 0.3832 | **yes**, boundary in (0.383, 0.417) |
+| `r*` of the single-term form at 4 bits | 1.455 | 1.486 | 1.463 | no |
+| relative MSE gap, (φ − sg)/sg | 0.2833 | 0.1896 | **0.2719** | no |
+| flush-fraction gap, φ − sg | −0.0698 | −0.0825 | −0.0699 | no |
+| fraction of weights below 0.1 | 0.3025 | 0.3537 | 0.3040 | no |
+
+**Only kurtosis separates, and by 3.4 %** — Pythia at 0.383 against SmolLM2 at 0.417, with Qwen
+far away at 0.770. With three points and five candidates, one separation at that margin is what
+chance produces. It is not a law.
+
+**The informative row is `gap`.** The relative MSE distance between φ and supergolden is
+0.2833 / 0.1896 / 0.2719 — and **Pythia sits between the two models that disagree with it**. The
+weight statistics of the three families are nearly identical at 4 bits; the perplexity outcome is
+not. So no weight statistic is likely to predict the 4-bit winner, because the weight statistics
+do not distinguish the cases.
+
+The measured margins say the same thing: φ ahead by 2.7 % on SmolLM2 and 10.7 % on Qwen,
+supergolden ahead by 5.9 % on Pythia. **Four bits is a near-tie whose direction flips.**
+
+**Conclusion: the 4-bit budget should be reported as measured per model, not predicted.**
+
+## C — the cost table, rebuilt around what replicates
+
+`cost_surviving.py`. A ratio that is a root of a monic integer polynomial makes multiplication a
+shift-and-add recurrence; the adder count is the number of non-zero coefficients minus one.
+
+The first version of this table **guessed two of the polynomials and both were wrong** — plastic
+had its coefficients reversed, and the degree-4 ratio was given `r⁴ = r³ + 1`, which has no root
+at 1.1787. A numerical root check caught both. The minimal polynomials, found by search:
+
+| ladder | recurrence | degree | adders | root check | LUT | reg | Fmax |
+|---|---|---|---|---|---|---|---|
+| shift | r = 2 | 1 | **0** | 0 | — | — | — |
+| phi | r² = 1 + r | 2 | 1 | 0 | 223 | 192 | 247.10 |
+| supergold | r³ = 1 + r² | 3 | 1 | 4e-16 | — | — | — |
+| plastic | r³ = 1 + r | 3 | 1 | 0 | 228 | 200 | 231.21 |
+| deg-4 | r⁴ = 1 + r + r² − r³ | 4 | **3** | 8e-10 | 469 | 320 | 184.98 |
+
+The derived adder count for degree 4 is **3**, which matches the independently measured value in
+the earlier synthesis run — a check that the method is sound rather than a restatement of it.
+
+### What the surviving results actually require
+
+    3 bits -> shift     degree 1, ZERO adders
+    5 bits -> plastic   degree 3, ONE adder
+    4 bits -> model-dependent (phi or supergolden), both ONE adder
+
+**φ is not required by anything that replicated.** It appears only in the 4-bit case, which is
+model-dependent, and where supergolden costs the same single adder. A node implementing **a bare
+shifter plus one degree-3 recurrence** covers every budget whose winner holds across three
+families. The degree-2 rung buys nothing robust.
+
+Price of the surviving rung, from the measured synthesis: plastic against φ is **1.022× LUT,
+1.042× registers, 0.936× Fmax** — 2.2 % more area and 6.4 % less clock. That is the entire cost of
+using the ladder that actually wins at 5 bits.
+
+The degree-4 cliff stands: 3 adders, 2.1× the area, Fmax down to 185 MHz. Nothing that survived
+asks for it.
+
+## B — fourth and fifth families
+
+Downloads of GPT-2 and OPT-125m are in progress; a first attempt destroyed both weight files
+through a `curl -f … || rm` guard followed by a resume against an already-complete file. Nothing
+is measured yet, and the 3- and 5-bit claims still rest on three families.

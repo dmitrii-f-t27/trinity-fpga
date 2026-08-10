@@ -25,18 +25,22 @@ measured; nothing new is synthesised here.
 """
 import numpy as np
 
+# Coefficients are LOW-ORDER FIRST: r^d = sum_i poly[i] * r^i.
+# The first version guessed these and two were wrong -- plastic had its coefficients reversed,
+# and deg4's polynomial was invented outright (r^4 = r^3 + 1 has no root at 1.1787). The root
+# check below caught both; these are now the minimal monic integer polynomials found by search.
 LAD = {
-    "shift":     dict(r=2.0,               poly=[2],          expr="r = 2"),
-    "phi":       dict(r=(1 + 5 ** 0.5) / 2, poly=[1, 1],       expr="r^2 = r + 1"),
-    "supergold": dict(r=1.465571231876768, poly=[1, 0, 1],    expr="r^3 = r^2 + 1"),
-    "plastic":   dict(r=1.324717957244746, poly=[0, 1, 1],    expr="r^3 = r + 1"),
-    "deg4":      dict(r=1.178724176,       poly=[1, 0, 0, 1], expr="r^4 = r^3 + 1"),
+    "shift":     dict(r=2.0,                poly=[2],              expr="r = 2"),
+    "phi":       dict(r=(1 + 5 ** 0.5) / 2, poly=[1, 1],           expr="r^2 = 1 + r"),
+    "supergold": dict(r=1.465571231876768,  poly=[1, 0, 1],        expr="r^3 = 1 + r^2"),
+    "plastic":   dict(r=1.324717957244746,  poly=[1, 1, 0],        expr="r^3 = 1 + r"),
+    "deg4":      dict(r=1.178724176,        poly=[1, 1, 1, -1],    expr="r^4 = 1 + r + r^2 - r^3"),
 }
 
 # measured on the AX7203 in the earlier run, 32-bit datapath; quoted, not re-synthesised
 FPGA = {"phi": (223, 192, 247.10), "plastic": (228, 200, 231.21), "deg4": (469, 320, 184.98)}
 
-print("  ladder      recurrence            deg  adders  root check      LUT   reg    Fmax")
+print("  ladder      recurrence                    deg  adders  root check      LUT   reg    Fmax")
 for k, d in LAD.items():
     r, poly = d["r"], d["poly"]
     deg = len(poly)
@@ -44,10 +48,10 @@ for k, d in LAD.items():
     lhs = r ** deg
     rhs = sum(c * r ** i for i, c in enumerate(poly))
     err = abs(lhs - rhs)
-    adders = max(0, sum(1 for c in poly if c not in (0,)) - 1) if deg > 1 else 0
+    adders = max(0, sum(1 for c in poly if c) - 1) if deg > 1 else 0
     f = FPGA.get(k)
     fs = f"{f[0]:>7}{f[1]:>6}{f[2]:>8.2f}" if f else f"{'-':>7}{'-':>6}{'-':>8}"
-    print(f"  {k:11} {d['expr']:20} {deg:>3}{adders:>8}   {err:.2e}   {fs}")
+    print(f"  {k:11} {d['expr']:28} {deg:>3}{adders:>8}   {err:.2e}   {fs}")
 
 print("\n  What the surviving result actually needs\n")
 print("    3 bits -> shift      degree 1, ZERO adders  -- the trivial ladder wins outright")
