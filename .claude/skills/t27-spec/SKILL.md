@@ -4306,3 +4306,34 @@ proposition that documented this gate incremented the count it polices, and the
 gate went red immediately. That is the cheapest possible evidence the check is
 load-bearing — and if a number only ever changes when someone writes prose, then
 prose is exactly where it will rot.
+
+## Wave 623 — resolve the mismatch before you gate it
+
+**Leave a discrepancy unexplained rather than resolving it in the wrong
+direction.** My checker said 39 module properties, the README said 43, and the
+tempting move was to "fix" the README. The README was right: an entire module's
+properties are emitted **inline into the RTL** and have no file in `formal/` at
+all, so a `formal/`-only count omits them. Gating the wrong number would have
+produced a correct-looking gate enforcing a false claim — the exact shape of the
+two preceding waves' findings, made permanent.
+
+**Find out where each artifact actually lives before counting it.** Properties
+here live in two places — hand-written files and emitted RTL — and nothing in the
+directory layout says so. `grep -c` across one directory reads like a total and
+is a subset. The same blind spot silently limits any scan keyed on that
+directory: the orphan checker cannot ask "is this run by anything?" about
+properties that have no file.
+
+**Write the inclusion boundary next to the code, not in your head.** Deciding
+that a prover self-check and an environment model's precondition are *not*
+module properties is a judgement, and an unrecorded judgement is indistinguish-
+able from an oversight the next time someone counts. Two lines of comment turn
+"39 vs 43" from a contradiction into two well-defined numbers.
+
+**A number that lives only in a workflow file will drift.** The engine probe
+count existed nowhere a reader would look, so it could not be wrong and could not
+be right. Putting it in the current-state document is what makes it gateable.
+
+**A wave that ends "there was no discrepancy" is a successful wave.** The output
+was one comment block, two gated claims, and a structural fact nobody had written
+down. Chasing an artifact instead would have meant changing a correct document.
