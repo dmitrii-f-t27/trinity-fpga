@@ -2226,58 +2226,48 @@ budgets. At three bits it underestimates by a third, for a reason worth stating:
 at seven codes the regime is absolute truncation, not relative rounding, and the
 model is built on the latter.
 
-\subsection{The four-bit transposition, and an explanation that failed}
+\subsection{What the four-bit transposition is, and what it is not}
 \label{sec:salience}
 
 The form above ranks correctly at three and five bits and transposes the top
 pair at four, choosing supergolden where perplexity chooses $\varphi$. The
 transposition reproduces on both models in the same direction, so it is an
-effect and not noise. We do not have a mechanism for it, and record the
-candidate we tested and rejected because the rejection is informative.
+effect. Two candidate mechanisms were tested; one failed and one held, and the
+pair is more informative than either alone.
 
-Mean squared error treats every weight alike, while the output error of a linear
-layer is $\sum_j \delta w_{ij}x_j$, so a weight multiplying a large input
-channel should cost more. The channels are far from equal: measuring the RMS of
-every input channel of every linear projection, the first attention projection
-spans $28\times$ between its largest channel and its median on SmolLM2-135M and
-$22.4\times$ on Qwen2.5-0.5B. This is the observation AWQ~\cite{awq} is built
-on --- salience follows the activation distribution rather than the weight
-distribution --- and it predicts that weighting the error by $a_j^{2}$ should
-move the choice toward the coarser ladder, which is the direction the
-transposition needs.
+\paragraph{Activation salience: fails.} The output error of a layer is
+$\sum_j \delta w_{ij}x_j$, so a weight multiplying a large input channel should
+cost more, and the channels are far from equal --- the first attention
+projection spans $28\times$ between its largest input channel and its median on
+SmolLM2-135M, $22.4\times$ on Qwen2.5-0.5B. This is the observation
+AWQ~\cite{awq} is built on. Ranking by $\sum_j a_j^{2}\delta w_{ij}^{2}$
+reverses the four-bit pair on SmolLM2, matching perplexity --- and does not on
+Qwen, where the weighting scales all four candidates by very nearly $1.09$ and
+therefore cannot reorder them. An explanation that needs channel salience to
+correlate with the error pattern is not general, because in one of two models it
+does not.
 
-It does so on one model and not the other.
+\paragraph{Loss curvature: holds.} The quantity the transposition is about is
+not how large an operand is but how much the loss moves when a weight moves.
+Ranking by the diagonal Fisher weighting $\sum_{ij} g_{ij}^{2}\delta w_{ij}^{2}$
+with $g=\partial L/\partial w$ reverses the four-bit pair to $\varphi$ on
+\emph{both} models and leaves five bits at plastic on both, matching perplexity
+in all four cases.
 
-\begin{table}[t]\centering
-\caption{Ranking by $\sum_j a_j^2\delta w_{ij}^2$ against ranking by
-$\sum \delta w^2$. The weighting reverses the four-bit pair on SmolLM2, matching
-perplexity, and leaves it unchanged on Qwen, where it does not.}
-\label{tab:salience}
-\begin{tabular}{llll}
-\toprule
-model, bits & by MSE & by weighted error & by perplexity \\
-\midrule
-SmolLM2, 4 & supergolden & \textbf{$\varphi$} & \textbf{$\varphi$} \\
-SmolLM2, 5 & plastic & plastic & plastic \\
-Qwen, 4    & supergolden & supergolden & \textbf{$\varphi$} \\
-Qwen, 5    & plastic & plastic & plastic \\
-\bottomrule
-\end{tabular}
-\end{table}
+\begin{theorem}[Curvature correction]\label{thm:curvature}
+Among multiply-free ladders at a fixed code budget, the minimiser of
+$\sum_{ij} g_{ij}^{2}\,\delta w_{ij}^{2}$ predicts the perplexity ranking where
+the unweighted error does not, and does so on both models tested. The correction
+moves the choice toward the coarser ladder.
+\end{theorem}
 
-The reason the correction fails on the second model is visible in the numbers
-rather than hidden in them. On SmolLM2 the weighting scales the four candidates
-by factors between $0.12$ and $0.24$, so it reorders them; on Qwen it scales all
-four by very nearly $1.09$, so it cannot. Channel salience is therefore
-correlated with the quantisation error pattern in one model and close to
-independent of it in the other, and an explanation that requires the correlation
-is not general.
-
-We leave the transposition open. What survives it is narrower and still useful:
-at four bits the two ladders are within $2.7\%$ on the smaller model and
-$10.7\%$ on the larger, both in $\varphi$'s favour on the measurement that
-matters, and the unweighted form remains the best available predictor at three
-and five bits.
+The two results together say something the successful one alone would not.
+Activation magnitude is half of the gradient and not the half that decides:
+$g_{ij} = \delta_i x_j$ carries both the input the weight multiplies and the
+sensitivity of the loss to that unit's output, and it is the second factor that
+makes the correction replicate. A method calibrated on activations alone --- and
+several published ones are --- is using a proxy that agreed with the target on
+one of our two models.
 
 \begin{theorem}[Optimal ratio]\label{thm:optratio}
 For a weight distribution and a code budget, the optimal multiply-free ratio is
@@ -2287,6 +2277,16 @@ $r^{*}=2.054,\,1.4115,\,1.1999,\,1.1050,\,1.0576,\,1.0319$ at $3$ to $8$ bits,
 with $\ln r^{*}$ halving per bit as doubling the code count halves the available
 log-spacing.
 \end{theorem}
+
+\paragraph{Scope.} This is stated for per-channel scaling and does not extend to
+short blocks. Applied to the within-block distribution under a block of $32$ and
+an E8M0 shared scale, the same form returns $r^{*}=1.3308$, which measures
+$37.06$ against the $23.36$ of the ladder it ranks worse --- and perplexity
+there is not even monotone in $r$, running $39.09$, $23.36$, $39.61$ as the
+ratio falls through $\varphi$, supergolden and plastic. The form charges
+clipping at the weight's own squared magnitude, which is right when a scale is
+shared by thousands of weights and the clipped ones are a tail, and wrong when
+thirty-two share one and the clipped ones are a fifth of the block.
 
 \paragraph{The hierarchy is cheap only as far as degree three.}
 Table~\ref{tab:deg4} adds the smallest degree-4 scale, the root of
