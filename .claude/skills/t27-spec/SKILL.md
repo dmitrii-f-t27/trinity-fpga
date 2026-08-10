@@ -4406,3 +4406,33 @@ assumption-liveness probes, the phantom-signal scan's suite list, and the count
 in the current-state document. Miss the third and the new suite is silently
 exempt from a gate; miss the fourth and the claims gate fails immediately —
 which is the better failure, and an argument for having both.
+
+## Wave 626 — one symbolic address beats a hundred concrete ones
+
+**State the memory axiom over a SYMBOLIC address.** "A read returns the last
+value written to *this arbitrary address*" — a free input pinned by
+`assume (addr == $past(addr))` — is one property that also proves
+**non-interference**, because a write to any other location would make the
+shadow disagree. The same property over a fixed address proves almost nothing.
+This generalises past memories: whenever a claim is "for all X", make X symbolic
+and constant rather than picking one.
+
+**Get the collision semantics right or the property refutes on correct RTL.**
+With non-blocking assignments on both ports, a read concurrent with a write to
+the same address returns the **old** value — so the shadow must be compared as of
+the read cycle, *before* that cycle's write (`$past(shadow)`, not `shadow`).
+
+**An assumption added to a scaled-down proof must be vacuous at full scale.**
+Scaling `DEPTH` from 4096 to 4 while the address port stays 12 bits lets the
+solver write to address 2048 of a four-entry array — and the property refutes for
+that reason alone. The in-range assumption that fixes it constrains *nothing* at
+the real depth, where every representable address is legal. That is the test for
+whether a scaling assumption is honest: **would it be a no-op at full size?** If
+not, it is hiding design behaviour, not scaling artifacts.
+
+**"0 of N mutants detected" can be a fact about the mutants.** A 28-line memory
+yields three mechanical mutants, all width-expression edits that widen a port
+without producing a memory fault. Reporting 0/3 alone reads as a weak property.
+Run the faults the component can *actually* have — read the wrong address, ignore
+the write enable, write to the read address, off-by-one — and report both
+numbers. Four of four caught says what 0/3 does not.
