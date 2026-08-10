@@ -19,9 +19,13 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 PAPER = ROOT / "research" / "arxiv_tnf" / "tnf_paper.tex"
 
 # Where a number in the paper could legitimately come from
-SOURCES = [p for pat in ("research/**/*.md", "research/**/*.py", "fpga/**/*.md",
-                         "fpga/**/*.v", "conformance/**/*.py", "*.md")
-             for p in ROOT.glob(pat) if p.is_file() and p != PAPER]
+SOURCES = [p for pat in ("research/**/*.md", "research/**/*.py", "research/**/*.json",
+                         "research/**/*.txt", "fpga/**/*.md", "fpga/**/*.v",
+                         "conformance/**/*.py",
+                         "conformance/**/*.json", "conformance/**/*.txt",
+                         "docs/**/*.md", "*.md")
+             for p in ROOT.glob(pat)
+             if p.is_file() and p != PAPER and p.stat().st_size < 2_000_000]
 
 def literals(text):
     """Distinctive numbers: 3+ significant digits, or a decimal with 2+ places.
@@ -50,12 +54,15 @@ blob = "\n".join(haystack).replace(",", "").replace(" ", "")
 # and has no business in a data file. Only quantities carrying a unit or sitting
 # in a results table are traceable claims.
 MEASURED = re.compile(r'(LUT|MHz|\\,MHz|bits?|binade|LUTs)')
+# A figure attributed to someone else's paper is their measurement, not ours, and
+# has no business in our data files. Excluded rather than reported as missing.
+CITED = re.compile(r'(studies report|reported|literature|\\cite|according to|others report)')
 DERIVED  = re.compile(r'(\\log|\\ln|\\kappa|\\tfrac|\\frac|=\s*$)')
 
 def is_measured(v):
     for m in re.finditer(r'(?<![\w.])' + re.escape(v) + r'(?![\w])', paper_txt):
         w = paper_txt[max(0, m.start()-90): m.end()+40]
-        if DERIVED.search(w): continue
+        if DERIVED.search(w) or CITED.search(w): continue
         if MEASURED.search(w): return True
     return False
 

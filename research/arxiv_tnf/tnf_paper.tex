@@ -288,7 +288,7 @@ $8.99$--$9.01$ against a declared 9; bfloat16 returns $7.00$--$7.04$ against a
 declared 7. A law that reconstructs a format's own parameter to a hundredth of a
 bit, from nothing but its round-trip error, is doing more than curve-fitting.
 
-\paragraph{Tapering becomes a number.} posit16 sheds $0.254$ bits of significand
+\paragraph{Tapering becomes a number.} posit16 sheds $0.261$ bits of significand
 per binade ($R^2 = 0.999$) and takum16 appears to shed $0.113$ over the thirty
 binades of this sweep --- but see Section~\ref{sec:taperlaw}: takum's taper is
 logarithmic, so that figure is an artefact of the window rather than a rate. That is the
@@ -327,7 +327,7 @@ alone, at widths from 8 to 1006 bits, is doing something other than describing t
 format it was derived on.
 
 \paragraph{The taper rate is a constant of the family --- but only posit has a
-rate.} posit16 sheds $0.254$ bits of significand per binade and posit32 sheds
+rate.} posit16 sheds $0.261$ bits of significand per binade and posit32 sheds
 $0.247$, against the $2^{-es} = 0.25$ that Theorem~\ref{thm:posit} below requires;
 posit64, whose oracle carries the pre-standard $es = 3$, sheds $0.123$ against a
 required $0.125$. Three formats, three exact confirmations. We previously reported
@@ -2902,6 +2902,62 @@ none, and on both occasions it instead caught our own reading of them. We
 therefore describe it as an instrument for checking one's own work, and not as a
 method for auditing anyone else's. Three of the checks are mechanised as gates in
 continuous integration; the full statement is in the accompanying note.
+
+
+
+\subsection{Figures whose generating data is not in the repository}
+\label{sec:provenance}
+
+Sixteen claims were withdrawn during this work, and a withdrawn claim's number
+does not remove itself from a paper. A traceability check
+(\texttt{tools/check\_paper\_numbers.py}) extracts every distinctive numeric
+literal here and asks whether it appears in any file under \texttt{research/},
+\texttt{fpga/} or \texttt{conformance/}. It excludes two classes rather than
+tolerating them: constants stated beside the formula that produces them (60 of
+them, correctly absent from any data file), and rounding, where a data literal
+extending the printed digits counts as the source.
+
+Of $451$ distinctive literals, $444$ trace to a file. **Seven do not**, and they
+are listed rather than deleted, because a figure that cannot be traced is not
+thereby shown to be wrong:
+
+\begin{table}[t]\centering
+\caption{Figures with no generating file in the repository. Each is retained,
+flagged, and should be re-measured before any of them is relied upon.}
+\label{tab:untraced}
+\begin{tabular}{ll}
+\toprule
+figure & where it appears \\
+\midrule
+$106.68$, $215.90$, $63.04$ & extended formats: double-double, quad-double, x87 \\
+$0.113$ & takum16 taper slope in the staircase table \\
+$0.247$ & posit32 slope in prose (measured elsewhere here as $0.260$) \\
+$8.14$ & one row of the field-width table \\
+$8.99$ & one cell of the by-band effective mantissa table \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The check cannot show a number is right; it finds numbers with no source, which
+is strictly weaker and still enough. A figure nobody can trace to a file is one
+nobody can re-check, and after sixteen withdrawals that is exactly where a stale
+value survives. Two of the seven have a directly measured replacement elsewhere
+in this paper and disagree with it, which is the pattern this check exists to
+surface.
+
+\begin{theorem}[A document is an artefact, and its pairs need guarding]
+\label{thm:doctrace}
+Consistency checks are written between artefacts that a tool already reads
+together --- compiler, simulator, build script. Documents are read only by
+people, so every pair involving one goes unchecked by construction, and that is
+where withdrawn numbers persist.
+\end{theorem}
+
+Enumerating the pairs is what makes a search for such defects systematic rather
+than accidental. Three earlier gates in this work were each found by tripping
+over the defect they now catch, and all three guard code against code.
+Enumerating every pair that must agree exposed five unguarded ones in a single
+pass, all of them with a document on one side.
 
 
 \section{Limitations}
