@@ -440,9 +440,81 @@ def run_model(tag, sweep):
     return out
 
 
+def refine_alignment(tag, cs2, csphi, nlev=16):
+    """Dense alignment sweep for one model, ties=even, so 'best phi' can be compared against
+    'best 2^k' rather than against 2^k at one arbitrary constant.
+
+    The first sweep showed the alignment constant c is worth MORE than the base: on SmolLM2 a 2^k
+    ladder at c=3.8 scored 20.74 against 23.52 at the OCP c=4. A claim of the form "phi beats 2^k"
+    is only settled if it holds at each base's own best c.  Also prints the observed [min,max] of
+    amax/s on the REAL weights, so the window invariant is checked on the data, not only on the
+    random inputs of self-test T5.
+    """
+    path = os.path.join(W, tag)
+    tok = AutoTokenizer.from_pretrained(path)
+    import pyarrow.parquet as pq
+    text = "\n\n".join(pq.read_table(os.path.join(W, "wikitext2-test.parquet"))
+                       .column("text").to_pylist())
+    ids = tok(text, return_tensors="pt").input_ids[0]
+
+    def fresh():
+        m = AutoModelForCausalLM.from_pretrained(path, dtype=torch.float32)
+        m.eval()
+        return m
+
+    base = ppl(fresh(), ids)
+    check(abs(base - BASELINE[tag]) < 5e-4, f"fp32 baseline reproduces ({tag})",
+          f"{base:.4f} vs {BASELINE[tag]:.4f}")
+    abort_if_failed()
+
+    print(f"\n  === {tag}: DENSE ALIGNMENT SWEEP, ties=even, {nlev}-level field, "
+          f"fp32 = {base:.4f} ===", flush=True)
+    print(f"  {'base':<6}{'c':>8}{'window':>18}{'observed amax/s':>26}{'clamp%':>8}"
+          f"{'ppl':>10}", flush=True)
+    res = []
+    cache = {}
+    for g, cs in ((2.0, cs2), (PHI, csphi)):
+        for c in cs:
+            m = fresh()
+            st, h = quantise_model(m, g, c, nlev, "even")
+            ok = st["rmin"] >= c - 1e-9 and st["rmax"] < c * g
+            if h in cache:
+                p = cache[h]
+                del m
+            else:
+                p = ppl(m, ids)
+                cache[h] = p
+                del m
+            nm = "2^k" if g == 2.0 else "phi"
+            print(f"  {nm:<6}{c:8.4f}  [{c:6.4f},{c * g:7.4f})"
+                  f"   [{st['rmin']:9.5f}, {st['rmax']:9.5f}]"
+                  f"{100.0 * st['nsat'] / st['nblk']:8.2f}{p:10.4f}"
+                  f"{'' if ok else '   <-- WINDOW INVARIANT VIOLATED'}", flush=True)
+            check(ok, f"{nm} c={c:.4f}: real amax/s inside [{c:.4f},{c * g:.4f})")
+            res.append((nm, c, p, 100.0 * st["nsat"] / st["nblk"]))
+    abort_if_failed()
+    b2 = min(r for r in res if r[0] == "2^k", key=lambda r: r[2])
+    bp = min(r for r in res if r[0] == "phi", key=lambda r: r[2])
+    print(f"\n    best 2^k: c={b2[1]:.4f}  ppl={b2[2]:.4f}  (clamp {b2[3]:.2f}%)", flush=True)
+    print(f"    best phi: c={bp[1]:.4f}  ppl={bp[2]:.4f}  (clamp {bp[3]:.2f}%)", flush=True)
+    print(f"    BEST-AGAINST-BEST  phi - 2^k = {bp[2] - b2[2]:+.4f}   "
+          f"{'phi wins' if bp[2] < b2[2] else '2^k WINS'}", flush=True)
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           f"scale_settled_refine_{tag}.json"), "w") as f:
+        json.dump(dict(tag=tag, baseline=base, nlev=nlev, rows=res), f, indent=1)
+    return res
+
+
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     sweep = "--sweep" in sys.argv
+    refine = "--refine" in sys.argv
     selftests_global()
     for tag in (args or ["smollm2", "qwen"]):
-        run_model(tag, sweep)
+        if refine:
+            refine_alignment(
+                tag,
+                [3.2, 3.5, 3.6, 3.7, 3.9, 4.1],
+                [2.6, 2.9, 3.1, 3.3, 3.5, 3.6, 3.8, 4.05])
+        else:
+            run_model(tag, sweep)

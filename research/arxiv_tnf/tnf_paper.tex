@@ -2041,6 +2041,42 @@ GF-T8, $E_t{=}3$        & golden ratio, ternary & $109$ & $15.5147$ & $1.071\tim
 \end{tabular}
 \end{table}
 
+\paragraph{Two names, one encoding, two rules.} The square's corners are not
+four unrelated formats. GF and BNF share the binary encoding and differ in which
+rule fixes $E$; GF-T and TNF share the ternary encoding and differ in the same
+way. How far the rules then diverge is a measurement, and mostly they do not.
+
+\begin{table}[t]\centering
+\caption{The GF-T and TNF ladders rung by rung. Eight of the nine specified
+rungs are identical --- the two rules choose the same budget --- and they part
+only at 32 positions.}
+\label{tab:gftvstnf}
+\begin{tabular}{lrrrrl}
+\toprule
+rung & \multicolumn{2}{c}{GF-T $(E_t, M)$} & \multicolumn{2}{c}{TNF $(E_t, M)$} & \\
+\midrule
+4    & $2$ & $1$    & $2$ & $1$    & identical \\
+8    & $3$ & $4$    & $3$ & $4$    & identical \\
+16   & $4$ & $9$    & $4$ & $9$    & identical \\
+\textbf{32} & $\mathbf{5}$ & $\mathbf{21}$ & $\mathbf{6}$ & $\mathbf{25}$ & \textbf{the one divergence} \\
+64   & $7$ & $52$   & $7$ & $52$   & identical \\
+128  & $8$ & $115$  & $8$ & $115$  & identical \\
+256  & $9$ & $242$  & $9$ & $242$  & identical \\
+512  & $10$ & $497$ & $10$ & $497$ & identical \\
+1024 & $11$ & $1006$& $11$ & $1006$& identical \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This is why the silicon tables carry TNF rows and no separate GF-T ones: at
+every rung but 32 they would be the same numbers twice. It is also why the
+eight-bit measurement below reports GF-T8 and ``TNF8 at $E_t=3$'' as one line
+of $109$ magnitudes and $15.5147$ --- they are the same format, reached from two
+directions. BNF is measured too, at $97$ LUT and $388.35$\,MHz, but on the
+isolated-decoder harness of Section~\ref{sec:hardware} rather than the
+ternary-neuron datapath of Table~\ref{tab:carryrange}, which is the only reason
+it does not appear in that table's twenty rows.
+
 \paragraph{The two rules name the same format, and neither predicted it.}
 GF8 at $E=3$ and BNF8 at $E=3$ return $14.6130$ --- the same number, not a close
 one, because at eight bits the two derivations select the identical layout,
