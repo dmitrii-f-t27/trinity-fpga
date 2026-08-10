@@ -191,11 +191,13 @@ for i, (_, _, vals) in enumerate(LADDER):
     if vals is None or vals[1] is None:
         ax.axvspan(xr[i] - 0.45, xr[i] + 0.45, color="#c8912f", alpha=0.13)
 ax.set_yscale("log")
+ax.set_ylim(1e-320, 1e2)
 ax.set_ylabel("mean relative error (exact rationals)")
 ax.set_xticks(xr); ax.set_xticklabels(names, rotation=30, ha="right")
 ax.set_title("Error is flat in magnitude, and its exponent doubles per rung")
-ax.legend(frameon=False, title="", fontsize=8)
-ax.annotate("workload overruns these rungs", (0.5, 0.93), xycoords="axes fraction",
-            fontsize=7.5, color="#8a6a20")
+# The legend sat on top of the annotation in the first version of this figure.
+ax.legend(frameon=False, fontsize=8, loc="lower left", bbox_to_anchor=(0.02, 0.02))
+ax.annotate("shaded: workload overruns the rung", (0.02, 0.965),
+            xycoords="axes fraction", fontsize=7.5, color="#8a6a20", va="top")
 fig.savefig("tnf_ladder_acc.pdf")
 print("tnf_ladder_acc.pdf")
