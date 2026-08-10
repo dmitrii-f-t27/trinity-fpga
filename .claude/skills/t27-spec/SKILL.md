@@ -4746,3 +4746,42 @@ honours the burst length it was issued. That is a claim about the environment,
 so it is written down as a protocol dependency rather than dressed up as a
 verified property. Knowing which of your safety arguments rest on someone else's
 compliance is worth more than a green tick that hides them.
+
+### Wave 633 addendum — a timing figure is a claim about a machine state
+
+**I published a 4× cost that was 1.58×.** Two inline properties were reported as
+taking an engine proof from 183 s to 723 s. Both figures were measured while
+three other provers were competing for the machine — a condition I neither
+controlled nor recorded — and the number went into a proposition, the README, a
+commit message and a filed issue before anything checked it.
+
+What exposed it was re-measuring the *baseline*, not the change: the
+no-properties case came back at 153 s, **faster** than the 183 s it was
+supposedly a regression against. A "regression" that makes the control faster
+than its own historical baseline is not a regression, it is a broken
+measurement. When a before/after surprises you, re-run the *before* on the
+current machine before believing the delta.
+
+**Record the machine state or do not publish the number.** Correctness results
+are reproducible — a proof either discharges or it does not. Timings are not:
+they are claims about contention, thermal state and what else was running. They
+need the same provenance discipline as any other measurement, and they rarely
+get it because they look like observations rather than claims.
+
+**`cmd | tail; echo $?` reports the pipe's status, not the command's.** A
+"successful" 0.05 s proof run was yosys failing instantly on a wrong working
+directory, with `tail` returning 0 over the top of it. Capture the tool's own
+exit code — redirect to a file and check `$?` directly, or use `PIPESTATUS`.
+Auditing the CI workflow for the same shape found it clean (no prover is piped,
+and 26 of 35 steps set `pipefail`), so the bug was purely in ad-hoc commands —
+which is exactly where measurements get made.
+
+**Three cwd-related tool errors in one session, all in background commands.** A
+`cd` in an earlier chained command changes where later background jobs run. Use
+absolute paths in anything whose result you intend to write down.
+
+**Correct forward, in public, with the mechanism.** The fix was a new
+sub-proposition recording what was measured, what was wrong, and how it was
+caught — plus a comment on the issue that carried the bad number — rather than
+quietly editing the figure. The two most-quoted corrections in this campaign
+were both captions on instruments that worked correctly; this is a third.
