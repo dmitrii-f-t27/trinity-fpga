@@ -2519,6 +2519,52 @@ clipping at the weight's own squared magnitude, which is right when a scale is
 shared by thousands of weights and the clipped ones are a tail, and wrong when
 thirty-two share one and the clipped ones are a fifth of the block.
 
+\subsection{Fineness costs registers, not adders}\label{sec:oneadder}
+
+Reading the hierarchy by degree, and taking the cost to be the minimal ratio
+available at each degree, hides the result. Read along a family instead.
+
+\begin{theorem}[The one-adder family]\label{thm:oneadder}
+For every $d$ the polynomial $r^{d}=r+1$ has a unique real root above one. It
+has exactly two non-zero coefficients, so its companion map is
+\[
+  (x_0,\dots,x_{d-1}) \;\mapsto\; (x_{d-1},\; x_0+x_{d-1},\; x_1,\dots,x_{d-2}),
+\]
+\emph{one addition} regardless of $d$, and the roots converge to $2^{1/d}$ from
+above. Any granularity a logarithmic subdivision offers is therefore reachable
+without a multiplier, at the cost of registers alone.
+\end{theorem}
+
+The map is verified exact over $3000$ random coordinate vectors at $d=5$ and
+$d=8$. The convergence is quick: $r/2^{1/d}$ is $1.1441$ at $d=2$, $1.0159$ at
+$d=5$, $1.0059$ at $d=8$ and $1.0014$ at $d=16$.
+
+\begin{table}[t]\centering
+\caption{One scale application, 16-bit components, xc7a200t, median of five
+seeds. A fivefold refinement costs $51\%$ more LUTs and no frequency: the
+eight-register step's single adder sits on one of eight parallel paths rather
+than one of two.}
+\label{tab:oneadder}
+\begin{tabular}{lrrrrr}
+\toprule
+step & LUT & FF & $F_{\max}$ & level error & adds \\
+\midrule
+$\varphi$, $r^2=r+1$   & \textbf{149} & 128 & $307.69$ & $23.607\%$ & 1 \\
+$r^5=r^3+1$            & $164$ & 160 & $306.56$ & $10.575\%$ & 1 \\
+$r^8=r+1$              & $225$ & 212 & $\mathbf{815.66}$ & $\mathbf{4.625\%}$ & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This also resolves the tension left by Theorem~\ref{thm:geoscale}. The grid
+minimising relative error is geometric with ratio $R^{1/N}$, an arbitrary real
+needing a multiplier --- in general. Where a block scale actually lives, the
+occupied range being $8.32$ to $9.12$ binades and the width four to six bits,
+the nearest multiply-free ratio matches the optimum to within $0.06\%$:
+$1.551532$ against $1.551145$ at four bits, $1.236506$ against $1.236662$ at
+five, $1.110187$ against $1.110180$ at six. At eight bits the spectrum has a gap
+and the optimum falls in it, but eight bits is four more than the range needs.
+
 \paragraph{The hierarchy is cheap only as far as degree three.}
 Table~\ref{tab:deg4} adds the smallest degree-4 scale, the root of
 $r^4=-r^3+r^2+r+1$, whose map $(x_0,x_1,x_2,x_3)\mapsto(x_3,\,x_0{+}x_3,\,
