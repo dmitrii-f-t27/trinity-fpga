@@ -2429,11 +2429,49 @@ $9.12$ binades and eight exponent bits buy nothing over four.
 strictly dominates MXFP4: cheaper by $0.125$ bits per weight and better on both
 models. It is not a trade.
 
-\emph{And the upper frontier is not ours.} E4M3 --- a scale carrying a
-mantissa, which is what NVFP4~\cite{nvfp4} uses --- reaches $19.8628$ and
-$13.7636$ at the same $4.25$ bits per weight where MXFP4 sits. No geometric
-grid, however fine, matches a scale with significand bits. Below $4.25$ bits per
-weight the frontier is ours and above it is theirs.
+\emph{And the upper frontier is reached by spending more.} E4M3 --- a scale
+carrying a mantissa, which is what NVFP4~\cite{nvfp4} uses --- reaches
+$19.8628$ and $13.7636$ at the same $4.25$ bits per weight where MXFP4 sits,
+against our $21.3545$ and $14.8512$ at $4.1250$. The comparison is not at equal
+width, and the next subsection shows what happens when it is made so.
+
+\subsection{A geometric scale grid dominates a float one}\label{sec:geoscale}
+
+A scale is read as a multiplier, so the error that matters is relative, and the
+grid minimising relative error over a log-distributed range is uniform in log.
+A float scale is not.
+
+\begin{theorem}[The geometric scale grid]\label{thm:geoscale}
+A float scale $2^{e}(1+m/2^{k})$ places $2^{k}$ points in each binade, with
+largest adjacent ratio $1+2^{-k}$ at the bottom of the binade. A geometric grid
+with the same point count places them at $2^{\,j/2^{k}}$, with every adjacent
+ratio equal to $2^{\,2^{-k}}$. Since $2^{x}=e^{x\ln 2}<1+x$ for $x>0$, the
+geometric grid's worst-case step is strictly smaller at every mantissa width,
+and the ratio of the two excesses rises monotonically to $1/\ln 2 = 1.442695$.
+\end{theorem}
+
+\begin{proof}
+Immediate from $\ln 2 < 1$. The limit follows from
+$(1+x)-1 \big/ (2^{x}-1) \to 1/\ln 2$ as $x\to0^{+}$.
+\end{proof}
+
+The defect is structural rather than a matter of tuning: a float grid is uniform
+in \emph{value} within a binade and therefore non-uniform in log, spending
+resolution at the top of each binade where the relative step is already small.
+Root-mean-square relative error over a binade agrees --- $0.1138$ against
+$0.1068$ at two mantissa bits, $0.0550$ against $0.0516$ at three, $0.0270$
+against $0.0254$ at four.
+
+\paragraph{The tension this exposes.} The optimal grid is geometric with ratio
+$R^{1/N}$ for the occupied range $R$ and point count $N$, and that ratio is an
+arbitrary real: applying it needs a multiplier. $\varphi^{k}$ is geometric
+\emph{and} multiply-free, at a ratio fixed at $1.618$ which is best where the
+range and the count want it --- at four bits, which is where it wins above. So
+the placement is a pair of statements rather than one. Among all scale grids,
+geometric beats float and the best geometric grid needs a multiplier; among
+multiply-free grids, $\varphi^{k}$ is the finest available at four bits. The
+first is a contribution to the field, the second is what this datapath gets for
+nothing.
 
 This is not our format beating MXFP4: the element stays
 E2M1, and only the base of the shared exponent changes, so it is a contribution
