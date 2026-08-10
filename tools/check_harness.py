@@ -59,7 +59,29 @@ for v in sorted(ROOT.rglob("fpga/**/*.v")):
     checked += 1
     fails += analyse(v)
 
+# Ratchet: the tree carries 83 known partial-observation harnesses, most of them
+# one-off experiment files. Blocking every PR on that would make the gate useless
+# until someone deleted them all. Fail only on NEW ones, and on baseline entries
+# that stop reproducing so the file cannot rot into a permanent excuse.
+import os
+BASE = pathlib.Path(__file__).with_name("harness_baseline.txt")
 print(f"harness files scanned: {checked}")
+uniq = sorted(set(fails))
+if "--update-baseline" in sys.argv:
+    BASE.write_text("\n".join(uniq) + ("\n" if uniq else ""))
+    print(f"baseline written: {len(uniq)} known"); sys.exit(0)
+known = {l for l in BASE.read_text().splitlines() if l.strip()} if BASE.exists() else set()
+new, gone = sorted(set(uniq) - known), sorted(known - set(uniq))
+if gone:
+    print(f"\n{len(gone)} baseline entry/entries no longer reproduce -- "
+          f"run --update-baseline to shrink the ratchet")
+if new:
+    print(f"\nFAIL: {len(new)} NEW partial-observation harness(es)\n")
+    for f in new: print(f"  {f}")
+    sys.exit(1)
+if gone: sys.exit(1)
+print(f"OK: no new partial-observation harnesses ({len(known)} known)")
+sys.exit(0)
 if fails:
     print(f"\nFAIL: {len(fails)} partial-observation harness(es)\n")
     for f in sorted(set(fails)): print(f"  {f}")
