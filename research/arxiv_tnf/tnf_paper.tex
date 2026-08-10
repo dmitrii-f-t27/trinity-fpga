@@ -3027,6 +3027,37 @@ labelled would not do this, and we had used it only to label for most of this
 work.
 
 
+
+\begin{theorem}[A wobble admits no crossover]
+\label{thm:wobble}
+If a format's $M_{\mathrm{eff}}$ is periodic in $|e|$ with amplitude $A$ and
+period $P$, and a constant-form competitor's $m$ lies strictly inside the band,
+then no $x$ exists such that one leads for all $|e| < x$ and the other for all
+$|e| > x$. The well-posed statistic is the duty cycle --- the fraction of each
+period on which each leads --- together with $P$.
+\end{theorem}
+
+Measured on IBM hexadecimal 32, whose $M_{\mathrm{eff}}$ by binade reads
+$21.03$, $21.75$, $22.94$, $19.95$, then repeats: amplitude $3.07$ bits, period
+$4$ binades, which is $\log_2 16$ as the radix requires. Against packed TNF32 at
+$M_{\mathrm{eff}} = 21.32$, inside the band $[19.94, 23.11]$, the winner
+alternates with that period at a duty cycle of $50/50$, and no binade separates
+them.
+
+\begin{corollary}[The taxonomy is prescriptive]
+\label{cor:taxprescribes}
+Each of the four staircase forms determines the \emph{shape} of a well-posed
+comparison against a constant format: a difference for constant, a linear
+crossover for arithmetic, an exponential crossover $2^{p-m}$ for geometric, and a
+duty cycle for wobble.
+\end{corollary}
+
+Every comparison of number formats we have read reports a verdict or a ratio. For
+two of the four forms that shape is wrong. The form of the answer is not a
+stylistic choice; it is fixed by the competitor's staircase, and a classification
+introduced only to label formats turns out to settle it.
+
+
 \section{Limitations}
 
 \paragraph{The fabric this format is optimal on does not exist to buy.}
