@@ -4495,3 +4495,30 @@ picked up a file the tool cannot parse at all, and an exit status read through
 `grep` missed the error line. Both pointed at the tree; both were the test. When
 a finding is about infrastructure, the infrastructure that finds it deserves the
 same suspicion as the thing under test.
+
+## Wave 629 — re-run everything the defect sat underneath
+
+**After fixing a defect, re-establish every result that depended on the broken
+component.** Not because you expect movement — because "I expect nothing moved"
+is a prediction, and the whole point of the exercise is that predictions get
+checked. Six engine-level steps, twelve minutes of compute, and a documented
+before/after.
+
+**A "nothing moved" result is worth publishing when it says what was *not*
+being checked.** The integration suite proved identically before and after a
+genuine arithmetic defect in a module it transitively depends on. That is not a
+failure of those properties — it is a sharp statement of their scope: they
+constrain **control** (handshakes, phase, contiguity, readiness) and the defect
+was in **data**. A null result that draws that boundary is more useful than a
+green tick.
+
+**Note which instrument actually caught it.** Not the mutation harness, not a
+witness, not an integration property. The chain was: map coverage → notice a
+module constrained only at one remove → prove it directly. When a defect is
+found, write down the shortest path that found it — that path is the thing worth
+repeating, and it is rarely the most expensive instrument you own.
+
+**Re-time the expensive proofs while you are there.** The same bound that cost
+238 s for 22 properties now costs 422 s for 24. The ceiling had not moved but
+the headroom had, and nobody would have noticed until a future property pushed
+it over.
