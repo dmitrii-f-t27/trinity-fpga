@@ -55,8 +55,10 @@ for val, _ in sorted(withdrawn.items()):
     for pos in live:
         line = t[:pos].count("\n") + 1
         ctx = re.sub(r"\s+", " ", t[max(0, pos-90):pos+40]).strip()
-        fails.append(f"tnf_paper.tex:{line}: {val} is named in a withdrawal and "
-                     f"used live here -- ...{ctx[-110:]}")
+        # Keyed on the value and its surrounding words, not the line number:
+        # a baseline keyed on line numbers rots on every edit above it.
+        key = re.sub(r"[^a-z0-9 ]", "", ctx[-70:].lower())[-52:]
+        fails.append(f"{val} live near: {key}   (line {line})")
 
 BASE = pathlib.Path(__file__).with_name("withdrawn_live_baseline.txt")
 print(f"withdrawal passages: {len(zones)}   distinct numbers inside them: {len(withdrawn)}")
@@ -64,8 +66,10 @@ uniq = sorted(set(fails))
 if "--update-baseline" in sys.argv:
     BASE.write_text("\n".join(uniq) + ("\n" if uniq else ""))
     print(f"baseline written: {len(uniq)} known"); sys.exit(0)
-known = {l for l in BASE.read_text().splitlines() if l.strip()} if BASE.exists() else set()
-new = sorted(set(uniq) - known)
+raw = [l for l in BASE.read_text().splitlines() if l.strip()] if BASE.exists() else []
+strip = lambda x: re.sub(r"\s*\(line \d+\)$", "", x)
+known = {strip(l) for l in raw}
+new = sorted({u for u in uniq if strip(u) not in known})
 if new:
     print(f"\nFAIL: {len(new)} withdrawn number(s) still asserted live\n")
     for x in new: print(f"  {x}")

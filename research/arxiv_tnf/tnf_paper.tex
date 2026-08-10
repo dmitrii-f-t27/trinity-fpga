@@ -64,8 +64,8 @@ and the gain of $k$ layers is exactly $F_k\varphi+F_{k-1}$. Closure removes a
 multiplier rather than cheapening it: a set lacking it must return
 every accumulation to the set, a stage costing $9.6\times$ the whole closed
 accumulation at 16 bits and $24.8\times$ at 32. On an XC7A200T in a fully open
-flow the pair costs zero DSP: a matched filter
-demodulating real air at $78$\,MHz, every transformer block, a systolic GEMM at
+flow the pair costs zero DSP: a matched filter on real air at
+$78$\,MHz, every transformer block, a systolic GEMM at
 $33$\,GOPS, a trained ternary transformer at $97\%$, and on-silicon
 backpropagation training XOR to $4/4$.
 
@@ -82,8 +82,8 @@ they concentrate precision.
 
 The accumulator obeys a law we derive and measure: error grows as
 $\sqrt{pK}\,2^{-(M+1)}$ in fan-in, fitted at $+0.476$ against a predicted
-$+0.5$. Five retractions of our own claims are marked in place below; further claims
-were withdrawn during the campaign and removed rather than marked.
+$+0.5$. Five retractions are marked in place below; more were withdrawn during the
+campaign and removed rather than marked.
 \end{abstract}
 
 \section{What this paper argues}
@@ -1807,7 +1807,7 @@ a property of the \emph{number}, and dominance in it is not dominance in silicon
 Section~\ref{sec:ternarynet} measures the same formats through one datapath and
 puts TNF mid-pack among fixed fields at $0.145$--$0.167$\,MHz per LUT. Against
 \texttt{int8} the two are indistinguishable once seeds are swept
-(Section~\ref{sec:rejected}). The two are consistent: the frontier asks what a word of
+(Table~\ref{tab:rejected}). The two are consistent: the frontier asks what a word of
 a given width carries, the datapath asks what it costs to unpack, and every fixed
 field unpacks by reading fields. The gap in silicon runs between fixed and tapered
 formats, $2.4$ to $6.4\times$, and belongs to Theorems~\ref{thm:scan}
