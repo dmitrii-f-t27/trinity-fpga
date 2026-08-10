@@ -1,0 +1,22 @@
+{
+ "tag": "smollm2",
+ "windows": 1,
+ "layers": 210,
+ "threads": 4,
+ "runs": {
+  "fp32acc/natural": 21.556543781144267,
+  "fp32acc/identity": 21.556543781144267,
+  "fp32acc/reverse": 21.55647182853681,
+  "fp32acc/rand1": 21.556528362708168,
+  "fp32acc/rand2": 21.556492386400148,
+  "fp32acc/rand3": 21.556512944283092,
+  "exact/natural": 21.55648210746603,
+  "exact/rand1": 21.55648210746603
+ },
+ "repeat": 21.556543781144267,
+ "determinism_floor": 0.0,
+ "order_spread_fp32acc": 7.19526074561827e-05,
+ "order_sd_fp32acc": 2.9027783951081103e-05,
+ "exactness_payoff": 6.167367823550762e-05,
+ "exact_arm_order_effect": 0.0
+}

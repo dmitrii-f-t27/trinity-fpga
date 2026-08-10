@@ -162,17 +162,32 @@ def ppl(m, xs):
 def selftests(qc, names):
     print("  self-tests")
 
-    # S1 the phi arm really lands on the phi^k grid
-    dev, lo, hi = 0.0, 99, -99
-    for nm in names[:12]:
-        nz = qc[nm][qc[nm] != 0].abs().double()
-        mm = torch.log(nz) / LOGPHI
-        dev = max(dev, (mm - mm.round()).abs().max().item())
+    # S1 the phi arm really lands on the phi^k grid.
+    #    Two thresholds, because they test two different things:
+    #      (a) in float64, where the quantiser works, the grid must be exact to 1e-9;
+    #      (b) after the .float() cast used for inference, phi^m is NOT a float32 number,
+    #          so the best achievable is float32 rounding: eps/ln(phi) = 6e-8/0.4812 = 1.2e-7.
+    #          A deviation materially above that would mean a real grid error; below it is
+    #          just storage. This bound is itself worth stating: the phi grid is already
+    #          ~1e-7 inexact the moment it is stored in float32.
+    m0 = fresh()
+    dev64, dev32, lo, hi = 0.0, 0.0, 99, -99
+    for nm, mod in targets(m0)[:12]:
+        q64 = quant_phi(mod.weight.data.double())
+        n64 = q64[q64 != 0].abs()
+        mm = torch.log(n64) / LOGPHI
+        dev64 = max(dev64, (mm - mm.round()).abs().max().item())
         lo, hi = min(lo, int(mm.round().min())), max(hi, int(mm.round().max()))
-    if dev > 1e-9:
-        fail(f"phi arm off the phi^k grid, max |log_phi|w| - round| = {dev}")
-    print(f"    S1 every nonzero weight is exactly +-phi^m (12 tensors): max dev {dev:.2e}, "
-          f"exponents {lo}..{hi}  OK")
+        n32 = qc[nm][qc[nm] != 0].abs().double()
+        m32 = torch.log(n32) / LOGPHI
+        dev32 = max(dev32, (m32 - m32.round()).abs().max().item())
+    del m0
+    if dev64 > 1e-9:
+        fail(f"phi grid wrong in float64: max |log_phi|w| - round| = {dev64}")
+    if dev32 > 3e-7:
+        fail(f"phi grid wrong beyond float32 storage: max dev {dev32} (float32 limit 1.2e-7)")
+    print(f"    S1 phi^m grid exact in float64 to {dev64:.2e}; after float32 storage "
+          f"{dev32:.2e} (float32 floor 1.2e-7), exponents {lo}..{hi}  OK")
 
     # S2 permutations are bijections
     for s in (1, 2, 3):
@@ -266,6 +281,8 @@ ARMS = [
     ("exact/natural",    True,  "none", 0, True),
     ("exact/rand1",      True,  "rand", 1, True),
 ]
+if os.environ.get("ARMS") == "lite":      # bigger model: drop the two redundant controls
+    ARMS = [a for a in ARMS if a[0] not in ("fp32acc/identity", "fp32acc/rand3")]
 
 res = {}
 for label, q, kind, seed, ex in ARMS:
