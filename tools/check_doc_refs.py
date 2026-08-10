@@ -19,6 +19,22 @@ DOCS = sorted(set(list(ROOT.glob("research/**/*.md")) + list(ROOT.glob("*.md"))
 # A path-like token: has a slash and an extension we own, or is a bare script name
 PATHY = re.compile(r'`([A-Za-z0-9_./-]+\.(?:py|v|sh|tex|yml|yaml|md|t27|json))`')
 
+SIBLING_NAMES = ["t27", "trinity-s3ai", "claim-audit-lab", "tri-net", "trios-mesh",
+                 "zig-golden-float"]
+
+def _index(root):
+    """basename -> True, built once. The first version ran an rglob per reference
+    per sibling tree; 1511 references across six trees is a quarter of a million
+    directory walks, and a gate slow enough to skip is worse than no gate."""
+    names = set()
+    if root.is_dir():
+        for q in root.rglob("*"):
+            if q.is_file(): names.add(q.name)
+    return names
+
+_OWN = _index(ROOT)
+_SIB = {s_: _index(ROOT.parent / s_) for s_ in SIBLING_NAMES}
+
 fails, checked, refs = [], 0, 0
 cross, vendored, by_design = [], [], []
 for d in DOCS:
@@ -57,11 +73,8 @@ for d in DOCS:
                  ROOT.parent / p, d.parent / p] + [ROOT.parent / sib / p for sib in SIBLINGS]
         # a bare filename may live anywhere in the tree
         if "/" not in p:
-            if any(ROOT.rglob(p)): continue
-            _hit = next((sib for sib in ("t27", "trinity-s3ai", "claim-audit-lab",
-                                         "tri-net", "trios-mesh", "zig-golden-float")
-                         if (ROOT.parent / sib).is_dir()
-                         and any((ROOT.parent / sib).rglob(p))), None)
+            if p in _OWN: continue
+            _hit = next((s_ for s_ in SIBLING_NAMES if p in _SIB[s_]), None)
             if _hit:
                 # Excluded, but RECORDED. An exclusion nobody can see reads as
                 # coverage. These references resolve only in a sibling repo, so
