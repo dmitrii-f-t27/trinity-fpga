@@ -4247,3 +4247,33 @@ which is a restatement of the RTL rather than a specification of it.
 correction to a published number and a stopping criterion, and no new property.
 Inventing one to have an artifact would have inverted everything the preceding
 waves were for.
+
+## Wave 621 — the instrument told the truth; the caption lied
+
+**The whole-campaign version of the per-suite error.** Correcting every
+multi-suite module moved the headline from *45/202 detected (22%), 133 real
+gaps* to **74/202 (36%), 104 gaps**. One mislabelled measurement, repeated
+across five modules and quoted for twelve waves.
+
+**A second suite makes an overcount possible, not certain.** One module had two
+suites and needed no correction at all. Do not assume the shape of an error
+before measuring it — the correction is per-module, not a blanket adjustment.
+
+**Expect measurement error in the flattering direction; be more suspicious when
+it runs the other way.** This one understated its own subject, which is exactly
+why nobody caught it: there was no incentive anywhere in the loop to double-check
+a number that made the work look worse. *Bias in the unflattering direction
+survives longest.*
+
+**Audit labels, not only instruments.** Twenty waves went into checking whether
+harnesses lie — truncated output, crashes read as verdicts, scans over empty
+file lists, gates that never ran. This error involved none of that. The matrix
+measured exactly what it was told to measure; the sentence describing it named a
+*module* where the data described a *wrapper*. **A correct instrument with a
+wrong caption produces a wrong claim, and no amount of instrument auditing finds
+it.** Read every published number back as "this is a claim about X" and check
+that X is what the code actually ranged over.
+
+**Recompute headline figures from stored data, not by hand.** Every number in
+that correction came out of the recorded JSON through a script. Re-deriving by
+arithmetic in prose is how the next drift starts.
