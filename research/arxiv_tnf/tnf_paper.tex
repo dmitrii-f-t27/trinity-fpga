@@ -2543,6 +2543,36 @@ The map is verified exact over $3000$ random coordinate vectors at $d=5$ and
 $d=8$. The convergence is quick: $r/2^{1/d}$ is $1.1441$ at $d=2$, $1.0159$ at
 $d=5$, $1.0059$ at $d=8$ and $1.0014$ at $d=16$.
 
+\paragraph{The ladder's cost depends on its role.} Applying a ladder weight
+$r^{-j}$ costs $j$ steps of the companion map. As a \emph{block scale} that is
+one value per thirty-two weights and the steps amortise; as an \emph{element} it
+is paid per weight, and a six-bit ladder needs $j$ up to $31$. The element form
+is therefore a coordinate table --- the code selects a vector in
+$\mathbb{Z}[r]$ directly --- and Table~\ref{tab:elemsil} prices it against what
+it buys.
+
+\begin{table}[t]\centering
+\caption{Element decoders as coordinate tables, isolated, median of five seeds,
+against the perplexity of the same ladder on SmolLM2-135M
+(\texttt{fp32} baseline $14.3607$). Thirty-three more LUTs move the error from
+$70\%$ to $3.7\%$ at no cost in frequency.}
+\label{tab:elemsil}
+\begin{tabular}{lrrrrr}
+\toprule
+decoder & table & LUT & $F_{\max}$ & ppl & above \texttt{fp32} \\
+\midrule
+$\varphi$, 4-bit          & $7\times2\times5$b  & \textbf{89} & $621.89$ & $24.4280$ & $+70.1\%$ \\
+$r^5{=}r^3{+}1$, 5-bit    & $15\times5\times4$b & $95$ & $482.39$ & $15.9242$ & $+10.9\%$ \\
+$r^6{=}r{+}1$, 6-bit      & $31\times6\times5$b & $122$ & $612.00$ & $\mathbf{14.8882}$ & $\mathbf{+3.7\%}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The middle rung is the one a budget would choose: five bits and $95$ LUT for
+$+10.9\%$, a six-LUT premium over $\varphi$ for a sixfold reduction in error.
+Applying the scale remains one addition throughout and the datapath remains free
+of DSP.
+
 \begin{table}[t]\centering
 \caption{One scale application, 16-bit components, xc7a200t, median of five
 seeds. A fivefold refinement costs $51\%$ more LUTs and no frequency: the
