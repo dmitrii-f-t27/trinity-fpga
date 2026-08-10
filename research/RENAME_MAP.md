@@ -20,7 +20,7 @@ throughout, in prose and in filenames.
 |---|---|
 | `gft16_ref.py`, `gft_ref.py` | `conformance/gfternary_ref.py` for the alphabet; `conformance/gf_ref.py` for the binary ladder |
 | `gft_paper.tex` | `research/arxiv_tnf/tnf_paper.tex` |
-| `tef_mul_wp.v`, `gft_add_w` (neither exists in the tree) | the TEF-era module names; the surviving RTL is under `fpga/tnet/` and `fpga/phiscale/` |
+| `tef_mul_wp.v`, `gft_add_w` -- absent from every tree | the TEF-era module names; the surviving RTL is under `fpga/tnet/` and `fpga/phiscale/` |
 | `main_ru.tex`, `paper1-goldenfloat/main_ru.tex` -- absent from every tree | retired -- the Russian-language paper line was not carried forward |
 | `ARXIV_UPLOAD_EN_v2.md`, `ARXIV_GFT16_v2.md` | superseded by `research/arxiv_tnf/` |
 

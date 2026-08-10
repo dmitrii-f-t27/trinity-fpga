@@ -2200,14 +2200,30 @@ $F_3+F_3 = 4 = F_4+F_1$, and the representation changes non-trivially. At fan-in
 $512$ the stage runs $512$ times per neuron, against a pair of integer registers
 on the closed side.
 
-Two limits are worth stating. Greedy normalisation is not proved to be the
+One limit is worth stating: greedy normalisation is not proved to be the
 cheapest --- constant-time Zeckendorf adders exist --- so the ratio is an upper
-bound on this implementation while Corollary~\ref{cor:closure} is what carries
-the qualitative claim. And part of the frequency gap is combinational depth,
-$46$ dependent stages against one addition; pipelining converts that into
-latency and registers rather than removing it. Neither limit touches the area
-column, and at 32 bits the non-closed unit misses the bench constraint that the
-closed unit clears twentyfold.
+bound on this implementation, while Corollary~\ref{cor:closure} carries the
+qualitative claim.
+
+The other apparent limit does not survive measurement. Part of the frequency gap
+is combinational depth, $46$ dependent stages against one addition, and
+pipelining should convert that into latency and registers. It does, and it is
+not enough: swept to $32$ stages at 16 bits and $48$ at 32, frequency rises and
+then plateaus at $249.44$ and $111.36$\,MHz against the closed path's $299.94$
+and $239.35$, the second less than half. There is a reason.
+
+\begin{theorem}[The normalisation floor]\label{thm:floor}
+A normalisation cascade cannot be pipelined below one compare-and-subtract per
+stage, so its clock period is bounded below by the carry latency of a
+compare-and-subtract at the datapath width. A compare-and-subtract is strictly
+more than an addition --- a subtraction plus the comparison selecting it --- so
+the floor of a non-closed path lies above the floor of a closed path whose step
+is a single addition.
+\end{theorem}
+
+At the plateau the trade is $7.8\times$ and $19.7\times$ the area,
+$3.6\times$ and $8.3\times$ the registers, $32$ and $48$ cycles of latency, and
+still the lower frequency.
 
 
 This is a different kind of statement from the rest of the paper. Everywhere else
