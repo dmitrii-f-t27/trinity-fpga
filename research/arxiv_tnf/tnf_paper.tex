@@ -2960,6 +2960,73 @@ Enumerating every pair that must agree exposed five unguarded ones in a single
 pass, all of them with a document on one side.
 
 
+
+\subsection{The staircase form prescribes the comparison}
+\label{sec:formprescribes}
+
+Section~\ref{sec:catalogue} classifies tapers by staircase form to \emph{describe}
+them. Measuring the crossovers of Section~\ref{sec:cleantable} over two fitting
+windows shows the classification does more than that.
+
+\begin{theorem}[The staircase form decides whether a window is needed]
+\label{thm:formwindow}
+A crossover between a fixed field and a taper depends on the fitting window if
+and only if the taper's staircase form is not arithmetic. An arithmetic taper's
+$M_{\mathrm{eff}}$ is linear in $|e|$, so its slope is well-defined without a
+window. A geometric taper's is linear in $\log|e|$, so no line fits it and its
+apparent slope is a property of the window alone.
+\end{theorem}
+
+Measured across windows $1$--$9$ and $1$--$20$, the split is exact: posit16,
+posit32 and posit64 move by $1.08\times$, $1.00\times$ and $1.09\times$, while
+every takum and tekum moves by $1.39\times$ to $1.72\times$.
+
+\begin{corollary}[Closed form for a geometric taper]
+\label{cor:geomcross}
+For a geometric taper, $M(e) = p - \log_2 e$, so the crossover against a fixed
+field of constant $m$ solves exactly:
+\[
+  x = 2^{\,p-m},
+\]
+with no window required.
+\end{corollary}
+
+\begin{table}[t]\centering
+\caption{Crossovers, computed by the model each taper's form requires. A
+straight-line fit had overstated every geometric taper's reach, because a line
+under-reports how fast a logarithm falls near the origin.}
+\label{tab:crosscorrected}
+\begin{tabular}{llr}
+\toprule
+taper & form & crossover, binades \\
+\midrule
+posit8 & arithmetic & $1.5$--$2.5$ \\
+posit16 & arithmetic & $8.5$ \\
+posit32 & arithmetic & $9.2$ \\
+posit64 & arithmetic & $54.0$ \\
+takum16 & geometric & $\mathbf{1.8}$ \\
+takum32 & geometric & $\mathbf{2.6}$ \\
+takum64 & geometric & $\mathbf{62.7}$ \\
+tekum16 & geometric & $\mathbf{2.1}$ \\
+tekum32 & geometric & $\mathbf{2.4}$ \\
+takum8, tekum8 & geometric & TNF everywhere \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Six figures previously reported as ranges were computed by the wrong model and
+are corrected here: takum32 moves from $5.9$--$10.2$ to an exact $2.6$, tekum16
+from $4.2$--$6.5$ to $2.1$. The remaining window dependence is confined to
+posit8, whose peak sits within $0.45$ bits of TNF8's so that any slope estimate
+divides a very small number.
+
+The point worth keeping is not the arithmetic. **A taxonomy introduced to label
+formats turns out to prescribe how they must be compared** --- arithmetic tapers
+by a linear crossover, geometric ones by $2^{p-m}$. A classification that only
+labelled would not do this, and we had used it only to label for most of this
+work.
+
+
 \section{Limitations}
 
 \paragraph{The fabric this format is optimal on does not exist to buy.}
