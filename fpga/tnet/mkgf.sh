@@ -14,7 +14,7 @@ module g_$1 (input wire clk, input wire rst_n, output wire [7:0] led);
   wire [24:0] sm = (wt==2'b00) ? 25'b0 : d_mant;
   wire [9:0]  so = (wt==2'b00) ? 10'b0 : d_off;
   reg [9:0] ao; reg [24:0] am; wire [9:0] no; wire [24:0] nm;
-  gft_add_w #(.MANT_W(25), .OFF_W(10), .OFFSET_MAX(728)) ad
+  tef_add_w #(.MANT_W(25), .OFF_W(10), .OFFSET_MAX(728)) ad
     (.a_off(ao), .a_mant(am), .b_off(so), .b_mant(sm), .out_off(no), .out_mant(nm));
   always @(posedge clk) begin
     if (!rst_n) begin ao<=10'b0; am<=25'b0; end else begin ao<=no; am<=nm; end
