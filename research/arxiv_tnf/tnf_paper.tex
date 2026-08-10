@@ -2393,7 +2393,49 @@ Qwen the response is monotone in granularity and the finest grid wins. The sign
 replicates and the size does not --- $5.09\%$ against $0.63\%$ --- and the claim
 of optimality does not replicate at all. We state only what does.
 
-Two things follow. This is not our format beating MXFP4: the element stays
+\paragraph{The frontier, not the pair.} A scale is one value per $K$ weights,
+so it costs $\mathrm{bits}/K$ per weight, and comparing formats in pairs hides
+that. Table~\ref{tab:frontier} puts perplexity against total bits per weight.
+The Pareto set is identical on both models.
+
+\begin{table}[t]\centering
+\caption{Scale-cost frontier, E2M1 elements, 40 windows. $\varphi^{k}$ at four
+bits per block of 32 strictly dominates MXFP4 --- cheaper and better on both
+models. Above $4.25$ bits per weight the frontier belongs to scales carrying a
+mantissa.}
+\label{tab:frontier}
+\begin{tabular}{lrrrr}
+\toprule
+scheme & scale b/w & total b/w & SmolLM2 & Qwen \\
+\midrule
+$\varphi^{k}$ 4b/64        & $0.0625$ & $4.0625$ & $22.0978$ & $15.0090$ \\
+$\boldsymbol{\varphi^{k}}$ \textbf{4b/32} & $\mathbf{0.1250}$ & $\mathbf{4.1250}$ & $\mathbf{21.3545}$ & $\mathbf{14.8512}$ \\
+$2^{k}$ 4b/32              & $0.1250$ & $4.1250$ & $22.4998$ & $14.9447$ \\
+\textbf{MXFP4}, E8M0 8b/32 & $0.2500$ & $4.2500$ & $22.4998$ & $14.9447$ \\
+E4M3 8b/32                 & $0.2500$ & $4.2500$ & $19.8628$ & $13.7636$ \\
+NVFP4-like E4M3 8b/16      & $0.5000$ & $4.5000$ & $18.5445$ & $13.5340$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three things follow, and only the third is ours.
+
+\emph{MXFP4's scale field is four bits wider than it needs to be.} $2^{k}$ at
+four bits reproduces E8M0's perplexity \emph{exactly} --- $22.4998$ and
+$14.9447$, to the last digit --- because the occupied range is $8.32$ and
+$9.12$ binades and eight exponent bits buy nothing over four.
+
+\emph{At those four bits $\varphi^{k}$ beats $2^{k}$}, so $\varphi^{k}$ 4b/32
+strictly dominates MXFP4: cheaper by $0.125$ bits per weight and better on both
+models. It is not a trade.
+
+\emph{And the upper frontier is not ours.} E4M3 --- a scale carrying a
+mantissa, which is what NVFP4~\cite{nvfp4} uses --- reaches $19.8628$ and
+$13.7636$ at the same $4.25$ bits per weight where MXFP4 sits. No geometric
+grid, however fine, matches a scale with significand bits. Below $4.25$ bits per
+weight the frontier is ours and above it is theirs.
+
+This is not our format beating MXFP4: the element stays
 E2M1, and only the base of the shared exponent changes, so it is a contribution
 to the microscaling family rather than a defeat of it. And the grid that helps
 is ours specifically --- on a binary datapath $2^{k}$ is a shift and
@@ -3676,6 +3718,9 @@ D.~Shah et al.
 \bibitem{elias1975} P.~Elias, ``Universal codeword sets and representations of the integers,'' \emph{IEEE Trans. Inform. Theory}, vol.~21, no.~2, pp.~194--203, 1975.
 \bibitem{positgap} Closing the Gap Between Float and Posit Hardware Efficiency, arXiv:2603.01615.
 \bibitem{mlformats} Performance-Efficiency Trade-off of Low-Precision Numerical Formats in Deep Neural Networks, arXiv:1903.10584.
+\bibitem{nvfp4} NVIDIA, ``Introducing NVFP4 for Efficient and Accurate
+Low-Precision Inference,'' 2025; and ``Pretraining Large Language Models with
+NVFP4,'' arXiv:2509.25149, 2025.
 \bibitem{awq} J.~Lin, J.~Tang, H.~Tang, S.~Yang, W.-M.~Chen, W.-C.~Wang,
 G.~Xiao, X.~Dang, C.~Gan, and S.~Han, ``AWQ: Activation-aware Weight
 Quantization for On-Device LLM Compression and Acceleration,'' in
