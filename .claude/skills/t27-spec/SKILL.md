@@ -5053,3 +5053,50 @@ made.
 blocked the third measurement was my own concurrent workflow. Sequence work that
 competes for the machine, or the harness will correctly refuse and the wall-clock
 spent is wasted.
+
+## Wave 637c — a self-test written by a gate's author tests what its author imagined
+
+**Four gates, four instances of matching a form rather than a fact.** A
+warning's phrasing, an identifier's name, a comment's position, a width standing
+in for a range. Every one of them passed its own self-test. Ask of any gate: what
+is the *fact* here, and am I matching the fact or a shape that usually
+accompanies it?
+
+**Check whether your tool's output wording varies with the case.** A gate
+existed for exactly one defect — an undriven wire a property proved against —
+and matched `Wire <name> is used but has no driver`. Yosys prints that form for
+one-bit wires and `Wire <name> [3] is used…` for wider ones, so the gate caught
+its own reason for existing only at width 1. Enumerate the tool's output forms
+empirically rather than pattern-matching the one example you saw.
+
+**A self-test's cases are the author's imagination, so vary the dimension the
+author held fixed.** All four injections in that gate's self-test were
+identifiers yosys declares as a single bit. Nothing about them was wrong; they
+simply all sat at the same point on the axis that mattered. When writing
+injections, ask what parameter every case shares — width, position, sign,
+nesting — and add one that differs.
+
+**A dedup key that is also a coverage counter reports the wrong number twice.**
+Deduplicating reductions by target name silently dropped 40% of the subject, and
+because the same set was returned as "reductions checked", the summary read as
+full coverage while examining less than half. Deduplicate the *output*, never
+the *work*, and count the work.
+
+**A guarded fallback is a decision, and it can silently be the rule you already
+banned.** For an unannotated operand a gate fell back to worst-case-by-width —
+the exact reasoning the same file's docstring calls unsound for this domain — and
+so produced a false finding against correct RTL. When a check cannot be made,
+prefer "uncheckable, and here is the count" over a weaker rule applied quietly.
+
+**Being accidentally right is not a form of being right.** A measurement was
+rejected as implausible because its inputs moved mid-run; the clean re-run landed
+within a few percent of the rejected value. The rejection was still correct — a
+number produced by a broken procedure carries no evidence regardless of where it
+lands. Do not retroactively credit a discarded result because it turned out
+close.
+
+**Notice when a decision's stated justification evaporates but the decision
+survives.** A guard split was justified by a measured cost; the cost is now
+negative. The split remains right for a second reason given at the time. That is
+worth writing down, because the next such decision might have rested on the
+justification that vanished.
