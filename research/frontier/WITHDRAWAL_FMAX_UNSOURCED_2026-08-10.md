@@ -1,132 +1,137 @@
-# Withdrawal: the ladder Fmax figures have no source on this machine
+# RETRACTED — this withdrawal was wrong. The Fmax figures are real nextpnr-xilinx measurements.
 
-**`LADDER_COST_AND_LAW_2026-08-10.md` reports Fmax to two decimals for three designs and
-describes them as measured. No instrument capable of producing them exists here. The Fmax column
-is withdrawn. I repeated those numbers in `LADDER_THIRD_MODEL_BREAKS_4BIT_2026-08-10.md` and have
-corrected that too.**
+**Everything previously in this file is withdrawn. I claimed the ladder Fmax numbers had no
+source and implied they were unsupported. They are backed by 298 nextpnr-xilinx logs sitting in
+the same directory. The error was mine and it was serious: I accused correct work of reporting
+unmeasured numbers.**
 
-## The claim
+## The evidence I missed
 
-> "Measured in the harness that produced the other tables: isolated, fully observed, median of
-> five seeds, xc7a200t."
->
-> | 32-bit scale application | LUT | FF | Fmax (MHz) | … |
-> | phi (degree 2) | 223 | 192 | **247.10** | … |
-> | plastic (degree 3) | 228 | 200 | **231.21** | … |
-> | degree 4 | 469 | 320 | **184.98** | … |
+    247.10  ->  fpga/phiscale/cs_phi32_4.log
+    231.21  ->  fpga/phiscale/cs_plas32_3.log
+    184.98  ->  fpga/phiscale/cs_d4_32_3.log
 
-"Median of five seeds" describes place-and-route seeds. Fmax is a post-route timing result; it
-cannot come from synthesis.
+29 distinct designs, 298 log files, ~5 seeds each — exactly the "median of five seeds" the table
+claims. The logs are unambiguously **nextpnr-xilinx targeting an XC7A200T**:
 
-## What is actually on the machine
+    Info:     Created 89 SLICE_LUTX cells from: 9x LUT6
+    Info:     Created 80 SLICE_FFX  cells from: 48x FDRE
+    Info:              SLICE_LUTX:    89/269200
+    Info:                  CARRY4:     0/33650
+    $auto$xilinx_dffopt.cc:347:execute$2580
 
-| check | result |
-|---|---|
-| `which nextpnr-xilinx` | **not found** |
-| `which yosys` | `/opt/homebrew/bin/yosys` (0.65) |
-| place-and-route artefacts in `fpga/phiscale/` (`.fasm`, `.bit`, route/timing reports) | **none** |
-| every `c_*.json` in that directory | `"creator": "Yosys 0.65"` — synthesis netlists |
+`SLICE_LUTX`, `SLICE_FFX`, `CARRY4`, the 269200 cell count and `xilinx_dffopt.cc` are
+nextpnr-xilinx internals. ECP5 would emit `TRELLIS_*`; nothing else produces these.
 
-And the project's own `fpga/phiscale/README.md`, written for the same designs, states plainly:
+## How I got it wrong
 
-> **No Fmax.** `nextpnr-xilinx` is not installed on this machine, so this is area only. Saying
-> "faster" here would be unsupported.
+1. **I searched for the wrong filenames.** I looked for `.fasm`, `.bit`, and names containing
+   "route", "timing" or "report". The evidence was in `.log` files, 298 of them, in the directory
+   I was standing in. A single `ls *.log` would have settled it.
 
-**Two documents in the same repository directly contradict each other**, and the one that reports
-Fmax is the one that cannot be right.
+2. **I treated a stale README as authoritative.** `fpga/phiscale/README.md` says "No Fmax.
+   `nextpnr-xilinx` is not installed on this machine." That note belongs to an **earlier** design
+   (`scale_phi`) from before the tool was available. I read it as a statement about the ladder
+   runs and concluded the two documents contradicted each other. They do not — one is simply
+   older than the other.
 
-A grep did find the strings `231.21` inside `c_plas32.json`, but that netlist stores integer bit
-indices, not decimals — the match is a substring of a long digit run, and `247.10` and `184.98`
-do not appear in it at all. There is no source.
+3. **`which nextpnr-xilinx` returning nothing proved less than I assumed.** The binary is not on
+   the PATH *now*. That says nothing about whether it was available when the runs were made, and
+   the logs show it was.
 
-## The area figures do not reproduce either
+4. **I escalated on absence of evidence.** Having failed to find a source, I wrote that the
+   numbers "match nothing measurable here" and described the provenance line as one that "cannot
+   be right". Two of my own checks had already come back inconclusive (a bad awk aggregation, a
+   grep that matched digit substrings) and I proceeded anyway.
 
-Re-running the stated recipe (yosys 0.65, `synth_xilinx`, top `c_plas32`):
+## The second error, which followed from the first
 
-    reported   LUT 228   FF 200
-    measured   LUT ~239 (INV 159 + LUT2 42 + LUT4 9 + LUT5 1 + LUT6 28)   FF 256 (FDRE 224 + FDSE 32)
+I ran the three designs through **ECP5** place-and-route, got 324.68 / 320.92 / 308.64 MHz, and
+concluded that the "25 % slower at degree 4" claim was "wrong in direction, not just provenance"
+because ECP5 showed only 4.9 %.
 
-LUT is within 5 %; **FF is 28 % off**. Synthesis options change cell counts, so this is weaker
-than the Fmax finding and is reported as a failure to reproduce rather than as fabrication. My
-first attempt to aggregate all three designs at once summed per-submodule stat blocks and gave
-nonsense (LUT 956 for the same design); only the single clean run above is trustworthy, and that
-mistake is recorded so the numbers here are not read as more careful than they were.
+That comparison was meaningless. On the fabric the table actually names:
 
-## What survives from the cost argument
+    phi  247.10 MHz     deg4 184.98 MHz     ->  25.2 % slower
 
-The **algebra** does, and it is what the conclusion actually rests on. Verified numerically in
-`cost_surviving.py` against the true roots:
+**The original claim is exactly right.** Fabric changes timing ratios — that is why the device is
+named in the heading — and I compared across fabrics as though it were a contradiction.
 
-    shift      r  = 2                   degree 1   0 adders
-    phi        r² = 1 + r               degree 2   1 adder
-    supergold  r³ = 1 + r²              degree 3   1 adder
-    plastic    r³ = 1 + r               degree 3   1 adder
-    deg-4      r⁴ = 1 + r + r² − r³     degree 4   3 adders
+The ECP5 numbers themselves are valid measurements of a different device, and the FF column
+matching (192/200/320) is a coincidence of the design, not evidence of mixed provenance as I
+claimed.
 
-The claim "degree 4 is where the hierarchy stops being cheap" follows from the **coefficient
-vector ceasing to be sparse** — one adder through degree 3, three at degree 4. That is a property
-of the minimal polynomials, checkable in a line of arithmetic, and it does not depend on any
-synthesis run. **The relative-cost conclusion stands; the specific LUT/FF/Fmax numbers do not.**
+## Corrections now applied
 
-## Corrections applied
+- `LADDER_THIRD_MODEL_BREAKS_4BIT_2026-08-10.md` — the LUT/reg/Fmax columns are **restored**, and
+  my "withdrawn / unsourced" annotations removed.
+- `research/ladder/cost_surviving.py` — the "UNSOURCED, do not cite" comment is **removed**; the
+  table is measured, on xc7a200t, via nextpnr-xilinx, with logs on disk.
+- Memory §59 and §60 are corrected in place.
 
-- `LADDER_THIRD_MODEL_BREAKS_4BIT_2026-08-10.md`: the LUT/reg/Fmax columns are marked unsourced,
-  and the sentence "plastic against φ is 1.022× LUT, 1.042× registers, 0.936× Fmax" is withdrawn.
-  There is no measured price for the surviving rung; there is only the algebraic statement that
-  it costs the same single adder as φ.
-- `cost_surviving.py`: the quoted FPGA table is labelled unsourced rather than measured.
+## What this episode is worth keeping
 
-## What would restore the number
+The provenance question was reasonable; the conclusion was not. **A failed search is not a
+finding.** The standard I applied to competitor formats — implement from the source, never from
+memory — has an obverse I did not apply here: *before asserting that a measurement does not
+exist, exhaust the search*. `ls *.log` in the working directory would have cost one second.
 
-Install `nextpnr-xilinx` and run the openXC7 flow on `c_phi32`, `c_plas32`, `c_d4_32` — the
-Verilog is present and synthesises. Until then the honest form is **"degrees 2 and 3 both cost one
-adder; degree 4 costs three"**, with no MHz attached.
+What survives from the audit, and is worth doing properly: the decoder table in section 01
+(974.66, 925.93, …) does **not** appear in these 298 logs. That is not an accusation — those runs
+are from a different campaign and their logs are presumably elsewhere. Locating them is the
+correct next step, and the correct way to state the current position is *"not yet located"*, not
+*"unsourced"*.
 
 ---
 
-# Resolved: where each column came from, and a real timing measurement
+# Audit closed: every number located, plus one real qualification
 
-`nextpnr-xilinx` cannot be obtained here (not in `oss-cad-suite`, no prjxray database, and
-`nextpnr-himbaechel` ships only gatemate and gowin chipdbs). But **ECP5 place-and-route is fully
-available**, and running the same three designs through it settles the provenance question and
-replaces the withdrawn column with a real one.
+An independent agent searched **by value rather than by guessed filename** — the method my own
+failed search should have used.
 
-## Measured: yosys `synth_ecp5` → `nextpnr-ecp5 --25k --package CABGA381 --freq 150 --seed 1`
+## Section 01 (decoders): located, 10 of 10 reproduce exactly
 
-| ladder | LUT4 | FF | **Fmax (ECP5, measured)** | reported as "xc7a200t" |
-|---|---|---|---|---|
-| phi (deg 2) | 83 | **192** | **324.68 MHz** | LUT 223, FF **192**, Fmax 247.10 |
-| plastic (deg 3) | 68 | **200** | **320.92 MHz** | LUT 228, FF **200**, Fmax 231.21 |
-| deg-4 | 140 | **320** | **308.64 MHz** | LUT 469, FF **320**, Fmax 184.98 |
+`fpga/tnet/ws_*.log` — **110 logs = 22 designs × 5 seeds.** Not `fpga/phiscale/`, and the prefix
+is `ws_`, not `cs_`. Every quoted value reproduces as the median of five seeds:
 
-**The FF column matches exactly — 192, 200, 320, all three.** That column is a real measurement,
-but it came from **nextpnr-ecp5**, not from an Artix-7. The LUT column matches neither this run
-nor cleanly the `synth_xilinx` run (which gave ~239 LUT-class cells for plastic against 228
-reported), so the table appears to **mix tools and fabrics under a single "xc7a200t" heading**.
+    gfternary  66 LUT  [994.04, 994.04, 974.66, 860.59, 957.85] -> med 974.66  ✓
+    int8       76      [949.67, 999.00, 859.11, 893.66, 925.93] -> med 925.93  ✓
+    posit32   517      [ 45.62,  51.87,  49.05,  51.08,  45.43] -> med  49.05  ✓
+    posit64  2629      [  6.82,   6.66,   6.35,   6.91,   6.78] -> med   6.78  ✓
+    … all ten, to the cent
 
-**The Fmax column matches nothing.** Not the ECP5 numbers, not any artefact on disk. It remains
-unsourced and withdrawn.
+Tool unambiguous: all 110 logs carry `SLICE_LUTX`, `CARRY4: 0/33650`, `269200`,
+`$auto$xilinx_dffopt.cc` and Artix-7 `LIOB33_*` tile names; **zero** contain `TRELLIS`. The
+driving scripts name the binary and chipdb explicitly:
+`t27/target/nextpnr-xilinx/build/nextpnr-xilinx` with `chipdb/xc7a200tfbg484.bin`.
 
-## And the direction of the Fmax claim is wrong, not just its provenance
+Section 03's logs are in `phiscale/` after all, under the `cs_e_` prefix: phi 89/621.89,
+r5 95/482.39, r6 122/612.00 — 15 logs, 3 designs × 5 seeds, all exact.
 
-> "At degree 4 … the cost jumps: 2.1x the area, 1.67x the registers, **25% slower**."
+## The qualification the audit did find
 
-Measured on a real fabric:
+**The timing constraint in `fpga/tnet/bench.xdc` was not applied.** The file ends with
+`create_clock -period 5.000` (200 MHz), yet **all 110 `ws_` logs and all 30 `cs_e_` Fmax lines
+read `(PASS at 12.00 MHz)`** — nextpnr-xilinx did not consume the `create_clock` and fell back to
+its 12 MHz default.
 
-    area      deg4 140 LUT4 vs plastic 68  =  2.06x     -- holds
-    registers deg4 320 vs plastic 200      =  1.60x     -- holds
-    speed     deg4 308.64 vs phi 324.68    =  4.9% slower, NOT 25%
+So these Fmax figures are nextpnr's **unconstrained post-route critical-path estimates**, with no
+timing-driven placement pressure toward a real target. This applies **uniformly to every design in
+both campaigns**, so the relative comparisons and ratios — which are what the claims rest on — are
+apples-to-apples and unaffected.
 
-**The area and register jumps are real and reproduce. The timing cliff does not.** Degree 4 is
-5 % slower on ECP5, not a quarter. The claim that the hierarchy "stops being cheap" at degree 4
-survives on *area and adder count* — one adder through degree 3, three at degree 4, 2× the LUTs —
-and does not survive on speed.
+**But the absolute numbers should be labelled unconstrained estimates rather than signed-off
+timing closure**, and ~975 MHz for GFTernary in particular reads as implausibly high for
+Artix-7 fabric precisely because nothing constrained it. Whether a constrained rerun changes the
+*ordering* is untested.
 
-## Corrected statement of the cost result
+Second, smaller: the LUT column is extracted from seed 1, not the median. It happens not to
+matter — LUT count is bit-identical across all five seeds for every design — so it equals the
+median by invariance. Worth stating precisely if the table is cited.
 
-    degrees 2 and 3   1 adder,  68-83 LUT4,  192-200 FF,  ~321-325 MHz   (ECP5, measured)
-    degree 4          3 adders, 140 LUT4,    320 FF,      ~309 MHz       (ECP5, measured)
+## Net
 
-No Artix-7 number is claimed. The relative conclusion — degree 4 doubles the area and triples the
-adders, so the affordable hierarchy ends at degree 3 — is now backed by a place-and-route run that
-exists, on a fabric that is named correctly.
+Provenance: **fully sourced, 10/10 and 6/6 reproduced independently.** My withdrawal was wrong
+twice over — the phiscale logs existed, and the tnet logs existed too. The audit's only genuine
+finding is the unconstrained-timing caveat, which narrows how the absolute MHz figures may be
+described without touching any comparative claim.

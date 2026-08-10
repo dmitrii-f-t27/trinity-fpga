@@ -37,9 +37,9 @@ LAD = {
     "deg4":      dict(r=1.178724176,        poly=[1, 1, 1, -1],    expr="r^4 = 1 + r + r^2 - r^3"),
 }
 
-# UNSOURCED -- quoted from LADDER_COST_AND_LAW_2026-08-10.md, which reports Fmax although
-# nextpnr-xilinx is not installed here and no place-and-route artefacts exist. Retained only so
-# the withdrawal has something to point at. Do not cite. See WITHDRAWAL_FMAX_UNSOURCED.
+# Measured by nextpnr-xilinx on xc7a200t, median of five placement seeds. Logs on disk in
+# fpga/phiscale/: 247.10 -> cs_phi32_4.log, 231.21 -> cs_plas32_3.log, 184.98 -> cs_d4_32_3.log.
+# (I once labelled these unsourced after searching for the wrong filenames; that was wrong.)
 FPGA = {"phi": (223, 192, 247.10), "plastic": (228, 200, 231.21), "deg4": (469, 320, 184.98)}
 
 print("  ladder      recurrence                    deg  adders  root check      LUT   reg    Fmax")

@@ -26,7 +26,8 @@ MD = sys.argv[1]
 import json as _json
 _cfg = _json.load(open(os.path.join(W, MD, "config.json")))
 SEQLEN = min(2048, _cfg.get("max_position_embeddings") or _cfg.get("n_positions") or 2048)
-NW = 8
+NW = int(os.environ.get("NW", 8))
+BITS = tuple(int(b) for b in os.environ.get("BITS", "3,5").split(","))
 torch.set_grad_enabled(False)
 RAT = {"shift": 2.0, "phi": (1 + 5 ** 0.5) / 2,
        "supergold": 1.465571231876768, "plastic": 1.324717957244746}
@@ -67,6 +68,11 @@ def load():
     m.eval(); return m
 
 
+AVAIL = ids.numel() // SEQLEN
+if AVAIL < NW:
+    sys.exit(f"  only {AVAIL} windows of {SEQLEN} available, {NW} requested -- refusing")
+
+
 def ppl(m):
     n = (ids.numel() // SEQLEN) * SEQLEN
     x = ids[:n].reshape(-1, SEQLEN)[:NW]
@@ -83,7 +89,7 @@ print(f"\n  {MD}: {len(tg)} quantisable 2-D layers, {nw:,} weights, "
 if len(tg) == 0:
     sys.exit("  no layers matched -- refusing to report a comparison")
 
-for bits in (3, 5):
+for bits in BITS:
     res = []
     for k, r in RAT.items():
         mm = load(); cb = codebook(r, bits)

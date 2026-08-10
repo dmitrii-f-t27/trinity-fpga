@@ -2424,8 +2424,11 @@ NVFP4-like E4M3 8b/16      & $0.5000$ & $4.5000$ & $18.5445$ & $13.5340$ \\
 
 Three things follow, and only the third is ours.
 
-\emph{MXFP4's scale field is four bits wider than it needs to be.} $2^{k}$ at
-four bits reproduces E8M0's perplexity \emph{exactly} --- $22.4998$ and
+\emph{MXFP4's scale field is wider than it needs to be.} That E8M0's range
+exceeds what weights occupy has been observed elsewhere~\cite{mxgap} and we
+claim no priority for the observation; what is measured here is how much, and
+what the freed bits are worth. $2^{k}$ at four bits reproduces E8M0's perplexity
+\emph{exactly} --- $22.4998$ and
 $14.9447$, to the last digit --- because the occupied range is $8.32$ and
 $9.12$ binades and eight exponent bits buy nothing over four.
 
@@ -2527,6 +2530,34 @@ thirty-two share one and the clipped ones are a fifth of the block.
 
 Reading the hierarchy by degree, and taking the cost to be the minimal ratio
 available at each degree, hides the result. Read along a family instead.
+
+\begin{theorem}[Siegel's floor bounds the family]\label{thm:siegel}
+A Pisot--Vijayaraghavan number is a real algebraic integer above one whose
+conjugates all lie strictly inside the unit circle. Siegel~\cite{siegel1944}
+proved the smallest is $1.3247179572\ldots$, the root of $r^3=r+1$, at any
+degree and with any integer coefficients. That root is the degree-3 member of
+the family below, so the family is Pisot at $d=2$ and $d=3$ and at no higher
+degree: every later member is finer than Siegel's floor and therefore cannot be
+Pisot.
+\end{theorem}
+
+Computed conjugate moduli agree exactly: $0.6180$ at $d=2$, $0.8688$ at $d=3$,
+then $1.0633$, $1.0990$, $1.0992$, $1.0920$, $1.0837$ at $d=4\ldots8$. The
+boundary is not an accident of our enumeration; it is where a theorem from 1944
+says it must be, and \emph{the finest scale that is both applicable by one
+addition and Pisot is the plastic number.}
+
+The distinction matters for what may be built on a rung, not for the arithmetic
+itself. Normalisation in base $\theta$ is realisable by a finite automaton
+exactly when $\theta$ is Pisot~\cite{berend1994}, and for $n\ge4$ the root of
+$x^n = x+1$ is not even a Parry number, its shift being
+non-sofic~\cite{akiyama2016}. So a bounded-latency renormaliser or a
+canonical-form comparator exists at $d=2$ and $d=3$ and provably not above.
+Nothing in this paper's datapath normalises --- the coordinates are carried as
+integers and never reduced to a canonical digit string --- which is why the
+$d=8$ step measures $815.66$\,MHz rather than failing to close. We state it
+because a reader who assumes a normaliser would be assuming something the
+mathematics forbids.
 
 \begin{theorem}[The one-adder family]\label{thm:oneadder}
 For every $d$ the polynomial $r^{d}=r+1$ has a unique real root above one. It
@@ -2656,7 +2687,14 @@ the largest is not. The quantity that decides is total error, and total error is
 computable before any model runs.
 
 The distinction is between quantizing to \emph{Fibonacci numbers} and working in
-\emph{the ring those numbers are the coordinates of}. $F_iF_j$ escapes the set;
+\emph{the ring those numbers are the coordinates of}. It is narrower than it may
+sound, and we state it narrowly: by Binet's formula $F_n = \operatorname{round}
+(\varphi^{n}/\sqrt5)$ exactly for $n \ge 1$ --- verified here to $n = 25$ --- so a
+Fibonacci ladder \emph{is} a $\varphi$-power ladder up to a constant offset. What
+does not follow is closure. $F_iF_j$ is not a Fibonacci number, so the product
+leaves the representable set; $\varphi\,(a+b\varphi)$ stays in
+$\mathbb{Z}[\varphi]$. The two schemes agree on the ladder and differ on the
+ring, and the transformation stage is the price of the second. $F_iF_j$ escapes the set;
 $\varphi\cdot(a+b\varphi)$ does not. What the escape costs is exactly the two
 adders and the routing scheme, and what closure buys is that neither is needed:
 one integer addition, and the multiply-free path is not an approximation of a
@@ -3879,6 +3917,14 @@ D.~Shah et al.
 \bibitem{elias1975} P.~Elias, ``Universal codeword sets and representations of the integers,'' \emph{IEEE Trans. Inform. Theory}, vol.~21, no.~2, pp.~194--203, 1975.
 \bibitem{positgap} Closing the Gap Between Float and Posit Hardware Efficiency, arXiv:2603.01615.
 \bibitem{mlformats} Performance-Efficiency Trade-off of Low-Precision Numerical Formats in Deep Neural Networks, arXiv:1903.10584.
+\bibitem{siegel1944} C.~L.~Siegel, ``Algebraic integers whose conjugates lie in
+the unit circle,'' \emph{Duke Math.\ J.}, vol.~11, no.~3, pp.~597--602, 1944.
+\bibitem{berend1994} D.~Berend and C.~Frougny, ``Computability by finite automata
+and Pisot bases,'' \emph{Math.\ Systems Theory}, vol.~27, pp.~275--282, 1994.
+\bibitem{akiyama2016} S.~Akiyama, ``A family of non-sofic beta expansions,''
+\emph{Ergodic Theory Dynam.\ Systems}, vol.~36, no.~2, pp.~343--354, 2016.
+\bibitem{mxgap} V.~Egiazarian et al., ``Bridging the Gap Between Promise and
+Performance for Microscaling FP4 Quantization,'' arXiv:2509.23202, 2025.
 \bibitem{nvfp4} NVIDIA, ``Introducing NVFP4 for Efficient and Accurate
 Low-Precision Inference,'' 2025; and ``Pretraining Large Language Models with
 NVFP4,'' arXiv:2509.25149, 2025.
