@@ -48,6 +48,14 @@
   \small \texttt{admin@t27.ai}}
 \date{9 August 2026}
 
+% Floats were sitting flush against the text above them. Set the three
+% float separations once rather than nudging tables individually.
+\setlength{\textfloatsep}{20pt plus 4pt minus 4pt}
+\setlength{\intextsep}{20pt plus 4pt minus 4pt}
+\setlength{\floatsep}{20pt plus 4pt minus 4pt}
+\setlength{\abovecaptionskip}{8pt}
+\setlength{\belowcaptionskip}{4pt}
+
 \begin{document}
 \maketitle
 
@@ -167,10 +175,11 @@ not.
 \section{The format}\label{sec:format}
 
 \begin{equation}
-\text{TNF16}=[\,s\,|\,E{=}4\ \text{balanced-ternary trits}\,|\,M{=}11\ \text{bits}\,],
-\qquad
-v=(-1)^{s}\Bigl(1+\frac{M}{2^{9}}\Bigr)2^{e},
-\quad e=\sum_{i} t_i 3^i \in [-40,40].
+\begin{aligned}
+&\text{TNF16}=[\,s\,\mid\,E{=}4\ \text{balanced-ternary trits}\,\mid\,M{=}11\ \text{bits}\,],\\[4pt]
+&v=(-1)^{s}\Bigl(1+\frac{M}{2^{9}}\Bigr)2^{e},
+\qquad e=\sum_{i} t_i 3^i \in [-40,40].
+\end{aligned}
 \end{equation}
 
 Three properties follow from the layout rather than from tuning.
@@ -525,9 +534,8 @@ last two, and hence why this work is a ladder rather than a format.
 \label{thm:dichotomy}
 Fix a width $N$. If a format's exponent takes unboundedly many values, then its
 exponent codewords have unbounded length, and
-$\lim_{|e| \to \infty} M_{\mathrm{eff}}(e) = 0$. Consequently no fixed-width
-format has both unbounded range and precision bounded below by a positive
-constant.
+$M_{\mathrm{eff}}(e)\to0$ as $|e|\to\infty$. Consequently no fixed-width format
+has both unbounded range and precision bounded below by a positive constant.
 \end{theorem}
 
 \begin{proof}
@@ -1465,10 +1473,10 @@ models of Table~\ref{tab:regimecost}.}
 \toprule
 decoder & LUTs & RAMB36 & $F_{\max}$ & what dominates \\
 \midrule
-\texttt{posit32\_decode}          & $480$      & $0$  & $49.0$\,MHz & leading-zero count, barrel shift \\
-\texttt{takum32\_decode} as published & $76{,}821$ & $0$  & ---         & the $2^{f}$ table, built from logic \\
-\texttt{takum32\_decode} + clocked read & $10{,}967$ & $\mathbf{84}$ & $11.4$\,MHz & the same table, in block memory \\
-TNF32, exponent path             & $0$        & $0$  & ---         & the field is read directly \\
+\texttt{posit32\_decode} & $480$ & $0$ & $49.0$\,MHz & leading-zero count, shift \\
+\texttt{takum32\_decode}, published & $76{,}821$ & $0$ & --- & $2^{f}$ table, in logic \\
+\texttt{takum32\_decode}, clocked & $10{,}967$ & $\mathbf{84}$ & $11.4$\,MHz & same table, in BRAM \\
+TNF32, exponent path & $0$ & $0$ & --- & field read directly \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2309,7 +2317,8 @@ one of our two models.
 For a weight distribution and a code budget, the optimal multiply-free ratio is
 the minimiser of $\mathrm{MSE}(r,b)$, and the degree required is the smallest
 whose minimal scale does not exceed it. Minimising over continuous $r$ gives
-$r^{*}=2.054,\,1.4115,\,1.1999,\,1.1050,\,1.0576,\,1.0319$ at $3$ to $8$ bits,
+$r^{*}=2.054$, $1.4115$, $1.1999$, $1.1050$, $1.0576$ and $1.0319$ at $3$ to
+$8$ bits,
 with $\ln r^{*}$ halving per bit as doubling the code count halves the available
 log-spacing.
 \end{theorem}
@@ -2925,7 +2934,7 @@ node, so the DSP column stays free and radio and network coexist on one part.}
 block & DSP & result & \\
 \midrule
 GF16 correlator (float taps) & 8 DSP48E1 & --- & before \\
-ternary correlator (GFTernary) & \textbf{0} & 78\,MHz, demodulates real air & after \\
+ternary correlator (GFTernary) & \textbf{0} & 78\,MHz, real air & after \\
 every transformer block & \textbf{0} & systolic GEMM 33\,GOPS & same primitive \\
 trained ternary transformer & \textbf{0} & $97\%$ end-to-end & runs \\
 on-silicon backpropagation & \textbf{0} & XOR $4/4$, 24--25 epochs & trains \\
@@ -3213,7 +3222,7 @@ Section~\ref{sec:hardware}.}
 \toprule
 system & multiplication & addition \\
 \midrule
-LNS, takum & exponents add: \textbf{free} & $\log(1+2^{x})$ table: $10{,}967$ LUT, $84$ RAMB36 \\
+LNS, takum & exponents add: \textbf{free} & $\log(1{+}2^{x})$ table: $10{,}967$ LUT \\
 fixed point, APoT & multiplier, or wiring if frozen & adder: \textbf{cheap} \\
 $\mathbb{Z}[\varphi]$ & Fibonacci step, one adder & componentwise: $64$ LUT \\
 \bottomrule
@@ -3292,10 +3301,10 @@ Gradients span many orders of magnitude; a word with no range cannot hold them.}
 \toprule
 format & exponent & what supplies the range & trains alone \\
 \midrule
-\texttt{int8} & $e=0$ & learned per-tensor/per-channel scale & no \\
+\texttt{int8} & $e=0$ & learned per-tensor scale & no \\
 \texttt{int4} & $e=0$ & block scale (32 or 16 elements) & no \\
-\texttt{int12}--\texttt{int24} accumulators & $e=0$ & fixed binary point, set by hand & no \\
-E2M1 element alone & $e=2$, in-block & shared UE8M0, outside the word & no \\
+\texttt{int12}--\texttt{int24} accum. & $e=0$ & fixed point, set by hand & no \\
+E2M1 element alone & $e=2$ in-block & shared UE8M0, outside & no \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -3504,7 +3513,7 @@ against them and not against posit or takum.
 
 What the 2026 literature then varies is almost entirely the \emph{transform}
 applied before quantisation, not the format underneath it: learnable block-wise
-optimisation for outlier resilience, format-aware rounding fitted to the E2M1
+optimisation for outlier resilience, and rounding fitted to the E2M1
 level set, augmented residual channels, and activation-sparsity coupling. Each
 reports gains, and each holds the element format at E2M1.
 

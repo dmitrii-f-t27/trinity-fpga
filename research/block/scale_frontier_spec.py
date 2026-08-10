@@ -1,4 +1,32 @@
-"""Spec-faithful re-measurement of the scale frontier, and the question it leaves open.
+"""Spec-faithful re-measurement of the scale frontier.
+
+!!! THIS SCRIPT'S NUMBERS ARE NOT USABLE AS WRITTEN. Its own self-tests fail. !!!
+
+Run it and it prints phi^j = 39.5555 against 2^k = 23.5380 on SmolLM2 -- 16 points the wrong way
+-- and reports the SAME value under all three tie rules, which is impossible if the tie switch
+does anything. Two bugs, both caught by self-test before any number was reported:
+
+  BUG 1 -- the tie switch is a no-op. On the seven exact midpoints of the E2M1 grid
+  (0.25, 0.75, 1.25, 1.75, 2.5, 3.5, 5.0) all of 'even', 'zero' and 'away' return
+  [0, 0.5, 1, 1.5, 2, 3, 4]. `torch.bucketize` with the default right=False already places a
+  value equal to a boundary in the lower bin, so `is_tie` never selects anything different.
+
+  BUG 2 -- the phi scale points the wrong way. `floor(log_phi(amax/6))` gives phi^j <= amax/6,
+  so amax/s lands in [6.85, 9.55] for test inputs -- ABOVE max_norm=6 -- and every block maximum
+  clamps. That is the entire 16-point deficit; it measures a broken quantiser, not phi.
+
+The trustworthy numbers for this comparison are the independent verification's, whose harness
+carried 37 hand-computed self-tests including all seven exact midpoints under ties-to-even and
+the saturation case, and which reproduced the campaign's fp32 baselines exactly.
+
+ONE THING HERE IS REAL AND WORTH KEEPING (self-test 3, no quantiser involved):
+at equal field width a phi ladder covers LESS dynamic range than a power-of-two ladder --
+16 phi-steps span 16*log2(phi) = 11.11 binades against 2^k's 16.00, a factor of 1.44. Any
+comparison of "phi^k vs 2^k at n bits of scale field" is therefore not a like-for-like span
+comparison, and that asymmetry belongs in the write-up of the block-axis result.
+
+Original intent follows.
+--------------------------------------------------------------------------------------
 
 An independent verification found two deviations in scale_frontier.py, both of which make MXFP4
 look BETTER than the OCP spec, and therefore understate this campaign's own margin:
