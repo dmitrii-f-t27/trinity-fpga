@@ -52,37 +52,44 @@
 \maketitle
 
 \begin{abstract}
-A ternary node has three sites that could carry a number format; one needs to. The weight is a code: multiplying by it is a sign-select. The sample arrives
-ADC-native. The accumulator alone has a range to spend, and
-Ternary Network Floats (TNF) spend it --- a sign, a balanced-ternary exponent of
-$E_t$ trits, an $M$-bit mantissa, with $1+E_t+M=N$.
+A ternary node has three sites that could carry a number format; one needs to.
+The weight is a code: multiplying by it is a sign-select. The sample arrives
+ADC-native. The accumulator alone has a range to spend, and Ternary Network
+Floats spend it --- a sign, a balanced-ternary exponent of $E_t$ trits, an
+$M$-bit mantissa, $1+E_t+M=N$.
 
-GFTernary, a two-bit $\{-\varphi,0,+\varphi\}$ alphabet, carries the weight, and
-$\varphi$ is forced: it is the unique $r>1$ with $r^2=r+1$, so the lattice
-$\mathbb{Z}[\varphi]$ is closed under both the weight operation and accumulation,
-and the gain of $k$ layers is exactly $F_k\varphi+F_{k-1}$. Closure removes a
-multiplier rather than cheapening it: a set lacking it must return
-every accumulation to the set, a stage costing $9.6\times$ the whole closed
-accumulation at 16 bits and $24.8\times$ at 32. On an XC7A200T in a fully open
-flow the pair costs zero DSP: a matched filter on real air at
-$78$\,MHz, every transformer block, a systolic GEMM at
-$33$\,GOPS, a trained ternary transformer at $97\%$, and on-silicon
+The weight is where the multiplier is decided, and the deciding property is
+algebraic. Removing a multiplier rather than cheapening one requires the weight
+lattice to be \emph{closed} under both weight application and accumulation.
+$\mathbb{Z}[\varphi]$ is, because $\varphi^2=\varphi+1$: a weight application is
+the Fibonacci step $(a,b)\mapsto(b,a+b)$, an accumulation is componentwise, and
+the whole linear path of a layer is exact. Machine-checked in Coq. A datapath
+whose set is not closed must return every accumulation to it, which measures an
+order of magnitude more area than the closed accumulation entire, and pipelining
+does not rescue it: a normalisation cascade cannot be cut below one
+compare-and-subtract per stage, so its floor lies above a single addition.
+
+Closure does not single out $\varphi$; enumeration does. A scale is applicable
+without a multiplier exactly when it is an algebraic integer whose companion
+matrix has entries in $\{0,\pm1\}$, a finite condition. Degree two admits
+$\varphi$ and nothing else, and nothing lies between the shift and $\varphi$.
+The family $r^d=r+1$ has two non-zero coefficients at every degree, so any
+granularity is reachable at \emph{one addition} and $d$ registers, the roots
+approaching $2^{1/d}$. Fineness costs registers, not adders and not frequency.
+
+On an XC7A200T in a fully open flow a ternary neuron costs $28$ LUT per weight
+and \emph{no DSP at any fan-in}; the stack above it runs at zero DSP throughout,
+including a matched filter on real air at $78$\,MHz and on-silicon
 backpropagation training XOR to $4/4$.
 
-Among formats carrying their own range, ours are first and second on throughput
-per area, $0.177$ and $0.167$\,MHz/LUT against binary32's $0.163$.
+Which rung to use follows from the code budget: $\varphi$ at four bits,
+$r^5{=}r^3{+}1$ at five, $r^6{=}r{+}1$ at six, on two models, reaching $3.7\%$
+of \texttt{fp32} at six bits and one adder. On the block axis the element is
+closed --- the optimal eight-level codebook beats a deployed one by $0.9\%$ --- and
+the scale is not: a $\varphi$-power grid at four bits beats MXFP4 on two models
+while costing $0.125$ fewer bits per weight.
 
-The ladder's reach is smaller than a position count suggests. Apparent
-slack of $0.3691E$ over a uniform binary budget vanishes once positions are
-counted as bits: a realisable member obeys $3^{E_t}2^{M}\le 2^{N-1}$, and
-$\log_2 3\,\log_3 x = \log_2 x$ collapses the condition onto that budget exactly.
-At equal storage the family ties every uniform binary format that spends all its
-bits, dominates the 6 of 17 sampled that waste budget, and is escaped by tapers where
-they concentrate precision.
-
-The accumulator obeys a law we derive and measure: error grows as
-$\sqrt{pK}\,2^{-(M+1)}$ in fan-in, fitted at $+0.476$ against a predicted
-$+0.5$. Five retractions are marked in place below; more were withdrawn during the
+Five retractions are marked in place below; more were withdrawn during the
 campaign and removed rather than marked.
 \end{abstract}
 
@@ -2537,24 +2544,81 @@ thirty-two share one and the clipped ones are a fifth of the block.
 Reading the hierarchy by degree, and taking the cost to be the minimal ratio
 available at each degree, hides the result. Read along a family instead.
 
-\begin{theorem}[Three digits are forced]\label{thm:cardinal}
-Parallel addition in base $\varphi$ --- a digit-set conversion in which each
-output digit depends on a bounded window of input digits --- requires an
-alphabet of three digits and admits one~\cite{frougny2011}. The minimality is of
-\emph{cardinality} and not of the particular set: $\{-1,0,1\}$ is one such
-alphabet and $\{0,1,2\}$ is another, verified by construction. No two-digit
-alphabet suffices at any window size.
-\end{theorem}
+\paragraph{What is forced, and what is not.} For base $\varphi$, three digits is
+the proven minimum for constant-time carry-free addition~\cite{frougny2011,
+frougny2013}; a two-digit alphabet is impossible. $\{-1,0,1\}$ is \emph{one} of
+the minimal alphabets --- chosen because it is symmetric, so subtraction reuses
+the adder --- and not the unique one: $\{0,1,2\}$ is minimal too, and a working
+$\{0,1,2\}$ parallel adder for $\varphi$ was implemented and tested here.
+L\'egersk\'y~\cite{legersky2018} extends the bound to any finite alphabet inside
+$\mathbb{Z}[\varphi]$ containing zero, so no non-integer set escapes it.
 
-Ternary is therefore forced and the particular letters are not, which is the
-strongest form the statement takes and weaker than the one we first wrote down.
-Two further limits belong with it. The window is not small: the published
-algorithm on $\{-1,0,1\}$ is $21$-local, with memory $10$ and anticipation $10$,
-so ``constant time'' read as ``cheap'' would be wrong by an order of magnitude.
-And the theorem concerns the digit alphabet of a positional representation,
-while our accumulator is a pair of integers never reduced to a canonical digit
-string --- so what transfers is the impossibility for two letters, and not any
-claim that our alphabet is unique.
+The bound constrains the \emph{digit} alphabet of a positional representation
+and one operation --- rewriting a digit-wise sum back into the alphabet with a
+sliding window. A weight set has no base and no carry, so it does not transfer
+to the weight alphabet of a dot product. It would transfer only if the
+accumulator were itself a redundant base-$\varphi$ positional format, and ours
+is a pair of integers never reduced to a digit string. We record the theorem
+because it says something real and narrow --- two letters cannot be made to work
+at any window size --- and record its scope because the wider reading, which we
+first wrote down, is false.
+
+The window is not small either: the published algorithm on $\{-1,0,1\}$ is
+$21$-local, with memory $10$ and anticipation $10$. ``Constant time'' read as
+``cheap'' would be wrong by an order of magnitude.
+
+\begin{table}[t]\centering
+\caption{The multiply-free scales in one place. Level error is $(r-1)/(r+1)$,
+the worst relative gap on a ladder of ratio $r$; silicon is one scale
+application at 16-bit components, xc7a200t, median of five seeds. Every rung
+below the shift costs exactly one addition; only the register count grows.}
+\label{tab:allscales}
+\begin{tabular}{llrrrrl}
+\toprule
+scale & polynomial & $r$ & regs & adds & level err. & LUT / $F_{\max}$ \\
+\midrule
+shift        & $r=2$              & $2.0000$ & 1 & 0 & $33.33\%$ & --- \\
+$\varphi$    & $r^2=r+1$          & $1.6180$ & 2 & 1 & $23.61\%$ & $149$ / $307.69$ \\
+supergolden  & $r^3=r^2+1$        & $1.4656$ & 3 & 1 & $18.88\%$ & --- \\
+plastic      & $r^3=r+1$          & $1.3247$ & 3 & 1 & $13.97\%$ & $228$ / $231.21$ \\
+             & $r^5=r^3+1$        & $1.2365$ & 5 & 1 & $10.57\%$ & $164$ / $306.56$ \\
+             & $r^4{=}{-}r^3{+}r^2{+}r{+}1$ & $1.1787$ & 4 & 3 & $8.20\%$ & $469$ / $184.98$ \\
+             & $r^6=r+1$          & $1.1347$ & 6 & 1 & $6.31\%$ & --- \\
+             & $r^8=r+1$          & $1.0970$ & 8 & 1 & $4.63\%$ & $225$ / $815.66$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{A qualification the table needs.} Not every rung is Perron --- that
+is, not every one has its real root strictly dominant among the conjugates. The
+degree-4 minimum has a conjugate of modulus $1.5129$ against a root of
+$1.1787$, and the degree-6 minimum $1.3069$ against $1.0863$; the degree-5
+minimum $1.1237$ is Perron, its largest conjugate being $1.0959$. Where the
+root is not dominant, the coordinate vector of $r^{k}$ grows as the larger
+conjugate rather than as the value, so a chain of $k$ applications needs
+$k\log_2(\rho/r)$ guard bits --- $0.36$ bits per step at degree 4. That is a cost
+on composition and not on a single application, which is why the silicon column
+does not show it, and it is stated here rather than left for a reader to find.
+
+Wu's exhaustive search~\cite{wu2010} establishes that $1.123732821$ is the
+smallest Perron number of degree 5, so the degree-5 rung is provably optimal
+among Perron scales. It is also the Lind--Boyd exceptional case: the family
+$r^d=r+1$ is Lind's conjectured smallest Perron number of degree $d$, corrected
+by Boyd~\cite{boyd1985} at exactly $d>3$ with $d\equiv3,5 \pmod 6$. The
+exceptional minimisers are finer --- $1.1237$ against the family's $1.1673$ at
+$d=5$ --- but they are not one-adder: they cost $3$, $5$, $7$ and more adders as
+$d$ grows, and beyond $d=5$ the gain is under $0.8\%$. A finer rung at five
+adders is a different trade from a finer rung at one, and only the second would
+have been news.
+
+Table~\ref{tab:allscales} collects them. Two readings are worth making
+explicit. Along the one-adder family the adder count is constant and only the
+registers grow, so the row for $r^4$ --- three adders for a finer ratio than
+$r^5$ gives with one --- is the exception rather than the pattern, and it is what
+made an earlier reading of this hierarchy report a cost that grows with degree.
+And the frequency column does not fall as the ratio does: the $d=8$ rung
+measures $815.66$\,MHz against $\varphi$'s $307.69$, because its single adder
+sits on one of eight parallel paths rather than one of two.
 
 \begin{theorem}[Siegel's floor bounds the family]\label{thm:siegel}
 A Pisot--Vijayaraghavan number is a real algebraic integer above one whose
@@ -3980,6 +4044,16 @@ D.~Shah et al.
 \bibitem{elias1975} P.~Elias, ``Universal codeword sets and representations of the integers,'' \emph{IEEE Trans. Inform. Theory}, vol.~21, no.~2, pp.~194--203, 1975.
 \bibitem{positgap} Closing the Gap Between Float and Posit Hardware Efficiency, arXiv:2603.01615.
 \bibitem{mlformats} Performance-Efficiency Trade-off of Low-Precision Numerical Formats in Deep Neural Networks, arXiv:1903.10584.
+\bibitem{boyd1985} D.~W.~Boyd, ``The maximal modulus of an algebraic integer,''
+\emph{Math.\ Comp.}, vol.~45, no.~171, pp.~243--249, 1985.
+\bibitem{wu2010} Q.~Wu, ``The smallest Perron numbers,'' \emph{Math.\ Comp.},
+vol.~79, no.~272, pp.~2387--2394, 2010.
+\bibitem{frougny2013} C.~Frougny, E.~Pelantov\'a, and M.~Svobodov\'a,
+``Minimal digit sets for parallel addition in non-standard numeration systems,''
+\emph{J.\ Integer Seq.}, vol.~16, art.~13.2.17, 2013.
+\bibitem{legersky2018} J.~L\'egersk\'y, ``Construction of algorithms for
+parallel addition in expansions in an algebraic base,'' \emph{Acta
+Polytechnica}, vol.~58, no.~5, pp.~285--291, 2018.
 \bibitem{frougny2011} C.~Frougny, E.~Pelantov\'a, and M.~Svobodov\'a,
 ``Parallel addition in non-standard numeration systems,'' \emph{Theoretical
 Computer Science}, vol.~412, no.~41, pp.~5714--5727, 2011.
