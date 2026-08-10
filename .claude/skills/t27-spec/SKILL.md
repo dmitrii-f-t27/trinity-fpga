@@ -5249,3 +5249,35 @@ that quietly drifts by one.
 Twice now the identical defect on the identical regex has been fixed in one file
 and left standing in a sibling for another wave. The cost of the grep is
 seconds; the cost of not doing it has been two waves running.
+
+## Wave 640b — grep for the shape immediately, audit for new shapes later
+
+**A known defect shape has a textual signature. Grep for it the moment you fix
+one.** Waiting for the next review to notice the next sibling had already cost
+two waves. A minute of grep found a third instance of a comment-counting defect
+and a latent instance of a position-targeting one — both in files the expensive
+audits had not reached.
+
+**Audits and greps do different jobs.** An audit discovers shapes you had not
+thought of; a grep propagates shapes you already know. Two audits here cost
+roughly four million subagent tokens and five hours for about a dozen confirmed
+findings. The grep cost a minute. Run the cheap one after every fix and reserve
+the expensive one for finding genuinely new failure modes.
+
+**Report a grep's yield honestly: it is a lead generator, not a verdict.** Six
+signatures over fifteen files produced 33 candidate hits and exactly two real
+defects. Most "guard trips only at zero" matches are ordinary `if not x:`
+idioms. Saying "33 hits" as though it meant 33 problems would be the same
+overclaim this campaign keeps catching elsewhere.
+
+**"It works today" is the signature of a latent position-targeting defect.** A
+self-test injected before the last `endmodule` in a file, and worked — because
+that file happens to contain one module right now. The identical construct broke
+four probes in another file the moment a wave appended a module. When a check
+depends on a file's current shape rather than on a name, it is not correct, it is
+merely unexercised.
+
+**No gate stands above a self-test.** The defect here was *in* the self-test —
+the thing whose whole job is to establish the gate works. A self-test that
+silently begins testing the wrong object stops being evidence, and nothing else
+in the system will notice.
