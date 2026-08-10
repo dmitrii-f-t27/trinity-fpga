@@ -1853,7 +1853,37 @@ law: positions are allocated by a designer, not withheld by nature. We state the
 distinction because a physical-sounding derivation would be doing rhetorical work
 that the multiplier argument already does honestly.
 
-\paragraph{The standard falls out.} Applied to the block axis this stops being
+\paragraph{The standard falls out --- at one choice of percentile, and not at
+others.} Applied to the block axis the multiplier argument returns an element
+format, but which one depends on how much of the block distribution is protected,
+and that choice was left unstated in an earlier version of this section.
+
+\begin{table}[t]\centering
+\caption{The width rule on the block axis. The measured within-block span sets
+$E^{*} = \lceil \log_2 b \rceil$, and the answer moves with the percentile
+protected.}
+\label{tab:blockpct}
+\begin{tabular}{lrrl}
+\toprule
+percentile protected & span, binades & $E^{*}$ & element \\
+\midrule
+50th (median) & 1.89 & 1 & E1M2 \\
+90th & 2.45 & 2 & E2M1 \\
+99th & 3.04 & 2 & E2M1 \\
+99.9th & 3.75 & 2 & E2M1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Protecting the median returns E1M2; protecting the 90th percentile or beyond
+returns E2M1, which is the element the OCP microscaling specification fixes. The
+correct statement is therefore a threshold rather than a derivation: \emph{the
+width rule returns the MX element for any design protecting the 90th percentile
+of blocks or more, and a different element below that.} Which is right is a
+question about how many blocks may be allowed to saturate, not one settled from
+first principles, and we say so rather than quoting the agreeing case alone.
+
+\paragraph{} Applied to the block axis this stops being
 abstract. The within-block span of a trained network's weights, measured before
 any format is chosen, is $1.89$ binades at the median and $3.04$ at the 99th
 percentile. The optimum is $E^{*} = \lceil \log_2 b \rceil$, so protecting the
