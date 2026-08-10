@@ -2095,6 +2095,47 @@ development the map $(a,b)\mapsto(b,a+b)$ is proved to compute multiplication by
 $\varphi$ on the reals, and the exactness of an entire dot product follows from
 it, in Coq with no admitted lemmas.
 
+\paragraph{The stage costs an order of magnitude, and it runs per accumulation.}
+Corollary~\ref{cor:closure} says a stage is required; the fabric says what it
+costs. Table~\ref{tab:closure} measures one accumulation step in the harness of
+Section~\ref{sec:hardware} --- isolated unit, every output bit folded into the
+observed reduction, median of five placement seeds.
+
+\begin{table}[t]\centering
+\caption{One accumulation step, xc7a200t, median of five seeds. The non-closed
+unit is the greedy Zeckendorf normaliser, oracle-checked $40/40$ for both the
+sum and the no-two-adjacent-digits property.}
+\label{tab:closure}
+\begin{tabular}{lrr}
+\toprule
+one accumulation & LUT & $F_{\max}$ (MHz) \\
+\midrule
+closed, $\mathbb{Z}[\varphi]$, componentwise (16-bit) & \textbf{182} & \textbf{299.94} \\
+non-closed, normalise back (16-bit)                   & 1756 & 11.46 \\
+\addlinespace
+closed, $\mathbb{Z}[\varphi]$, componentwise (32-bit) & \textbf{283} & \textbf{239.35} \\
+non-closed, normalise back (32-bit)                   & 7017 & 4.25 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The stage does not run once per multiply. A product can be handled either way:
+the identity $F_mF_n = \bigl(L_{m+n}-(-1)^nL_{m-n}\bigr)/5$ turns one into two
+table lookups and a subtraction. It is \emph{accumulation} that has no such
+escape, because the sum of two representable numbers is not representable ---
+$F_3+F_3 = 4 = F_4+F_1$, and the representation changes non-trivially. At fan-in
+$512$ the stage runs $512$ times per neuron, against a pair of integer registers
+on the closed side.
+
+Two limits are worth stating. Greedy normalisation is not proved to be the
+cheapest --- constant-time Zeckendorf adders exist --- so the ratio is an upper
+bound on this implementation while Corollary~\ref{cor:closure} is what carries
+the qualitative claim. And part of the frequency gap is combinational depth,
+$46$ dependent stages against one addition; pipelining converts that into
+latency and registers rather than removing it. Neither limit touches the area
+column, and at 32 bits the non-closed unit misses the bench constraint that the
+closed unit clears twentyfold.
+
 
 This is a different kind of statement from the rest of the paper. Everywhere else
 we compare error magnitudes between formats; here there is no error to compare.
