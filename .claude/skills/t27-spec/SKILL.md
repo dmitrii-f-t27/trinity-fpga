@@ -4904,3 +4904,63 @@ caught it.** A README rewrite moved `**` emphasis markers so two claims-check
 regexes matched nothing. The UNMET check added one wave earlier fired; without
 it both claims would have silently left the gate while the summary still counted
 them as covered. Guards you build for the codebase apply to your own edits too.
+
+## Wave 636b — bars you choose yourself test what you thought of
+
+**The single highest-value thing this campaign has done is have someone else
+attack a result.** A proposition was published, committed and pushed after
+clearing three bars I designed and named — it proves, its oracle refutes, it
+depends on its assumption. An adversarial review found the theorem sound and
+**four of the claims around it false or defeatable**, and every one of them lay
+outside the checks I had built. Self-designed bars test the failure modes you
+already imagined. Budget for an independent attempt to break the result, and
+instruct it to attack rather than confirm.
+
+**A vacuity oracle can be defeated while staying green.** "Assert something
+false and require a refutation" only witnesses that the assumptions admit
+*something*, for *some* input, in whatever instance the oracle looks at. It says
+nothing about per-input emptiness in the structure the proof actually uses. A
+one-clause strengthening collapsed a theorem's domain to 6% while the oracle
+kept refuting and the proof kept proving. **The guard that works has no free
+variables** — assert the real component satisfies what the abstraction assumes,
+so there is nothing left for the solver to choose.
+
+**Share the constraint, don't copy it.** My first replacement guard hand-copied
+the constraint it was supposed to police, so an injection into the original left
+the copy untouched and it kept passing. Write the shared claim once as a macro,
+assume it in one place and assert it in the other. A guard that can drift from
+its subject is a guard for a past version of it.
+
+**An incomplete perturbation is not semantics-preserving, and cannot distinguish
+"real dependency" from "broken experiment".** A permutation gate substituted over
+the RTL and one macro, but not over constants declared inside property files —
+so a new theorem refuted, correctly-looking, for a reason that was the
+experiment's fault. Before believing a perturbation's verdict, check that it
+reached every declaration of the thing being perturbed.
+
+**Check whether your gate reads the design or a claim about the design.** A
+scan looking for "a comparison bounding this register" matched assertions inside
+`ifdef T27_FORMAL. An assertion is a claim *about* the design, not a mechanism
+that constrains it, and reading one as a bound inverts the gate's purpose — here
+on three of the four positive verdicts in the entire codebase. Preprocess out
+formal-only regions before analysing design logic. The same mistake in a
+different counter, found the same day: a counter matching `label: assert`
+without stripping comments invented a property out of a comment *quoting* an
+assertion.
+
+**A file gaining a module can silently redirect another module's checks.** A CI
+step injected its probe before the *last* `endmodule` in a file. A wave that
+added two modules to that file therefore sent all four of an earlier suite's
+probes into the wrong module, where elaboration pruned them — and the step began
+failing with a message naming the wrong cause. Target things by name, never by
+position, and make "name not found" an error rather than a fallback.
+
+**When a gate fails, check that its message names the real cause.** The step
+above said "UNREACHABLE — an assumption removed it". The truth was "the probe
+was never compiled in". A misleading red is worse than a red, because it sends
+the next person to the wrong file.
+
+**Publish, then review — but budget the review as part of the work.** Everything
+above was found *after* the proposition shipped. That is survivable when the
+review actually happens and the corrections are recorded forward; it is not a
+substitute for the review happening at all.
