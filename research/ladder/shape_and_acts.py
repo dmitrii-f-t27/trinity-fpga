@@ -40,7 +40,7 @@ def best_named(x, bits):
     return min(RAT, key=lambda k: score(x, RAT[k], bits)[0])
 
 
-def r_star(x, bits, grid=np.linspace(1.05, 2.6, 320)):
+def r_star(x, bits, grid=np.linspace(1.05, 2.6, 60)):
     return float(grid[int(np.argmin([score(x, float(v), bits)[0] for v in grid]))])
 
 
@@ -49,7 +49,7 @@ rng = np.random.default_rng(0)
 print(f"  {'sigma':>6}{'excess kurt':>13}{'r*(3b)':>9}{'r*(4b)':>9}{'r*(5b)':>9}"
       f"   winners 3b / 4b / 5b")
 for sg in (0.2, 0.4, 0.6, 0.8, 1.0, 1.3, 1.6, 2.0):
-    v = rng.lognormal(0.0, sg, 400000) * rng.choice([-1.0, 1.0], 400000)
+    v = rng.lognormal(0.0, sg, 120000) * rng.choice([-1.0, 1.0], 120000)
     v = v / np.abs(v).max()
     k = float(((v - v.mean()) ** 4).mean() / v.std() ** 4 - 3)
     print(f"  {sg:>6.1f}{k:>13.1f}"
@@ -76,7 +76,7 @@ def mk(n):
         if n not in caps:
             a = inp[0].detach().double().reshape(-1, inp[0].shape[-1])
             s = a.abs().amax(dim=1, keepdim=True).clamp_min(1e-12)
-            caps[n] = (a / s).cpu().numpy().ravel()[::7]
+            caps[n] = (a / s).cpu().numpy().ravel()[::29]
     return h
 
 
@@ -92,7 +92,7 @@ for n, mod in m.named_modules():
         w = mod.weight.data.to(torch.float64)
         s = w.abs().amax(dim=1, keepdim=True).clamp_min(1e-12)
         z = (w / s).cpu().numpy().ravel()
-        wts.append(z[:: max(1, z.size // 200000)])
+        wts.append(z[:: max(1, z.size // 60000)])
 wts = np.concatenate(wts)
 
 
