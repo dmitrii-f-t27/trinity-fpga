@@ -40,6 +40,15 @@ for s, e in zones:
         if any(k in before for k in ("against ", "median of", "is now", "corrected",
                                      "audited", "the two are")):
             continue
+        # A value that is a simple dyadic fraction -- 0.5, 0.25, 0.125 -- is not
+        # distinctive: it names a bit width in one sentence and a storage cost in
+        # another, and matching on the digits alone conflates them.
+        try:
+            v = float(m.group(1))
+            if v and abs(v * 1024 - round(v * 1024)) < 1e-9 and round(v * 1024) % 128 == 0:
+                continue
+        except ValueError:
+            pass
         withdrawn[m.group(1)].append(s + m.start())
 
 def in_zone(pos):
