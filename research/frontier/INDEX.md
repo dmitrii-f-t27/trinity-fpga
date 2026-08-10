@@ -13,7 +13,11 @@ index is the claim list.
 The grouping below is mechanical -- it reads the title for words like "closed",
 "withdrawn", "still" -- so treat it as a first sort, not a verdict. A document in
 "standing results" may have been superseded by one two lines below it. The
-filename and the title are reliable; the bucket is a convenience.
+filename and the title are reliable with one measured exception: of the 76
+documents, exactly one -- `LADDER_THIRD_MODEL_BREAKS_4BIT` -- is refuted by a
+follow-up appended below a rule inside itself, so its title states a result the
+same file goes on to withdraw. Read to the end of a document before citing its
+title. The bucket is a convenience.
 
 The one exception is "Negative results and open ends", which has been resolved
 by hand and carries supersession links, because a wrong entry there costs the
@@ -36,27 +40,28 @@ most: it is the section a reader goes to for something to work on.
 - **Three regimes, not one law — why the closed form gets 3 and 5 bits and misses 4**  
   `research/frontier/LADDER_THREE_REGIMES_2026-08-10.md`
 
-## Negative results and open ends (1 open, 2 since closed)
+## Negative results and open ends (0 open — all three closed)
 
 This is the one section where the mechanical grouping was actively harmful, so
-it has been resolved by hand. It listed three open ends; two of them had already
-been closed by documents filed under "standing results", with nothing linking
-the two entries. A reader who trusted the bucket -- this one did -- re-opened a
-solved problem. Each entry below now says what closed it, or what is still
-missing.
+it has been resolved by hand. It listed three open ends. **All three were already
+closed**, and a reader who trusted the bucket -- this one did -- re-opened a
+solved problem. Each entry below now says what closed it.
 
-**Open.**
-
-- **A third family breaks the 4-bit result — and with it the fitted λ**  
+- ~~A third family breaks the 4-bit result — and with it the fitted λ~~  
   `research/frontier/LADDER_THIRD_MODEL_BREAKS_4BIT_2026-08-10.md`  
-  Genuinely open, and the gap is named in `LADDER_THREE_REGIMES` itself: the
-  two-term criterion that recovers all six winners is *a one-parameter fit to
-  six outcomes*, with no out-of-sample test. Until it predicts a model it was
-  not fitted on, it describes the six rather than explaining them. The next step
-  is a fourth checkpoint, chosen before the criterion is run on it.
-
-**Closed since this index was written.**
-
+  → closed **by its own appended follow-up**, below the rule in the same file --
+  the only document in the 76 that contradicts its own title, which is why the
+  title-reading grouping missed it. `boundary.py` asked five parameter-free
+  quantities to put Pythia (supergolden) on one side and SmolLM2/Qwen (φ) on the
+  other. Only kurtosis separated, by 3.4 %, which is what chance produces from
+  three points and five candidates. The informative row is the MSE gap
+  (0.2833 / 0.1896 / 0.2719): Pythia sits *between* the two models that disagree
+  with it, so the weight statistics do not distinguish the cases and no weight
+  statistic is likely to. Four bits is a near-tie whose direction flips --
+  measured margins 2.7 % and 10.7 % to φ, 5.9 % to supergolden. **Conclusion:
+  report the 4-bit budget per model as measured, do not predict it.** The λ
+  question is settled with it: λ was fitted to force φ at 4 bits, so on a family
+  where φ loses it is worse than no λ at all.
 - ~~The block axis, attacked a second way, and still lost~~  
   `research/frontier/BLOCK_AXIS_SECOND_ATTEMPT_2026-08-10.md`  
   → closed by `BLOCK_AXIS_CLOSED_2026-08-10.md`: a Lloyd-Max bound on the
