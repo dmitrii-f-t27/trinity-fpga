@@ -5011,3 +5011,45 @@ believing.** Before drawing any conclusion from an FSM relabelling, count the
 references to the state signal by name versus by literal: 16/0 and 9/0. If any
 had been by literal, the relabelling would have changed behaviour and a
 refutation would have been correct rather than informative.
+
+## Wave 637b — a define is read as a category
+
+**A conditional-compilation flag is a taxonomy claim, and its members must share
+a precondition.** A guard was created for properties that hold unconditionally.
+A later wave added one that is true only under an environment model, without
+noticing the categories differed. Nothing complained: both were "drain
+properties". The flag then silently meant "these, one of which is false unless
+you also supply an AXI slave model", and compiling it anywhere lacking that model
+produced a refutation that reads as a design defect. Put the precondition in the
+name.
+
+**A property that is true only under an environment model is a different KIND of
+property.** Group by what a property needs, not by what it is about. Two
+properties about the same register, one unconditional and one needing a slave
+model, belong behind different guards even though every naming instinct says
+otherwise.
+
+**A re-measurement that fails to produce a number can be more valuable than one
+that succeeds.** The goal was to reproduce a published ratio. What came back was
+an 11-second refutation, which located a latent trap that had been live for three
+waves and would have surfaced as a mysterious engine failure for whoever next
+enabled that define.
+
+**"Unreproducible" is a distinct verdict from "wrong", and worth stating.** The
+ratio was never shown incorrect. Its configuration ceased to exist, so it cannot
+be checked at all — and when the decision it justified rests independently on a
+stronger argument (here: the properties prove *unbounded* at module level), say
+that too. Retire the evidence without retiring the conclusion, and be explicit
+that you are doing so.
+
+**Honour your own instrument's refusals.** The timing harness has now declined
+three times in three waves — a failing command, inputs that moved mid-run, and a
+contended machine — and each time the number it refused to print would have been
+wrong. The temptation to override "just this once, the machine is only a bit
+busy" is exactly what the guard exists to resist. Record the measurement as not
+made.
+
+**Don't run a benchmark and a fan-out at the same time.** The contention that
+blocked the third measurement was my own concurrent workflow. Sequence work that
+competes for the machine, or the harness will correctly refuse and the wall-clock
+spent is wasted.
