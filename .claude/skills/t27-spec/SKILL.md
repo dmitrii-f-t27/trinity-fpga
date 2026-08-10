@@ -4160,3 +4160,33 @@ likely to be missing its gate, not less.
 suite's properties *one at a time*; my audit ran them together at the same bound
 and got "undecided", which I nearly reported as a property of the suite. Read
 how the gate invokes the tool, not only which numbers it passes.
+
+## Wave 618 — orphaned work costs more than stale files
+
+**Ship the accidental catch as a gate.** Finding ungated properties by luck twice
+is a signal to automate: cross-reference every property file against every
+workflow, error when nothing runs it, and *warn* when only a scheduled workflow
+does — a defect in a weekly-only file is invisible on a pull request. Weekly is a
+legitimate choice for expensive harnesses; silence is not.
+
+**An orphan is not a stale file, it is a solved problem waiting to be solved
+again worse.** The scan's first run found a complete, well-documented AXI4
+read-slave model that nothing referenced — and an earlier wave had hit exactly
+that need, failed to state a property without an environment, and written a
+thinner version inline. Before building an environment, model, or harness, grep
+`formal/` for one: the repository is older than your memory of it.
+
+**A model that asserts its own precondition is worth more than one that assumes
+it.** That file assumed only what AXI4 requires of a slave, and *asserted*
+"the master issues one burst at a time" — so if the master ever violated it, the
+model would fail loudly instead of quietly hiding the defect it exists to expose.
+Copy that pattern: every environment model has preconditions, and each one is a
+choice between an assertion and a lie of omission.
+
+**Adding a submodule to a property wrapper breaks every harness that reads only
+DUT + props.** Three did here — the liveness step, the weekly mutation harness,
+and the phantom scan. Expect that, and expect to add an explicit extra-sources
+field to each. The reason it was survivable is that all three reported *an
+elaboration error* rather than "unreachable", "mutant killed", or a clean bill of
+health. **That is the return on the tool-error/verdict distinction: it pays out
+on changes nobody anticipated, in harnesses nobody was thinking about.**
