@@ -4277,3 +4277,32 @@ that X is what the code actually ranged over.
 **Recompute headline figures from stored data, not by hand.** Every number in
 that correction came out of the recorded JSON through a script. Re-deriving by
 arithmetic in prose is how the next drift starts.
+
+## Wave 622 — gate the numbers in the prose, not only the tools
+
+**Build a checker that re-derives every countable claim from the tree.** All the
+other gates ask whether a tool lies. This asks whether the *documentation* does —
+and found a proposition count 15 behind, an integration-property count 2 behind,
+and two CI **step names** quoting numbers the steps had long outgrown. Nobody
+re-counts propositions by hand, which is exactly why that number drifts.
+
+**Police the current-state document; never rewrite dated records.** A
+proposition saying "22 of the 26 prove at seq 80" was true when measured.
+Correcting it in place destroys the record. Corrections belong in a *later*
+entry, and the gate should exempt the archive and hold only the README-style
+"here is what is true now" document to the tree.
+
+**A checker comparing two numbers must first establish both range over the same
+set.** Mine counted assertions in a file and compared against a documented
+figure — twice getting a different answer (28 by whole-text, 26 by line) and
+nearly publishing each. The resolution was neither: **two assertions wrapped the
+label and `assert` onto separate lines**, so per-line undercounts, and the real
+split needed a guard-aware count over the text. I committed Prop. 73's exact
+failure inside the tool built to prevent it. *Before reporting a mismatch,
+establish what each side is counting.*
+
+**A gate that fails on its own author's next edit is the good kind.** Writing the
+proposition that documented this gate incremented the count it polices, and the
+gate went red immediately. That is the cheapest possible evidence the check is
+load-bearing — and if a number only ever changes when someone writes prose, then
+prose is exactly where it will rot.
