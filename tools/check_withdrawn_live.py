@@ -13,6 +13,12 @@ self-consistency gate counts retractions but does not follow their contents.
 
 This finds every distinctive numeric literal inside a withdrawal passage and
 asks whether it also appears outside one.
+
+NEGATIVE TEST DISCIPLINE. A test that patches this paper by string replacement
+must assert the file CHANGED. A replace whose target is absent is a no-op, and
+the gate then reports OK because nothing was injected -- indistinguishable, in
+the output, from a gate that has gone blind. That mistake was made twice while
+building this file.
 """
 import re, pathlib, sys, collections
 
