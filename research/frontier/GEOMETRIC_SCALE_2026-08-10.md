@@ -82,6 +82,21 @@ geometric beats float, and the best geometric grid needs a multiplier. Among
 multiply-free grids, `phi^k` is the finest available at four bits. The first is
 a contribution to the field; the second is what our datapath gets for nothing.
 
-*Replication on the second model is pending at the time of writing and no claim
-here rests on a single model except the perplexity column, which is marked as
-SmolLM2 throughout.*
+## Replicated
+
+Qwen2.5-0.5B, same protocol:
+
+| at equal bits | SmolLM2 | Qwen |
+|---|---|---|
+| 7 bits: geometric / E4M3 | 18.8024 / 19.8628 | 13.6401 / 13.7636 |
+| 8 bits: geometric / E4M3 | 18.1238 / 19.8628 | 13.6910 / 13.7636 |
+
+The inequality's prediction holds on both models. The margin does not transfer:
+5.3--8.8% on the smaller model against 0.5--0.9% on the larger. Sign replicates,
+size does not, which is the pattern every result tonight has followed.
+
+One further claim is model-dependent and is not made. On SmolLM2 a geometric
+grid at 4.25 bits per weight (18.1238) beats the NVFP4-like configuration at
+4.50 (18.5445) -- cheaper and better. On Qwen it does not: 13.6910 against
+13.5340, cheaper and worse. So *geometric beats float at equal bits* replicates;
+*geometric at lower cost dominates NVFP4's configuration* does not.

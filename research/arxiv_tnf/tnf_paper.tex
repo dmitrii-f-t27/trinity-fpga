@@ -2462,6 +2462,34 @@ Root-mean-square relative error over a binade agrees --- $0.1138$ against
 $0.1068$ at two mantissa bits, $0.0550$ against $0.0516$ at three, $0.0270$
 against $0.0254$ at four.
 
+Measured at equal width, on both models, the prediction holds
+(Table~\ref{tab:geoscale}).
+
+\begin{table}[t]\centering
+\caption{Scale grid at equal width, K=32, E2M1 elements, 40 windows. A
+geometric grid beats E4M3 at both widths on both models, as
+Theorem~\ref{thm:geoscale} requires. The margin does not transfer between
+models; the sign does.}
+\label{tab:geoscale}
+\begin{tabular}{lrrr}
+\toprule
+scale grid & bits & SmolLM2 & Qwen \\
+\midrule
+geometric & 7 & $\mathbf{18.8024}$ & $\mathbf{13.6401}$ \\
+E4M3      & 7 & $19.8628$ & $13.7636$ \\
+\addlinespace
+geometric & 8 & $\mathbf{18.1238}$ & $\mathbf{13.6910}$ \\
+E4M3      & 8 & $19.8628$ & $13.7636$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+One further reading is model-dependent and we do not make it. On SmolLM2 a
+geometric grid at $4.25$ bits per weight beats the NVFP4-like configuration at
+$4.50$ --- cheaper and better; on Qwen it is cheaper and worse, $13.6910$
+against $13.5340$. \emph{Geometric beats float at equal bits} replicates;
+\emph{geometric at lower cost dominates NVFP4's configuration} does not.
+
 \paragraph{The tension this exposes.} The optimal grid is geometric with ratio
 $R^{1/N}$ for the occupied range $R$ and point count $N$, and that ratio is an
 arbitrary real: applying it needs a multiplier. $\varphi^{k}$ is geometric

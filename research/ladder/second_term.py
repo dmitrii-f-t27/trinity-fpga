@@ -73,34 +73,44 @@ def terms(x, rowsabs, r, bits):
     return {
         "flush_n": float(below.mean()),
         "flush_e": float((a[below] ** 2).sum() / (a ** 2).sum()),
-        "dead_row": float(sum((r < thr).all(axis=1).sum() for r in rowsabs)
-                          / sum(r.shape[0] for r in rowsabs)),
+        "dead_row": float(sum((g < thr).all(axis=1).sum() for g in rowsabs)
+                          / sum(g.shape[0] for g in rowsabs)),
         "span_log": float(-(n - 1) * np.log(r)),
     }, mse
 
 
 LAMS = np.concatenate([[0.0], np.logspace(-5, 1, 61)])
-print("\n  second term                 lambdas ranking all 6 winners        window")
+
+# Precompute every term ONCE. The first version called terms() inside the lambda sweep, which
+# re-quantised 150k points and re-scanned every row 1488 times over.
+CACHE = {}
+for MDIR in ("smollm2", "qwen"):
+    x, rows, ppl = DATA[MDIR]
+    for bits in (3, 4, 5):
+        for k, r in RAT.items():
+            CACHE[(MDIR, bits, k)] = terms(x, rows, r, bits)
+print("  terms cached")
+
+print("\n  second term    lambdas ranking all 6 winners            window")
 for tname in ("flush_n", "flush_e", "dead_row", "span_log"):
     good = []
     for lam in LAMS:
         ok = 0
         for MDIR in ("smollm2", "qwen"):
-            x, rows, ppl = DATA[MDIR]
+            ppl = DATA[MDIR][2]
             for bits in (3, 4, 5):
-                sc = {}
-                for k, r in RAT.items():
-                    t, mse = terms(x, rows, r, bits)
-                    sc[k] = mse + lam * t[tname]
+                sc = {k: CACHE[(MDIR, bits, k)][1] + lam * CACHE[(MDIR, bits, k)][0][tname]
+                      for k in RAT}
                 bp = min(RAT, key=lambda k: ppl[(bits, NAME[k])])
                 ok += (min(sc, key=lambda k: sc[k]) == bp)
         if ok == 6:
-            good.append(lam)
-    if good:
-        lo, hi = min(good), max(good)
-        w = (hi / lo) if lo > 0 else float("inf")
-        print(f"  {tname:12} {len(good):>3} of {len(LAMS)} values   "
-              f"[{lo:.2e}, {hi:.2e}]   width {w:.1f}x" if lo > 0 else
-              f"  {tname:12} {len(good):>3} of {len(LAMS)} values   includes lambda=0")
-    else:
+            good.append(float(lam))
+    if not good:
         print(f"  {tname:12} NONE -- cannot rank all six at any lambda")
+    elif min(good) == 0.0:
+        print(f"  {tname:12} {len(good):>3}/{len(LAMS)} values, INCLUDING lambda=0 "
+              f"(no fitting needed)")
+    else:
+        lo, hi = min(good), max(good)
+        print(f"  {tname:12} {len(good):>3}/{len(LAMS)} values   "
+              f"[{lo:.2e}, {hi:.2e}]   width {hi/lo:.1f}x")

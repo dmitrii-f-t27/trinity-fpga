@@ -143,3 +143,85 @@ staying on plain powers of two.
 This follows from measured kurtosis (+25.06 against +0.44) and the same criterion, with no extra
 assumption. It is nevertheless a **prediction**: no activation-quantised perplexity has been
 measured, so the ordering is untested where it matters.
+
+---
+
+# Out-of-sample tests: one held weakly, one largely failed, one refinement found
+
+## A — six bits: prediction held on both models, but the test is weaker than it looks
+
+λ was fitted on {3,4,5} bits. Six bits is a budget the fit never saw.
+
+| model | predicted | measured | ladder perplexities |
+|---|---|---|---|
+| SmolLM2 (fp32 13.73) | plastic | **plastic** ✅ | plastic 15.67, supergold 18.06, phi 21.94, shift 74.21 |
+| Qwen (fp32 11.59) | plastic | **plastic** ✅ | plastic 12.37 |
+
+**2 of 2 — but this does not test λ.** At six bits `n = 31`, so the span is `r^30` and the
+smallest level for plastic is `1.3247^-30 ≈ 1.6e-4`. Essentially nothing is flushed, which is the
+**resolution-dominated regime** where the single-term closed form already predicts correctly. The
+test confirms the two-term criterion does not *break* outside its fitting range; it does not
+confirm λ, because λ's term is negligible there.
+
+**An out-of-sample test that would actually exercise λ has to sit near the crossover** — a third
+model at 4 bits, not a wider budget on the same two.
+
+## B — activations measured: the prediction was largely wrong
+
+`shape_and_acts.py` predicted, from kurtosis alone, that activations want the coarsest rung at
+every budget. Activations were then quantised in the forward pass (weights left fp32) and
+perplexity measured on SmolLM2, fp32 = 13.7301:
+
+| bits | predicted | measured | activation perplexities |
+|---|---|---|---|
+| 3 | shift | **phi** ❌ | phi 99 075, supergold 109 421, shift 320 142, plastic 330 488 |
+| 4 | shift | **shift** ✅ | shift 28.79, phi 107.29, supergold 950.26, plastic 60 040 |
+| 5 | shift | **plastic** ❌ | plastic 16.30, supergold 16.36, phi 18.27, shift 26.68 |
+
+**1 of 3.** Predicting from a histogram statistic worked on weights and does not transfer to
+activations. The criterion was validated only on weights and should not have been extrapolated
+across surfaces without a check — which is exactly why the check was run.
+
+**What survives, and it is the part that mattered:** weights and activations *do* want different
+ladders.
+
+    weights      3b shift   4b phi     5b plastic
+    activations  3b phi     4b shift   5b plastic
+
+At 3 and 4 bits the two surfaces disagree, and at 4 bits they swap outright — weights want φ
+where activations want shift. **The "two ladders on two sides" consequence for a ternary node
+holds; the specific claim "activations want shift everywhere" is withdrawn.**
+
+Note also how brutal activation quantisation is: at 3 bits every ladder destroys the model
+(perplexity ~10⁵), and even at 4 bits the best is 28.79 against fp32 13.73. Activations are a
+far harsher surface than weights, where 4-bit costs only ~10 perplexity points.
+
+## C — the second term should be energy, not count
+
+`second_term.py` sweeps four candidates for the reach term, asking which admits the widest λ
+window while still ranking all six measured winners:
+
+| second term | λ values ranking all 6 | window |
+|---|---|---|
+| `flush_n` — fraction of **weights** below threshold | 4 / 62 | [5.0e-3, 1.0e-2] — **2×** |
+| **`flush_e` — fraction of **energy** below threshold** | **11 / 62** | **[2.5e-1, 2.5e0] — 10×** |
+| `dead_row` — fraction of channels entirely deleted | none | — |
+| `span_log` — pure reach, data-independent | none | — |
+
+**Energy below the threshold admits a five-times wider λ window than count.** That is a
+refinement of the criterion, not a cosmetic one: it says the cost of losing reach is the *energy*
+deleted, not the *number* of weights deleted — which is the physically sensible quantity and
+makes the constant less finely tuned.
+
+Both structural candidates fail outright. `dead_row` never fires (no channel is ever entirely
+below threshold at these budgets), and `span_log` fails because a data-independent reach term
+cannot know where a particular distribution's mass sits.
+
+## Position after this round
+
+- ✅ Two-term criterion survives a wider budget on both models (weakly — the regime does not
+  exercise λ).
+- ✅ Better second term found: **energy**, not count, with a 5× wider admissible window.
+- ✅ Weights and activations demonstrably want different ladders at 3 and 4 bits.
+- 🛑 Withdrawn: "activations want the coarsest rung at every budget" — 1 of 3.
+- ⚠️ λ still has no derivation and still has not been tested near the crossover on a third model.
