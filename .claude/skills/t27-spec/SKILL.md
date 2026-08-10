@@ -4694,3 +4694,55 @@ returned nothing — because that directory is generated and untracked, so the
 check examined zero files. The sound version diffed the *tracked emitter*
 sources and confirmed every added line emits a comment. Before trusting an empty
 diff, confirm the path is actually under version control.
+
+## Wave 633 — sweep the mirror direction, and put the property where the signal is
+
+**Every sweep has a mirror.** Counting up has overflow; counting down has
+underflow, and it is the sharper risk: an overflowed counter is wrong by one
+wrap, while an underflowed countdown *does not stop* — it runs another 2^N steps
+past whatever it was metering. After sweeping incrementing registers, the
+decrementing ones were three lines of regex away and turned out to be the
+registers enforcing the previous sweep's tightest bounds. When you finish a
+sweep, ask what its opposite would find.
+
+**Load-bearing means "something else's correctness rests on it".** Two 12-bit
+indices were sized at exactly their limit, and neither was bounded by any
+comparison on itself — a separate countdown enforced both. That makes the
+countdown the real safety argument, and it was the thing nobody had checked.
+Follow a bound to whatever actually enforces it before believing it.
+
+**Put the property where the signal is, even if that is not the property file.**
+An internal register cannot be constrained from a wrapper's ports, and in this
+flow a hierarchical reference does not error — it silently declares an undriven
+one-bit wire and proves against it. The choices were: prove a weaker observable
+consequence to a bounded depth, or state the property *inline in the module*
+behind a formal-only guard and get an unbounded induction result. The second was
+right. A property file is a convention, not a requirement.
+
+**"An existing property already covers it" deserves the depth question.** The
+underflow's observable consequence — writing past the request — was genuinely
+covered by an existing property. But only to that step's bound, and the
+terminator that would trigger the underflow sits far beyond it for a large
+request. Coverage at depth N is not coverage.
+
+**When you add an inline property, find out what else compiles it.** These
+properties are guarded, and the engine's integration steps pass that same guard
+— so two module-level assertions silently joined the engine's proof obligation
+set. That is more coverage, but it is also a runtime and verdict change to a
+step you did not think you were touching. Check the `$check` cell count before
+and after.
+
+**Separate two reasons that look like one.** The first draft said an underflowed
+value was safe because "every consumer reads the pre-decrement value". Half true:
+the exit test is in the same always block and does sample pre-decrement, but the
+other consumer is a *continuous* assignment that tracks the wrapped value
+immediately — it is safe for an entirely different reason, that it is only read
+in states the FSM no longer enters. Two mechanisms, one sentence, and the
+sentence would have justified a change that broke one of them.
+
+**Record an environment dependency as a dependency, not as a proof.** The DMA's
+countdown underflows by design and stays harmless only while the AXI slave
+honours the burst length it was issued. That is a claim about the environment,
+so it is written down as a protocol dependency rather than dressed up as a
+verified property. Knowing which of your safety arguments rest on someone else's
+compliance is worth more than a green tick that hides them.
