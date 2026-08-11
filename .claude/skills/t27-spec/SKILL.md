@@ -5349,3 +5349,31 @@ to the tool's own location, not to whatever it is currently pointed at.
 **Fix the citations in the same change as the check.** Adding resolution without
 repointing the 25 stale lines would have landed CI red, and a gate that lands red
 on arrival gets disabled rather than obeyed.
+
+## Wave 642 — "I cannot compare these" is not "these agree"
+
+**An empty comparison is not a passing comparison.** A structural checker
+extracted named port connections and compared the two maps. Positional
+instantiation — ordinary Verilog — yields an *empty* map on both sides, and empty
+equals empty, so the gate reported "0 disagreements" having read nothing. Any
+check that compares two derived collections must first assert those collections
+are non-empty, or it certifies its own blindness as agreement.
+
+**A fix for "names instead of values" can leave a name one indirection out.** A
+resolver was added specifically so two files defining the same constant
+differently would stop comparing equal. It resolved exactly one level, so
+`X = Y` left the string `"Y"` — the very defect it existed to remove, moved by
+one hop. Resolve to a fixed point, with a bound so a cycle terminates.
+
+**Test the function you fixed, not the pipeline around it.** A regression for the
+resolver was first written as a full end-to-end injection, and failed for a
+reason belonging to the injection's anchor text rather than to the code under
+test. Calling the resolver directly with a two-line input proved the actual
+property in one line. End-to-end tests are for integration; a unit fix wants a
+unit test.
+
+**Record the reported defects that do not reproduce, with the counter-evidence.**
+One of three criticals here was wrong — block-comment instances were already
+excluded, demonstrated with a two-instance input where only the live one was
+found. Three lines of negative result prevent the same claim being investigated
+again next wave.
