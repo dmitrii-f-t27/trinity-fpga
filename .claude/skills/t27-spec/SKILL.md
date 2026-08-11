@@ -5377,3 +5377,40 @@ One of three criticals here was wrong — block-comment instances were already
 excluded, demonstrated with a two-instance input where only the live one was
 found. Three lines of negative result prevent the same claim being investigated
 again next wave.
+
+## Wave 643 — starve the subject, never the instrument
+
+**When a harness removes something to prove a check depends on it, remove only
+the SUBJECT.** A sweep that certifies every CI step fails when the design is
+absent moved the whole directory aside — including the ten gate scripts. Every
+python step then failed with "No such file: <gate>.py" and was recorded as
+failing correctly. For a quarter of the steps, the sweep proved only that
+deleting a script breaks the step that runs it. Ask, of any deletion-based
+control: could the observed failure have any cause other than the one being
+tested?
+
+**A negative control needs its positive arm.** "It fails when starved" and "it
+works when fed" are two claims, and a harness that only checks the first can
+certify a permanently broken step. If a control has two arms, run both.
+
+**Fixing a circular test makes the honest number smaller.** Swept steps went
+39 → 37 and exemptions 1 → 3. The larger number described a test that proved
+nothing; the smaller one describes a real guarantee. Expect this trade whenever
+a check starts asking the right question, and report the drop rather than
+absorbing it.
+
+**Not every step's subject is the design.** The sweep silently assumed it. A
+documentation gate and a self-test have subjects of their own, and requiring them
+to fail when the RTL vanishes would be over-detection. When exempting, write the
+reason AND name the internal absence case that replaces the external one.
+
+**An audit's "new shape" claim needs the same scrutiny as its defect claims.**
+This one was filed as a new taxonomy entry — "only the negative arm of a two-arm
+control" — a true and useful observation whose *mechanism* was an existing shape:
+a decline (between two causes of failure) that was never counted. Accepting it
+would have inflated the taxonomy with a description rather than a mechanism.
+
+**The gate you added last wave will catch you this wave.** A citation-resolution
+check added one wave earlier failed the build on this wave's own new
+proposition, which named a CI step that does not exist. That is the entire
+return on building it.
