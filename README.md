@@ -8,9 +8,9 @@ Snapshot 2026-07-14 (Wave 4). Counts are measured, not projected.
 
 | Axis | Count | Notes |
 |------|-------|-------|
-| SW-bitexact | 75 / 83 | Ceiling reached; remaining 8 are structural (no independent decode law) |
+| SW-bitexact | 62 / 83 strict | Independent decoder, abs_error=0. Counting the self-consistent packs (single decode law, no independent second witness) as well: 69 / 83 |
 | decode-HW Tier-E | 41 / 83 | UART @160000 on AX7203, IDCODE `0x13636093` (matches paper.tex; README's earlier "~47" included compute cells) |
-| compute-HW Tier-E | 16 cells | GF4–GF32 × {ADD, MUL}, 0 failures on silicon (vectors vary by run) |
+| compute-HW Tier-E | 30 cells | 10 GF formats (GF4, GF6, GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32) × {ADD, MUL, SUB}, 0 failures on silicon (vectors vary by run) |
 | GF64+ on silicon | 70.1% | 359 / 512 score; two timing paths identified, fix in progress |
 | Tekum benchmark | Done | GF16 wins LUT, tekum16 wins dynamic range — see findings |
 | arXiv package | Ready | `research/arxiv_submission/` |
@@ -91,7 +91,7 @@ yosys -p "read_verilog fpga/openxc7-synth/gf_adder_param.v /tmp/gf16_param_top.v
 
 ## Key Findings
 
-**1. 16 GF compute cells bit-exact on silicon.** GF4, GF6, GF8, GF12, GF16, GF20, GF24, GF32 — ADD and MUL each — pass with 0 failures on AX7203 silicon (2026-07-02 audit). Vector counts vary by run (64–512 sampled; GF4 exhaustive at 256).
+**1. 30 GF compute cells bit-exact on silicon.** GF4, GF6, GF8, GF10, GF12, GF14, GF16, GF20, GF24, GF32 — ADD, MUL and SUB each — pass with 0 failures on AX7203 silicon (2026-07-02 audit). Vector counts vary by run (64–512 sampled; GF4 exhaustive at 256).
 
 **2. GF64 timing closure failure — root cause identified.** Best silicon score 359 / 512 (70.1%). Two independent timing-critical paths in `gf_adder_param`: (a) a 43-bit barrel shifter driven by a 25-bit amount, now clamped to 6 bits (`MANT_BITS+4`); (b) an 8-branch priority encoder over 64-bit data, still too deep for CFGMCLK. Definitive fix is a 2-stage pipeline (decode+shift+sticky → register → add+norm+round+pack).
 
@@ -99,7 +99,7 @@ yosys -p "read_verilog fpga/openxc7-synth/gf_adder_param.v /tmp/gf16_param_top.v
 
 | Module | Total LUT | Dynamic range |
 |--------|----------:|----------------|
-| GF16 (`gf_adder_param`, current) | 486 | 18 decades |
+| GF16 (`gf_adder_param`, current) | 491 | 18 decades |
 | GF16 (`gf16_add_top`, deprecated) | 176 | — (no denormals/NaN) |
 | tekum16 (`tekum16_adder.v`, stub) | 573 | 153 decades |
 | takum16 | N/A | RTL adder does not exist |
@@ -110,7 +110,7 @@ The current GF16 adder is **0.85×** the tekum16 stub (15% smaller), not "4–11
 
 ## Limitations (honest)
 
-- **SW-bitexact ceiling is 75 / 83**, not 83. The remaining 8 formats are structural / parametric and have no independent decode law to witness against — they need a bit-exact generator, not a port.
+- **SW-bitexact is 62 / 83 strict** (independent decoder, abs_error=0), or **69 / 83** if the self-consistent packs (single decode law, no independent second witness) are counted — not 83. The remaining formats are structural / parametric and have no independent decode law to witness against — they need a bit-exact generator, not a port.
 - **GF64 does not yet close timing.** 70.1% silicon score; the pipeline fix is designed but not yet proven on hardware.
 - **takum16 / takum32 / takum64 have no adder RTL** in this repository — only `takum16_decode.v` exists. Any LUT comparison involving takum is N/A.
 - **tekum16 result is a stub** (65% bit-exact, truncation not RNE). A corrected tekum16 with RNE may be larger than 573 LUT.

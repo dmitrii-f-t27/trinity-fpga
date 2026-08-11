@@ -1831,9 +1831,15 @@ puts TNF mid-pack among fixed fields at $0.145$--$0.167$\,MHz per LUT. Against
 \texttt{int8} the two are indistinguishable once seeds are swept
 (Table~\ref{tab:rejected}). The two are consistent: the frontier asks what a word of
 a given width carries, the datapath asks what it costs to unpack, and every fixed
-field unpacks by reading fields. The gap in silicon runs between fixed and tapered
-formats, $2.4$ to $6.4\times$, and belongs to Theorems~\ref{thm:scan}
-and~\ref{thm:valuelaw} rather than to this ladder.
+field unpacks by reading fields. The gap in silicon between fixed and tapered
+formats splits by axis: by area the groups overlap---worst fixed is
+\texttt{IBM hex32} at $243$\,LUT against \texttt{posit8} at $214$---while by
+frequency the worst fixed field still leads the best taper by $1.43\times$, well
+outside the seed spread. A taper is paid in delay, not in area. That belongs to
+Theorems~\ref{thm:scan} and~\ref{thm:valuelaw} rather than to this ladder. The
+earlier group figure of $2.4$ to $6.4\times$ was an artefact of partial
+observation and is withdrawn; see
+\texttt{research/frontier/DECODER\_FULL\_OBS\_2026-08-10.md}.
 
 \paragraph{A limit of the measurement, stated.} Range is analytic for a fixed
 field, but verifying it at the boundary is not always possible: at $E_t = 49$ the

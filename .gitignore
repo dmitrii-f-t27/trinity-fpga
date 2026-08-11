@@ -419,4 +419,10 @@ research/.gate_cache/
 # synthesis scratch from the closure measurements: generated wrappers and netlists
 fpga/phiscale/c_*.v
 fpga/phiscale/c_*.json
-fpga/phiscale/c[sy]_*.log
+
+# place-and-route logs are the sole evidence for the paper's Fmax column, so they
+# must be tracked despite the blanket `*.log` rule above
+!fpga/phiscale/cs_*.log
+!fpga/phiscale/cy_*.log
+!fpga/tnet/ws_*.log
+!fpga/tnet/cs_e_*.log

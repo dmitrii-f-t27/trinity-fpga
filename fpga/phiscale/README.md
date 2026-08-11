@@ -30,8 +30,12 @@ multiply to map. That is a structural property, not a synthesis outcome.
 - **`k` cycles instead of 1.** With `α = mean|W| ≈ 0.02`, `k = round(log_φ α)`
   is about 8, so at fan-in 512 the scale costs ~1.6% of the layer's work. An
   unrolled or barrel variant would be one cycle at more area; not built.
-- **No Fmax.** `nextpnr-xilinx` is not installed on this machine, so this is
-  area only. Saying "faster" here would be unsupported.
+- **No Fmax for `scale_phi`.** `nextpnr-xilinx` was not available when this
+  design was built, so this comparison is area only. Saying "faster" here would
+  be unsupported. The note is scoped to `scale_phi` alone: the later ladder runs
+  do have post-route Fmax measurements, in `fpga/phiscale/cs_*.log` — see
+  `research/frontier/WITHDRAWAL_FMAX_UNSOURCED_2026-08-10.md`, which was
+  retracted precisely because this bullet was read as covering them.
 - **The built direction is not the one deployed.** Real layer scales are below
   one — `α = mean|W| ≈ 0.02` gives `k = round(log_φ α) ≈ −8` — so a deployed
   layer needs the *inverse* step `(a,b) → (b−a, a)`, from `φ⁻¹ = φ − 1`. That
