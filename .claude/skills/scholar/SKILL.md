@@ -56,6 +56,36 @@ against the document's *conclusion* before starting work on it, and when you
 discover a stale entry, fix the index in the same pass — otherwise the next
 session pays for it again.
 
+### Re-measuring one of our own results
+
+Scope objections to our own conclusions are the highest-value work available,
+because they are the ones a reviewer raises and we cannot answer by argument.
+`ROTATION_VERDICT_2026-08-11.md` is the pattern:
+
+- **Reuse the original's code, do not reimplement it.** `block_tnf.py` runs its
+  driver at module level, so it cannot be imported; the source is split on its
+  own first driver line and the helpers executed. A copy would drift and the
+  comparison would quietly stop being apples to apples.
+- **The reproduction is the real instrument check.** Before reading any new
+  number, the unrotated arms had to return 21.9397 / 36.7214 / 14.7269 /
+  18.0275 — the published figures, to four decimals. That is what proves the new
+  script and the old document measure the same thing; a baseline in a plausible
+  band does not.
+- **Check that the intervention is an involution.** Rotate-then-unrotate with no
+  quantisation had to return the weights (2.4e-07) and leave perplexity
+  unchanged. Without that, every rotated number measures a broken transform.
+- **Expect the answer to be unwelcome and report it anyway.** It widened the gap.
+  That is a better outcome than leaving the objection open, and it is the version
+  a reviewer cannot use against us.
+- **State what the measurement isolates.** This measured rotation alone; the
+  published method is rotation plus GPTQ error compensation. Say so in the
+  document, the commit and the page, or the result will be over-read.
+
+Model weights for this line live under a *previous session's* scratchpad
+(`/private/tmp/claude-501/.../0e868af8-.../scratchpad/weights`, 2.3 GB: SmolLM2,
+Qwen, Pythia, GPT-2, OPT, and wikitext-2). Check there before downloading
+anything — it survives across sessions but not forever.
+
 ### Context Collection (ALWAYS run first)
 ```bash
 # Current project state — feeds into search queries
