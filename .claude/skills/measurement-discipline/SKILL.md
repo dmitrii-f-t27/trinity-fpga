@@ -104,9 +104,32 @@ and whose transfer is worthless. Any parameter tuned on a pair of checkpoints in
    not one phenomenon.
 4. **Check whether the SPECIFICATION is the best worst-case choice.** We tuned a constant the spec
    fixes, beat it on 4 of 5 models, and then found that **no single value of ours beat the spec on
-   all of them — and the best minimax value over the common grid was the spec's own.** That
-   possibility should be tested first, not last: it is cheap and it is the outcome that most
-   changes the conclusion.
+   all of them.** That possibility should be tested first, not last: it is cheap and it is the
+   outcome that most changes the conclusion.
+
+   **A second claim sat here and is withdrawn: "the best minimax value over the common grid was
+   the spec's own."** True only of the candidate set it was computed on — and that set had **two
+   elements**. SmolLM2 was swept on an 8-point grid and the others on a 13-point grid, so the
+   intersection is `{0.0000, 0.4150}`: u = 0 (never clamp, trivially poor) and OCP itself. The spec
+   won a contest against one alternative. Recomputed on the 13-point grid the three common-grid
+   models were actually swept on, with excess relative to each model's own optimum:
+
+   | | u | worst-case excess | binding model |
+   |---|---|---|---|
+   | minimax | **0.2042** (c = 3.456) | **1.488 %** | Pythia |
+   | OCP / MX spec | 0.41504 (c = 4) | 5.025 % | OPT |
+
+   **The spec costs 3.4× the worst-case degradation of the minimax constant at identical bit
+   cost** — the scale field is unchanged, only `c` moves. Both criteria are right about different
+   things: nothing on the grid beats OCP on all three at once, so OCP is Pareto-undominated, while
+   the minimax constant loses to it on Pythia (1.488 % vs 0.551 %). **"No value beats the spec
+   everywhere" and "the spec is the best worst case" are different claims that were stated as
+   one.** n = 3; SmolLM2 and Qwen are not on this grid and either could move the point.
+
+   **When you report an optimum over a candidate set, report the SIZE of the candidate set.** A
+   minimax over two points is a coin toss in the vocabulary of an optimisation. This is §4c again:
+   pooling arms swept on different grids silently shrank the candidate set to the intersection, and
+   nothing printed the intersection.
 5. **Try the obvious reparameterisation, and believe it when it fails.** "Not a fixed u but a fixed
    clamp fraction" was the natural repair; the clamp fraction spread 17.6 points against u's 15.
    Wider, not tighter. That closes the question instead of leaving it open.
@@ -127,6 +150,132 @@ the other moved by the size of the whole claim.
 count — and only claim differences larger than the spread you find. Here, thread count 1/2/4/8 was
 bitwise identical (PyTorch CPU GEMM parallelises over output tiles, not the reduction axis), while
 the tie rule was not.
+
+### 4b. The tie floor is not set by the stored dtype. That law is withdrawn.
+
+The campaign recorded that each checkpoint's tie-rule floor tracks its **release dtype** as `2^−m`
+in the stored mantissa width, citing a predicted 8× against a measured 7.96×. Re-read from the raw
+files, the law does not survive its own data:
+
+| model | dtype | mantissa bits | u values probed | floor (max spread) |
+|---|---|---|---|---|
+| GPT-2 | fp32 | 23 | 4 | 0.000309 |
+| Pythia | fp16 | 10 | 3 | 0.535782 |
+| OPT | fp16 | 10 | 2 | 0.066723 |
+| SmolLM2 | bf16 | 7 | — | 0.2398 (source not located) |
+| Qwen | bf16 | 7 | — | 0.0932 (docstring, not a stored run) |
+
+**Pythia and OPT are the same dtype and their floors differ by 8.03×**, where the law predicts
+1.00. That 8.03 is almost certainly the "8× predicted, 7.96 measured" the law was recorded on — a
+ratio between two models the law says should be identical, read as confirmation of it. The two
+bf16 models differ by 2.57×, also predicted 1.00. Cross-dtype the ratios go the wrong way:
+Pythia/SmolLM2 measures 2.23 where the law predicts 0.12.
+
+What survives: **fp32 really is ~1000× below the rest**, which is the only part the mantissa-width
+argument ever needed to explain and the only part it does. Within a dtype the floor varies by 8×,
+so **the dtype sets an order of magnitude and nothing finer.**
+
+Three provenance problems found in the same re-read, all worth checking for in any floor table:
+
+* **The floors are a `max` over probed points, and the probe counts differ** — 4, 3, 2. A maximum
+  grows with sample count, so the numbers are not commensurable as a cross-model quantity. They
+  are defensible *per model at its own optimum*, which is how `depth/floor` used them, and not
+  defensible as evidence for a law relating models.
+* **A re-run overwrote a stored result with fewer rows than it had.** `align_u_tiefloor_pythia.json`
+  holds one row; the two logs beside it show three (u = 0.30, 0.40, 0.41504, spreads 0.3972,
+  0.5358, 0.5338). Everything downstream read the JSON. **Write results to a name that includes
+  what varied**, or a narrower re-run silently truncates the record.
+* **Two of the five floors have no stored run.** Qwen's 0.0932 is named in two script docstrings as
+  a measured tie effect; SmolLM2's 0.2398 appears only as a hardcoded constant in scripts that
+  consume it. Searched by content across the whole tree — the values, the filenames, and the JSON
+  key — not by guessing a filename (§5). Not located is not the same as does not exist, but a
+  number used as a denominator in a published table needs a file.
+
+### 4c. A "distance to the nearest other sample" is a measurement of YOUR GRID
+
+I scored four optima by `depth` = perplexity gap from the minimum **to the next-best point on the
+sweep grid**, tabulated `depth/floor`, and published a verdict: *two of four optima are shallower
+than their own noise and are not identified.* Every number in that table was real. The verdict was
+an artefact.
+
+`depth` is the gap to whatever sample happened to sit next to the minimum, so it scales with the
+**grid spacing there** — a quantity I chose, not one the models have.
+
+| model | grid | points | median Δu | Δu at the minimum | `depth` |
+|---|---|---|---|---|---|
+| SmolLM2 | [0, 0.90] | 8 | 0.1255 | −0.160 / +0.074 | 0.5104 |
+| GPT-2 | [0, 0.55] | 13 | 0.0500 | ±0.050 | 0.5127 |
+| Pythia | [0, 0.55] | 13 | 0.0500 | −0.050 / **+0.015** | 0.2457 |
+| OPT | [0, 0.55] | 13 | 0.0500 | ±0.050 | 0.0087 |
+
+Pythia's minimum was scored against a neighbour **3.3× closer in u** than GPT-2's — and for a
+locally quadratic minimum the gap goes as Δu², so that is an order of magnitude of apparent depth
+before the model contributes anything. And **SmolLM2 was swept on a different grid entirely**, yet
+sat in the same table as if the numbers were commensurable. Ranking those four models by `depth`
+ranked their grids.
+
+**The correction, and the reversal.** The grid-free statements are the local curvature
+`d²ppl/du²` and the interval where the *interpolated* curve stays within the floor of its minimum:
+
+| model | `depth` order | curvature | curvature order | interval at the floor |
+|---|---|---|---|---|
+| GPT-2 | 1st (0.5127) | 437 | 2nd | [0.250, 0.250] |
+| SmolLM2 | 2nd (0.5104) | 348 | 3rd | [0.266, 0.347] |
+| Pythia | 3rd (0.2457) | **800** | **1st** | [0.347, 0.433] |
+| OPT | 4th (0.0087) | 128 | 4th | [0.148, 0.261] |
+
+Pythia moves from third-shallowest to **sharpest**; Spearman between the orderings is +0.40. Under
+the corrected statistic **all four optima are narrow and their intervals have an empty
+intersection**, four of six pairs outright disjoint — the opposite of the published verdict, and a
+*stronger* refutation of a universal alignment constant: not "the curves are flat so u\* wanders",
+but "each u\* is pinned and they are mutually incompatible."
+
+**Rules that follow.**
+
+1. **Never compare a nearest-neighbour gap across arms swept on different grids.**
+2. **Print the grid alongside the argmin** — range, point count, and the spacing *at the minimum*.
+   Had that column existed, the fault was visible without any new measurement.
+3. **Prefer statistics that survive re-gridding**: curvature, an interpolated level-crossing
+   interval, a fitted width. Each would have given the right ordering from the same data.
+4. **Sweep every arm on the same grid, or say loudly that you did not.**
+5. **A statistic can be arithmetically correct and still answer the wrong question.** Self-tests
+   guard the harness computing the number; they say nothing about whether the number means what
+   the conclusion needs. That check is separate and has to be done by hand.
+
+### 4d. Paired arms need a paired floor. Common-mode noise cancels.
+
+Having corrected the statistic, I asked how far the new conclusion was from collapsing: inflate
+every floor by a factor `k` until the two furthest-apart models' intervals touch. **k = 5.** Not
+500 — five. So I measured the missing nuisance instead of caveating it: the same u-sweep on three
+disjoint folds of the corpus.
+
+    GPT-2   fold 0: u* = 0.2500  ppl* = 35.6968
+            fold 1: u* = 0.2500  ppl* = 30.7917
+            fold 2: u* = 0.2500  ppl* = 37.2651
+
+**The level moves 6.5 ppl between folds. The argmin does not move at all.**
+
+| noise | what it is | median | vs GPT-2's tie floor |
+|---|---|---|---|
+| marginal | spread of the *level* across folds at fixed u | 6.7010 ppl | 22,337× |
+| **differential** | spread of the *shape*, ppl(u) − ppl(u\*) | **0.2471 ppl** | 824× |
+
+A harder fold lifts the whole curve and leaves its shape alone, because **every u is evaluated on
+the same tokens with the same model — the arms are paired.** Inflating a floor as an absolute
+offset models the noise as if each arm had its own independent sample. That is what `k` did, and
+it is why `k = 5` looked alarming: it was 27× too pessimistic.
+
+At the differential floor GPT-2's interval stops being degenerate — [0.2266, 0.2770] instead of a
+grid-limited [0.250, 0.250] — and is **still disjoint from Pythia's [0.347, 0.433] by 0.070.** The
+tie floor understated the correct noise by 824× and the conclusion survived, because an interval
+widens as the **square root** of the floor.
+
+- **When arms share a sample, the floor is the paired difference, not the marginal spread.**
+- **After correcting an instrument, do not bank the new conclusion** — compute how large the
+  remaining unmeasured nuisance would have to be to overturn it. If that factor is small, you have
+  a hypothesis and a next measurement, not a result. Here it was 5, so I measured.
+- **Report the argmin's own stability directly.** Fold-to-fold spread of u\* needs no floor, no
+  curvature and no grid argument, and it is the statistic the conclusion actually rests on.
 
 ## 5. A failed search is not a finding
 
@@ -192,6 +341,57 @@ The general form: **a harness must distinguish "the thing under test failed" fro
 "the harness failed", and when it cannot tell, it must say so rather than pick
 one.** Five identical failures with no output is the signature of the second, and
 it looks exactly like a decisive result for the first.
+
+## 7c. A gate that tests one unit does not test the aggregation over units
+
+Caught before it ran, and only because §4c had just made me suspicious of shortcuts.
+
+I was about to replace a per-tensor computation with an algebraically equivalent closed form
+evaluated once over the **concatenation** of every tensor's block maxima. The gate compared the
+closed form against the real quantiser **on one tensor**, to double precision. It would have
+passed, and the full computation would still have been wrong — the scale rule confines the
+exponent to a field anchored at *the tensor's own minimum*:
+
+```python
+if nlev is not None:
+    jlo = j.min()                                   # scale_settled.py:143
+    jc = torch.clamp(j - jlo, 0, nlev - 1) + jlo
+```
+
+On one tensor `j.min()` is that tensor's minimum either way, so the fault cannot appear. On the
+concatenation it becomes the **global** minimum and every tensor gets a different scale field than
+the experiment it was meant to reproduce. The gate was blind to the exact axis the shortcut changed.
+
+- **Gate the aggregation, not just the element.** If the replaced path runs per-unit and the
+  replacement runs once over all units, compare *totals over all units*.
+- **Grep for unit-scoped state before flattening anything**: `.min()`, `.max()`, `.mean()`, any
+  normalisation, shared exponent or per-tensor anchor changes meaning under concatenation.
+- **The cheapest fix is usually not to take the shortcut.** Doing it directly removed the closed
+  form, the gate and the whole class of error, for about a minute of compute per model — which is
+  what the shortcut existed to save.
+
+## 7d. A withdrawal in your notes does not reach your documents
+
+An FPGA frequency was withdrawn in research notes, in a memory file, and in two dated analysis
+documents that each spelled out the mechanism and prescribed replacement wording. **The paper that
+carries the number to readers still says it** — in the title, the abstract, the results table, the
+throughput figure, and a sentence asserting all of it came "from actual FPGA hardware runs." A
+later honesty pass over that same file did not catch it, because it was looking at a different
+sentence.
+
+The number was the toggle rate of a 20-inverter ring oscillator clocking a 23-bit counter. The
+design's synthesised netlist holds 55 logic cells — 19 ring inverters, the counter, its carry
+chain, a clock buffer and two LED drivers — and **zero cells of the arithmetic being claimed**,
+which was constant-folded away because the wrapper feeds it literals. The tell was visible without
+any of that: three designs whose claimed sizes differ by **62×** report 330 / 322 / 323 MHz, a
+2.5 % spread. *A real critical path cannot be invariant to a 62× size change.*
+
+- **When you withdraw a number, grep for the number** — the digits, across the whole tree,
+  including papers, READMEs, CHANGELOGs and downstream docs. Not for the file you remember writing
+  it in. Here it still lived in seven further files.
+- **Record where it still lives**, and treat the withdrawal as incomplete until that list is empty.
+- This is the debugging doctrine's *"distinguish runtime from persistent fixes — silent reverts
+  create Sisyphus loops"*, applied to claims instead of configuration.
 
 ## 8. Blast radius is bounded by imports — check it before re-running anything
 
