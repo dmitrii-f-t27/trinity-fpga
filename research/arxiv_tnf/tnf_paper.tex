@@ -736,10 +736,13 @@ step of one bit per doubling for the same reason. Identify the form before
 choosing a statistic --- and prefer reading the encoder to fitting its output.
 \end{corollary}
 
-\begin{corollary}[A three-way taxonomy, recovered without knowing the encoding]
+\begin{corollary}[A taxonomy recovered without knowing the encoding]
 The diagnostic separates formats by the \emph{form} of $M(e)$: constant
 (fixed-field, TNF and GF by construction), linear in $|e|$ (posit), or
-logarithmic in $|e|$ (takum). Which form fits is decided by the data, not by
+logarithmic in $|e|$ (takum). These three were the forms we expected; a fourth,
+the wobble of Theorem~\ref{thm:wobble}, was produced by the catalogue rather than
+anticipated, and Section~\ref{sec:taxonomy} states the classification at its full
+four. Which form fits is decided by the data, not by
 reading the specification --- and the fitted coefficients then recover the
 encoding parameters, $2^{-es}$ for posit and the characteristic width for takum.
 \end{corollary}
@@ -793,6 +796,14 @@ scale interval spanning a factor $r$. Its relative error varies by a factor of
 $r$ across that interval, so $M_{\mathrm{eff}}$ oscillates with amplitude exactly
 $\log_2 r$ bits and has no trend in $|e|$.
 \end{theorem}
+
+This is a \emph{within-band} statement and Theorem~\ref{thm:diag} is a
+\emph{band-averaged} one; they are about the same formats and do not conflict.
+A fixed-field binary format is constant in the averaged sense --- which is why
+Table~\ref{tab:meff} recovers its declared $M$ to $0.01$ bits --- and oscillates by
+one bit in the pointwise sense, which is what the $0.85$ measured for
+\texttt{binary32} below reports. Wherever $M_{\mathrm{eff}}$ appears without a
+qualifier in this paper the averaged reading is meant.
 
 \begin{proof}
 The quantisation step is constant across the interval and the relative error is
@@ -1418,8 +1429,10 @@ design and neither is folklore.
 \label{thm:economy}
 Representing $R$ distinct values in radix $b$ costs $b\log_b R = b\ln R/\ln b$
 state-slots. The factor $b/\ln b$ is minimised at $b = e$; among integers it is
-$3/\ln 3 = 2.731$ against $2/\ln 2 = 2.885$, so a ternary field is $5.3\%$ more
-economical than a binary one.
+$3/\ln 3 = 2.731$ against $2/\ln 2 = 2.885$, so a ternary field is $5.4\%$ more
+economical than a binary one \emph{in state-slots}. The qualifier is not a
+formality: Theorem~\ref{thm:rangeperbit} shows the advantage does not survive
+re-expression in binary cells, and no result in this paper asserts it there.
 \end{theorem}
 
 This is the classical argument~\cite{hayes2001,radixeconomy} and it is what
@@ -1879,8 +1892,11 @@ Theorem~\ref{thm:law} it predicts a scaling relation:
 
 \begin{proposition}[Error decays as a stretched exponential in area]
 \label{prop:stretched}
-With $\varepsilon \propto 2^{-M}$ and $A \propto M^{\alpha}$,
-$\ln(1/\varepsilon) \propto A^{1/\alpha}$.
+With $\varepsilon \propto 2^{-M}$ and $A \propto M^{\alpha}$ at a constant
+$\alpha$, $\ln(1/\varepsilon) \propto A^{1/\alpha}$. The second premise is a local
+approximation and not a law: Theorem~\ref{thm:alpha} gives $A = f + cM^{2}$, under
+which $\alpha$ is not constant, so the relation holds only over a fitted window and
+does not extrapolate beyond it.
 \end{proposition}
 
 Across the post-route synthesis sweep over $M \in [7,25]$ --- a sixfold range of area and a $250{,}000$-fold
@@ -1954,10 +1970,12 @@ $90$ & $440.2$ & $1.00$ & $0.09$ \\
 \begin{corollary}[Break-even widths]
 \label{cor:breakeven}
 With $c = 2.4455$, the unary regime is worth at least one mantissa bit of silicon
-up to $M = 89.6$ --- that is, through the entire 128-bit class --- while the
-length-prefixed regime reaches one bit only up to $M = 8.2$. takum's regime
-therefore costs less than a single mantissa bit of silicon at every rung above
-TNF8, and posit's costs more than one at every rung below TNF256.
+up to $M = 89.6$ --- that is, through the entire 64-bit class, whose $M$ is $52$ on
+the research ladder and $56$ reconciled, but not through the 128-bit class, whose
+$M$ of $115$ already exceeds it --- while the length-prefixed regime reaches one
+bit only up to $M = 8.2$. takum's regime therefore costs less than a single
+mantissa bit of silicon at every rung above TNF8, and posit's costs more than one
+at every rung up to and including TNF64, falling to $0.78$ bits at TNF128.
 \end{corollary}
 
 Corollary~\ref{cor:breakeven} is the exact form of what
@@ -1974,11 +1992,11 @@ mantissa bits, so they can be added.
 \end{corollary}
 
 Applied honestly, Corollary~\ref{cor:three} separates the two tapered families
-rather than lumping them. Against posit the silicon term alone is $8.98$ bits at
-the 16-bit class --- more than TNF16's entire $9$-bit mantissa, so the area a
+rather than lumping them. Against posit the silicon term alone is $9.95$ bits at
+TNF16's $M = 9$ --- more than TNF16's entire $9$-bit mantissa, so the area a
 posit implementation spends decoding its regime would, spent on significand
 instead, roughly double the precision budget of a fixed-field format at the same
-class. Against takum the silicon term is $0.82$ bits, which is small. The
+class. Against takum the silicon term at the same $M$ is $0.91$ bits, which is small. The
 length-prefixed regime is cheap, and any argument for a fixed field made on area
 grounds is an argument against posit and not against takum. Against takum what
 remains is the accuracy result of Section~\ref{sec:accuracy}, bounded as
@@ -1986,9 +2004,10 @@ Theorem~\ref{thm:floor} requires to TNF's own range.
 
 \begin{corollary}[The area argument is a narrow-width argument]
 \label{cor:narrow}
-Since $\lambda$ grows superlinearly in $M$ while a regime codec's cost is roughly
-fixed, the same codec converts to fewer mantissa bits as the class widens:
-$8.98$ bits at 16 becomes $3.94$ at 32 for the unary regime. The fixed-field area
+Since $\lambda = 2cM$ grows linearly in $M$ by Theorem~\ref{thm:alpha} while a
+regime codec's cost is roughly fixed, the same codec converts to fewer mantissa
+bits as the class widens: for the unary regime $9.95$ bits at TNF16's $M = 9$
+becomes $4.26$ at TNF32's $M = 21$. The fixed-field area
 advantage is therefore strongest where the words are narrowest, which is the
 regime in which quantised inference operates and not the one in which numerical
 linear algebra does.
@@ -2136,7 +2155,10 @@ datapath's representation.
 \label{cor:zeropath}
 TNF's value law is linear and its exponent field is fixed, so its exponent path
 is wires: no scan, no table, no iteration. Against posit32 that is $480$ LUTs not
-spent; against takum32 it is a table of $3.15$\,Mbit not instantiated. This is a
+spent; against takum32 it is the length-prefixed decode whose measured cost is the
+$40$ LUTs of Corollary~\ref{cor:price}. A previous revision priced the takum path
+at a table of $3.15$\,Mbit; that figure traces to no file in the repository and is
+withdrawn. This is a
 larger and more robust statement than the accuracy result, and unlike it,
 Theorem~\ref{thm:floor} places no range bound on it.
 \end{corollary}
@@ -2609,12 +2631,16 @@ Sizing for $b'$ when the workload visits $b$ costs
 \[
   R =
   \begin{cases}
-    \lceil\log_3(b+1)\rceil - \lceil\log_3(b'+1)\rceil \ \text{mantissa bits}, & b' > b,\\[2pt]
+    \lceil\log_3(b'+1)\rceil - \lceil\log_3(b+1)\rceil \ \text{mantissa bits}, & b' > b,\\[2pt]
     \text{overflow on a set of measure } 1 - \tfrac{\log_3(b'+1)}{\log_3(b+1)}, & b' < b .
   \end{cases}
 \]
-The penalty is asymmetric: over-sizing costs precision logarithmically, under-sizing
-costs range linearly, so when the visited range is uncertain the rule should round up.
+Both branches are non-negative as written: over-sizing spends the surplus exponent
+trits that the smaller range would not have needed, so the first branch subtracts
+the required width from the chosen one and not the reverse. The penalty is
+asymmetric: over-sizing costs precision logarithmically in the range, under-sizing
+costs a share of the visited span that is not logarithmic in it, so when the
+visited range is uncertain the rule should round up.
 \end{theorem}
 
 The asymmetry is worth naming because it contradicts the intuition that a wider
@@ -2623,15 +2649,28 @@ paid in every value the format ever represents, whereas the price of being too
 narrow is paid only on the tail. Which dominates is an empirical question about
 the tail's weight, not a matter of taste.
 
-\begin{corollary}[When the trit is worth its packing]
+\begin{corollary}[The two radix decisions do not cancel, and must not be added]
 \label{cor:worth}
-Ternary buys $\Delta = E(1-\log_3 2)$ positions and costs
-$\kappa(3)/\kappa(2) = 1.683$ per position when packed into binary fabric, where
-$\kappa(r) = (r-1)^2/(r \ln r)$. The two cancel at $E$ satisfying
-$\Delta = 0.331\,E_t$, so on positions the trit wins outright and on binary bits
-it breaks even --- which is why BNF16 and TNF16 synthesise within $1\%$ of one
-another while the number-axis frontier separates them.
+Two distinct quantities are attached to the word \emph{ternary} in this section and
+they belong to different axes of Corollary~\ref{cor:determined}. On the axis of the
+\emph{exponent's encoding}, ternary buys $\Delta = E(1-\log_3 2) = 0.3691\,E$
+positions at $E$ bits of range. On the axis of the \emph{radix of the scale},
+moving from $r{=}2$ to $r{=}3$ costs $\log_2\bigl(\kappa(3)/\kappa(2)\bigr) -
+\log_3 2 = 0.3313$ positions of accuracy net of the range it returns, where
+$\kappa(r) = (r-1)^2/(r \ln r)$. The near-coincidence of $0.3691$ and $0.3313$ is
+numerical and carries no content: TNF fixes the scale radix at $2$
+(Theorem~\ref{thm:radixopt}), so the second quantity is not a price TNF pays, and
+the two cannot be summed, differenced or cancelled against one another. What
+actually happens at equal storage in binary cells is
+Theorem~\ref{thm:rangeperbit}: the encoding slack does not survive, which is why
+BNF16 and TNF16 synthesise within $1\%$ of one another while the number-axis
+frontier separates them.
 \end{corollary}
+
+A previous revision of this corollary asserted that the two quantities cancel at
+an $E$ satisfying $\Delta = 0.331\,E_t$. That equation has no solution but
+$E = 0$, and the assertion also crossed the two axes the paper elsewhere insists
+are independent. It is withdrawn.
 
 
 \section{Four families on two axes}\label{sec:fourfamilies}
@@ -4037,9 +4076,13 @@ $W=32$, $n=2$: $d^{*}=2$, where APoT-8 costs 1217 LUTs against 1215.
 
 \begin{theorem}[No single winner]
 \label{thm:threevertex}
-In $(\text{area}, \text{latency}, \text{error})$ no applier dominates another.
-The multiplier is exact and largest, $\varphi^{k}$ smallest and least accurate,
-APoT-2 between and beaten by neither; all three are vertices of the frontier.
+In $(\text{area}, \text{latency}, \text{error})$, and with the scale applied at
+runtime, no applier dominates another. The multiplier is exact and largest,
+$\varphi^{k}$ smallest and least accurate, APoT-2 between and beaten by neither;
+all three are vertices of the frontier. The regime qualifier is load-bearing:
+Theorem~\ref{thm:unrolled} shows that once the scale is frozen after training the
+$\varphi^{k}$ vertex is dominated for every $K \geq 1$, and
+Theorem~\ref{thm:regime} states the inversion in general.
 \end{theorem}
 
 \paragraph{The recommendation is therefore a rule, not a winner.} Use
@@ -4877,7 +4920,7 @@ continuous integration; the full statement is in the accompanying note.
 \subsection{Figures whose generating data is not in the repository}
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-52-provenance.png}
-\caption{Canon plate. Of 882 distinctive literals, 880 trace to the tree that produced them; the two that do not are retained and marked, and five document-to-code pairs still have no gate.}
+\caption{Canon plate. Of 885 distinctive literals, 882 trace to the tree that produced them; the three that do not are retained and marked, and five document-to-code pairs still have no gate.}
 \label{fig:canon-provenance}
 \end{figure}
 
@@ -4892,16 +4935,31 @@ tolerating them: constants stated beside the formula that produces them ($23$ of
 them, correctly absent from any data file), and rounding, where a data literal
 extending the printed digits counts as the source.
 
-Re-run on this revision over $6{,}108$ data files, the check finds $882$
-distinctive literals in the paper of which \textbf{two} trace to no file. They are
+Re-run on this revision over $6{,}108$ data files, the check finds $885$
+distinctive literals in the paper of which \textbf{two} trace to no file; a third,
+found by the audit described immediately below rather than by the check itself,
+brings the listed total to \textbf{three}. They are
 listed rather than deleted, because a figure that cannot be traced is not thereby
 shown to be wrong:
+
+The check has a weakness we found by auditing its passes rather than its failures,
+and it belongs in the table's neighbourhood. It matches a literal as a
+\emph{substring} of a data file's text, so a short literal is reported as sourced
+whenever it occurs inside a longer unrelated number. Two figures reading $3.15$
+passed on exactly that basis and neither had a generating file: a takum32 decode
+table in Mbit, now withdrawn from Corollary~\ref{cor:zeropath}, and the octave span
+of Theorem~\ref{thm:barrelrange}, which is retained and flagged in
+Table~\ref{tab:untraced} below. A literal of three or four characters should be
+matched on word boundaries; until the gate does so, its pass is weaker evidence for
+short literals than for long ones.
 
 \begin{table}[t]\centering
 \caption{Figures with no generating file in the repository, on this revision. Each
 is retained, flagged, and should be re-measured before it is relied upon. The
 previous revision reported seven such figures against a smaller file set; five of
-those now trace, and the count is restated rather than carried forward.}
+those now trace, and the count is restated rather than carried forward. The third
+row was not reported by the gate at all --- it was found by auditing the gate's
+passes, as described above.}
 \label{tab:untraced}
 \begin{tabular}{ll}
 \toprule
@@ -4909,6 +4967,7 @@ figure & where it appears \\
 \midrule
 $318.47$\,MHz & plastic 16-bit row of the multiply-free ratio table \\
 $63.30$\,MHz & \texttt{binary16} row of the conformance-and-cost table \\
+$3.15$ octaves & scale range over 210 layers, Theorem~\ref{thm:barrelrange} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -4916,9 +4975,12 @@ $63.30$\,MHz & \texttt{binary16} row of the conformance-and-cost table \\
 The check cannot show a number is right; it finds numbers with no source, which
 is strictly weaker and still enough. A figure nobody can trace to a file is one
 nobody can re-check, and after twenty withdrawals that is exactly where a stale
-value survives. Both of the two are achieved frequencies, the quantity with the
+value survives. The first two are achieved frequencies, the quantity with the
 widest seed spread in this paper, so neither should be quoted without a
-re-measurement; that is the pattern this check exists to surface.
+re-measurement; that is the pattern this check exists to surface. The third was
+found by the substring audit above rather than by the gate, and the two-bit shift
+field that Theorem~\ref{thm:barrelrange} concludes from it survives any span below
+four octaves, so the conclusion is more robust than the figure supporting it.
 
 \begin{theorem}[A document is an artefact, and its pairs need guarding]
 \label{thm:doctrace}
