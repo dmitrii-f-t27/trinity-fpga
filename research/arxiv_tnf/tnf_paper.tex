@@ -810,7 +810,7 @@ The quantisation step is constant across the interval and the relative error is
 that step divided by the significand, which ranges over a factor $r$. Taking
 $-\log_2$ of the ratio of the extremes gives $\log_2 r$. Since the interval
 repeats identically at every $e$, the oscillation is periodic and carries no
-trend. \qed
+trend.
 \end{proof}
 
 Theorem~\ref{thm:wobble} reproduces a result sixty years older than this work.
@@ -844,7 +844,7 @@ The exponent codewords form a prefix code over a binary alphabet, so by Kraft's
 inequality $\sum_{e} 2^{-\ell(e)} \leq 1$. If the sum has infinitely many terms
 then $\ell(e) \to \infty$. The payload available to the significand is
 $N - 1 - \ell(e)$, so it falls to zero, and by Theorem~\ref{thm:law} so does
-$M_{\mathrm{eff}}$. \qed
+$M_{\mathrm{eff}}$.
 \end{proof}
 
 \begin{corollary}[Why a ladder]
@@ -1435,6 +1435,18 @@ formality: Theorem~\ref{thm:rangeperbit} shows the advantage does not survive
 re-expression in binary cells, and no result in this paper asserts it there.
 \end{theorem}
 
+\begin{proof}
+A radix-$b$ numeral addressing $R$ values needs $\log_b R$ digit positions, and a
+position that must hold any of $b$ symbols costs $b$ state-slots, giving
+$C(b) = b\log_b R = (b/\ln b)\ln R$. Since $\ln R$ is a positive constant in $b$,
+minimising $C$ is minimising $g(b) = b/\ln b$. Then
+$g'(b) = (\ln b - 1)/\ln^{2} b$, which is negative for $1 < b < e$, zero at
+$b = e$ and positive for $b > e$, so $g$ has its unique minimum at $b = e$ and is
+strictly increasing above it. Among integers the candidates are therefore $2$ and
+$3$, the two neighbours of $e = 2.71828$, and $g(3) = 2.73072 < g(2) = 2.88539$.
+The relative saving is $1 - g(3)/g(2) = 0.05361$.
+\end{proof}
+
 This is the classical argument~\cite{hayes2001,radixeconomy} and it is what
 motivates a ternary exponent. It is also stated in a currency --- state-slots ---
 that no binary fabric pays in. The next theorem says what happens when it does.
@@ -1443,8 +1455,8 @@ The classical argument also has a published rebuttal, and this paper's position 
 that the rebuttal is correct on its own terms. Etiemble argues that $R=3$ is
 \emph{not} the optimal radix for computation~\cite{etiemble2019}: once the metric
 is switched from abstract state-slots to the delay, area and energy of a realised
-ternary gate on a binary-optimised process, the $5.3\%$ slot advantage is consumed
-several times over. Nothing in this paper contradicts that. The $5.3\%$ is quoted
+ternary gate on a binary-optimised process, the $5.4\%$ slot advantage is consumed
+several times over. Nothing in this paper contradicts that. The $5.4\%$ is quoted
 here as the classical statement being bounded, not as a design justification, and
 Theorem~\ref{thm:nofree} together with Theorem~\ref{thm:packing-density} is
 precisely the statement that it is never collected on the fabric this work uses.
@@ -1532,7 +1544,7 @@ increasing bijection from $(0,1)$ onto $(1/2,1)$, which transports density.
 Checked as exact integers for $t=1,\dots,500$: $L_t>0$ and odd in every case,
 beginning $(t,b_t,L_t)=(1,2,1)$, $(2,4,7)$, $(3,5,5)$ and reaching
 $L_{16}=24{,}062{,}143$ at $b_{16}=26$. Two readings follow. There is no trit
-budget at which binary packing is free, so the ``$5.3\%$ more economical'' of
+budget at which binary packing is free, so the ``$5.4\%$ more economical'' of
 Theorem~\ref{thm:economy} is never collected on a binary fabric. And because the
 utilisation is dense in $(1/2,1)$, no tail of the ladder is asymptotically safe:
 Table~\ref{tab:rho} is a sample of a sequence with limit points filling the whole
@@ -1552,7 +1564,7 @@ By Theorem~\ref{thm:law} the expected relative error is
 $\tfrac12 \mathbb{E}[1/s]\,2^{-(M+1)}$, in which the exponent does not appear;
 replacing $M$ by $M+k$ multiplies it by $2^{-k}$. The dynamic range is
 $3^{E_t}$ binades, a function of $E_t$ alone, so it is unchanged. Nothing else in
-the layout depends on $M$. \qed
+the layout depends on $M$.
 \end{proof}
 
 Theorem~\ref{thm:alloc} converts the slack of Section~\ref{sec:design} into a
@@ -1617,7 +1629,7 @@ $2^{-(M+1)}$ convention of Theorem~\ref{thm:law} yields $\kappa$ as stated. For
 the range, $E_t$ trits span $3^{E_t}$ steps of $\log_2 r$ binades each. One
 mantissa bit halves the error and one exponent trit triples the range, which
 fixes the exchange rate between the two currencies and gives the position
-figures. \qed
+figures.
 \end{proof}
 
 Direct measurement at two rungs, encoding and decoding through both scales in
@@ -1682,7 +1694,7 @@ doubling of $|e|$, asymptotically.
 \begin{proof}
 Kraft's inequality gives $\sum_e 2^{-\ell(e)} \leq 1$. If $\ell(e) < \log_2|e|$
 for all but finitely many $e$, the tail of the sum exceeds
-$\sum_e 1/|e|$, which diverges. \qed
+$\sum_e 1/|e|$, which diverges.
 \end{proof}
 
 Theorem~\ref{thm:floor} is worth stating plainly because it bounds this work as
@@ -1948,6 +1960,15 @@ mantissa bits, inversely proportional to the mantissa width. It is worth at leas
 one mantissa bit exactly while $M \leq C/2c$.
 \end{theorem}
 
+\begin{proof}
+Theorem~\ref{thm:convert} prices a fixed area $C$ in mantissa bits as $C/\lambda$,
+where $\lambda$ is the marginal area of one mantissa bit at the operating width.
+Theorem~\ref{thm:alpha} gives $A(M) = f + cM^{2}$, hence
+$\lambda = \mathrm{d}A/\mathrm{d}M = 2cM$, and substituting yields $C/(2cM)$, which
+is strictly decreasing in $M$ and proportional to $1/M$. It is at least $1$ exactly
+when $C/(2cM) \ge 1$, that is when $M \le C/2c$.
+\end{proof}
+
 \begin{table}[t]\centering
 \caption{The same regime codecs valued at five mantissa widths through
 Theorem~\ref{thm:oneoverm}, with $c = 2.4455$ fitted from the XC7A200T post-route sweep. The unary
@@ -2102,7 +2123,7 @@ memory for multipliers. The width of the source format does not enter.
 \begin{proof}
 The residual after the table lookup is $x = f_{\mathrm{lo}}\ln 2$ with
 $f_{\mathrm{lo}} < 2^{-k}$, and the degree-$d$ Taylor remainder of $e^{x}$ is
-$x^{d+1}/(d+1)!$. Taking $-\log_2$ gives the stated $P$. \qed
+$x^{d+1}/(d+1)!$. Taking $-\log_2$ gives the stated $P$.
 \end{proof}
 
 Evaluated against direct simulation of the scheme --- the table, the residual and
@@ -2635,6 +2656,21 @@ Sizing for $b'$ when the workload visits $b$ costs
     \text{overflow on a set of measure } 1 - \tfrac{\log_3(b'+1)}{\log_3(b+1)}, & b' < b .
   \end{cases}
 \]
+\begin{proof}
+By Theorem~\ref{thm:optimal} the trit budget needed to cover $b$ binades is
+$E_t^{*}(b) = \lceil\log_3(b+1)\rceil$, and the width rule $1 + E_t + M = N$ fixes
+the word, so at a fixed $N$ every trit spent on the exponent is a mantissa bit
+forgone, one for one. Sizing for $b' > b$ therefore spends
+$E_t^{*}(b') - E_t^{*}(b)$ trits that the visited range never uses, which is the
+first branch, and it is non-negative because $E_t^{*}$ is non-decreasing. For
+$b' < b$ the format's reach is $b'$ of the $b$ binades the workload visits; on a
+log-uniform workload over the visited span the uncovered share is
+$1 - \log_3(b'+1)/\log_3(b+1)$, and every value in it overflows. The first branch
+grows like $\log_3$ of the range ratio, the second is a share of the span and is
+bounded by $1$ however large the shortfall, so a fixed additional cost buys
+unbounded protection in the first case and none in the second.
+\end{proof}
+
 Both branches are non-negative as written: over-sizing spends the surplus exponent
 trits that the smaller range would not have needed, so the first branch subtracts
 the required width from the chosen one and not the reverse. The penalty is
@@ -2656,9 +2692,10 @@ they belong to different axes of Corollary~\ref{cor:determined}. On the axis of 
 \emph{exponent's encoding}, ternary buys $\Delta = E(1-\log_3 2) = 0.3691\,E$
 positions at $E$ bits of range. On the axis of the \emph{radix of the scale},
 moving from $r{=}2$ to $r{=}3$ costs $\log_2\bigl(\kappa(3)/\kappa(2)\bigr) -
-\log_3 2 = 0.3313$ positions of accuracy net of the range it returns, where
+\log_3 2 = 0.3314$ positions of accuracy net of the range it returns, where
 $\kappa(r) = (r-1)^2/(r \ln r)$. The near-coincidence of $0.3691$ and $0.3313$ is
-numerical and carries no content: TNF fixes the scale radix at $2$
+numerical and carries no content, and the two figures are stated to four places as
+Theorem~\ref{thm:scaleradix} and Corollary~\ref{cor:slack} state them: TNF fixes the scale radix at $2$
 (Theorem~\ref{thm:radixopt}), so the second quantity is not a price TNF pays, and
 the two cannot be summed, differenced or cancelled against one another. What
 actually happens at equal storage in binary cells is
@@ -3450,6 +3487,35 @@ scheme has and a self-contained format such as ours does not. We claim the first
 half only. Searching over
 the scale factors themselves, rather than fixing a grid, is an established and
 separate axis~\cite{gupta2026scalesearch}, and this paper does not compete on it.
+
+A third result from the same season strengthens the framing of this paper rather
+than any of its numbers. Per-group precision can be \emph{learned}: bit-widths
+assigned group by group under a global budget beat a single uniform width at equal
+cost~\cite{ogilvy2026variable}. Read as a claim about formats, that is external
+evidence for the thesis of Section~\ref{sec:catalogue} --- that the object worth
+building is a selection procedure over a catalogue, not a format --- arrived at from
+the optimisation side rather than the arithmetic side. It also has a consequence we
+should state against ourselves, and it is the strongest available argument for
+\emph{fixed} fields.
+
+\begin{corollary}[Learned per-group precision argues for fixed fields, not against them]
+\label{cor:pergroup}
+Suppose precision is assigned per group under a global budget, as
+in~\cite{ogilvy2026variable}. Then within a group the distribution seen by the
+format has already been narrowed by the assignment, so the range that the format
+must cover unaided is smaller than the range of the whole tensor. Tapered encodings
+spend code space buying reach at the extremes of a wide distribution; by
+Theorem~\ref{thm:regret} that expenditure is a fixed cost paid whether or not the
+extremes are visited. Hence per-group assignment reduces the value of tapering and
+raises the relative value of a fixed-field format at the same width. The direction
+of the effect follows from Theorem~\ref{thm:regret} alone; its magnitude does not,
+and is not claimed here [\emph{open}].
+\end{corollary}
+
+The corollary is deliberately weak. It fixes a sign, not a size, and the sign is
+the only part that follows from a theorem in this paper. Whether the effect is
+large enough to matter is a measurement nobody in this paper has taken, including
+us, and Section~\ref{sec:limits} lists it.
 And the grid that helps is ours specifically --- on a binary datapath $2^{k}$ is a shift and
 $\varphi^{k}$ is not, while on the datapath of Section~\ref{sec:closure}
 $\varphi^{k}$ is $k$ Fibonacci steps and needs no multiplier. A scale grid that
@@ -5362,9 +5428,54 @@ with equality if and only if $t = 1$.
 By definition of the ceiling, $2^b \ge 3^t$. Suppose $2^b = 3^t$ for some
 $t \ge 1$; then $2 \mid 3^t$, which is false. Hence $2^b > 3^t$, and since both
 sides are integers, $2^b \ge 3^t + 1$, i.e.\ $2^b - 2 \ge 3^t - 1$. For $t = 1$:
-$b = 2$, $2^b - 2 = 2 = 3^1 - 1$, equality. For $t \ge 2$ the gap is strict and
-grows: $L_t = 2^b - 3^t$ is the packing loss of
-Theorem~\ref{thm:packing-density}, which is positive and odd for every $t$.
+$b = 2$, $2^b - 2 = 2 = 3^1 - 1$, equality. For the converse, suppose equality
+holds, i.e.\ $2^b - 3^t = 1$, so $2^b - 1 = 3^t$. If $b$ were odd then
+$2^b \equiv 2 \pmod 3$ and $2^b - 1 \equiv 1 \pmod 3$, so $3 \nmid 2^{b}-1$, while
+$3 \mid 3^{t}$ for every $t \ge 1$; the case $t = 0$ is excluded by hypothesis. Hence $b = 2c$ is even and
+\[
+  (2^{c}-1)(2^{c}+1) \;=\; 3^{t}.
+\]
+The two factors are odd and differ by $2$, so their greatest common divisor
+divides $2$ and is therefore $1$. Two coprime factors whose product is a power of
+$3$ are each a power of $3$, and the smaller must be $3^0 = 1$: thus $2^{c} = 2$,
+$c = 1$, $b = 2$, and $t = 1$. Equality therefore occurs at $t = 1$ and nowhere
+else.
+\end{proof}
+
+The argument replaces one given in a previous revision, which concluded strictness
+for $t \ge 2$ from the packing loss $L_t = 2^{b} - 3^{t}$ being ``positive and odd
+for every $t$''. Oddness does not exclude $L_t = 1$, since $1$ is odd, so that
+argument did not establish what the theorem claims. The same revision asserted
+that the gap \emph{grows}, and it does not.
+
+\begin{theorem}[The packing loss is not monotone in the trit budget]
+\label{thm:lossnonmonotone}
+With $b(t) = \lceil t \log_2 3\rceil$, the loss $L_t = 2^{b(t)} - 3^{t}$ is
+positive for every $t \ge 1$ but is not monotone in $t$. Its first six values are
+\[
+  L_1,\dots,L_6 \;=\; 1,\; 7,\; 5,\; 47,\; 13,\; 295 ,
+\]
+and it falls at $t = 3$ and again at $t = 5$.
+\end{theorem}
+
+\begin{proof}
+Positivity is the previous proof. For non-monotonicity it suffices to exhibit a
+decrease: $b(2) = 4$ gives $L_2 = 16 - 9 = 7$ while $b(3) = 5$ gives
+$L_3 = 32 - 27 = 5$, and $b(4) = 7$ gives $L_4 = 128 - 81 = 47$ while $b(5) = 8$
+gives $L_5 = 256 - 243 = 13$.
+\end{proof}
+
+The non-monotonicity has a design consequence and is the reason the correction is
+worth stating rather than quietly making: a wider trit budget is not uniformly
+worse packed, so a ladder cannot be sized by assuming that ternary waste
+accumulates with width. It is a ceiling artefact, and it is smallest exactly where
+$t\log_2 3$ lands just under an integer.
+
+\begin{proof}[Proof of Theorem~\ref{thm:rangeperbit}, continued]
+What remains after the equality case is the strict inequality for $t \ge 2$, which
+now follows: $L_t \ne 1$ there by the equality analysis, and $L_t > 0$, so
+$L_t \ge 2$ and in fact $L_t \ge 3$ since $L_t$ is odd
+(Theorem~\ref{thm:packing-density}).
 \end{proof}
 
 Theorem~\ref{thm:rangeperbit} is the range-axis form of the packing loss, and its
@@ -5497,6 +5608,14 @@ Table~\ref{tab:closure} measured a greedy Zeckendorf normaliser inside the
 accumulation experiment. The open question was the standalone one: what does a
 Zeckendorf \emph{adder} cost against a binary adder covering the same values, and
 how deep must its normaliser be. Both are now answered by construction.
+
+The number system itself is not ours and is not confined to hardware. Fibonacci
+numeration continues to be used as an analytical device in unrelated fields --- a
+2026 result states a localisation criterion in the many-body Aubry--Andr\'e model in
+terms of Fibonacci number systems~\cite{hetenyi2026fibonacci} --- which is worth
+recording only to place the present contribution correctly: the representation is
+old and shared, and what is new here is a synthesised cost for it on a named part,
+not the numeration.
 
 The unit is twelve Zeckendorf digits with weights $F_2$ through $F_{13}$, namely
 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144 and 233. The largest canonical value --- no two adjacent digits
@@ -6671,6 +6790,10 @@ Computing: A Systematic Review,'' \emph{IEEE Access}, vol.~13, 2024.
 \bibitem{meng2026sharq} H.~Meng, Y.~Luo, Y.~Zhao, W.~Liu, H.~Zheng, X.~Ma and P.~Zhang, ``SharQ: Bridging Activation Sparsity and FP4 Quantization for LLM Inference,'' arXiv:2606.26587. \url{https://arxiv.org/abs/2606.26587}
 
 \bibitem{li2026formalrtl} K.~Li, M.~Li, X.~Wen, S.~Zhao, J.~Wu, J.~Huang and Q.~Xu, ``FormalRTL: Verified RTL Synthesis at Scale,'' arXiv:2603.08738. \url{https://arxiv.org/abs/2603.08738}
+
+\bibitem{hetenyi2026fibonacci} B.~Het\'enyi, ``Fibonacci number systems and the localization criterion in the many-body Aubry-Andr\'e model,'' arXiv:2608.03458, 4~August 2026. \url{https://arxiv.org/abs/2608.03458}
+
+\bibitem{ogilvy2026variable} H.~Ogilvy, ``Variable Bit-width Quantization: Learning Per-Group Precision for `Bigger-but-Smaller' Language Models,'' arXiv:2607.02893, 3~July 2026. \url{https://arxiv.org/abs/2607.02893}
 
 \bibitem{fiandaca2025fibbinary} R.~Fiandaca and M.~D.~Gomony, ``Fibbinary-Based Compression and Quantization for Efficient Neural Radio Receivers,'' arXiv:2511.01921. \url{https://arxiv.org/abs/2511.01921}
 
