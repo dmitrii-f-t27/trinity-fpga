@@ -2630,10 +2630,15 @@ reconciliation of our two axes:
   \underbrace{r}_{\text{cost per position}} \times \underbrace{\log_r V}_{\text{positions}} .
 \]
 The number axis counts only the second factor, and there $\log_3$ against $\log_2$
-gives the slack $0.3691\,E$ of Corollary~\ref{cor:slack} unconditionally. The
-fabric axis restores the first factor, and packing a trit into binary fabric
-charges $\kappa(3)/\kappa(2) = 1.68$ per position, which is why BNF16 and TNF16
-synthesise within $1\%$ of one another. Theorem~\ref{thm:nofree} and
+gives the slack $0.3691\,E$ of Corollary~\ref{cor:slack} in real positions at every
+$E$ --- in whole trits the same corollary gives $\Delta_{\mathbb{Z}}$, which is
+zero at $E \in \{1,2\}$. The fabric axis restores the first factor, and packing an
+$E_t$-trit field into binary fabric charges $\lceil E_t\log_2 3\rceil$ bits, whose
+utilisation is the $\rho \in (1/2,1]$ of Theorem~\ref{thm:nofree}, which is why
+BNF16 and TNF16 synthesise within $1\%$ of one another. The factor
+$\kappa(3)/\kappa(2) = 1.68$ belongs to the scale-radix axis of
+Theorem~\ref{thm:scaleradix} and is not a packing charge; by
+Corollary~\ref{cor:worth} the two must not be substituted for one another. Theorem~\ref{thm:nofree} and
 Corollary~\ref{cor:slack} are not in tension: they are the two factors of one
 product, reported separately.
 
@@ -2780,7 +2785,8 @@ they belong to different axes of Corollary~\ref{cor:determined}. On the axis of 
 \emph{exponent's encoding}, ternary buys $\Delta = E(1-\log_3 2) = 0.3691\,E$
 positions at $E$ bits of range. On the axis of the \emph{radix of the scale},
 moving from $r{=}2$ to $r{=}3$ costs $\log_2\bigl(\kappa(3)/\kappa(2)\bigr) -
-\log_3 2 = 0.3314$ positions of accuracy net of the range it returns, where
+\log_3\bigl(\log_2 3\bigr) = 0.7506 - 0.4192 = 0.3314$ positions of accuracy net
+of the range it returns, where
 $\kappa(r) = (r-1)^2/(r \ln r)$. The near-coincidence of $0.3691$ and $0.3314$ is
 numerical and carries no content, and the two figures are stated to four places as
 Theorem~\ref{thm:scaleradix} and Corollary~\ref{cor:slack} state them: TNF fixes the scale radix at $2$
@@ -4652,23 +4658,36 @@ rate is the whole result.
 \begin{corollary}[The ternary exponent is the slack]
 \label{cor:slack}
 Every uniform binary format of width $N$ is dominated by a member of
-$\mathcal{F}_N$, with slack
+$\mathcal{F}_N$. The slack has two readings and they are not equal. In real
+positions, ignoring the integrality of the trit field,
 \[
-  \Delta \;=\; E\,\bigl(1 - \log_3 2\bigr) \;=\; 0.3691\,E \quad\text{positions},
+  \Delta \;=\; E\,\bigl(1 - \log_3 2\bigr) \;=\; 0.3691\,E \quad\text{positions}.
 \]
-strictly positive for $E \ge 1$ and growing linearly in the competitor's own
-exponent width.
+In whole trits, which is what Theorem~\ref{thm:coverage} actually budgets,
+\[
+  \Delta_{\mathbb{Z}} \;=\; E - \bigl\lceil E\log_3 2 \bigr\rceil
+  \;\le\; \Delta ,
+\]
+which is $0$ at $E \in \{1,2\}$ and strictly positive only from $E \ge 3$. So
+domination holds at every $E \ge 1$, but with a strictly positive margin only from
+$E = 3$; the linear growth in the competitor's exponent width is a property of
+$\Delta$, not of $\Delta_{\mathbb{Z}}$.
 \end{corollary}
 \begin{proof}
 By Theorem~\ref{thm:budget}, $b+1 \le 2^E$ and $m \le N-1-E$. Then
-$m + \log_3(b+1) \le (N-1-E) + E\log_3 2 = (N-1) - E(1-\log_3 2)$, which satisfies
-Theorem~\ref{thm:coverage} with the stated margin.
+$m + \lceil\log_3(b+1)\rceil \le (N-1-E) + \lceil E\log_3 2\rceil
+= (N-1) - \Delta_{\mathbb{Z}}$, which satisfies Theorem~\ref{thm:coverage} since
+$\Delta_{\mathbb{Z}} \ge 0$ for every $E \ge 0$. Dropping the ceiling gives
+$m + \log_3(b+1) \le (N-1) - \Delta$, the real-position reading.
 \end{proof}
 
-Measured, in positions: $1.48$ at \texttt{fp8\_e4m3}, $1.85$ at
+Measured, in real positions and therefore as $\Delta$ rather than
+$\Delta_{\mathbb{Z}}$: $1.48$ at \texttt{fp8\_e4m3}, $1.85$ at
 \texttt{binary16}, $2.95$ at \texttt{binary32}, $4.06$ at \texttt{binary64},
-$5.54$ at \texttt{binary128}. The margin is not a coincidence of the catalogue; it
-is $0.3691$ per exponent bit the competitor spends.
+$5.54$ at \texttt{binary128}. The corresponding whole-trit margins
+$\Delta_{\mathbb{Z}}$ are $1$, $1$, $2$, $4$ and $5$. The margin is not a
+coincidence of the catalogue; it is $0.3691$ per exponent bit the competitor
+spends before rounding to whole trits, and no more than that after.
 
 This is worth stating plainly because it cuts against
 Theorem~\ref{thm:nofree}, which says a packed ternary exponent never carries
