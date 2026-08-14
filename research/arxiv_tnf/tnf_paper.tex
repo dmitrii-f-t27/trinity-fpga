@@ -2215,29 +2215,41 @@ four source widths because all four target one datapath.
 \begin{corollary}[The trade curve, and what each target actually costs]
 \label{cor:tradecurve}
 Theorem~\ref{thm:targetprec} fixes a curve rather than a point, and the cheapest
-point on it that fits a given device is a computable quantity. Pricing the $d$
-multiplies at $2.4455 P^{2}$ LUTs --- the quadratic term of our own measured area
-law, Theorem~\ref{thm:alpha} --- and requiring the table to fit this device's
-$365$ RAMB36 tiles:
+point on it that fits a given device is a computable quantity. Fix the internal
+precision $P$ carried through the decode --- $48$ bits for a \texttt{binary32}
+target and $105$ for \texttt{binary64}, each about twice the target significand so
+that the final rounding is correct --- take $k = \lceil (P - \log_2 (d+1)!)/(d+1) -
+\log_2(1/\ln 2)\rceil$ from Theorem~\ref{thm:targetprec}, price the $d$ multiplies
+at $2.4455 P^{2}$ LUTs (the quadratic term of our own measured area law,
+Theorem~\ref{thm:alpha}) and charge the table $\lceil P 2^{k}/36864\rceil$ of this
+device's $365$ RAMB36 tiles:
 \begin{center}
-\begin{tabular}{llrr}
+\begin{tabular}{lllrrl}
 \toprule
-target & cheapest feasible point & block RAM & LUTs \\
+target & $P$ & cheapest point & block RAM & LUTs & fits device \\
 \midrule
-binary32 & $d = 2$, $k = 15$ & $43$ tiles & $11{,}269$ \\
-binary64 & $d = 5$, $k = 16$ & $187$ tiles & $134{,}808$ \\
+binary32 & $48$ & $d = 2$, $k = 15$ & $43$ tiles & $11{,}269$ & yes \\
+binary64 & $105$ & $d = 5$, $k = 16$ & $187$ tiles & $134{,}808$ & no \\
 \bottomrule
 \end{tabular}
 \end{center}
-An XC7A200T has $134{,}600$ LUTs, so decoding a logarithmic format into a
-binary64 datapath costs approximately the entire device.
+An XC7A200T has $134{,}600$ LUTs, so the \texttt{binary64} row overruns the device
+by $208$ LUTs, or $0.15\%$. That row is therefore the cheapest point on the curve,
+not a feasible one: no point on the curve fits this device at a
+\texttt{binary64} target. Sweeping $d$ at $P = 105$ gives $95{,}574$ tiles at
+$d=3$ and $2{,}987$ at $d=4$ --- both far beyond $365$ --- against $161{,}770$ LUTs
+at $d=6$ and $188{,}731$ at $d=7$, so lowering $d$ blows the memory budget by
+orders of magnitude and raising it blows the logic budget. The honest reading is
+that decoding a logarithmic format into a \texttt{binary64} datapath costs slightly
+more than this entire device, and that a larger part is required to hold it.
 \end{corollary}
 
 We had previously written that binary64 decode ``is not a design'' at roughly
 $3.6$\,Tbit. That figure is the $d = 2$ corner of the curve and taking it for the
-whole curve was our error: at $d = 5$ the table is $6.9$\,Mbit and the design
-exists. The defensible statement is Corollary~\ref{cor:tradecurve} --- it costs a
-device --- and not that it cannot be built.
+whole curve was our error: at $d = 5$ the table is $6.9$\,Mbit and the design is an
+ordinary one. The defensible statement is Corollary~\ref{cor:tradecurve} --- it
+costs slightly more than this device, and a larger part holds it --- and not that it
+cannot be built.
 
 The measured \texttt{takum32\_decode} sits one $k$ above the binary32 minimum, at
 $k = 16$ against $15$, which is a $2\times$ memory margin and ordinary engineering
@@ -2500,8 +2512,10 @@ Fix a width $N\geq4$. The set
 $\mathcal{F}_N = \{(E_t,\, M) : 1 + E_t + M = N,\ E_t \geq 2,\ M \geq 1\}$
 contains $N-3$ members, each exact by construction. By
 Theorem~\ref{thm:law} member $E_t$ has effective mantissa $M = N-1-E_t$ and
-dynamic range $3^{E_t}-1$ binades, so the members are totally ordered and no two
-dominate one another: $\mathcal{F}_N$ is a discrete Pareto frontier in
+dynamic range $3^{E_t}-1$ binades, so the members are totally ordered by $E_t$ and
+yet pairwise Pareto-incomparable --- these are two different relations here, because
+moving along the order raises one coordinate and lowers the other, so no member
+dominates any other: $\mathcal{F}_N$ is a discrete Pareto frontier in
 $(M_{\mathrm{eff}}, \text{range})$. The budget $1+E_t+M=N$ counts $E_t$ as one
 \emph{trit position}, not as one stored bit; a packed binary word holding the
 same field needs $\lceil E_t\log_2 3\rceil$ bits, so this frontier is a
@@ -2744,7 +2758,7 @@ Sizing for $b'$ when the workload visits $b$ costs
   R =
   \begin{cases}
     \lceil\log_3(b'+1)\rceil - \lceil\log_3(b+1)\rceil \ \text{mantissa bits}, & b' > b,\\[2pt]
-    \text{overflow on a set of measure } 1 - \tfrac{\log_3(b'+1)}{\log_3(b+1)}, & b' < b .
+    \text{overflow on a set of measure } 1 - \tfrac{b'}{b}, & b' < b .
   \end{cases}
 \]
 Both branches are non-negative as written.
@@ -2758,10 +2772,14 @@ forgone, one for one. Sizing for $b' > b$ therefore spends
 $E_t^{*}(b') - E_t^{*}(b)$ trits that the visited range never uses, which is the
 first branch, and it is non-negative because $E_t^{*}$ is non-decreasing. For
 $b' < b$ the format's reach is $b'$ of the $b$ binades the workload visits; on a
-log-uniform workload over the visited span the uncovered share is
-$1 - \log_3(b'+1)/\log_3(b+1)$, and every value in it overflows. The first branch
-grows like $\log_3$ of the range ratio, the second is a share of the span and is
-bounded by $1$ however large the shortfall, so a fixed additional cost buys
+log-uniform workload the density is uniform in $\log_2|x|$, hence uniform across
+binades, so the uncovered share is the binade fraction $1 - b'/b$ and every value
+in it overflows. The ratio $\log_3(b'+1)/\log_3(b+1)$ is the share of the
+\emph{trit budget}, not of the workload measure --- at $b = 80$, $b' = 26$ the two
+read $0.25$ and $0.675$ --- and an earlier revision of this theorem stated the
+former where the latter belongs. Only the latter is an overflow measure. The first
+branch grows like $\log_3$ of the range ratio, the second is a share of the span
+and is bounded by $1$ however large the shortfall, so a fixed additional cost buys
 unbounded protection in the first case and none in the second.
 \end{proof}
 
@@ -4572,13 +4590,26 @@ A format is stored in bits, and that difference is the whole of the slack.
 
 \begin{theorem}[Packed coverage]
 \label{thm:packedcov}
-A family member realisable in $N$ bits obeys $3^{E_t}2^{M} \le 2^{N-1}$.
-Substituting the minimal $E_t = \log_3(b+1)$ gives
+A family member with $E_t$ trits of scale and $m$ bits of significand, realisable
+in $N$ bits, obeys $3^{E_t}2^{m} \le 2^{N-1}$. Relaxing $E_t$ to the real value
+$\log_3(b+1)$ gives
 \[
   m + \log_2 3 \cdot \log_3(b+1) \;=\; m + \log_2(b+1) \;\le\; N-1 ,
 \]
-identically the uniform binary budget of Theorem~\ref{thm:budget}, since
-$\log_2 3 \cdot \log_3 x = \log_2 x$.
+the uniform binary budget of Theorem~\ref{thm:budget}, since
+$\log_2 3 \cdot \log_3 x = \log_2 x$. The two budgets coincide only in that
+relaxation. A trit field is integral, so the least admissible value is
+$E_t = \lceil\log_3(b+1)\rceil$ and the realisable budget is
+\[
+  m + \log_2 3 \cdot \bigl\lceil \log_3(b+1) \bigr\rceil \;\le\; N-1 ,
+\]
+which is tighter than the binary budget by
+$\log_2 3\,\bigl(\lceil\log_3(b+1)\rceil - \log_3(b+1)\bigr) \in [0, \log_2 3)$
+bits. The gap vanishes exactly when $b+1$ is a power of three --- at
+$b = 2, 8, 26, 80, 242, 728$ --- and reaches $1.51$ bits at $b = 255$ and $1.34$
+at $b = 31$. The strictness is the same fact as the positive packing loss of
+Theorem~\ref{thm:nofree}, so the packed budget never beats the binary one and
+generally loses to it.
 \end{theorem}
 
 \begin{corollary}[The slack is a position artefact]
