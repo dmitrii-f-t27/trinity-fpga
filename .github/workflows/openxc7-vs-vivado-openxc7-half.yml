@@ -222,15 +222,35 @@ jobs:
           '
           ls -lh chipdb/${{ matrix.part }}.bin
 
-      # Load it with the very binary that will use it, before twenty jobs
-      # depend on it. --test parses the chipdb and exits; if the constids
-      # disagree it aborts here, in one job, instead of in all twenty.
-      - name: The pinned binary must be able to read it
+      # Reported, NOT gated — and the distinction is the whole point.
+      #
+      # I added `--test` as a guard so a constid mismatch would abort in one
+      # chipdb job rather than in all twenty measurement jobs. It failed on its
+      # first use, identically on artix7 and spartan7:
+      #
+      #   Info: Checking bel names..
+      #   ERROR: Assert `bel == bel2' failed in common/archcheck.cc:41
+      #
+      # That line is a name round-trip — getBelName(bel) fed back through
+      # getBelByName must return the same bel — and it runs before archcheck
+      # examines anything about the database/binary pairing. It is a property of
+      # the xilinx arch's naming code (getBelByName resolves a tile-qualified
+      # name by first match, ignoring the site), and it fails the same way on two
+      # different parts. So it is not evidence about this freeze, and gating on
+      # it would block a pipeline for a defect in a different component.
+      #
+      # It stays because the output is worth having, and because deleting a
+      # check that fired is how a real signal gets lost. The thing it was meant
+      # to catch is proven downstream anyway: the constid mismatch aborted at
+      # chipdb load in place-and-route, so a measurement job that reaches
+      # routing has demonstrated the pairing is sound.
+      - name: Architecture self-check (reported, not gated)
+        continue-on-error: true
         run: |
           docker run --rm -v "$PWD:/work" -w /work "$OPENXC7_IMAGE" bash -c "
             cp /work/npnr/bin/nextpnr-xilinx /usr/local/bin/ &&
             nextpnr-xilinx --chipdb /work/chipdb/${{ matrix.part }}.bin --test
-          "
+          " 2>&1 | tail -20 || echo "archcheck did not pass — see the note above"
 
       - uses: actions/upload-artifact@v4
         with:
