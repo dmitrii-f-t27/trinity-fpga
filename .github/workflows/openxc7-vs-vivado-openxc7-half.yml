@@ -123,6 +123,20 @@ jobs:
             make -j"$(nproc)"
             ./nextpnr-xilinx --version
             cp nextpnr-xilinx /out/bin/nextpnr-xilinx
+
+            # bbasm travels with the binary. The image ships one at
+            # /usr/local/bin/bbasm built from 45a986b; the chipdb it assembles
+            # has to be read by the binary above, so it comes from the same
+            # tree or the pairing is unverified.
+            BBASM=$(find . -name bbasm -type f -perm -u+x | head -1)
+            if [ -n "$BBASM" ]; then
+              cp "$BBASM" /out/bin/bbasm
+              echo "bbasm: from the pinned tree ($BBASM)"
+            else
+              cp /usr/local/bin/bbasm /out/bin/bbasm
+              echo "bbasm: NOT built by this tree, fell back to the image copy"
+            fi
+
             ( cd xilinx/external/prjxray-db && git rev-parse HEAD ) > /out/prjxray-db.rev
           '
           DB=$(cat out/prjxray-db.rev)
@@ -167,18 +181,56 @@ jobs:
           for i in 1 2 3 4 5 6; do docker pull "$OPENXC7_IMAGE" && break; sleep $((i*20)); done
           docker image inspect "$OPENXC7_IMAGE" >/dev/null
 
+      # The chipdb must come from the SAME tree as the binary that reads it.
+      #
+      # The first attempt ran bbaexport.py straight out of the image, whose
+      # /nextpnr-xilinx is 45a986b, while the binary was built from 05aaa06.
+      # Different trees, different constids, and every one of the twenty
+      # measurement jobs died at place-and-route with
+      #
+      #   Assertion failure: The internal IDs of nextpnr are inconsistent with
+      #   the supplied chip database. (common/nextpnr.cc:57)
+      #
+      # after synthesis had succeeded — the same shape of mistake as building
+      # the binary on the runner, one layer up: a component silently taken from
+      # the image instead of from the freeze. So the pinned revision is checked
+      # out here too, the checkout is asserted rather than assumed, and bbasm
+      # comes from the build artifact.
       - name: Generate
         run: |
-          chmod +x npnr/bin/nextpnr-xilinx
+          chmod +x npnr/bin/nextpnr-xilinx npnr/bin/bbasm
           mkdir -p chipdb
-          docker run --rm -v "$PWD:/work" -w /work "$OPENXC7_IMAGE" bash -c "
-            cd /nextpnr-xilinx &&
+          docker run --rm -v "$PWD:/work" -w /work "$OPENXC7_IMAGE" bash -c '
+            set -e
+            cd /nextpnr-xilinx
+            git fetch --depth 1 origin '"$NEXTPNR_REV"'
+            git checkout '"$NEXTPNR_REV"'
+            git submodule update --init --recursive --depth 1 || true
+
+            HEAD_NOW=$(git rev-parse HEAD)
+            if [ "$HEAD_NOW" != "'"$NEXTPNR_REV"'" ]; then
+              echo "::error::chipdb tree is $HEAD_NOW, expected '"$NEXTPNR_REV"'"
+              exit 1
+            fi
+            echo "chipdb generated from $HEAD_NOW"
+
+            cp /work/npnr/bin/bbasm /usr/local/bin/bbasm
             python3 xilinx/python/bbaexport.py \
               --device ${{ matrix.part }}-1 \
-              --bba /work/chipdb/${{ matrix.part }}.bba &&
+              --bba /work/chipdb/${{ matrix.part }}.bba
             bbasm -l /work/chipdb/${{ matrix.part }}.bba /work/chipdb/${{ matrix.part }}.bin
-          "
+          '
           ls -lh chipdb/${{ matrix.part }}.bin
+
+      # Load it with the very binary that will use it, before twenty jobs
+      # depend on it. --test parses the chipdb and exits; if the constids
+      # disagree it aborts here, in one job, instead of in all twenty.
+      - name: The pinned binary must be able to read it
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work "$OPENXC7_IMAGE" bash -c "
+            cp /work/npnr/bin/nextpnr-xilinx /usr/local/bin/ &&
+            nextpnr-xilinx --chipdb /work/chipdb/${{ matrix.part }}.bin --test
+          "
 
       - uses: actions/upload-artifact@v4
         with:
