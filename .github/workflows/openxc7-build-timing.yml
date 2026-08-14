@@ -84,7 +84,13 @@ jobs:
         design: [blinky, decode_bf16, gf12_mul]
         run: [1, 2, 3, 4, 5]
     steps:
+      # submodules, because the corona wrappers instantiate a decoder core that
+      # lives in external/tt-trinity-corona. Without it yosys fails at synthesis
+      # with the core undefined, which is how the first run of this workflow
+      # lost all five decode_bf16 jobs.
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Pull openXC7 image
         run: |
@@ -118,7 +124,8 @@ jobs:
               echo "freq=100.0"                                          >> $GITHUB_OUTPUT
               ;;
             decode_bf16)
-              echo "src=fpga/openxc7-synth/corona_decode_bf16_ax7203.v"  >> $GITHUB_OUTPUT
+              # The wrapper instantiates bf16_decode, which lives in the submodule.
+              echo "src=fpga/openxc7-synth/corona_decode_bf16_ax7203.v external/tt-trinity-corona/src/rtl/bf16_decode.v" >> $GITHUB_OUTPUT
               echo "top=corona_decode_bf16_ax7203"                       >> $GITHUB_OUTPUT
               echo "xdc=fpga/openxc7-synth/corona_decode_ax7203.xdc"     >> $GITHUB_OUTPUT
               echo "synth=-flatten -abc9 -nocarry -arch xc7"             >> $GITHUB_OUTPUT
