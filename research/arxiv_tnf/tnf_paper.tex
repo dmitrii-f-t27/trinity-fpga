@@ -2731,7 +2731,9 @@ falsifiable: it names a winner before any measurement.
 
 \begin{theorem}[Optimal member for a named range]
 \label{thm:optimal}
-Let a workload visit $b$ binades. Among all members of $\mathcal{F}_N$ that
+Let a workload visit $b$ binades and let it be \emph{centred}: a scale is applied
+which carries its binade indices into the window the exponent field spans about
+unity. Among all members of $\mathcal{F}_N$ that
 represent it without overflow, the effective mantissa is maximised uniquely at
 \[
   E_t^{*} = \bigl\lceil \log_3 (b+1) \bigr\rceil,
@@ -2740,10 +2742,59 @@ represent it without overflow, the effective mantissa is maximised uniquely at
 \]
 \end{theorem}
 \begin{proof}
-Representability requires $3^{E_t}-1 \ge b$, i.e.\ $E_t \ge \log_3(b+1)$, and
+Under centring the placement of the window is free and representability
+constrains only how many binades it must hold, so it requires $3^{E_t}-1 \ge b$,
+i.e.\ $E_t \ge \log_3(b+1)$, and
 $E_t$ is an integer, so $E_t \ge E_t^{*}$. By the width rule $M = N-1-E_t$ is
 strictly decreasing in $E_t$, so the constraint binds and the minimiser is unique.
 \end{proof}
+
+The centring hypothesis is not a formality, and it is the one place where this
+rule can be misapplied, so we state what replaces it when no scale is present.
+
+\begin{proposition}[Uncentred workloads are sized by position, not by span]
+\label{prop:uncentred}
+Without a scale the exponent window is fixed symmetrically about unity: the
+representable binade indices are $-(\Delta-1) \dots +(\Delta-1)$ with
+$\Delta = (3^{E_t}-1)/2$. Representability then constrains
+$\max(|e_{\min}|,|e_{\max}|)$ rather than $b$, and the smallest admissible
+exponent width is
+\[
+  E_t^{\dagger} = \bigl\lceil \log_3\bigl(2\max(|e_{\min}|,|e_{\max}|)+3\bigr) \bigr\rceil
+  \;\ge\; E_t^{*},
+\]
+with equality exactly when the visited span is symmetric about unity.
+\end{proposition}
+\begin{proof}
+The offset field takes the values $0 \dots 3^{E_t}-1$; the top row is reserved for
+the special value and the bottom for zero, leaving $3^{E_t}-2$ rows carrying
+binade indices offset by $\Delta$, hence the window $-(\Delta-1) \dots +(\Delta-1)$.
+Containment of the visited indices requires $\Delta-1 \ge \max(|e_{\min}|,|e_{\max}|)$,
+which rearranges to $3^{E_t} \ge 2\max(|e_{\min}|,|e_{\max}|)+3$ and gives
+$E_t^{\dagger}$ on taking the ceiling. Since
+$\max(|e_{\min}|,|e_{\max}|) \ge (b-1)/2$ we have $2\max+3 \ge b+2 > b+1$, so
+$E_t^{\dagger} \ge E_t^{*}$. For a span symmetric about unity,
+$e \in \{-k,\dots,k\}$, we have $b=2k+1$ and the two ceilings are
+$\lceil\log_3(2k+2)\rceil$ and $\lceil\log_3(2k+3)\rceil$, which differ only if
+$2k+2$ is a power of three; no power of three is even, so they agree. For any
+asymmetric span the inequality $\max > (b-1)/2$ is strict and the widths can part.
+\end{proof}
+
+The gap is not hypothetical, and it was found by measurement rather than by
+reading. The logistic map $x \mapsto 3.9\,x(1-x)$ started at $x_0 = 0.4$ visits
+$b=4$ binades, $2^{-4}$ up to $2^{-1}$, for which Theorem~\ref{thm:optimal}
+returns $E_t^{*}=2$. But $\Delta(2)=4$, so the window of TNF$(2,10)$ reaches only
+$2^{-3}$: $24$ of $400$ iterates clamp to the smallest normal, with relative
+errors up to $28.6\%$ and a mean of $1.10\times10^{-2}$. The corrected width
+$E_t^{\dagger}=3$ clamps nothing and attains a mean relative error of
+$3.25\times10^{-4}$, the smallest of the four members at this width
+\textbf{[measured --- software]}. The conclusion of Theorem~\ref{thm:optimal}
+therefore survives, but only once its representability condition is read off the
+window instead of off the count. Every application of the rule in this paper
+carries a per-block or per-channel scale, which is precisely the centring
+hypothesis, so no figure reported elsewhere moves; the correction bites on raw,
+unscaled workloads, and those are exactly the ones a reader is most likely to try
+first.
 
 The rule therefore has no free parameter once the workload is named, and naming
 the workload is a measurement rather than a choice. Section~\ref{sec:ternarynet}
@@ -2753,7 +2804,8 @@ the whole family. A different winner would falsify the rule.
 
 \begin{theorem}[Regret of a misnamed range]
 \label{thm:regret}
-Sizing for $b'$ when the workload visits $b$ costs
+Under the centring hypothesis of Theorem~\ref{thm:optimal}, sizing for $b'$ when
+the workload visits $b$ costs
 \[
   R =
   \begin{cases}
@@ -3355,6 +3407,12 @@ Lloyd--Max on the within-block distribution --- $18{,}850{,}950$ values, block o
 $32$ along the contraction axis, E8M0 shared scale as the MX specification
 mandates --- gives the eight-level codebook minimising squared error. It is
 neither multiply-free nor a ladder; it is the best any eight magnitudes can do.
+The territory between a learned codebook and a fixed field layout is being
+occupied from the other side as well: parametric non-uniform codebooks for one- to
+eight-bit weights have been proposed that keep decoding regular enough for
+high-throughput execution~\cite{gao2026cubicquant}, which is the same trade this
+table brackets, approached by parameterising the codebook rather than by
+constraining it to a ladder.
 
 \begin{table}[t]\centering
 \caption{Block axis, SmolLM2-135M, 40 windows, \texttt{fp32} baseline $14.4874$.
@@ -5364,7 +5422,10 @@ formally verified \emph{synthesizable} floating-point data types have now been
 demonstrated inside an HDL~\cite{archhdl2026}, which moves machine-checked
 guarantees from the model down to the register-transfer description that gets
 synthesised, and the broader formal-verification effort for floating-point
-arithmetic continues independently of the P3109 track~\cite{mohanty2025}. Against
+arithmetic continues independently of the P3109 track~\cite{mohanty2025}, while
+the cost of applying formal tools to register-transfer code is itself falling, with
+open-source multi-agent pipelines now reported for formally checked RTL
+repair~\cite{tran2026rtlrepair}. Against
 that, a conformance transcript replayed on a specific part is not a weaker proof
 of the same thing but a different object: it is evidence about a physical device
 and its bitstream, which a proof about an HDL description does not provide, and it
@@ -5771,7 +5832,10 @@ numeration continues to be used as an analytical device in unrelated fields --- 
 2026 result states a localisation criterion in the many-body Aubry--Andr\'e model in
 terms of Fibonacci number systems~\cite{hetenyi2026fibonacci}, and the
 Zeckendorf-adjacent fibbinary encoding has been applied as a compression and
-quantisation scheme for neural radio receivers~\cite{fiandaca2025fibbinary},
+quantisation scheme for neural radio receivers~\cite{fiandaca2025fibbinary}, and
+the arithmetic of Zeckendorf representations remains an active object of study in
+its own right, with a 2026 result settling when a perfect power is a sum of three
+or four Fibonacci numbers~\cite{earplynch2026powers},
 which is the closest published use to ours in intent while differing in the
 quantity it optimises. Both are worth
 recording only to place the present contribution correctly: the representation is
@@ -6614,7 +6678,23 @@ has the smallest solution error among the three low-precision candidates. This
 is a task-level observation for one matrix and one rung, not a format ranking.
 The solver iteration count is not a throughput result, and the synthetic
 system supplies no evidence about energy, area or FPGA timing. The generator and
-the machine-written result record are stored with the other measurements.
+the machine-written result record are stored with the other measurements. The
+plain reading is that this second task shows no advantage for the format: it is
+reported because it was run, not because it agrees.
+
+\paragraph{A third task attempted, and a metric we disqualified.} We also ran the
+logistic map $x \mapsto 3.9\,x(1-x)$, intending to score candidates by the
+iteration at which the quantised trajectory departs from the \texttt{float64}
+reference by more than $10^{-2}$. That metric does not survive its own control and
+we therefore report no ranking from it. Of the four family members at this width,
+the one with the smallest mean representation error on the trajectory, TNF$(3,9)$
+at $3.25\times10^{-4}$, departs at iteration $5$, while TNF$(2,10)$, whose mean
+representation error is $34$ times larger at $1.10\times10^{-2}$, survives to
+iteration $13$ \textbf{[measured --- software]}. In a map with a positive Lyapunov
+exponent the departure time is governed by the sign and direction of the first
+rounding error rather than by its size, so the ordering it produces is not a
+precision ordering. The run was not wasted: it is what exposed the missing
+centring hypothesis repaired in Proposition~\ref{prop:uncentred}.
 
 \subsection{A defect the sweep exposed in our own oracle}
 \label{sec:oracledefect}
@@ -7018,6 +7098,12 @@ Computing: A Systematic Review,'' \emph{IEEE Access}, vol.~13, 2024.
 \bibitem{schelpe2026grafting} S.~Schelpe, ``Smarter and Cheaper at Once: Byte-Exact KV-Cache Grafting Turns a Frozen Small Model into a Verified-Knowledge Flywheel,'' arXiv:2607.14431, 15~July 2026. \url{https://arxiv.org/abs/2607.14431}
 
 \bibitem{zhu2026heal} Z.~Zhu, L.~Thai, S.~Yu, Y.~Liu, Y.~Qiao, C.~Wang, H.~Xu and J.~Shu, ``Demystifying Numerical Instability in LLM Inference: Achieving Reproducible Inference for Mission-Critical Tasks with HEAL,'' arXiv:2606.21023. \url{https://arxiv.org/abs/2606.21023}
+
+\bibitem{gao2026cubicquant} X.~Gao, ``CubicQuant: Parametric Non-Uniform Codebooks for High-Throughput LLM Inference with 1--8-Bit Weights,'' arXiv:2608.06763, 7~August 2026. \url{https://arxiv.org/abs/2608.06763}
+
+\bibitem{tran2026rtlrepair} H.~T.~Tran, ``Open-Source LLM-Driven Formal Verification: A Multi-Agent Pipeline for RTL Repair,'' arXiv:2607.28877, 30~July 2026. \url{https://arxiv.org/abs/2607.28877}
+
+\bibitem{earplynch2026powers} B.~Earp-Lynch, S.~Earp-Lynch, O.~Kihel and P.~Tiebekabe, ``Powers as Fibonacci Sums,'' arXiv:2608.04445, 5~August 2026. \url{https://arxiv.org/abs/2608.04445}
 
 \end{thebibliography}
 
