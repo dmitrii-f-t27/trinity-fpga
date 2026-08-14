@@ -13,9 +13,15 @@
 # It is a property of the part, not of the design, and Vivado has no equivalent
 # step — including it would flatter neither tool honestly.
 #
-# Five repeats per design, because nextpnr is seed-sensitive and one run is one
-# seed. The report prints the median and the full spread; a single number from a
-# single run is what this workflow exists to avoid.
+# Five repeats per design, with the seed FIXED at 1. That is deliberate and it
+# decides what the spread means: the input is identical every time, so the
+# variation is the machine, not the placer. GitHub's shared runners have noisy
+# neighbours, and on the first run blinky ranged 50.5s to 70.7s -- 40 per cent
+# -- for byte-identical work. A single run would have reported a number a
+# quarter away from the median with nothing to reveal it.
+#
+# Seed sensitivity is a different measurement and this workflow does not make
+# it. Sweeping seeds would conflate two sources of variance in one column.
 #
 # The Vivado half of the comparison cannot run here — no license, no install.
 # These designs are plain Verilog + XDC, so anyone with Vivado can build the
@@ -81,16 +87,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        design: [blinky, decode_bf16, gf12_mul]
+        design: [blinky, gf12_mul, gf128_mul]
         run: [1, 2, 3, 4, 5]
     steps:
-      # submodules, because the corona wrappers instantiate a decoder core that
-      # lives in external/tt-trinity-corona. Without it yosys fails at synthesis
-      # with the core undefined, which is how the first run of this workflow
-      # lost all five decode_bf16 jobs.
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Pull openXC7 image
         run: |
@@ -123,14 +123,19 @@ jobs:
               echo "placer=sa"                                           >> $GITHUB_OUTPUT
               echo "freq=100.0"                                          >> $GITHUB_OUTPUT
               ;;
-            decode_bf16)
-              # The wrapper instantiates bf16_decode, which lives in the submodule.
-              echo "src=fpga/openxc7-synth/corona_decode_bf16_ax7203.v external/tt-trinity-corona/src/rtl/bf16_decode.v" >> $GITHUB_OUTPUT
-              echo "top=corona_decode_bf16_ax7203"                       >> $GITHUB_OUTPUT
-              echo "xdc=fpga/openxc7-synth/corona_decode_ax7203.xdc"     >> $GITHUB_OUTPUT
-              echo "synth=-flatten -abc9 -nocarry -arch xc7"             >> $GITHUB_OUTPUT
-              echo "placer=sa"                                           >> $GITHUB_OUTPUT
-              echo "freq=50.0"                                           >> $GITHUB_OUTPUT
+            gf128_mul)
+              # Every design here is self-contained in this repository. The
+              # corona *decoders* were the obvious third choice and are not
+              # usable: their wrappers instantiate a core from the
+              # external/tt-trinity-corona submodule, and checking submodules
+              # out in CI fails outright — which took all fifteen jobs of one
+              # run with it, including the two designs that never needed them.
+              echo "src=fpga/openxc7-synth/gf_mul_param.v fpga/openxc7-synth/corona_compute_gf128_mul_ax7203.v" >> $GITHUB_OUTPUT
+              echo "top=corona_compute_gf128_mul_ax7203"                 >> $GITHUB_OUTPUT
+              echo "xdc=fpga/openxc7-synth/ax7203_corona.xdc"            >> $GITHUB_OUTPUT
+              echo "synth=-flatten -abc9 -nocarry -nodsp -arch xc7"      >> $GITHUB_OUTPUT
+              echo "placer=heap"                                         >> $GITHUB_OUTPUT
+              echo "freq=5.0"                                            >> $GITHUB_OUTPUT
               ;;
             gf12_mul)
               # -nodsp is not optional here. Without it yosys infers DSP48E1
