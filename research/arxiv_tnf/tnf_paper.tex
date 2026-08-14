@@ -809,14 +809,6 @@ $r$ across that interval, so $M_{\mathrm{eff}}$ oscillates with amplitude exactl
 $\log_2 r$ bits and has no trend in $|e|$.
 \end{theorem}
 
-This is a \emph{within-band} statement and Theorem~\ref{thm:diag} is a
-\emph{band-averaged} one; they are about the same formats and do not conflict.
-A fixed-field binary format is constant in the averaged sense --- which is why
-Table~\ref{tab:meff} recovers its declared $M$ to $0.01$ bits --- and oscillates by
-one bit in the pointwise sense, which is what the $0.85$ measured for
-\texttt{binary32} below reports. Wherever $M_{\mathrm{eff}}$ appears without a
-qualifier in this paper the averaged reading is meant.
-
 \begin{proof}
 The quantisation step is constant across the interval and the relative error is
 that step divided by the significand, which ranges over a factor $r$. Taking
@@ -824,6 +816,14 @@ $-\log_2$ of the ratio of the extremes gives $\log_2 r$. Since the interval
 repeats identically at every $e$, the oscillation is periodic and carries no
 trend.
 \end{proof}
+
+This is a \emph{within-band} statement and Theorem~\ref{thm:diag} is a
+\emph{band-averaged} one; they are about the same formats and do not conflict.
+A fixed-field binary format is constant in the averaged sense --- which is why
+Table~\ref{tab:meff} recovers its declared $M$ to $0.01$ bits --- and oscillates by
+one bit in the pointwise sense, which is what the $0.85$ measured for
+\texttt{binary32} below reports. Wherever $M_{\mathrm{eff}}$ appears without a
+qualifier in this paper the averaged reading is meant.
 
 Theorem~\ref{thm:wobble} reproduces a result sixty years older than this work.
 IBM System/360 hexadecimal is documented as delivering between $4p-3$ and $4p$
@@ -2002,7 +2002,12 @@ area. Read locally, $\alpha$ climbs from $1.06$ between $M{=}7$ and $M{=}9$ to
 $2.20$ between $M{=}56$ and $M{=}70$, which is Theorem~\ref{thm:alpha} rather than
 noise. On the registered prediction the structural model is right to $+4.4\%$
 where the single power law was low by $36.3\%$; we report both, since the power
-law was ours and we published the prediction before synthesising.
+law was ours and we published the prediction before synthesising. That mantissa
+width, and not the exponent field, dominates the area of an FPGA floating-point
+unit is not a new observation --- an area-performance study of customised
+floating-point units on FPGAs reports the same shape~\cite{echeverria2011customizing};
+what the fit above adds is a coefficient for one named part, so that the trade
+against a regime decoder can be priced rather than argued.
 
 \begin{theorem}[A regime's worth in precision falls as $1/M$]
 \label{thm:oneoverm}
@@ -2388,7 +2393,12 @@ the margins.
 
 In a ternary-weight network --- BitNet-style, with weights in
 $\{-1, 0, +1\}$~\cite{bitnet} --- the product $w \cdot a$ is a select, a negate or
-a zero. No multiplier is instantiated, for any format. The datapath is
+a zero. No multiplier is instantiated, for any format. That the ternary weight set
+is worth designing around is now argued on the opposite end of the hardware
+spectrum as well: a 2025 co-design reorganises CPU SIMD integer lanes in place to
+serve ternary inference without any accelerator~\cite{oh2025tsar}. The present
+section asks the narrower question of what the \emph{activation} format costs in
+fabric once the weight multiplier has vanished. The datapath is
 \emph{decode, apply the weight, add, accumulate}, and the decoder is now compared
 against an adder.
 
@@ -2732,6 +2742,9 @@ Sizing for $b'$ when the workload visits $b$ costs
     \text{overflow on a set of measure } 1 - \tfrac{\log_3(b'+1)}{\log_3(b+1)}, & b' < b .
   \end{cases}
 \]
+Both branches are non-negative as written.
+\end{theorem}
+
 \begin{proof}
 By Theorem~\ref{thm:optimal} the trit budget needed to cover $b$ binades is
 $E_t^{*}(b) = \lceil\log_3(b+1)\rceil$, and the width rule $1 + E_t + M = N$ fixes
@@ -2747,13 +2760,12 @@ bounded by $1$ however large the shortfall, so a fixed additional cost buys
 unbounded protection in the first case and none in the second.
 \end{proof}
 
-Both branches are non-negative as written: over-sizing spends the surplus exponent
-trits that the smaller range would not have needed, so the first branch subtracts
-the required width from the chosen one and not the reverse. The penalty is
-asymmetric: over-sizing costs precision logarithmically in the range, under-sizing
-costs a share of the visited span that is not logarithmic in it, so when the
-visited range is uncertain the rule should round up.
-\end{theorem}
+The sign convention is worth stating explicitly: over-sizing spends the surplus
+exponent trits that the smaller range would not have needed, so the first branch
+subtracts the required width from the chosen one and not the reverse. The penalty
+is asymmetric: over-sizing costs precision logarithmically in the range,
+under-sizing costs a share of the visited span that is not logarithmic in it, so
+when the visited range is uncertain the rule should round up.
 
 The asymmetry is worth naming because it contradicts the intuition that a wider
 exponent is the conservative choice. It \emph{is} conservative --- but the price is
@@ -5276,7 +5288,6 @@ label formats turns out to settle it.
 
 
 \section{Adjacent work this paper is measured against}\label{sec:adjacent}
-\label{sec:adjacent}
 
 Four bodies of work published while this paper was being prepared bound its
 claims, and each is named here rather than left to a reader to supply.
@@ -5322,7 +5333,11 @@ penalty~\cite{cankaya2026}. That line supports the value of the primitive and
 must not be conflated with a different sense of determinism, obtained by
 scheduling and verified speculation over arithmetic that is itself not
 bit-reproducible~\cite{gond2026llm42}. The two are separate layers, and only the
-first is what a format can supply. The first layer is also acquiring load-bearing
+first is what a format can supply. The distinction is not academic: a 2026 study
+locates the numerical instability of large-model inference in the arithmetic and
+the reduction order rather than in the schedule, and has to intervene at that
+level to obtain reproducible output~\cite{zhu2026heal}, which is evidence that the
+layer a format governs is the binding one. The first layer is also acquiring load-bearing
 applications rather than only audit arguments: byte-exact reuse of cached
 intermediate state across models has been used as the correctness condition of a
 knowledge-transfer pipeline~\cite{schelpe2026grafting}, where a single differing
@@ -5442,7 +5457,6 @@ scale-grid refinement can be expected to go. Both are cited above at the points
 they bear on, and neither is treated as a matter of opinion.
 
 \section{Three results added in this revision, one of which weakens a claim}\label{sec:threeresults}
-\label{sec:threeresults}
 
 This revision adds three results that were open in the previous one. The order is
 deliberate: the first fixes the reference artefact, the second turns the format
@@ -5705,7 +5719,11 @@ how deep must its normaliser be. Both are now answered by construction.
 The number system itself is not ours and is not confined to hardware. Fibonacci
 numeration continues to be used as an analytical device in unrelated fields --- a
 2026 result states a localisation criterion in the many-body Aubry--Andr\'e model in
-terms of Fibonacci number systems~\cite{hetenyi2026fibonacci} --- which is worth
+terms of Fibonacci number systems~\cite{hetenyi2026fibonacci}, and the
+Zeckendorf-adjacent fibbinary encoding has been applied as a compression and
+quantisation scheme for neural radio receivers~\cite{fiandaca2025fibbinary},
+which is the closest published use to ours in intent while differing in the
+quantity it optimises. Both are worth
 recording only to place the present contribution correctly: the representation is
 old and shared, and what is new here is a synthesised cost for it on a named part,
 not the numeration.
