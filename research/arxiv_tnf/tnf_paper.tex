@@ -508,6 +508,18 @@ round-to-nearest, with significand $s$ and exponent $e$ independent,
 \]
 independently of $e$.
 \end{theorem}
+\begin{proof}
+Let $U$ be the absolute rounding error measured in units of $2^e$.  By the
+round-to-nearest hypothesis, $U$ is uniform on $[0,u]$ with
+$u=2^{-(M+1)}$, and is independent of $s$ and $e$.  Therefore
+\[
+  \mathbb{E}[|\mathrm{rel\ err}|\mid s,e]
+  = \frac{\mathbb{E}[U]}{s}
+  = \frac{u}{2s}.
+\]
+Averaging over $s$ gives the displayed formula; $e$ has disappeared because both
+the rounding interval and the value scale by the same factor $2^e$.
+\end{proof}
 The exponent drops out entirely --- that is the flatness of the next paragraph,
 proved rather than observed. The constant is not universal: it is
 $\tfrac{1}{2}\ln 2 = 0.3466$ for a significand uniform on $[1,2)$ and
@@ -1487,6 +1499,16 @@ ternary exponent never spans more values per bit than a binary one, with equalit
 only at $E_t = 0$. Writing $\rho(E_t) = 3^{E_t}/2^{\lceil E_t\log_2 3\rceil}$ for
 the utilisation, $\rho \in (1/2, 1]$ and $\rho$ does not converge.
 \end{theorem}
+\begin{proof}
+The ceiling gives $2^{\lceil E_t\log_2 3\rceil}\geq3^{E_t}$.  For
+$E_t>0$ equality would imply $3^{E_t}=2^q$ for an integer $q$, which is
+impossible by unique factorisation; at $E_t=0$ both sides are one.  For
+$E_t>0$, the fractional part of $E_t\log_2 3$ is non-zero and
+$\rho(E_t)=2^{\{E_t\log_2 3\}-1}$, hence $\rho(E_t)\in(1/2,1)$.  The number
+$\log_2 3$ is irrational, so its positive integer multiples have dense
+fractional parts in $(0,1)$; the displayed continuous map consequently has
+subsequences approaching both endpoints, and $\rho$ cannot converge.
+\end{proof}
 
 \begin{table}[t]\centering
 \caption{Utilisation $\rho(E_t)$ of the binary field holding an $E_t$-trit
@@ -1676,6 +1698,13 @@ $e$ a codeword of length $\ell(e)$. Then
 $M_{\mathrm{eff}}(e) = N - 1 - \ell(e)$, and the staircase form is the growth
 rate of $\ell$ and nothing else.
 \end{theorem}
+\begin{proof}
+The sign consumes one position and the exponent prefix consumes $\ell(e)$,
+leaving $N-1-\ell(e)$ positions for the significand.  This is exactly the
+effective mantissa at exponent $e$.  As $|e|$ grows, the only varying term is
+$\ell(e)$, so the staircase is its growth rate, with the sign and the fixed
+word width contributing only a constant offset.
+\end{proof}
 
 The catalogue's three tapering classes are then three points in the classical
 hierarchy: a unary regime, $\ell \propto |e|$, gives posit's arithmetic
@@ -1711,6 +1740,15 @@ A regime spending one digit per multiplication of $|e|$ by $r$, over an alphabet
 of $r$ symbols, costs $\log_2 r \cdot \log_r |e| = \log_2 |e|$ bits, independent
 of $r$. The staircase form is invariant to the regime's radix.
 \end{theorem}
+\begin{proof}
+The number of radix-$r$ digits needed to distinguish magnitudes through $|e|$
+is $\log_r|e|$ (with the usual ceiling when only integral code lengths are
+allowed).  A digit from an $r$-symbol alphabet carries $\log_2r$ bits when
+stored in binary.  Therefore the continuous code-length cost is
+$\log_2r\,\log_r|e|=(\log_2r)(\log_2|e|/\log_2r)=\log_2|e|$.
+The ceiling contributes only the endpoint staircase, so it changes the
+rounding of the same logarithmic curve, not its radix-independent form.
+\end{proof}
 
 Theorem~\ref{thm:radixinv} retracts a construction we proposed in an earlier draft
 of this work. Having observed the gap between the arithmetic and geometric
@@ -1759,7 +1797,7 @@ first explanation was decode cost, and building the hardware refutes it.
 \end{figure}
 
 
-\subsection{What a regime costs in silicon}\label{sec:regimecost}
+\subsection{What a regime costs in fabric}\label{sec:regimecost}
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-36-regimecost.png}
 \caption{Canon plate. Three regime codecs on one part: the length-prefixed code decodes in 6 LUTs at 805.8 MHz, and a fixed field has no regime to decode at all.}
@@ -1807,6 +1845,16 @@ a fixed field of $b$ bits requires no scan and a shift of at most $2^{b}-1$,
 giving cost $\Theta(1)$ in $N$. The two costs are independent of the growth rate
 of $\ell$, and therefore of the staircase form.
 \end{theorem}
+\begin{proof}
+A run-delimited regime can terminate only after the decoder has inspected the
+run, and a legal word may place that terminator at the last of its $N-1$
+non-sign positions.  The worst-case scan is therefore $N-1$, while the
+corresponding sequential implementation supplies a linear upper bound: the
+cost is $\Theta(N)$.  A fixed field has constant width $b$ and a fixed
+location, so extraction and a shift by at most $2^b-1$ take a number of steps
+independent of $N$, namely $\Theta(1)$.  Neither bound depends on the
+particular growth law of $\ell$.
+\end{proof}
 
 Theorem~\ref{thm:scan} predicts the table exactly. The unary and square-root codes
 share the same 15-position scan and cost $403$ and $417$ LUTs, a difference of
@@ -1865,6 +1913,13 @@ a given class. A regime codec costing $C$ LUTs is then equivalent to $C/\lambda$
 mantissa-bit equivalents of FPGA fabric, and by Theorem~\ref{thm:law} to a factor
 $2^{C/\lambda}$ in accuracy at equal area.
 \end{theorem}
+\begin{proof}
+At the operating width, the definition $\lambda=\mathrm{d}A/\mathrm{d}M$
+means that an area $C$ buys $C/\lambda$ equivalent mantissa bits.  By
+Theorem~\ref{thm:law}, increasing $M$ by one multiplies the expected rounding
+error by $1/2$; increasing it by $C/\lambda$ therefore multiplies the error by
+$2^{-C/\lambda}$, or equivalently the accuracy factor by $2^{C/\lambda}$.
+\end{proof}
 
 Estimating $\lambda$ from a post-route sweep --- the same width-derived multiplier synthesised at
 $M = 7, 9, \ldots, 25$ under one harness --- gives $285$, $372$, $443$, $567$,
@@ -1875,7 +1930,7 @@ and $M{=}25$. Taking the local value at each class, $\lambda = 48.8$ at the
 
 \begin{table}[t]\centering
 \caption{Regime area converted into mantissa bits through
-Theorem~\ref{thm:convert}. The unary regime costs, in silicon alone, more than
+Theorem~\ref{thm:convert}. The unary regime costs, in LUT area alone, more than
 TNF16's entire mantissa.}
 \label{tab:convert}
 \begin{tabular}{lrrr}
@@ -1972,15 +2027,15 @@ when $C/(2cM) \ge 1$, that is when $M \le C/2c$.
 \begin{table}[t]\centering
 \caption{The same regime codecs valued at five mantissa widths through
 Theorem~\ref{thm:oneoverm}, with $c = 2.4455$ fitted from the XC7A200T post-route sweep. The unary
-regime's silicon exceeds an entire TNF16 mantissa; the length-prefixed regime is
-below one bit everywhere above the 8-bit class.}
+regime's LUT area is worth most of an entire TNF16 mantissa; the length-prefixed
+regime is below one bit everywhere above the 8-bit class.}
 \label{tab:oneoverm}
 \begin{tabular}{rrrr}
 \toprule
 $M$ & $\lambda$ (LUT/bit) & unary, $438$ LUT & length-prefixed, $40$ LUT \\
 \midrule
-$9$  & $44.0$  & $\mathbf{9.95}$ & $0.91$ \\
-$11$ & $53.8$  & $8.14$ & $0.74$ \\
+$9$  & $44.0$  & $9.95$ & $0.91$ \\
+$\mathbf{11}$ & $\mathbf{53.8}$  & $\mathbf{8.14}$ & $\mathbf{0.74}$ \\
 $25$ & $122.3$ & $3.58$ & $0.33$ \\
 $56$ & $273.9$ & $1.60$ & $0.15$ \\
 $90$ & $440.2$ & $1.00$ & $0.09$ \\
@@ -1990,14 +2045,26 @@ $90$ & $440.2$ & $1.00$ & $0.09$ \\
 
 \begin{corollary}[Break-even widths]
 \label{cor:breakeven}
-With $c = 2.4455$, the unary regime is worth at least one mantissa bit of silicon
+With $c = 2.4455$, the unary regime is worth at least one mantissa bit of LUT area
 up to $M = 89.6$ --- that is, through the entire 64-bit class, whose $M$ is $52$ on
 the research ladder and $56$ reconciled, but not through the 128-bit class, whose
 $M$ of $115$ already exceeds it --- while the length-prefixed regime reaches one
 bit only up to $M = 8.2$. takum's regime therefore costs less than a single
-mantissa bit of silicon at every rung above TNF8, and posit's costs more than one
+mantissa bit of LUT area at every rung above TNF8, and posit's costs more than one
 at every rung up to and including TNF64, falling to $0.78$ bits at TNF128.
 \end{corollary}
+\begin{proof}
+By Theorem~\ref{thm:oneoverm}, a codec of area $C$ reaches one mantissa bit
+exactly up to $M=C/(2c)$. With $c=2.4455$, the unary threshold is
+$438/(2\cdot2.4455)=89.5522\ldots$, while the length-prefixed threshold is
+$40/(2\cdot2.4455)=8.1783\ldots$. Thus the reconciled TNF64 value $M=56$ is
+below the unary threshold but the TNF128 value $M=115$ is above it; the first
+TNF rung above TNF8 is the reconciled 16-bit rung at $M=11$, already above
+the length-prefixed threshold.
+Substitution at $M=115$ gives $40/(2\cdot2.4455\cdot115)=0.0711\ldots$ for
+the length-prefixed regime and $438/(2\cdot2.4455\cdot115)=0.7787\ldots$ for
+the unary regime, as stated.
+\end{proof}
 
 Corollary~\ref{cor:breakeven} is the exact form of what
 Corollary~\ref{cor:narrow} below could only say qualitatively, and it is the sharpest
@@ -2007,17 +2074,18 @@ posit, almost everywhere; against takum, only at the very bottom of the ladder.
 \begin{corollary}[Range is paid for three times, and they are commensurable]
 \label{cor:three}
 A tapered format pays for unbounded range in three currencies: word positions,
-in the regime field; silicon, in the codec; and precision at the extremes, in the
+in the regime field; LUT area, in the codec; and precision at the extremes, in the
 taper. Theorem~\ref{thm:convert} and Theorem~\ref{thm:law} put all three in
 mantissa bits, so they can be added.
 \end{corollary}
 
 Applied honestly, Corollary~\ref{cor:three} separates the two tapered families
-rather than lumping them. Against posit the silicon term alone is $9.95$ bits at
-TNF16's $M = 9$ --- more than TNF16's entire $9$-bit mantissa, so the area a
-posit implementation spends decoding its regime would, spent on significand
-instead, roughly double the precision budget of a fixed-field format at the same
-class. Against takum the silicon term at the same $M$ is $0.91$ bits, which is small. The
+rather than lumping them. Against posit the LUT-area term alone is $8.14$ bits at
+the reconciled TNF16 rung $M = 11$ --- about three quarters of that rung's entire
+eleven-bit mantissa, so the fabric a posit implementation spends decoding its
+regime would, spent on significand instead, raise the precision budget of a
+fixed-field format at the same class by roughly three quarters. Against takum the
+LUT-area term at the same $M$ is $0.74$ bits, which is small. The
 length-prefixed regime is cheap, and any argument for a fixed field made on area
 grounds is an argument against posit and not against takum. Against takum what
 remains is the accuracy result of Section~\ref{sec:accuracy}, bounded as
@@ -2027,8 +2095,8 @@ Theorem~\ref{thm:floor} requires to TNF's own range.
 \label{cor:narrow}
 Since $\lambda = 2cM$ grows linearly in $M$ by Theorem~\ref{thm:alpha} while a
 regime codec's cost is roughly fixed, the same codec converts to fewer mantissa
-bits as the class widens: for the unary regime $9.95$ bits at TNF16's $M = 9$
-becomes $4.26$ at TNF32's $M = 21$. The fixed-field area
+bits as the class widens: for the unary regime $8.14$ bits at the reconciled
+TNF16 rung $M = 11$ becomes $4.26$ at the TNF32 oracle rung $M = 21$. The fixed-field area
 advantage is therefore strongest where the words are narrowest, which is the
 regime in which quantised inference operates and not the one in which numerical
 linear algebra does.
@@ -2418,7 +2486,7 @@ of fixing it changes what is being claimed, and strengthens it.
 
 \begin{theorem}[The width rule generates the position-budget frontier]
 \label{thm:family}
-Fix a width $N$. The set
+Fix a width $N\geq4$. The set
 $\mathcal{F}_N = \{(E_t,\, M) : 1 + E_t + M = N,\ E_t \geq 2,\ M \geq 1\}$
 contains $N-3$ members, each exact by construction. By
 Theorem~\ref{thm:law} member $E_t$ has effective mantissa $M = N-1-E_t$ and
@@ -2430,6 +2498,14 @@ same field needs $\lceil E_t\log_2 3\rceil$ bits, so this frontier is a
 position-budget object and not a statement about binary storage or about FPGA
 area. The packed-bit accounting is Theorem~\ref{thm:boundary}.
 \end{theorem}
+\begin{proof}
+The constraints are equivalent to the integer interval
+$2\leq E_t\leq N-2$, with $M=N-1-E_t\geq1$. This interval contains
+$(N-2)-2+1=N-3$ integers, and the width identity makes each resulting pair
+exact. If $E_t$ increases by one, $M$ decreases by one while
+$3^{E_t}-1$ increases strictly; hence any two distinct members trade mantissa
+for range and neither dominates the other.
+\end{proof}
 
 The consequence is a claim about the catalogue rather than about one rung.
 
@@ -2488,7 +2564,7 @@ each rung is measured at its specified parameters. Against
 \texttt{int8} the two are indistinguishable once seeds are swept
 (Table~\ref{tab:rejected}). The two are consistent: the frontier asks what a word of
 a given width carries, the datapath asks what it costs to unpack, and every fixed
-field unpacks by reading fields. The gap in silicon runs between fixed and tapered
+field unpacks by reading fields. The gap in LUT area runs between fixed and tapered
 formats, $2.4$ to $6.4\times$, and belongs to Theorems~\ref{thm:scan}
 and~\ref{thm:valuelaw} rather than to this ladder.
 
@@ -2545,7 +2621,7 @@ reconciliation of our two axes:
 \]
 The number axis counts only the second factor, and there $\log_3$ against $\log_2$
 gives the slack $0.3691\,E$ of Corollary~\ref{cor:slack} unconditionally. The
-silicon axis restores the first factor, and packing a trit into binary fabric
+fabric axis restores the first factor, and packing a trit into binary fabric
 charges $\kappa(3)/\kappa(2) = 1.68$ per position, which is why BNF16 and TNF16
 synthesise within $1\%$ of one another. Theorem~\ref{thm:nofree} and
 Corollary~\ref{cor:slack} are not in tension: they are the two factors of one
@@ -2693,7 +2769,7 @@ they belong to different axes of Corollary~\ref{cor:determined}. On the axis of 
 positions at $E$ bits of range. On the axis of the \emph{radix of the scale},
 moving from $r{=}2$ to $r{=}3$ costs $\log_2\bigl(\kappa(3)/\kappa(2)\bigr) -
 \log_3 2 = 0.3314$ positions of accuracy net of the range it returns, where
-$\kappa(r) = (r-1)^2/(r \ln r)$. The near-coincidence of $0.3691$ and $0.3313$ is
+$\kappa(r) = (r-1)^2/(r \ln r)$. The near-coincidence of $0.3691$ and $0.3314$ is
 numerical and carries no content, and the two figures are stated to four places as
 Theorem~\ref{thm:scaleradix} and Corollary~\ref{cor:slack} state them: TNF fixes the scale radix at $2$
 (Theorem~\ref{thm:radixopt}), so the second quantity is not a price TNF pays, and
@@ -3417,8 +3493,17 @@ and the ratio of the two excesses rises monotonically to $1/\ln 2 = 1.442695$.
 \end{theorem}
 
 \begin{proof}
-Immediate from $\ln 2 < 1$. The limit follows from
-$(1+x)-1 \big/ (2^{x}-1) \to 1/\ln 2$ as $x\to0^{+}$.
+Put $x=2^{-k}$.  The strict inequality $2^x<1+x$ for
+$0<x<1$ proves the comparison (and $x=1$ gives equality).  The ratio of
+the two excesses is
+\[
+ R(x)=\frac{x}{2^x-1},\qquad
+ R'(x)=\frac{2^x-1-x(\ln 2)2^x}{(2^x-1)^2}.
+\]
+For $y=x\ln 2\in(0,1)$ the numerator is
+$e^y(1-y)-1<0$, since $\ln(1-y)<-y$.  Thus $R$ decreases with $x$,
+while $2^{-k}$ decreases with $k$, so the ratio rises with $k$.  Finally,
+L'Hôpital's rule gives $\lim_{x\to0^+}R(x)=1/\ln 2$.
 \end{proof}
 
 The defect is structural rather than a matter of tuning: a float grid is uniform
@@ -3574,7 +3659,7 @@ $21$-local, with memory $10$ and anticipation $10$. ``Constant time'' read as
 
 \begin{table}[t]\centering
 \caption{The multiply-free scales in one place. Level error is $(r-1)/(r+1)$,
-the worst relative gap on a ladder of ratio $r$; silicon is one scale
+the worst relative gap on a ladder of ratio $r$; LUT area is one scale
 application at 16-bit components, xc7a200t, median of five seeds. Every rung
 below the shift costs exactly one addition; only the register count grows.}
 \label{tab:allscales}
@@ -3602,7 +3687,7 @@ minimum $1.1237$ is Perron, its largest conjugate being $1.0959$. Where the
 root is not dominant, the coordinate vector of $r^{k}$ grows as the larger
 conjugate rather than as the value, so a chain of $k$ applications needs
 $k\log_2(\rho/r)$ guard bits --- $0.36$ bits per step at degree 4. That is a cost
-on composition and not on a single application, which is why the silicon column
+on composition and not on a single application, which is why the LUT-area column
 does not show it, and it is stated here rather than left for a reader to find.
 
 Wu's exhaustive search~\cite{wu2010} establishes that $1.123732821$ is the
@@ -3676,7 +3761,7 @@ is therefore a coordinate table --- the code selects a vector in
 $\mathbb{Z}[r]$ directly --- and Table~\ref{tab:elemsil} prices it against what
 it buys.
 
-\paragraph{The assembled node.} Every silicon figure above prices a part. The
+\paragraph{The assembled node.} Every fabric-area figure above prices a part. The
 figure asked from outside is LUTs per neuron, and Table~\ref{tab:node} is the
 assembled thing: fan-in $N$, weights from the alphabet, accumulator in
 $\mathbb{Z}[\varphi]$, 8-bit samples, harness subtracted.
@@ -3941,7 +4026,7 @@ minimum rather than a member of a set of acceptable choices.
 
 \paragraph{Scope, stated so the claim does not overreach.} This concerns
 arithmetic in a lattice. It applies to the linear algebra that dominates a
-network's work and its silicon cost, and it says nothing about control flow,
+network's work and its LUT-area cost, and it says nothing about control flow,
 addressing or branching, which are not lattice problems and gain nothing from
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-57-conjugatetoll.png}
@@ -4045,7 +4130,7 @@ and throughput are readable together.}
 \end{figure}
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-73-specificationrep.png}
-\caption{Canon plate. The silicon table separates nominal format width from stored binary words and documents the corrected modules with their corresponding conformance coverage.}
+\caption{Canon plate. The resource table separates nominal format width from stored binary words and documents the corrected modules with their corresponding conformance coverage.}
 \label{fig:canon-b4-73specificationrep}
 \end{figure}
 
@@ -4540,6 +4625,14 @@ Then $b+1 \le 2^{E}$ and $1+E+m \le N$, hence
   m + \log_2(b+1) \;\le\; N-1 .
 \]
 \end{theorem}
+\begin{proof}
+A uniform scale field with $E$ binary positions has at most $2^{E}$ distinct
+codes, so representing $b+1$ binades requires $b+1\leq2^E$.  The sign, scale
+field, and significand occupy $1+E+m$ positions, which cannot exceed the total
+width $N$.  Taking $\log_2$ of the first inequality and combining it with the
+second gives
+$ m+\log_2(b+1)\leq m+E\leq N-1$.
+\end{proof}
 
 The two budgets are the same accounting in different currencies, and the exchange
 rate is the whole result.
@@ -4573,7 +4666,7 @@ BNF16 and TNF16 differ by $1\%$ in LUTs. Both are true, on different axes. Per
 \emph{position} a trit spans $\log_2 3$ binades against a bit's one, which is
 where $\Delta$ comes from; per \emph{bit of binary fabric} the packing gives it
 all back. The ternary encoding earns on the number axis and breaks even on the
-silicon axis, and a claim that does not name its axis is not a claim.
+fabric axis, and a claim that does not name its axis is not a claim.
 
 \begin{corollary}[Escape requires non-uniformity]
 \label{cor:escape}
@@ -6402,6 +6495,59 @@ whether it holds at the $(4,8)$ rung whose threshold differs
 (Table~\ref{tab:rungthr}), is not settled here. The generator, the oracles and the
 result record are in the repository alongside the sweeps.
 
+\subsection{A second task: conjugate gradients in raw scale}
+\label{sec:downstream-cg}
+
+To test the objection on a task with a different numerical structure, we solved a
+$2\times2$ symmetric positive-definite linear system by conjugate gradients.
+The coefficients were deliberately kept in raw, unnormalised scale,
+\[
+A=\begin{bmatrix}1264.196608&0.07925\\0.07925&0.0156171875\end{bmatrix},
+\qquad
+b=\begin{bmatrix}1560.464823776\\0.06120245\end{bmatrix}.
+\]
+The exact solution used to generate $b$ was $(1.2345,-2.3456)$. Matrix entries,
+vectors, products and updates were rounded in the candidate format; every
+candidate dot product used a \texttt{float32} accumulator. The \texttt{float64}
+run is only a reference. After the solver stopped, the residual was recomputed
+in \texttt{float64} from the unrounded matrix and right-hand side. Thus the
+external residual is not silently replaced by the quantised solver's internal
+stopping value.
+
+\begin{table}[t]\centering\small
+\caption{Outcome of a second numerical task, conjugate-gradient solution rather
+than a representation error \textbf{[measured --- software]}. The last column is
+the number of solver iterations executed before the loop stopped, which happens when
+the stored residual reaches exactly zero, when the stored curvature denominator
+ceases to be finite and non-zero, or at the cap of $80$; the middle column is an
+independently recomputed residual in \texttt{float64}. All three low-precision
+candidates crossed the internal $10^{-6}$ threshold at iteration 3, so the last
+column records where each solver stalled and not how fast it converged.
+TNF$(4,8)$ is the rung that fits sixteen \emph{physical} cells, the same
+convention under which \texttt{takum16} and \texttt{binary16} are read here; it
+is not the reconciled TNF16 rung $(4,11)$, which is stated at the nominal
+budget.}
+\label{tab:downstream-cg}
+\begin{tabular}{lrrr}
+\toprule
+format & relative solution error & external relative residual & iterations run \\
+\midrule
+\texttt{float64} (reference) & $8.38\times10^{-17}$ & $1.46\times10^{-16}$ & 32 \\
+\texttt{binary16}            & $1.44\times10^{-3}$  & $1.01\times10^{-4}$  & 5  \\
+\textbf{TNF$(4,8)$}          & $2.25\times10^{-3}$  & $1.02\times10^{-4}$  & 7  \\
+\texttt{takum16}             & $2.18\times10^{-3}$  & $2.95\times10^{-4}$  & 15 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+On this one system, TNF$(4,8)$ has a slightly smaller externally recomputed residual
+than \texttt{takum16}, but a slightly larger solution error; \texttt{binary16}
+has the smallest solution error among the three low-precision candidates. This
+is a task-level observation for one matrix and one rung, not a format ranking.
+The solver iteration count is not a throughput result, and the synthetic
+system supplies no evidence about energy, area or FPGA timing. The generator and
+the machine-written result record are stored with the other measurements.
+
 \subsection{A defect the sweep exposed in our own oracle}
 \label{sec:oracledefect}
 
@@ -6808,4 +6954,3 @@ Computing: A Systematic Review,'' \emph{IEEE Access}, vol.~13, 2024.
 \end{thebibliography}
 
 \end{document}
-
