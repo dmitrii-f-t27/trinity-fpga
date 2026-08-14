@@ -780,11 +780,16 @@ Classifying by the \emph{form} of the staircase rather than by a fitted slope
 resolves the catalogue into four classes. Of the 83 entries, 11 are integer or
 fixed-point formats with no exponent field; of the remaining 72, 18 span fewer
 than six binades and cannot be classified from round-trip error at all, and one
-requires probes wider than we generated.
+requires probes wider than we generated. That leaves $53$ classified, and the
+four class counts below sum to $53$: the total closes on $83$ and is asserted in
+the harness rather than trusted to the reader's addition.
 
 \begin{table}[t]\centering
 \caption{The catalogue by staircase form. The parameter is the taper constant in
-the units natural to each form. Measured against each format's own usable range.}
+the units natural to each form. Measured against each format's own usable range.
+The geometric count read $8$ in an earlier draft against a member list of seven,
+\texttt{takum8/16/32/64} and \texttt{tekum8/16/32}; the counts and the catalogue
+total disagreed by exactly that one entry, and the member list decided it.}
 \label{tab:taxonomy}
 \begin{tabular}{llrl}
 \toprule
@@ -793,7 +798,7 @@ form & $M_{\mathrm{eff}}$ against $|e|$ & count & members and constants \\
 constant   & flat                          & $38$ & IEEE, bfloat, VAX, Cray, x87, GF, TNF \\
 wobble     & periodic, no trend            & $3$  & IBM hexadecimal, $\log_2 16 = 4$ bits \\
 arithmetic & $-2^{-es}$ per binade         & $5$  & posit16/32 $0.25$, posit64 $0.125$ \\
-geometric  & $-1$ per doubling             & $8$  & takum $\times 4$, tekum $\times 3$ \\
+geometric  & $-1$ per doubling             & $7$  & takum $\times 4$, tekum $\times 3$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1622,7 +1627,7 @@ $r=2$ has lower relative error than $r=3$]
 \label{thm:scaleradix}
 Let a format scale by $r^{e}$ with a normalised significand uniformly quantised
 over $[1, r)$ by $M$ bits. Then its expected relative error on a log-uniform
-workload is $\kappa(r)\,2^{-M}$ with
+workload is $\tfrac14\kappa(r)\,2^{-M}$ with
 \[
 \kappa(r) \;=\; \frac{(r-1)^{2}}{r\ln r},
 \qquad \kappa(2) = 0.72135,\quad \kappa(3) = 1.21365 .
@@ -1641,13 +1646,14 @@ in Theorem~\ref{thm:boundary}.
 \end{theorem}
 
 \begin{proof}
-The quantisation step over $[1,r)$ is $(r-1)2^{-M}$ and the mean absolute
-rounding error is half of it. On a log-uniform workload the significand has
-density $1/(s\ln r)$ on $[1,r)$, so
+The quantisation step over $[1,r)$ is $\Delta = (r-1)2^{-M}$. Under
+round-to-nearest the signed error is uniform on $(-\Delta/2, \Delta/2)$, so the
+mean \emph{absolute} error is $\Delta/4$ --- a quarter of the step, not half of
+it, which is the maximum rather than the mean. On a log-uniform workload the
+significand has density $1/(s\ln r)$ on $[1,r)$, so
 $\mathbb{E}[1/s] = \frac{1}{\ln r}\int_1^{r} s^{-2}\,ds = \frac{1-1/r}{\ln r}$.
-Multiplying gives $\tfrac12 (r-1)2^{-M}\cdot\frac{1-1/r}{\ln r}$, and
-$\tfrac12(r-1)(1-1/r) = (r-1)^2/2r$. Absorbing the factor $\tfrac12$ into the
-$2^{-(M+1)}$ convention of Theorem~\ref{thm:law} yields $\kappa$ as stated. For
+Multiplying gives $\tfrac14 (r-1)2^{-M}\cdot\frac{1-1/r}{\ln r}$, and
+$(r-1)(1-1/r) = (r-1)^2/r$, which is $\tfrac14\kappa(r)2^{-M}$ as stated. For
 the range, $E_t$ trits span $3^{E_t}$ steps of $\log_2 r$ binades each. One
 mantissa bit halves the error and one exponent trit triples the range, which
 fixes the exchange rate between the two currencies and gives the position
@@ -1658,6 +1664,21 @@ Direct measurement at two rungs, encoding and decoding through both scales in
 exact arithmetic, gives error ratios of $1.675$ at $(E_t,M) = (4,11)$ and $1.690$
 at $(6,25)$ against the predicted $1.6825$, and range ratios of $1.583$ and
 $1.585$ against the predicted $1.5850$.
+
+\paragraph{The prefactor was wrong by a factor of four, and only the prefactor.}
+An earlier statement of this theorem gave the expected error as $\kappa(r)2^{-M}$,
+because the proof took the mean rounding error to be half a step rather than a
+quarter and then absorbed a second factor of two into a convention. A Monte-Carlo
+check of $8\times10^{6}$ log-uniform draws returns $7.0471\times10^{-4}$ at
+$(r,M)=(2,8)$ against $\tfrac14\kappa(2)2^{-8} = 7.0444\times10^{-4}$, and
+$1.4822\times10^{-4}$ at $(3,11)$ against $\tfrac14\kappa(3)2^{-11} =
+1.4815\times10^{-4}$, so the corrected prefactor is confirmed to four figures
+\textbf{[measured --- software]}. Nothing downstream moves: every use of $\kappa$
+elsewhere in this paper is a \emph{ratio}, and $\kappa(3)/\kappa(2) = 1.6825$ is
+unchanged by a common factor, as is the minimisation of $\kappa$ over the
+shift-only set in Theorem~\ref{thm:radixopt}. This is recorded rather than
+silently corrected because an absolute constant that no ratio depends on is
+exactly the kind of number a reader will lift out of context.
 
 \begin{corollary}[What TNF is, precisely]
 TNF is not a ternary float in the sense of Ternary27; it is a binary-radix float
@@ -2790,11 +2811,49 @@ $E_t^{\dagger}=3$ clamps nothing and attains a mean relative error of
 $3.25\times10^{-4}$, the smallest of the four members at this width
 \textbf{[measured --- software]}. The conclusion of Theorem~\ref{thm:optimal}
 therefore survives, but only once its representability condition is read off the
-window instead of off the count. Every application of the rule in this paper
-carries a per-block or per-channel scale, which is precisely the centring
-hypothesis, so no figure reported elsewhere moves; the correction bites on raw,
-unscaled workloads, and those are exactly the ones a reader is most likely to try
-first.
+window instead of off the count.
+
+\paragraph{A scale is not a centring, and an earlier draft of this paragraph said
+it was.} Every application of the rule in this paper carries a scale, and it is
+tempting to read the scale as discharging the hypothesis. It does not. The scales
+here are set from the block or tensor maximum --- \texttt{block-max scaling}, the
+convention stated in the block harness --- which \emph{top-aligns} the visited
+span rather than centring it, and top-alignment is the worst case for a window
+fixed about unity.
+
+\begin{corollary}[Top-aligned scaling wastes half the exponent window]
+\label{cor:topaligned}
+Let a scale carry the largest magnitude of the workload into the top representable
+binade, and let the workload visit $b$ binades. Then the smallest admissible
+exponent width is $\lceil \log_3(2b+1) \rceil$; it never falls below $E_t^{*}$ and
+exceeds it for $137$ of the first $200$ values of $b$. The positive half of the
+window, $\Delta-1$ binade indices, is unreachable by construction, and centring
+the scale instead of top-aligning it recovers $\log_3 2 = 0.6309$ trits of budget.
+\end{corollary}
+
+\begin{proof}
+After scaling, the visited indices are $-(b-1) \ldots 0$. By
+Proposition~\ref{prop:uncentred} containment requires $\Delta - 1 \ge b-1$ with
+$\Delta = (3^{E_t}-1)/2$, that is $3^{E_t} \ge 2b+1$, giving the stated width.
+Since $2b+1 \ge b+1$ for $b \ge 0$ and the ceiling of $\log_3$ is non-decreasing,
+the width never falls below $E_t^{*} = \lceil\log_3(b+1)\rceil$; that it strictly
+exceeds it for $137$ of $b = 1 \ldots 200$ is by enumeration. The indices
+$+1 \ldots +(\Delta-1)$ receive no workload, so $\Delta$ of the $2\Delta-1$ usable
+rows carry values and the usable fraction $\Delta/(2\Delta-1)$ falls from
+$57.1\%$ at $E_t=2$ through $52.0\%$, $50.6\%$, $50.2\%$ to $1/2$. The budget
+recovered by centring is $\log_3\bigl((2b+1)/(b+1)\bigr) \to \log_3 2$.
+\end{proof}
+
+No figure reported elsewhere moves nonetheless, and for a reason worth stating
+rather than for the reason first supposed. Those figures report task error, and
+representability is sufficient for zero clamping but not necessary for small task
+error. The eight-bit sweep below records the opposite failure on the same weights:
+there the measured optimum is one step \emph{narrower} than $E_t^{*}$, let alone
+than $\lceil\log_3(2b+1)\rceil$. What binds on a weight tensor is the energy in the
+tail, not representability. The correction bites where representability is the
+operative constraint, which is the raw unscaled trajectory measured above, and
+Corollary~\ref{cor:topaligned} says what a harness should do about it: centre the
+scale, and the window stops paying for a half it cannot reach.
 
 The rule therefore has no free parameter once the workload is named, and naming
 the workload is a measurement rather than a choice. Section~\ref{sec:ternarynet}
