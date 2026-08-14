@@ -20,8 +20,16 @@
 # FROZEN TOOLCHAIN
 #   nextpnr-xilinx  05aaa06bce455ae6ed01efa1616ba7d3a9421ca7  (stable-backports)
 #   yosys           0.62 (git sha1 7326bb7d6)   from regymm/openxc7
-#   prjxray-db      6c02fde2635b0d54397761359375fc8119ef04cf  (as shipped in the image)
+#   prjxray-db      d17fea26ebe46119606e875f012b9be122538aec
 #   base image      regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c
+#
+# The prjxray-db line is NOT a free choice, which is the opposite of what the
+# first version of this file (and the mail that went with it) assumed. It said
+# 6c02fde, "as shipped in the image", and offered master as an alternative.
+# There is no alternative: checking nextpnr out at 05aaa06 moves its submodule
+# to the revision that commit records, and that is d17fea2 — which is master.
+# Measured, not assumed: the run reports the rev from the tree it built and
+# stamps it into every JSON, so this comment can never silently drift again.
 #
 # nextpnr is built from source rather than taken from the image ON PURPOSE.
 # The image's nextpnr is 45a986b, dated 2026-04-18 — four months before
@@ -65,6 +73,15 @@ jobs:
     name: Build nextpnr-xilinx @ 05aaa06
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    # The prjxray-db revision is REPORTED, not asserted. The first attempt
+    # hardcoded 6c02fde — the revision the image ships — in the emitted JSON and
+    # in the report header. It was wrong: checking nextpnr out at 05aaa06 moves
+    # the submodule to whatever THAT commit records, which is d17fea2. Every
+    # measurement would have carried a false toolchain label, which is the one
+    # kind of error a receipt must not have. It now comes from the tree that was
+    # actually built.
+    outputs:
+      prjxray_db: ${{ steps.b.outputs.prjxray_db }}
     steps:
       - name: Pull the pinned image
         run: |
@@ -84,6 +101,7 @@ jobs:
       # The image ships cmake, g++, make and the nextpnr git tree, so the pinned
       # revision is fetched into that tree rather than cloned fresh.
       - name: Build nextpnr at the pinned revision, in the image
+        id: b
         run: |
           mkdir -p out/bin
           docker run --rm -v "$PWD/out:/out" "$OPENXC7_IMAGE" bash -c '
@@ -107,7 +125,9 @@ jobs:
             cp nextpnr-xilinx /out/bin/nextpnr-xilinx
             ( cd xilinx/external/prjxray-db && git rev-parse HEAD ) > /out/prjxray-db.rev
           '
-          echo "prjxray-db pinned at: $(cat out/prjxray-db.rev)"
+          DB=$(cat out/prjxray-db.rev)
+          echo "prjxray-db pinned at: $DB"
+          echo "prjxray_db=$DB" >> $GITHUB_OUTPUT
           ls -l out/bin/nextpnr-xilinx
 
       - name: It must run in the image it was built for
@@ -168,7 +188,9 @@ jobs:
 
   measure:
     name: ${{ matrix.design }} run ${{ matrix.run }}
-    needs: chipdb
+    # nextpnr is already an ancestor through chipdb; it is named here only so
+    # its prjxray_db output is readable from this job.
+    needs: [nextpnr, chipdb]
     runs-on: ubuntu-latest
     timeout-minutes: 180
     strategy:
@@ -313,10 +335,11 @@ jobs:
             --argjson run ${{ matrix.run }} \
             --argjson synth $SY --argjson pnr $PR --argjson bit $BI \
             --argjson total $((SY+PR+BI)) --arg cores "$(nproc)" \
+            --arg db "${{ needs.nextpnr.outputs.prjxray_db }}" \
             '{design:$design, part:$part, family:$family, run:$run,
               synth_ms:$synth, pnr_ms:$pnr, bit_ms:$bit, total_ms:$total,
               timing_closed:$closed, cores:($cores|tonumber),
-              toolchain:{nextpnr:"05aaa06", yosys:"0.62", prjxray_db:"6c02fde"}}' \
+              toolchain:{nextpnr:"05aaa06", yosys:"0.62", prjxray_db:$db}}' \
             > timing-${{ matrix.design }}-${{ matrix.run }}.json
           cat timing-${{ matrix.design }}-${{ matrix.run }}.json
 
@@ -332,7 +355,7 @@ jobs:
 
   report:
     name: Median and spread
-    needs: measure
+    needs: [nextpnr, measure]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -348,7 +371,9 @@ jobs:
             echo "## openXC7 build time — benchmark half"
             echo
             echo "Runner: \`ubuntu-latest\`, $(nproc) cores. nextpnr-xilinx 05aaa06,"
-            echo "yosys 0.62, prjxray-db 6c02fde."
+            echo "yosys 0.62, prjxray-db \`${{ needs.nextpnr.outputs.prjxray_db }}\`"
+            echo "(the revision nextpnr 05aaa06 itself records as its submodule —"
+            echo "not the one the published image ships)."
             echo
             echo "Measured: synthesis + place-and-route + bitstream, through"
             echo "demo-projects' own openXC7.mk targets."
