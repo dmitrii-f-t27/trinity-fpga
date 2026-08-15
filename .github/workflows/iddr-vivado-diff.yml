@@ -38,6 +38,7 @@ env:
   OPENXC7_IMAGE: regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c
   PRJXRAY_DB_REV: d17fea26ebe46119606e875f012b9be122538aec
   PRJXRAY_REV: 15fa018e
+  NEXTPNR_REV: 05aaa06bce455ae6ed01efa1616ba7d3a9421ca7
   REF_URL: https://github.com/user-attachments/files/30959493/iddr-probe-xc7a35tcsg324-1.tar.gz
 
 jobs:
@@ -224,6 +225,62 @@ jobs:
             echo '```'
           } >> $GITHUB_STEP_SUMMARY
           cat $GITHUB_STEP_SUMMARY
+
+      # The Vivado-vs-Vivado diff answers what the mux positions are. It does
+      # NOT answer #114. For that the comparison has to be Vivado's build A
+      # against OUR build of the same file: whatever Vivado sets and we do not
+      # is the candidate list.
+      #
+      # Uses the frozen toolchain, nextpnr built in the image, chipdb generated
+      # from the same tree -- the same construction as the benchmark harness,
+      # for the same reason.
+      - name: Build the same design with openXC7
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p ours && cd ours
+          gh api gists/329e200eeabb2c2fe430d2c952e83891 \
+            --jq '.files["A_direct_top.v"].content'   > top.v
+          gh api gists/329e200eeabb2c2fe430d2c952e83891 \
+            --jq '.files["A_direct_top.xdc"].content' > top.xdc
+          cd ..
+          docker run --rm -v "$PWD:/w" -w /w/ours "$OPENXC7_IMAGE" bash -c '
+            set -e
+            cd /nextpnr-xilinx
+            git fetch --depth 1 origin '"$NEXTPNR_REV"'
+            git checkout '"$NEXTPNR_REV"'
+            cmake . -DARCH=xilinx -DCMAKE_BUILD_TYPE=Release >/dev/null
+            make -j"$(nproc)" >/dev/null 2>&1
+            cp nextpnr-xilinx bbasm /usr/local/bin/
+            python3 xilinx/python/bbaexport.py --device xc7a35tcsg324-1 --bba /tmp/db.bba
+            bbasm -l /tmp/db.bba /tmp/db.bin
+            cd /w/ours
+            yosys -p "synth_xilinx -flatten -abc9 -arch xc7 -top top; write_json top.json" top.v
+            nextpnr-xilinx --chipdb /tmp/db.bin --xdc top.xdc --json top.json --fasm ours.fasm
+          '
+          wc -l ours/ours.fasm
+
+      - name: What Vivado sets that we do not
+        if: always()
+        run: |
+          [ -s ours/ours.fasm ] || { echo "our build did not produce FASM — see the step above"; exit 0; }
+          {
+            echo
+            echo '### #114: Vivado build A vs openXC7, same source'
+            echo
+            echo 'ILOGIC lines Vivado emits and we do not:'
+            echo '```'
+            comm -23 <(grep -E 'ILOGIC' A_direct.fasm | sed "s/^[A-Z0-9_]*X[0-9]*Y[0-9]*\.//" | sort -u) \
+                     <(grep -E 'ILOGIC' ours/ours.fasm | sed "s/^[A-Z0-9_]*X[0-9]*Y[0-9]*\.//" | sort -u)
+            echo '```'
+            echo 'and the reverse — ours and not Vivado:'
+            echo '```'
+            comm -13 <(grep -E 'ILOGIC' A_direct.fasm | sed "s/^[A-Z0-9_]*X[0-9]*Y[0-9]*\.//" | sort -u) \
+                     <(grep -E 'ILOGIC' ours/ours.fasm | sed "s/^[A-Z0-9_]*X[0-9]*Y[0-9]*\.//" | sort -u)
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+          tail -40 $GITHUB_STEP_SUMMARY
 
       - uses: actions/upload-artifact@v4
         if: always()
