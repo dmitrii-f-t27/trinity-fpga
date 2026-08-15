@@ -47,6 +47,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      # Needed for research/iddr-probe/. There was no checkout at all until the
+      # probe sources moved into the repository.
+      - uses: actions/checkout@v4
+
       - name: Fetch the Vivado reference bitstreams
         run: |
           curl -sSL -o ref.tar.gz "$REF_URL"
@@ -239,12 +243,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p ours && cd ours
-          gh api gists/329e200eeabb2c2fe430d2c952e83891 \
-            --jq '.files["A_direct_top.v"].content'   > top.v
-          gh api gists/329e200eeabb2c2fe430d2c952e83891 \
-            --jq '.files["A_direct_top.xdc"].content' > top.xdc
-          cd ..
+          # From the repository, not from the gist. The default GITHUB_TOKEN
+          # cannot read gists — "Resource not accessible by integration (HTTP
+          # 403)" — and more to the point, a benchmark whose input lives in an
+          # editable gist is not reproducible. research/iddr-probe/ holds the
+          # same four files Hans built from.
+          mkdir -p ours
+          cp research/iddr-probe/A_direct_top.v   ours/top.v
+          cp research/iddr-probe/A_direct_top.xdc ours/top.xdc
           docker run --rm -v "$PWD:/w" -w /w/ours "$OPENXC7_IMAGE" bash -c '
             set -e
             cd /nextpnr-xilinx
@@ -288,6 +294,7 @@ jobs:
           name: iddr-fasm
           path: |
             A_direct.fasm
+            ours/ours.fasm
             B_idelay.fasm
             A_direct.bits
             B_idelay.bits
