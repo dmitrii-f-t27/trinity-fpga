@@ -125,6 +125,28 @@ jobs:
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1
           make -C build -j"$(nproc)" bitread 2>&1 | tail -3
 
+      # openXC7/prjxray#6, at Carlos's request. Its diagnosis matches the
+      # symptom exactly: fcd561fb replaced a copying std::vector with an
+      # absl::Span but left both owners scoped to their if/else blocks, so the
+      # MemoryMappedFile is unmapped before the bitstream is parsed and every
+      # invocation dies in the sync-word search. Use-after-free, which is why it
+      # crashes on WELL-FORMED bitstreams and why f4pga -- predating that
+      # refactor -- reads them fine.
+      #
+      # A separate build rather than a patched one, so the matrix compares three
+      # real binaries and the PR either clears the row or does not.
+      - name: Build bitread with openXC7/prjxray#6 applied
+        continue-on-error: true
+        run: |
+          git clone -q https://github.com/openXC7/prjxray xray-pr6
+          cd xray-pr6
+          git fetch -q origin pull/6/head:pr6
+          git checkout -q pr6
+          echo "PR#6 head: $(git rev-parse --short HEAD)"
+          git submodule update -q --init --recursive
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1
+          make -C build -j"$(nproc)" bitread 2>&1 | tail -3
+
       - name: Which bitread can read a 7-series bitstream?
         run: |
           # set +e, because the whole point of this step is to RECORD failures.
@@ -141,7 +163,7 @@ jobs:
             echo "|---|---|---|"
           } >> $GITHUB_STEP_SUMMARY
 
-          for src in xray xray-upstream; do
+          for src in xray xray-pr6 xray-upstream; do
             BR=$(find $src/build -name bitread -type f -perm -u+x 2>/dev/null | head -1)
             [ -n "$BR" ] || { echo "| $src | not built | not built |" >> $GITHUB_STEP_SUMMARY; continue; }
             "$BR" --part_file "$P" -o /tmp/t1.bits -z -y A_direct/top.bit >/dev/null 2>&1; a=$?
@@ -158,6 +180,7 @@ jobs:
           fi
 
           echo "BITREAD=$WORKING" >> $GITHUB_ENV
+          echo "WORKING_SRC=${WORKING%%/build*}" >> $GITHUB_ENV
           echo "working bitread: $WORKING"
 
       # f4pga's bitread has to be built INSIDE the image, for the same reason
@@ -175,7 +198,7 @@ jobs:
           mkdir -p bin
           docker run --rm -v "$PWD:/w" -w /w "$OPENXC7_IMAGE" bash -c '
             set -e
-            cp -r /w/xray-upstream /tmp/x && cd /tmp/x
+            cp -r "/w/'"$WORKING_SRC"'" /tmp/x && cd /tmp/x
             # build-img, not build: the copied tree already carries the runner
             # build, and CMakeCache.txt records absolute paths, so reusing the
             # directory fails with "the current CMakeCache.txt directory ... is
