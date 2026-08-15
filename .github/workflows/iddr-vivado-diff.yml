@@ -122,6 +122,11 @@ jobs:
 
       - name: Which bitread can read a 7-series bitstream?
         run: |
+          # set +e, because the whole point of this step is to RECORD failures.
+          # GitHub runs `run:` under `bash -e`, so the first segfaulting bitread
+          # killed the step at line 10 and the matrix never printed — a probe
+          # that cannot survive the thing it is probing.
+          set +e
           P=$PWD/pdb/artix7/xc7a35tcsg324-1/part.yaml
           WORKING=""
           {
