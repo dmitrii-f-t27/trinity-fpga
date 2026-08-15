@@ -153,22 +153,45 @@ jobs:
           fi
 
           echo "BITREAD=$WORKING" >> $GITHUB_ENV
-          for b in A_direct B_idelay; do
-            "$WORKING" --part_file "$P" -o "$b.bits" -z -y "$b/top.bit"
-          done
-          wc -l A_direct.bits B_idelay.bits
+          echo "working bitread: $WORKING"
+
+      # f4pga's bitread has to be built INSIDE the image, for the same reason
+      # nextpnr is: the runner is Ubuntu 24.04 and the image is 20.04, and a
+      # binary built on one does not run on the other.
+      #
+      # And bit2fasm must be pointed at it with --bitread. The previous attempt
+      # passed --bits-file expecting it to mean "read the bits from here". It
+      # means "write them here": bit2fasm re-ran the image's own broken bitread,
+      # which segfaulted, and left the good .bits files truncated to zero. The
+      # artefact was four empty files -- a step that destroyed its own input and
+      # still uploaded something.
+      - name: Build f4pga bitread inside the image
+        run: |
+          mkdir -p bin
+          docker run --rm -v "$PWD:/w" -w /w "$OPENXC7_IMAGE" bash -c '
+            set -e
+            cp -r /w/xray-upstream /tmp/x && cd /tmp/x
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release >/dev/null
+            make -C build -j"$(nproc)" bitread >/dev/null 2>&1
+            cp "$(find build -name bitread -type f -perm -u+x | head -1)" /w/bin/bitread
+          '
+          docker run --rm -v "$PWD:/w" "$OPENXC7_IMAGE" \
+            /w/bin/bitread --part_file /w/pdb/artix7/xc7a35tcsg324-1/part.yaml \
+            -o /tmp/probe.bits -z -y /w/A_direct/top.bit && echo "in-image bitread works"
 
       - name: bit2fasm both builds
         run: |
           docker run --rm -v "$PWD:/w" -w /w "$OPENXC7_IMAGE" bash -c '
+            set -e
             source /prjxray/env/bin/activate
             for b in A_direct B_idelay; do
               python3 /prjxray/utils/bit2fasm.py \
                 --db-root /w/pdb/artix7 --part xc7a35tcsg324-1 \
-                --bits-file /w/$b.bits /w/$b/top.bit > /w/$b.fasm
+                --bitread /w/bin/bitread /w/$b/top.bit > /w/$b.fasm
             done
           '
           wc -l A_direct.fasm B_idelay.fasm
+          test -s A_direct.fasm && test -s B_idelay.fasm
 
       - name: The diff
         run: |
