@@ -104,16 +104,52 @@ jobs:
           make -C build -j"$(nproc)" bitread 2>&1 | tail -5
           find build -name bitread -type f -perm -u+x | head -1
 
-      - name: bitread, freshly built
+      # openXC7's fork at 15fa018e segfaults identically to the container's
+      # March build, so "stale binary" is dead as an explanation. The remaining
+      # candidates are the fork itself and prjxray proper, so build both and
+      # try each with and without the database. Whichever combination reads a
+      # bitstream is the one the disassembly uses; if none does, that is a
+      # reportable prjxray bug and the matrix below is the report.
+      - name: Build bitread from f4pga/prjxray too
+        continue-on-error: true
         run: |
-          BR=$(find xray/build -name bitread -type f -perm -u+x | head -1)
-          test -n "$BR" || { echo "::error::bitread was not built"; exit 1; }
-          P=pdb/artix7/xc7a35tcsg324-1/part.yaml
+          git clone -q https://github.com/f4pga/prjxray xray-upstream
+          cd xray-upstream
+          git submodule update -q --init --recursive
+          echo "f4pga/prjxray at $(git rev-parse --short HEAD)"
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1
+          make -C build -j"$(nproc)" bitread 2>&1 | tail -3
+
+      - name: Which bitread can read a 7-series bitstream?
+        run: |
+          P=$PWD/pdb/artix7/xc7a35tcsg324-1/part.yaml
+          WORKING=""
+          {
+            echo "### Can any bitread read this bitstream?"
+            echo
+            echo "| build | with --part_file | without |"
+            echo "|---|---|---|"
+          } >> $GITHUB_STEP_SUMMARY
+
+          for src in xray xray-upstream; do
+            BR=$(find $src/build -name bitread -type f -perm -u+x 2>/dev/null | head -1)
+            [ -n "$BR" ] || { echo "| $src | not built | not built |" >> $GITHUB_STEP_SUMMARY; continue; }
+            "$BR" --part_file "$P" -o /tmp/t1.bits -z -y A_direct/top.bit >/dev/null 2>&1; a=$?
+            "$BR" -o /tmp/t2.bits A_direct/top.bit                        >/dev/null 2>&1; b=$?
+            echo "| $src | rc=$a | rc=$b |" >> $GITHUB_STEP_SUMMARY
+            [ "$a" = 0 ] && [ -z "$WORKING" ] && WORKING="$BR"
+          done
+
+          if [ -z "$WORKING" ]; then
+            echo >> $GITHUB_STEP_SUMMARY
+            echo "**No bitread build can read it.** Segfault immediately after \`Bitstream size:\`, on the Vivado file and on one produced by the image's own \`xc7frames2bit\` from an empty FASM. Reportable as a prjxray bug." >> $GITHUB_STEP_SUMMARY
+            cat $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "BITREAD=$WORKING" >> $GITHUB_ENV
           for b in A_direct B_idelay; do
-            "$BR" --part_file "$P" -o "$b.bits" -z -y "$b/top.bit" || {
-              echo "::error::fresh bitread also fails on $b — this is a prjxray bug, not a stale binary"
-              exit 1
-            }
+            "$WORKING" --part_file "$P" -o "$b.bits" -z -y "$b/top.bit"
           done
           wc -l A_direct.bits B_idelay.bits
 
