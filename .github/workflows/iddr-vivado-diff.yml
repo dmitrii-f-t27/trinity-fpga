@@ -171,9 +171,13 @@ jobs:
           docker run --rm -v "$PWD:/w" -w /w "$OPENXC7_IMAGE" bash -c '
             set -e
             cp -r /w/xray-upstream /tmp/x && cd /tmp/x
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release >/dev/null
-            make -C build -j"$(nproc)" bitread >/dev/null 2>&1
-            cp "$(find build -name bitread -type f -perm -u+x | head -1)" /w/bin/bitread
+            # build-img, not build: the copied tree already carries the runner
+            # build, and CMakeCache.txt records absolute paths, so reusing the
+            # directory fails with "the current CMakeCache.txt directory ... is
+            # different than the directory".
+            cmake -S . -B build-img -DCMAKE_BUILD_TYPE=Release >/dev/null
+            make -C build-img -j"$(nproc)" bitread >/dev/null 2>&1
+            cp "$(find build-img -name bitread -type f -perm -u+x | head -1)" /w/bin/bitread
           '
           docker run --rm -v "$PWD:/w" "$OPENXC7_IMAGE" \
             /w/bin/bitread --part_file /w/pdb/artix7/xc7a35tcsg324-1/part.yaml \
