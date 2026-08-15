@@ -37,6 +37,7 @@ on:
 env:
   OPENXC7_IMAGE: regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c
   PRJXRAY_DB_REV: d17fea26ebe46119606e875f012b9be122538aec
+  PRJXRAY_REV: 15fa018e
   REF_URL: https://github.com/user-attachments/files/30959493/iddr-probe-xc7a35tcsg324-1.tar.gz
 
 jobs:
@@ -72,16 +73,48 @@ jobs:
         run: |
           for i in 1 2 3 4 5 6; do docker pull "$OPENXC7_IMAGE" && break; sleep $((i*20)); done
 
-      - name: bitread, on native amd64
+      # The container's bitread cannot read ANY 7-series bitstream.
+      #
+      # Established by controlled test, not by inference. It segfaults (rc=139,
+      # immediately after printing "Bitstream size: 2192111 bytes") on:
+      #   - Hans's Vivado bitstream, and
+      #   - a bitstream built seconds earlier by the image's OWN xc7frames2bit
+      #     from an empty FASM, with the same part.yaml,
+      # with and without --part_file, under every flag combination, on an arm64
+      # host under QEMU and on a native amd64 runner alike. No missing shared
+      # libraries. So it is neither the Vivado file, nor the database, nor the
+      # emulation.
+      #
+      # The image carries openXC7/prjxray 132342f7, dated 2026-03-24 — five
+      # months stale, and its last merge is a gflags bump. Upstream has moved
+      # to 15fa018e including two MemoryMappedFile/Database ports. That is very
+      # likely why nobody has disassembled this reference in the four days it
+      # has been attached to the issue: the standard tool in the standard
+      # container does not work, and it fails as a crash rather than as a
+      # message.
+      - name: Build bitread from current prjxray
         run: |
-          docker run --rm -v "$PWD:/w" -w /w "$OPENXC7_IMAGE" bash -c '
-            set -x
-            P=/w/pdb/artix7/xc7a35tcsg324-1/part.yaml
-            for b in A_direct B_idelay; do
-              bitread --part_file "$P" -o /w/$b.bits -z -y /w/$b/top.bit
-              echo "$b rc=$?"
-            done
-          ' 2>&1 | tail -20
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake g++ libboost-all-dev >/dev/null
+          git clone -q https://github.com/openXC7/prjxray xray
+          cd xray
+          git checkout -q "$PRJXRAY_REV"
+          git submodule update -q --init --recursive
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release >/dev/null
+          make -C build -j"$(nproc)" bitread 2>&1 | tail -5
+          find build -name bitread -type f -perm -u+x | head -1
+
+      - name: bitread, freshly built
+        run: |
+          BR=$(find xray/build -name bitread -type f -perm -u+x | head -1)
+          test -n "$BR" || { echo "::error::bitread was not built"; exit 1; }
+          P=pdb/artix7/xc7a35tcsg324-1/part.yaml
+          for b in A_direct B_idelay; do
+            "$BR" --part_file "$P" -o "$b.bits" -z -y "$b/top.bit" || {
+              echo "::error::fresh bitread also fails on $b — this is a prjxray bug, not a stale binary"
+              exit 1
+            }
+          done
           wc -l A_direct.bits B_idelay.bits
 
       - name: bit2fasm both builds
