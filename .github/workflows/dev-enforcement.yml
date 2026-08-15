@@ -40,10 +40,15 @@ jobs:
     name: CI Validation
     runs-on: ubuntu-latest
     steps:
-      # Depth 0 on a PR so every commit in it can be read, not just the tip.
+      # Full history, unconditionally. The first version used
+      #   fetch-depth: ${{ github.event_name == 'pull_request' && 0 || 1 }}
+      # which evaluates to 1 on a pull request, not 0: `true && 0` is `0`, `0` is
+      # falsy, so `|| 1` wins. Latent here because this copy has only ever run
+      # on push; it killed the trinity copy on its first PR with
+      # `fatal: Invalid revision range <base>..<head>`.
       - uses: actions/checkout@v4
         with:
-          fetch-depth: ${{ github.event_name == 'pull_request' && 0 || 1 }}
+          fetch-depth: 0
 
       - name: Validate commit format
         env:
