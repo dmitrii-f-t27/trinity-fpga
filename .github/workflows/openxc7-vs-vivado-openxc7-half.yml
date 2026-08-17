@@ -416,21 +416,53 @@ jobs:
 
           ls -l "demo/${{ steps.d.outputs.dir }}/${P}.bit"
 
-      - name: Did timing close?
+      - name: Did timing close, and against what?
         id: tc
         run: |
-          # Carlos's third addition: time-to-bitstream without "and it met
-          # timing" invites the wrong reading in both directions. nextpnr prints
-          # the worst slack; a design built with --timing-allow-fail can produce
-          # a bitstream that misses its target.
-          if grep -qiE "timing did not meet|timing failed|Max frequency .* FAIL" logs/pnr.log; then
-            echo "closed=no" >> $GITHUB_OUTPUT
-          elif grep -qiE "Max frequency for clock" logs/pnr.log; then
-            echo "closed=yes" >> $GITHUB_OUTPUT
-          else
+          # "closed=yes" from the presence of a PASS line was a bad instrument,
+          # and Carlos caught it. nextpnr's PASS is measured against ITS OWN
+          # default target of 12 MHz when the design does not give it one, so
+          # every row in the first campaign read "closed" while meaning
+          # "faster than 12 MHz". Measured on those very logs:
+          #
+          #   blinky   181.13 MHz PASS at 12.00   XDC has no create_clock
+          #   picosoc   64.08 MHz PASS at 12.00   create_clock is COMMENTED OUT
+          #   litex     65.52 MHz PASS at 12.00   XDC asks for 100 MHz
+          #   deephier  69.72 MHz PASS at 12.00   XDC asks for 100 MHz
+          #
+          # Two of the four miss the frequency their own design asks for, and
+          # the column said they closed. A pass against a target nobody set is
+          # not a pass; it is an unset target reported as a result.
+          #
+          # So this now records the worst achieved clock, its name, and the
+          # target the tool actually applied — and flags the 12 MHz default as
+          # "no real target" rather than laundering it into a verdict.
+          WORST=$(grep -aoE "Max frequency for clock +'[^']+': [0-9.]+ MHz \((PASS|FAIL) at [0-9.]+ MHz\)" logs/pnr.log \
+                  | sed -E "s/.*'([^']+)': ([0-9.]+) MHz \((PASS|FAIL) at ([0-9.]+) MHz\)/\2 \1 \3 \4/" \
+                  | sort -n | head -1)
+          if [ -z "$WORST" ]; then
             echo "closed=unknown" >> $GITHUB_OUTPUT
+            echo "fmax_mhz=0" >> $GITHUB_OUTPUT
+            echo "target_mhz=0" >> $GITHUB_OUTPUT
+            echo "worst_clock=none" >> $GITHUB_OUTPUT
+          else
+            set -- $WORST
+            FMAX=$1; CLK=$2; VERDICT=$3; TARGET=$4
+            echo "fmax_mhz=$FMAX"      >> $GITHUB_OUTPUT
+            echo "worst_clock=$CLK"    >> $GITHUB_OUTPUT
+            echo "target_mhz=$TARGET"  >> $GITHUB_OUTPUT
+            # 12.00 is nextpnr's default. Treat it as "no target was set", not
+            # as a met constraint, whatever the tool printed next to it.
+            if [ "$TARGET" = "12.00" ]; then
+              echo "closed=no-target" >> $GITHUB_OUTPUT
+            elif [ "$VERDICT" = "PASS" ]; then
+              echo "closed=yes" >> $GITHUB_OUTPUT
+            else
+              echo "closed=no" >> $GITHUB_OUTPUT
+            fi
+            echo "worst: $CLK $FMAX MHz, tool target $TARGET MHz ($VERDICT)"
           fi
-          grep -iE "Max frequency|slack" logs/pnr.log | head -5 || true
+          grep -aiE "Max frequency|slack" logs/pnr.log | head -8 || true
 
       - name: Emit the measurement
         run: |
@@ -440,13 +472,18 @@ jobs:
           jq -n \
             --arg design "${{ matrix.design }}" --arg part "${{ steps.d.outputs.part }}" \
             --arg family "${{ steps.d.outputs.family }}" --arg closed "${{ steps.tc.outputs.closed }}" \
+            --arg worst_clock "${{ steps.tc.outputs.worst_clock }}" \
+            --argjson fmax_mhz ${{ steps.tc.outputs.fmax_mhz }} \
+            --argjson target_mhz ${{ steps.tc.outputs.target_mhz }} \
             --argjson run ${{ matrix.run }} \
             --argjson synth $SY --argjson pnr $PR --argjson bit $BI \
             --argjson total $((SY+PR+BI)) --arg cores "$(nproc)" \
             --arg db "${{ needs.nextpnr.outputs.prjxray_db }}" \
             '{design:$design, part:$part, family:$family, run:$run,
               synth_ms:$synth, pnr_ms:$pnr, bit_ms:$bit, total_ms:$total,
-              timing_closed:$closed, cores:($cores|tonumber),
+              timing_closed:$closed, worst_clock:$worst_clock,
+              fmax_mhz:$fmax_mhz, target_mhz:$target_mhz,
+              cores:($cores|tonumber),
               toolchain:{nextpnr:"05aaa06", yosys:"0.62", prjxray_db:$db}}' \
             > timing-${{ matrix.design }}-${{ matrix.run }}.json
           cat timing-${{ matrix.design }}-${{ matrix.run }}.json
@@ -487,8 +524,8 @@ jobs:
             echo "demo-projects' own openXC7.mk targets."
             echo "Not measured: image pull, checkout, nextpnr build, chipdb generation."
             echo
-            echo "| design | part | n | median | min | max | synth | p&r | bit | timing |"
-            echo "|---|---|---|---|---|---|---|---|---|---|"
+            echo "| design | part | n | median | min | max | synth | p&r | bit | worst clock | achieved | tool target |"
+            echo "|---|---|---|---|---|---|---|---|---|---|---|---|"
           } >> $GITHUB_STEP_SUMMARY
 
           jq -s -r '
@@ -499,8 +536,9 @@ jobs:
             group_by(.design)[]
             | { d:.[0].design, p:.[0].part, n:length,
                 tot:[.[].total_ms], sy:[.[].synth_ms], pr:[.[].pnr_ms], bi:[.[].bit_ms],
-                tc:([.[].timing_closed]|unique|join("/")) }
-            | "| \(.d) | \(.p) | \(.n) | \(.tot|med|s(.)) | \(.tot|min|s(.)) | \(.tot|max|s(.)) | \(.sy|med|s(.)) | \(.pr|med|s(.)) | \(.bi|med|s(.)) | \(.tc) |"
+                tc:([.[].timing_closed]|unique|join("/")),
+                wc:(.[0].worst_clock // "?"), fm:(.[0].fmax_mhz // 0), tg:(.[0].target_mhz // 0) }
+            | "| \(.d) | \(.p) | \(.n) | \(.tot|med|s(.)) | \(.tot|min|s(.)) | \(.tot|max|s(.)) | \(.sy|med|s(.)) | \(.pr|med|s(.)) | \(.bi|med|s(.)) | \(.wc) | \(.fm) MHz | \(if .tg == 12 then "12 MHz — tool default, NO real target" else "\(.tg) MHz" end) |"
           ' t/*.json >> $GITHUB_STEP_SUMMARY || echo "no measurements collected" >> $GITHUB_STEP_SUMMARY
 
           {
