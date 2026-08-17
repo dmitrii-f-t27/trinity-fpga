@@ -6,11 +6,13 @@
 # same two source files, by building each with the STOCK toolchain and with
 # the patched one:
 #
-#            stock 05aaa06          patched (PR #151)
-#   BYPASS   BUFR_DIVIDE.BYPASS     BUFR_DIVIDE.BYPASS
-#   D5       BUFR_DIVIDE.BYPASS     BUFR_DIVIDE.D5      <- the claim
-#            ^^^^^^^^^^^^^^^^^^
-#            two different designs, one bitstream: the bug
+#   MEASURED, run 32036508333:
+#
+#            stock 05aaa06   patched (PR #151)
+#   BYPASS   (nothing)       BUFR_Y1.IN_USE + BUFR_DIVIDE.BYPASS
+#   D5       (nothing)       BUFR_Y1.IN_USE + BUFR_DIVIDE.D5
+#            ^^^^^^^^^
+#            a placed BUFR gets no configuration at all: the real defect
 #
 # The probe drives an ODDR from the BUFR output. A fabric flip-flop would be
 # clocked through a BUFG and would never touch the regional-clock path; the
@@ -147,25 +149,43 @@ jobs:
           done
           say ""
 
+          # These assertions were rewritten after the first run.
+          #
+          # They originally tested the hypothesis in the first version of #151:
+          # that stock emits BUFR_DIVIDE.BYPASS where the design asks for 5.
+          # The probe refuted it. Stock emits NOTHING -- the pseudo-pip table
+          # that carries BUFR configuration only fires when the site is
+          # traversed as routing, and a placed BUFR is not. So the defect is
+          # larger than the divider, and the test now states what was measured
+          # rather than what was expected.
+          STOCK_ANY=$(grep -h 'BUFR_Y' out/bufr_divide.stock.fasm out/bufr_bypass.stock.fasm | wc -l)
+          P_IN_USE=$(grep -c 'BUFR_Y[0-9]\.IN_USE' out/bufr_divide.patched.fasm)
           D5=$(grep -c 'BUFR_DIVIDE\.D5' out/bufr_divide.patched.fasm)
-          SB=$(grep -c 'BUFR_DIVIDE\.BYPASS' out/bufr_divide.stock.fasm)
           PB=$(grep -c 'BUFR_DIVIDE\.BYPASS' out/bufr_bypass.patched.fasm)
+          ONLY_ADDS=$(diff out/bufr_divide.stock.fasm out/bufr_divide.patched.fasm | grep -c '^<')
 
           ok=0
-          if [ "$SB" -gt 0 ] && [ "$D5" -eq 0 ]; then
-            say "**Bug confirmed**: stock emits \`BYPASS\` for a design asking for \`5\`."
+          if [ "$STOCK_ANY" -eq 0 ]; then
+            say "**Bug confirmed, and it is bigger than the divider**: stock emits no"
+            say "\`BUFR_Y*\` feature at all — not \`IN_USE\`, not a divide — for a BUFR that"
+            say "is placed (\`BUFR: 1/20\`), wired, and clocking an ODDR."
           else
-            say "Stock did not emit BYPASS for the divided design — claim not reproduced."; ok=1
+            say "Stock emitted $STOCK_ANY BUFR feature(s); the defect is not as described."; ok=1
           fi
-          if [ "$D5" -gt 0 ]; then
-            say "**Fix confirmed**: patched emits \`D5\` for the same source."
+          if [ "$P_IN_USE" -gt 0 ] && [ "$D5" -gt 0 ]; then
+            say "**Fix confirmed**: patched emits \`IN_USE\` and \`D5\` for the same source."
           else
-            say "Patched did NOT emit \`D5\` — the fix does not work as described."; ok=1
+            say "Patched did not emit both IN_USE and D5 — the fix is incomplete."; ok=1
           fi
           if [ "$PB" -gt 0 ]; then
-            say "**No regression**: a design asking for BYPASS still gets BYPASS."
+            say "**Parameter honoured**: the BYPASS design gets BYPASS, not D5."
           else
-            say "Patched changed the BYPASS design — that is a regression."; ok=1
+            say "The BYPASS design did not get BYPASS."; ok=1
+          fi
+          if [ "$ONLY_ADDS" -eq 0 ]; then
+            say "**Additive only**: the patched FASM removes nothing stock emitted."
+          else
+            say "Patched REMOVED $ONLY_ADDS line(s) stock emitted — that is a regression."; ok=1
           fi
 
           say ""
