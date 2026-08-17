@@ -15,10 +15,18 @@
 # The probe drives an ODDR from the BUFR output. A fabric flip-flop would be
 # clocked through a BUFG and would never touch the regional-clock path; the
 # ODDR is an OLOGIC flop inside the IOI tile, so the clock has to arrive over
-# RCLK and cross the pseudo-pip that carries the configuration.
+# RCLK -- which is what makes the BUFR a placed cell rather than decoration.
+#
+# The first run of this probe refuted the first version of #151, and that is
+# how the larger defect surfaced: with a BUFR actually placed, the router goes
+# through the SITE, crosses no pip, and the pseudo-pip table that carries the
+# configuration never fires at all. The buffer came out placed, wired, clocked
+# and completely unconfigured -- no IN_USE either. #151 was rewritten to emit
+# from the cell, and this probe now checks that version.
 #
 # If NO BUFR feature appears in any of the four FASMs, the probe is wrong
 # rather than the claim, and this run says so instead of reporting green.
+# That branch has fired once already and was worth every minute.
 #
 # phi^2 + 1/phi^2 = 3 = TRINITY
 
@@ -66,8 +74,8 @@ jobs:
             git remote add fork '"$NEXTPNR_FORK"' 2>/dev/null || true
             git fetch --depth 1 fork '"$NEXTPNR_FORK_REF"'
             git checkout FETCH_HEAD
-            grep -q populate_bufr_divide xilinx/fasm.cc \
-              || { echo "::error::the fork branch does not carry the patch"; exit 1; }
+            grep -q "void write_bufr" xilinx/fasm.cc \
+              || { echo "::error::the fork branch does not carry write_bufr(); the guard and the patch have drifted"; exit 1; }
             cmake . -DARCH=xilinx -DCMAKE_BUILD_TYPE=Release >/dev/null
             make -j"$(nproc)" >/dev/null 2>&1
             cp nextpnr-xilinx /w/bin/nextpnr-patched
