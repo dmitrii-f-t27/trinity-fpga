@@ -1,0 +1,178 @@
+# Does BUFR_DIVIDE reach the bitstream?
+#
+# openXC7/nextpnr-xilinx#151 claims that nextpnr hardcodes
+# BUFR_Y<y>.BUFR_DIVIDE.BYPASS for every BUFR, so a design asking for a
+# division is silently built undivided. This proves or refutes that, on the
+# same two source files, by building each with the STOCK toolchain and with
+# the patched one:
+#
+#            stock 05aaa06          patched (PR #151)
+#   BYPASS   BUFR_DIVIDE.BYPASS     BUFR_DIVIDE.BYPASS
+#   D5       BUFR_DIVIDE.BYPASS     BUFR_DIVIDE.D5      <- the claim
+#            ^^^^^^^^^^^^^^^^^^
+#            two different designs, one bitstream: the bug
+#
+# The probe drives an ODDR from the BUFR output. A fabric flip-flop would be
+# clocked through a BUFG and would never touch the regional-clock path; the
+# ODDR is an OLOGIC flop inside the IOI tile, so the clock has to arrive over
+# RCLK and cross the pseudo-pip that carries the configuration.
+#
+# If NO BUFR feature appears in any of the four FASMs, the probe is wrong
+# rather than the claim, and this run says so instead of reporting green.
+#
+# phi^2 + 1/phi^2 = 3 = TRINITY
+
+name: BUFR divide probe (nextpnr-xilinx#151)
+
+on:
+  workflow_dispatch:
+
+env:
+  OPENXC7_IMAGE: regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c
+  NEXTPNR_STOCK: 05aaa06bce455ae6ed01efa1616ba7d3a9421ca7
+  NEXTPNR_FORK: https://github.com/gHashTag/nextpnr-xilinx
+  NEXTPNR_FORK_REF: fix/bufr-divide
+  PART: xc7a35tcsg324
+
+jobs:
+  probe:
+    name: Build both designs with both toolchains
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull the pinned image
+        run: |
+          for i in 1 2 3 4 5 6; do docker pull "$OPENXC7_IMAGE" && break; sleep $((i*20)); done
+
+      # Both binaries are built INSIDE the image: the runner is Ubuntu 24.04,
+      # the image is 20.04, and a binary built on one does not run on the
+      # other. Learned the expensive way on the benchmark harness.
+      - name: Build stock and patched nextpnr, in the image
+        run: |
+          mkdir -p bin
+          docker run --rm -v "$PWD:/w" "$OPENXC7_IMAGE" bash -c '
+            set -e
+            cd /nextpnr-xilinx
+            git fetch --depth 1 origin '"$NEXTPNR_STOCK"'
+            git checkout '"$NEXTPNR_STOCK"'
+            git submodule update --init --recursive --depth 1 || true
+            cmake . -DARCH=xilinx -DCMAKE_BUILD_TYPE=Release >/dev/null
+            make -j"$(nproc)" >/dev/null 2>&1
+            cp nextpnr-xilinx /w/bin/nextpnr-stock
+            cp "$(find . -name bbasm -type f -perm -u+x | head -1)" /w/bin/bbasm
+
+            git remote add fork '"$NEXTPNR_FORK"' 2>/dev/null || true
+            git fetch --depth 1 fork '"$NEXTPNR_FORK_REF"'
+            git checkout FETCH_HEAD
+            grep -q populate_bufr_divide xilinx/fasm.cc \
+              || { echo "::error::the fork branch does not carry the patch"; exit 1; }
+            cmake . -DARCH=xilinx -DCMAKE_BUILD_TYPE=Release >/dev/null
+            make -j"$(nproc)" >/dev/null 2>&1
+            cp nextpnr-xilinx /w/bin/nextpnr-patched
+          '
+          ls -l bin/
+
+      - name: Generate the chipdb
+        run: |
+          mkdir -p chipdb
+          docker run --rm -v "$PWD:/w" -w /w "$OPENXC7_IMAGE" bash -c "
+            set -e
+            cd /nextpnr-xilinx
+            git fetch --depth 1 origin $NEXTPNR_STOCK && git checkout $NEXTPNR_STOCK
+            cp /w/bin/bbasm /usr/local/bin/bbasm
+            python3 xilinx/python/bbaexport.py --device ${PART}-1 --bba /w/chipdb/${PART}.bba
+            bbasm -l /w/chipdb/${PART}.bba /w/chipdb/${PART}.bin
+          "
+          ls -lh chipdb/${PART}.bin
+
+      - name: Synthesise and place both designs with both binaries
+        run: |
+          set -o pipefail
+          mkdir -p out logs
+          docker run --rm -v "$PWD:/w" -w /w "$OPENXC7_IMAGE" bash -c '
+            set -e
+            cd /w/research/bufr-probe
+            for d in bufr_divide bufr_bypass; do
+              yosys -p "synth_xilinx -flatten -abc9 -arch xc7 -top top; write_json /w/out/$d.json" \
+                    ${d}_top.v > /w/logs/$d.synth.log 2>&1
+            done
+            for t in stock patched; do
+              cp /w/bin/nextpnr-$t /usr/local/bin/npnr
+              for d in bufr_divide bufr_bypass; do
+                npnr --chipdb /w/chipdb/'"$PART"'.bin --xdc bufr_probe.xdc \
+                     --json /w/out/$d.json --fasm /w/out/$d.$t.fasm \
+                     > /w/logs/$d.$t.pnr.log 2>&1
+              done
+            done
+          '
+          wc -l out/*.fasm
+
+      - name: The verdict
+        run: |
+          set +e
+          say() { echo "$1" >> $GITHUB_STEP_SUMMARY; echo "$1"; }
+          say "## BUFR_DIVIDE: does the parameter reach the bitstream?"
+          say ""
+
+          ANY=$(grep -h 'BUFR_Y' out/*.fasm | wc -l)
+          if [ "$ANY" -eq 0 ]; then
+            say "**The probe never routed a BUFR.** No \`BUFR_Y*\` feature in any of the"
+            say "four FASMs, so this run says nothing about #151 — the design is wrong,"
+            say "not the claim. The ODDR is meant to pull the regional clock into an IOI"
+            say "tile; it did not."
+            say ""
+            say '```'
+            grep -hE 'BUFR|RCLK|ERROR|Warning' logs/bufr_divide.patched.pnr.log | head -20 >> $GITHUB_STEP_SUMMARY
+            say '```'
+            exit 1
+          fi
+
+          say "| design | toolchain | BUFR feature emitted |"
+          say "|---|---|---|"
+          for d in bufr_divide bufr_bypass; do
+            for t in stock patched; do
+              F=$(grep -hoE 'BUFR_Y[0-9]\.BUFR_DIVIDE\.[A-Z0-9]+' out/$d.$t.fasm | sort -u | paste -sd' ' -)
+              say "| \`$d\` | $t | \`${F:-none}\` |"
+            done
+          done
+          say ""
+
+          D5=$(grep -c 'BUFR_DIVIDE\.D5' out/bufr_divide.patched.fasm)
+          SB=$(grep -c 'BUFR_DIVIDE\.BYPASS' out/bufr_divide.stock.fasm)
+          PB=$(grep -c 'BUFR_DIVIDE\.BYPASS' out/bufr_bypass.patched.fasm)
+
+          ok=0
+          if [ "$SB" -gt 0 ] && [ "$D5" -eq 0 ]; then
+            say "**Bug confirmed**: stock emits \`BYPASS\` for a design asking for \`5\`."
+          else
+            say "Stock did not emit BYPASS for the divided design — claim not reproduced."; ok=1
+          fi
+          if [ "$D5" -gt 0 ]; then
+            say "**Fix confirmed**: patched emits \`D5\` for the same source."
+          else
+            say "Patched did NOT emit \`D5\` — the fix does not work as described."; ok=1
+          fi
+          if [ "$PB" -gt 0 ]; then
+            say "**No regression**: a design asking for BYPASS still gets BYPASS."
+          else
+            say "Patched changed the BYPASS design — that is a regression."; ok=1
+          fi
+
+          say ""
+          say "Bits behind the features, from prjxray-db d17fea2:"
+          say '```'
+          say "HCLK_IOI3.BUFR_Y0.BUFR_DIVIDE.BYPASS !32_22 !33_18 !33_19 !33_20 !33_21"
+          say "HCLK_IOI3.BUFR_Y0.BUFR_DIVIDE.D5      32_22  33_18  33_19 !33_20 !33_21"
+          say '```'
+          exit $ok
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bufr-probe
+          path: |
+            out
+            logs
+          retention-days: 90
