@@ -190,6 +190,10 @@ pub const TVCCorpus = struct {
     /// Store query/response pair in TVC
     /// Returns entry ID on success
     pub fn store(self: *Self, allocator: std.mem.Allocator, query: []const u8, response: []const u8) !u64 {
+        // bundle2 stopped taking an allocator when the VSA core moved to
+        // zig-golden-float; the parameter stays for the callers' sake. The
+        // sibling search() already discards it the same way.
+        _ = allocator;
         if (self.count >= TVC_MAX_ENTRIES) {
             return error.CorpusFull;
         }

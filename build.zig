@@ -2399,6 +2399,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .link_libc = true, // src/tri/env_loader.zig calls into libc
             .imports = &.{
+                .{ .name = "golden_chain", .module = golden_chain_mod },
                 .{ .name = "tri27_cli", .module = tri27_cli_mod },
                 .{ .name = "trinity_swe", .module = vibeec_swe },
                 .{ .name = "igla_chat", .module = vibeec_chat },

@@ -76,11 +76,15 @@ jobs:
           grep -E '^  [a-z]' graph.log | head -25 >> $GITHUB_STEP_SUMMARY || true
           echo '```' >> $GITHUB_STEP_SUMMARY
 
+      # -freference-trace: without it, a comptime error inside std (a format
+      # string, a bad @TypeOf) reports std's own line and hides the call site
+      # behind "8 reference(s) hidden" -- which points the reader at the
+      # standard library for a defect in this repository.
       - name: Build tri
         id: build
         run: |
           set -o pipefail
-          zig build tri 2>&1 | tee build.log | tail -40
+          zig build tri -freference-trace=12 2>&1 | tee build.log | tail -50
 
       - name: What the binary reports
         if: success()
