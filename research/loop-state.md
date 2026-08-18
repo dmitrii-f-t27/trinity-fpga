@@ -103,3 +103,43 @@ smaller change.
 
 **Next.** Whatever the gate says. Then the two benchmark corrections, and a
 reduced test case for the `Invalid global constant node` router failure.
+
+### 003 — 2026-08-18, later
+
+**`tri` builds, links, and runs.** First time since 2026-03-20. `tri --help`
+prints its full command surface: **144 commands**. Gate: run 32116484331.
+
+Two findings closed it, and both were disguised as something else.
+
+**The gate was answering two questions with one exit code.** `zig build tri` is
+a RUN step, so "compiled and then crashed" reported identically to "ninety
+compile errors". The first successful link in four months arrived looking like
+a failure, and I read past it once. build.zig now has a `tri-compile` step that
+installs without running; starting the binary is a separate, non-fatal step.
+Whenever a gate covers two questions, the answer to the interesting one is the
+one it hides.
+
+**The startup allocation was understated by ~80x.** `CLIState.init` allocated
+the TVC corpus unconditionally under the note "~26MB, must be on heap".
+`TVCCorpus` is `[10000]TVCEntry`; each entry holds three `HybridBigInt`, each
+carrying `unpacked_cache: [59049]Trit` plus an 11810-byte packed buffer —
+~213 KB per entry, **~2.1 GB** for the array. The write to `self.count` lands
+past it, so every `tri` command, `--help` included, segfaulted before `main()`
+did anything. Moved to `ensureCorpus()`, which allocates on first read and
+returns null on failure: a machine short of 2.1 GB should lose self-learning,
+not the CLI.
+
+**Where the whole repair landed.** From "no build definition exists" to a
+running binary: ~20 defects. Thirteen unwired modules, the zig-hdc API drift,
+eight separate faults in `sparc/cli.zig`, a `{m}` format specifier, `'●'` in a
+`u8`, a module bound to the wrong file of that name, and the 2.1 GB startup
+allocation. **Two were mine**, both caught by the gate rather than by me.
+
+**Instrument lesson, twice over.** `-freference-trace=12` named a call site that
+had been hidden behind "8 reference(s) hidden"; separating build from run named
+a success that had been hidden behind a failure. Both times the fix was to make
+the instrument report more precisely, not to look harder at the same output.
+
+**Next.** Verify individual commands actually work (144 of them; `--help`
+running proves startup, not function). Then the two benchmark corrections, and
+a reduced case for the `Invalid global constant node` router failure.
