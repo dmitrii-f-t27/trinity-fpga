@@ -141,7 +141,7 @@ Info:              1x MUXF8
 Info: Constrained 17 LUTFF pairs.
 
 Info: Annotating ports with timing budgets for target frequency 50.00 MHz
-Info: Checksum: 0x130ecc06
+Info: Checksum: 0x4f04f982
 
 Info: Device utilisation:
 Info: 	          SLICE_LUTX:   467/269200     0%
@@ -205,7 +205,7 @@ Info:     at initial placer iter 2, wirelen = 2139
 Info:     at initial placer iter 3, wirelen = 2133
 Info: Running main analytical placer.
 Info:     at iteration #1, type ALL: wirelen solved = 2119, spread = 7873, legal = 8013; time = 0.01s
-Info:     at iteration #2, type ALL: wirelen solved = 2674, spread = 7984, legal = 8029; time = 0.01s
+Info:     at iteration #2, type ALL: wirelen solved = 2674, spread = 7984, legal = 8029; time = 0.02s
 Info:     at iteration #3, type ALL: wirelen solved = 3449, spread = 7326, legal = 7521; time = 0.01s
 Info:     at iteration #4, type ALL: wirelen solved = 3627, spread = 6860, legal = 7083; time = 0.01s
 Info:     at iteration #5, type ALL: wirelen solved = 3988, spread = 6529, legal = 6730; time = 0.01s
@@ -249,7 +249,7 @@ Info: [ 19286,  19350) |
 Info: [ 19350,  19414) |* 
 Info: [ 19414,  19478) | 
 Info: [ 19478,  19542) |* 
-Info: Checksum: 0xb3cecb20
+Info: Checksum: 0x72c6f849
 Info: Running post-placement legalisation...
 Info: post-place repair: relocated 195 stranded cluster(s)/cell(s) to valid bels
 Info: Routing global clocks...
@@ -262,12 +262,12 @@ Info: Setting up routing queue.
 Info: Routing 1940 arcs.
 Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
 Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
-Info:       1000 |       43        956 |   43   956 |      1028|       3.55       3.55|
-Info:       2000 |      153       1846 |  110   890 |       236|       0.34       3.89|
-Info:       2269 |      187       2082 |   34   236 |         0|       0.08       3.97|
+Info:       1000 |       43        956 |   43   956 |      1028|       3.50       3.50|
+Info:       2000 |      153       1846 |  110   890 |       236|       0.33       3.83|
+Info:       2269 |      187       2082 |   34   236 |         0|       0.08       3.91|
 Info: Routing complete.
-Info: Router1 time 3.97s
-Info: Checksum: 0x1bdc0a84
+Info: Router1 time 3.91s
+Info: Checksum: 0x15ca4b00
 
 Info: Critical path report for clock '$abc$25598$iopadmap$clk' (posedge -> posedge):
 Info: curr total

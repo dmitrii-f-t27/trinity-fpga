@@ -141,7 +141,7 @@ Info:              1x MUXF8
 Info: Constrained 17 LUTFF pairs.
 
 Info: Annotating ports with timing budgets for target frequency 50.00 MHz
-Info: Checksum: 0x130ecc06
+Info: Checksum: 0x4f04f982
 
 Info: Device utilisation:
 Info: 	          SLICE_LUTX:   467/269200     0%
@@ -253,7 +253,7 @@ Info: [ 19042,  19128) |
 Info: [ 19128,  19214) | 
 Info: [ 19214,  19300) |* 
 Info: [ 19300,  19386) |* 
-Info: Checksum: 0xd2f13aa4
+Info: Checksum: 0x7fcba48a
 Info: Running post-placement legalisation...
 Info: post-place repair: relocated 208 stranded cluster(s)/cell(s) to valid bels
 Info: Routing global clocks...
@@ -266,12 +266,12 @@ Info: Setting up routing queue.
 Info: Routing 1938 arcs.
 Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
 Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
-Info:       1000 |       43        956 |   43   956 |      1015|       2.86       2.86|
-Info:       2000 |      147       1852 |  104   896 |       196|       0.32       3.18|
-Info:       2248 |      194       2054 |   47   202 |         0|       0.08       3.26|
+Info:       1000 |       43        956 |   43   956 |      1015|       2.82       2.82|
+Info:       2000 |      147       1852 |  104   896 |       196|       0.32       3.14|
+Info:       2248 |      194       2054 |   47   202 |         0|       0.08       3.22|
 Info: Routing complete.
-Info: Router1 time 3.26s
-Info: Checksum: 0x0079cc35
+Info: Router1 time 3.22s
+Info: Checksum: 0x69159a10
 
 Info: Critical path report for clock '$abc$25598$iopadmap$clk' (posedge -> posedge):
 Info: curr total

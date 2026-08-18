@@ -141,7 +141,7 @@ Info:              1x MUXF8
 Info: Constrained 17 LUTFF pairs.
 
 Info: Annotating ports with timing budgets for target frequency 50.00 MHz
-Info: Checksum: 0x130ecc06
+Info: Checksum: 0x4f04f982
 
 Info: Device utilisation:
 Info: 	          SLICE_LUTX:   467/269200     0%
@@ -207,18 +207,18 @@ Info: Running main analytical placer.
 Info:     at iteration #1, type ALL: wirelen solved = 2137, spread = 7886, legal = 8110; time = 0.01s
 Info:     at iteration #2, type ALL: wirelen solved = 2791, spread = 8981, legal = 9110; time = 0.01s
 Info:     at iteration #3, type ALL: wirelen solved = 3438, spread = 6978, legal = 7182; time = 0.02s
-Info:     at iteration #4, type ALL: wirelen solved = 3642, spread = 6857, legal = 7065; time = 0.01s
-Info:     at iteration #5, type ALL: wirelen solved = 3908, spread = 6608, legal = 6787; time = 0.01s
-Info:     at iteration #6, type ALL: wirelen solved = 4162, spread = 6428, legal = 6599; time = 0.01s
-Info:     at iteration #7, type ALL: wirelen solved = 4536, spread = 6256, legal = 6393; time = 0.01s
-Info:     at iteration #8, type ALL: wirelen solved = 4693, spread = 6214, legal = 6382; time = 0.01s
+Info:     at iteration #4, type ALL: wirelen solved = 3642, spread = 6857, legal = 7065; time = 0.02s
+Info:     at iteration #5, type ALL: wirelen solved = 3908, spread = 6608, legal = 6787; time = 0.02s
+Info:     at iteration #6, type ALL: wirelen solved = 4162, spread = 6428, legal = 6599; time = 0.02s
+Info:     at iteration #7, type ALL: wirelen solved = 4536, spread = 6256, legal = 6393; time = 0.02s
+Info:     at iteration #8, type ALL: wirelen solved = 4693, spread = 6214, legal = 6382; time = 0.02s
 Info:     at iteration #9, type ALL: wirelen solved = 4873, spread = 6197, legal = 6381; time = 0.01s
 Info:     at iteration #10, type ALL: wirelen solved = 4933, spread = 6082, legal = 6320; time = 0.01s
 Info:     at iteration #11, type ALL: wirelen solved = 4947, spread = 6783, legal = 6969; time = 0.01s
 Info:     at iteration #12, type ALL: wirelen solved = 5548, spread = 6636, legal = 6827; time = 0.01s
-Info: HeAP Placer Time: 0.26s
-Info:   of which solving equations: 0.10s
-Info:   of which spreading cells: 0.05s
+Info: HeAP Placer Time: 0.29s
+Info:   of which solving equations: 0.12s
+Info:   of which spreading cells: 0.06s
 Info:   of which strict legalisation: 0.01s
 
 Info: Running simulated annealing placer for refinement.
@@ -253,7 +253,7 @@ Info: [ 19240,  19316) |
 Info: [ 19316,  19392) |* 
 Info: [ 19392,  19468) | 
 Info: [ 19468,  19544) |* 
-Info: Checksum: 0x460dba94
+Info: Checksum: 0xda14be12
 Info: Running post-placement legalisation...
 Info: post-place repair: relocated 190 stranded cluster(s)/cell(s) to valid bels
 Info: Routing global clocks...
@@ -266,12 +266,12 @@ Info: Setting up routing queue.
 Info: Routing 1938 arcs.
 Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
 Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
-Info:       1000 |       54        945 |   54   945 |      1035|       2.46       2.46|
-Info:       2000 |      157       1842 |  103   897 |       214|       0.32       2.78|
-Info:       2263 |      202       2061 |   45   219 |         0|       0.08       2.85|
+Info:       1000 |       54        945 |   54   945 |      1035|       2.44       2.44|
+Info:       2000 |      157       1842 |  103   897 |       214|       0.32       2.76|
+Info:       2263 |      202       2061 |   45   219 |         0|       0.08       2.84|
 Info: Routing complete.
-Info: Router1 time 2.85s
-Info: Checksum: 0xd4a3ae72
+Info: Router1 time 2.84s
+Info: Checksum: 0x2e0f96c0
 
 Info: Critical path report for clock '$abc$25598$iopadmap$clk' (posedge -> posedge):
 Info: curr total

@@ -141,7 +141,7 @@ Info:              1x MUXF8
 Info: Constrained 17 LUTFF pairs.
 
 Info: Annotating ports with timing budgets for target frequency 50.00 MHz
-Info: Checksum: 0x130ecc06
+Info: Checksum: 0x4f04f982
 
 Info: Device utilisation:
 Info: 	          SLICE_LUTX:   467/269200     0%
@@ -225,7 +225,7 @@ Info: Running simulated annealing placer for refinement.
 Info:   at iteration #1: temp = 0.000000, timing cost = 20, wirelen = 6375
 Info:   at iteration #5: temp = 0.000000, timing cost = 15, wirelen = 5779
 Info:   at iteration #6: temp = 0.000000, timing cost = 15, wirelen = 5771 
-Info: SA placement time 0.05s
+Info: SA placement time 0.06s
 
 Info: Max frequency for clock '$abc$25598$iopadmap$clk': 498.50 MHz (PASS at 50.00 MHz)
 
@@ -252,7 +252,7 @@ Info: [ 19226,  19303) |
 Info: [ 19303,  19380) |* 
 Info: [ 19380,  19457) | 
 Info: [ 19457,  19534) |* 
-Info: Checksum: 0xa76c352a
+Info: Checksum: 0xa4bd3c12
 Info: Running post-placement legalisation...
 Info: post-place repair: relocated 208 stranded cluster(s)/cell(s) to valid bels
 Info: Routing global clocks...
@@ -265,12 +265,12 @@ Info: Setting up routing queue.
 Info: Routing 1938 arcs.
 Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
 Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
-Info:       1000 |       61        938 |   61   938 |      1045|       2.29       2.29|
-Info:       2000 |      169       1830 |  108   892 |       243|       0.30       2.59|
-Info:       2275 |      198       2077 |   29   247 |         0|       0.07       2.66|
+Info:       1000 |       61        938 |   61   938 |      1045|       2.31       2.31|
+Info:       2000 |      169       1830 |  108   892 |       243|       0.30       2.61|
+Info:       2275 |      198       2077 |   29   247 |         0|       0.07       2.68|
 Info: Routing complete.
-Info: Router1 time 2.66s
-Info: Checksum: 0xde8baf0c
+Info: Router1 time 2.68s
+Info: Checksum: 0xd5ab2c67
 
 Info: Critical path report for clock '$abc$25598$iopadmap$clk' (posedge -> posedge):
 Info: curr total
