@@ -84,6 +84,7 @@ jobs:
             clk: E3
             d: A8
             q: H5
+            io: LVCMOS33
             family: artix7
             expect: fail        # openXC7#154
           - part: xc7a200tfbg484-2
@@ -91,6 +92,7 @@ jobs:
             clk: U22
             d: F21
             q: M22
+            io: LVCMOS33
             family: artix7
             expect: pass        # the control
           # Pins from litex-boards digilent_arty_s7.py, which names this exact
@@ -110,7 +112,32 @@ jobs:
             clk: F14
             d: H14
             q: E18
+            io: LVCMOS33
             family: spartan7
+            expect: pass
+          # Differential clock, so this row's design is NOT the three-liner --
+          # it adds an IBUFDS. Told @hansfbaier on #154 I would try this rather
+          # than wait for his answer, so here it is, with the caveat stated
+          # there: a less trivial design makes a failure less unambiguous.
+          #
+          # Pins from litex-boards sitlinv_stlv7325_v1.py, which carries this
+          # exact part (xc7k325t-ffg676-2): clk200 AB11/AC11 DIFF_SSTL15,
+          # cpu_reset_n AC16 and user_led_n0 AA2, both LVCMOS15.
+          #
+          # Correction to what I told Hans: the `# TODO verify / test` comment
+          # in that file sits on clk156 and clk150, NOT on clk200. I said it
+          # applied to the differential clocks generally; it does not.
+          #
+          # expect is a PREDICTION again. This part has never been built here.
+          - part: xc7k325tffg676-2
+            device: xc7k325tffg676
+            clk: AB11
+            clk_n: AC11
+            d: AC16
+            q: AA2
+            io: LVCMOS15
+            clk_io: DIFF_SSTL15
+            family: kintex7
             expect: pass
     name: ${{ matrix.part }}
     runs-on: ubuntu-latest
@@ -124,23 +151,48 @@ jobs:
         run: |
           for i in 1 2 3 4 5 6; do docker pull "$OPENXC7_IMAGE" && break; sleep $((i*20)); done
 
+      # Two shapes, because one part has no single-ended clock pin. The
+      # single-ended form is the three-liner this gate exists to run; the
+      # differential form adds an IBUFDS and is therefore a weaker instrument,
+      # which is stated on the row that uses it.
       - name: The design and its pins
         run: |
           mkdir -p work out
-          cat > work/top.v <<'EOF'
+          if [ -n "${{ matrix.clk_n }}" ]; then
+            cat > work/top.v <<'EOF'
+          module top (input wire clk_p, input wire clk_n, input wire d, output reg q);
+              wire clk;
+              IBUFDS ibufds_inst (.I(clk_p), .IB(clk_n), .O(clk));
+              always @(posedge clk) q <= d;
+          endmodule
+          EOF
+            cat > work/top.xdc <<EOF
+          set_property PACKAGE_PIN ${{ matrix.clk }} [get_ports clk_p]
+          set_property IOSTANDARD ${{ matrix.clk_io }} [get_ports clk_p]
+          set_property PACKAGE_PIN ${{ matrix.clk_n }} [get_ports clk_n]
+          set_property IOSTANDARD ${{ matrix.clk_io }} [get_ports clk_n]
+          create_clock -period 5.000 -name sys_clk [get_ports clk_p]
+          set_property PACKAGE_PIN ${{ matrix.d }} [get_ports d]
+          set_property IOSTANDARD ${{ matrix.io }} [get_ports d]
+          set_property PACKAGE_PIN ${{ matrix.q }} [get_ports q]
+          set_property IOSTANDARD ${{ matrix.io }} [get_ports q]
+          EOF
+          else
+            cat > work/top.v <<'EOF'
           module top (input wire clk, input wire d, output reg q);
               always @(posedge clk) q <= d;
           endmodule
           EOF
-          cat > work/top.xdc <<EOF
+            cat > work/top.xdc <<EOF
           set_property PACKAGE_PIN ${{ matrix.clk }} [get_ports clk]
-          set_property IOSTANDARD LVCMOS33 [get_ports clk]
+          set_property IOSTANDARD ${{ matrix.io }} [get_ports clk]
           create_clock -period 10.000 -name sys_clk [get_ports clk]
           set_property PACKAGE_PIN ${{ matrix.d }} [get_ports d]
-          set_property IOSTANDARD LVCMOS33 [get_ports d]
+          set_property IOSTANDARD ${{ matrix.io }} [get_ports d]
           set_property PACKAGE_PIN ${{ matrix.q }} [get_ports q]
-          set_property IOSTANDARD LVCMOS33 [get_ports q]
+          set_property IOSTANDARD ${{ matrix.io }} [get_ports q]
           EOF
+          fi
           cat work/top.v work/top.xdc
 
       - name: Build it, all the way to frames
