@@ -6926,7 +6926,7 @@ arithmetic.
 \emph{Second, the comparison window is shape-limited.} A row is comparable only
 when every one of its samples is representable in both formats, and for
 distributions whose $\log_2|x|$ is itself Gaussian or Laplace the log-magnitude
-tail leaves the $\pm 40$ binade reach of the $(4,8)$ rung long before $D$ reaches
+tail leaves the $\pm 39$ binade reach of the $(4,8)$ rung long before $D$ reaches
 the threshold: the Gaussian family is comparable only to $D \approx 8$ and the
 Laplace family only to $D \approx 2$. Those shapes therefore cannot exhibit the
 effect at this rung at all, and Table~\ref{tab:tailsweep} finding no advantage in
@@ -7085,7 +7085,7 @@ earlier. The smallest positive and largest finite magnitudes of \texttt{takum} a
 $3.45 \times 10^{-77}$ and $2.07 \times 10^{180}$, a reach of about $\pm 599$
 binades, and they are \emph{identical} for \texttt{takum16} and \texttt{takum32}:
 the width buys precision, not reach. Against that, the $(4,8)$ rung reaches
-$\pm 40$ binades and the $(5,23)$ rung $\pm 121$.
+$\pm 39$ binades and the $(5,23)$ rung $\pm 120$.
 
 Two consequences follow. Any suggestion that a ternary exponent field buys
 dynamic range relative to \texttt{takum} is withdrawn; at every width we compared,
@@ -7402,7 +7402,7 @@ rather than measurement, is this: the 16-bit codec instantiates a 725-line
 generated leading-zero counter and barrel shifter --- machinery a fixed-field
 format does not need for regime decoding.
 
-\item \textbf{The range is bounded} at $\pm40$ in powers of two, roughly $\pm12$
+\item \textbf{The range is bounded} at $\pm39$ in powers of two, roughly $\pm12$
 decades, where a regime field is unbounded. Fixed fields buy the cheap datapath
 and the uniform mantissa; range is the price, and workloads that need more should
 raise the trit budget or use a tapered format.
