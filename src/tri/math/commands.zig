@@ -501,9 +501,14 @@ pub fn runSpiralCommand(allocator: std.mem.Allocator, args: []const []const u8) 
         n = try std.fmt.parseInt(u32, args[0], 10);
     }
 
-    for (args[1..]) |arg| {
-        if (std.mem.eql(u8, arg, "--plot") or std.mem.eql(u8, arg, "-p")) {
-            show_plot = true;
+    // args[1..] panics when args is empty -- args[0] was guarded above and
+    // this was not. n defaults to 12, so `tri spiral` with no arguments is a
+    // supported call and used to abort on it.
+    if (args.len > 1) {
+        for (args[1..]) |arg| {
+            if (std.mem.eql(u8, arg, "--plot") or std.mem.eql(u8, arg, "-p")) {
+                show_plot = true;
+            }
         }
     }
 
@@ -598,7 +603,10 @@ pub fn runFormulaCommand(allocator: std.mem.Allocator, args: []const []const u8)
     if (args.len == 0) {
         std.debug.print("Usage: tri formula <number>\n", .{});
         std.debug.print("  Decompose a number using Sacred Formula V = n × 3^k × π^m × φ^p × e^q\n", .{});
-        return;
+        // Third command in this file to have reported a usage error as
+        // success; phi, fib and lucas were the others. Unlike spiral, formula
+        // has no default, so a missing argument really is an error.
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
     const value = std.fmt.parseFloat(f64, args[0]) catch {
         std.debug.print("Error: '{s}' is not a valid number\n", .{args[0]});
