@@ -1237,6 +1237,18 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // src/tri/tri_storm.zig wants GoldenChain, which lives in
+    // src/storm/golden_chain.zig. The existing golden_chain_mod points at
+    // src/vibeec/golden_chain.zig, which exports GoldenChainAgent -- a
+    // different type with a confusingly similar name, in a file with an
+    // identical one. Left alone because another target already consumes it;
+    // tri gets its own module rather than a shared one being repointed.
+    const golden_chain_storm_mod = b.createModule(.{
+        .root_source_file = b.path("src/storm/golden_chain.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     // TRI-27 CLI module. Present in the April build.zig, absent from this
     // one: the code kept moving for four months while the build did not, so
     // main.zig now imports a module that the last parseable build predates.
@@ -2399,7 +2411,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .link_libc = true, // src/tri/env_loader.zig calls into libc
             .imports = &.{
-                .{ .name = "golden_chain", .module = golden_chain_mod },
+                .{ .name = "golden_chain", .module = golden_chain_storm_mod },
                 .{ .name = "tri27_cli", .module = tri27_cli_mod },
                 .{ .name = "trinity_swe", .module = vibeec_swe },
                 .{ .name = "igla_chat", .module = vibeec_chat },
