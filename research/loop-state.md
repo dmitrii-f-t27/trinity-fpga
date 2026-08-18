@@ -942,3 +942,22 @@ read individually. Coverage grows by reading, not by classification.
 
 **Next.** Externally unchanged. The remaining paths all need a decision that is
 not mine: the 395 unreachable files, and which risky commands may run in CI.
+
+### 027 — 2026-08-20, night
+
+**Wrote iteration 026's lesson into the skill as §12** — *test the classifier on
+answers you already know*, with the corollary that decides what to do when it
+fails: **ask which way its errors run.** A classifier that occasionally misses a
+dead file wastes disk; one that occasionally calls a subprocess-spawning command
+safe runs `deploy` in CI. Asymmetric error direction means abandon, not tune.
+
+That distinction is what stopped a fourth revision. The fourth would have
+produced the number I wanted and no more truth than the third.
+
+**The skill now carries twelve sections**, and the arc across them is worth
+naming: §1–§10 are about defects in other people's code, §11 and §12 are about
+defects in the repair itself. The second half was not planned; it accumulated
+because ten of my own defects landed in one session and every one shared a
+shape.
+
+**No external change.** #154 still one reply, #120 and #149 none.
