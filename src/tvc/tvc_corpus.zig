@@ -596,7 +596,7 @@ pub const TVCCorpus = struct {
         for (0..mem_vec_len) |i| {
             var byte: [1]u8 = undefined;
             _ = try file.readAll(&byte);
-            self.memory_vector.unpacked_cache.?[i] = @bitCast(byte[0]);
+            self.memory_vector.unpacked_cache[i] = @bitCast(byte[0]);
         }
 
         // Entries
