@@ -139,7 +139,11 @@ jobs:
           set +e
           BIN=$(find zig-out .zig-cache -name tri -type f -perm -u+x 2>/dev/null | head -1)
           [ -z "$BIN" ] && { echo "no binary"; exit 0; }
-          say() { echo "$1" >> $GITHUB_STEP_SUMMARY; }
+          # Both destinations. Writing only to the summary produced a report
+          # that could not be read from the job log -- the same shape of defect
+          # this repo's stale-reference skill warns about, committed twenty
+          # minutes after writing it.
+          say() { echo "$1" >> $GITHUB_STEP_SUMMARY; echo "$1"; }
           say '### Command surface'
           say ''
           say '| command | exit | first line |'
