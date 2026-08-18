@@ -1237,6 +1237,15 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // TRI-27 CLI module. Present in the April build.zig, absent from this
+    // one: the code kept moving for four months while the build did not, so
+    // main.zig now imports a module that the last parseable build predates.
+    const tri27_cli_mod = b.createModule(.{
+        .root_source_file = b.path("src/tri27/tri27_cli.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     // VSA module for TRI (moved up: needed by tvc_corpus_mod and fluent CLI)
     //
     // Taken from the zig-hdc dependency rather than from a local src/vsa.zig.
@@ -2390,6 +2399,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .link_libc = true, // src/tri/env_loader.zig calls into libc
             .imports = &.{
+                .{ .name = "tri27_cli", .module = tri27_cli_mod },
                 .{ .name = "trinity_swe", .module = vibeec_swe },
                 .{ .name = "igla_chat", .module = vibeec_chat },
                 .{ .name = "igla_hybrid_chat", .module = vibeec_hybrid_chat },
