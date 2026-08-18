@@ -142,6 +142,54 @@ jobs:
       # That was my measurement being wrong, not the command: a smoke list of
       # "pure commands" containing one that builds the project measures the
       # cache, not the command. It was nearly filed as 'verify hangs'.
+      # A convention, gated so it stays one. 49 sites across 15 files printed
+      # "Usage: ..." for a missing required argument and returned success --
+      # a caller could not tell a rejected invocation from a completed one.
+      # They were fixed over two iterations; without this they come back, one
+      # new command at a time, and the next person measures 49 again.
+      #
+      # Static, so it covers all 144 commands rather than the 18 the smoke
+      # test runs. It looks for the unambiguous shape only:
+      #
+      #     if (args.len == 0) { print("Usage: ..."); return; }
+      #
+      # A command asked for help EXPLICITLY should print usage and succeed, so
+      # matching every occurrence of the word would be wrong -- that
+      # distinction is why this is a shape and not a grep.
+      - name: Does any usage error still report success?
+        run: |
+          python3 - <<'PY' | tee usage-check.txt
+          import re, glob
+          bad = []
+          for p in glob.glob('src/tri/**/*.zig', recursive=True):
+              if 'backup' in p:
+                  continue
+              try:
+                  lines = open(p, encoding='utf8', errors='replace').read().split('\n')
+              except Exception:
+                  continue
+              for i, l in enumerate(lines):
+                  if not re.search(r'if \(args\.len == 0\)', l):
+                      continue
+                  blk = '\n'.join(lines[i:i + 8])
+                  if 'Usage:' in blk and 'return;' in blk \
+                     and 'exitWithCode' not in blk and 'return error' not in blk:
+                      bad.append(f"{p}:{i + 1}")
+          print(f"sites: {len(bad)}")
+          for b in bad:
+              print(f"  {b}")
+          PY
+          N=$(head -1 usage-check.txt | sed 's/sites: //')
+          echo "### Usage errors reporting success: $N" >> $GITHUB_STEP_SUMMARY
+          if [ "$N" != "0" ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n +2 usage-check.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "::error::$N usage error(s) return 0. Use tri_exit_codes.exitWithCode(.validation_error), as phi, fib, lucas and formula do."
+            exit 1
+          fi
+          echo 'None — the convention holds across all commands, not just the sampled ones.' >> $GITHUB_STEP_SUMMARY
+
       - name: Do the commands work?
         continue-on-error: true
         run: |
