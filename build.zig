@@ -66,7 +66,7 @@ pub fn build(b: *std.Build) void {
         .linkage = .dynamic,
         .root_module = c_api_mod,
     });
-    libvsa_shared.linkLibC();
+    libvsa_shared.root_module.link_libc = true;
     const install_shared = b.addInstallArtifact(libvsa_shared, .{});
 
     // Static library (.a / .lib)
@@ -79,7 +79,7 @@ pub fn build(b: *std.Build) void {
             .optimize = .ReleaseFast,
         }),
     });
-    libvsa_static.linkLibC();
+    libvsa_static.root_module.link_libc = true;
     const install_static = b.addInstallArtifact(libvsa_static, .{});
 
     // Install C header
@@ -109,7 +109,7 @@ pub fn build(b: *std.Build) void {
         .linkage = .dynamic,
         .root_module = queen_api_mod,
     });
-    libqueen_shared.linkLibC();
+    libqueen_shared.root_module.link_libc = true;
     const install_queen_shared = b.addInstallArtifact(libqueen_shared, .{});
 
     const libqueen_static = b.addLibrary(.{
@@ -121,7 +121,7 @@ pub fn build(b: *std.Build) void {
             .optimize = .ReleaseFast,
         }),
     });
-    libqueen_static.linkLibC();
+    libqueen_static.root_module.link_libc = true;
     const install_queen_static = b.addInstallArtifact(libqueen_static, .{});
 
     const install_queen_header = b.addInstallHeaderFile(
@@ -2867,7 +2867,7 @@ pub fn build(b: *std.Build) void {
             }),
         });
         trinity_node_gui.linkSystemLibrary("raylib");
-        trinity_node_gui.linkLibC();
+        trinity_node_gui.root_module.link_libc = true;
         b.installArtifact(trinity_node_gui);
 
         const run_node_gui = b.addRunArtifact(trinity_node_gui);
@@ -2888,7 +2888,7 @@ pub fn build(b: *std.Build) void {
             }),
         });
         photon_demo.linkSystemLibrary("raylib");
-        photon_demo.linkLibC();
+        photon_demo.root_module.link_libc = true;
         b.installArtifact(photon_demo);
 
         const run_photon_demo = b.addRunArtifact(photon_demo);
@@ -2913,7 +2913,7 @@ pub fn build(b: *std.Build) void {
             }),
         });
         photon_immersive.linkSystemLibrary("raylib");
-        photon_immersive.linkLibC();
+        photon_immersive.root_module.link_libc = true;
         b.installArtifact(photon_immersive);
 
         const run_photon_immersive = b.addRunArtifact(photon_immersive);
@@ -3083,7 +3083,7 @@ pub fn build(b: *std.Build) void {
                     .root_module = wasm_root,
                 });
                 wasm_canvas.linkSystemLibrary("raylib");
-                wasm_canvas.linkLibC();
+                wasm_canvas.root_module.link_libc = true;
                 // TEMP: Disable install until raygui.h is available
                 // b.installArtifact(wasm_canvas);
                 wasm_step.dependOn(b.getInstallStep());
