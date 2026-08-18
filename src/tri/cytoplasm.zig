@@ -14,6 +14,11 @@
 
 const std = @import("std");
 const colors = @import("tri_colors.zig");
+// Top-level binding for the eight usage-error paths below. The file already
+// imported this module once, function-locally at line ~2480 and under the name
+// `exit_codes`; a substring search for "tri_exit_codes" matched that path
+// string and I read it as a top-level import that was not there.
+const tri_exit_codes = @import("tri_exit_codes.zig");
 const cell_parser = @import("ribosome.zig");
 const hippocampus = @import("hippocampus.zig");
 const registry_mod = @import("cytoplasm_registry.zig");
