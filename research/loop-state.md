@@ -961,3 +961,36 @@ because ten of my own defects landed in one session and every one shared a
 shape.
 
 **No external change.** #154 still one reply, #120 and #149 none.
+
+### 028 — 2026-08-20, night
+
+**Verification iteration. No external change, and all three gates green on
+current `main` — checked rather than remembered.**
+
+| gate | jobs |
+|---|---|
+| `tri builds` | build ✓ |
+| `reachability ratchet` | ratchet ✓ (395, delta 0) |
+| `part coverage` | a35t ✓ s50c ✓ a200t ✓ k325t ✓ |
+
+None had run for several iterations, because nothing touched their trigger
+paths. **"Was green" and "is green" are different claims**, and this session has
+spent itself on that distinction — a gate that has not run lately guarantees
+nothing, it only remembers.
+
+**Still quiet**: #154 one reply, #120 and #149 none. Web search has failed with
+the same model error for six iterations; the literature review stays unwritten
+rather than written from memory.
+
+**Nothing self-contained remains.** Every open path needs a person:
+
+| waiting on | what |
+|---|---|
+| Hans | differential-clock question; whether to take the coverage gate as a PR |
+| Carlos | `047b` — without those rows a BUFR from a pin has no bitstream |
+| the user | board A/B for #114's four `ZSRVAL` bits; pushing `zig-golden-float` |
+| a decision | the 395 unreachable files; whether risky commands may run in CI |
+
+**Next.** Short iterations: check the four signals above, run the gates if
+anything landed, report no change otherwise. That is the correct mode for a loop
+that has run out of unblocked work, and it is preferable to inventing some.
