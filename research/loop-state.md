@@ -314,3 +314,30 @@ would pass. That is the gap, stated with sources.
 **Next.** The `fib`/`lucas` exit convention (they print usage and exit 0 while
 `phi` exits 2). Then propose the part-coverage gate upstream — a three-line flop
 across the supported part list would have caught #154 on the day it appeared.
+
+### 008 — 2026-08-19, night
+
+**`fib` and `lucas` stopped reporting a missing argument as success.**
+`runPhiCommand`, forty lines above them in the same file, already returned
+`exitWithCode(.validation_error)` for the identical situation. Fourth instance
+this session of the correct form sitting beside the incorrect one — that is
+skill §4, and at four occurrences it is a location rule rather than an anecdote:
+**defects live next to working code, in files nothing has exercised.**
+
+**Proposed a part-coverage gate on openXC7#154.** The structural reading of that
+defect is that no CI job builds anything on `xc7a35t`, so a part can regress to
+totally broken without one red run. One three-line design across the supported
+part list, through `fasm2frames` rather than stopping at P&R — because #149
+showed a design that places and routes cleanly and then has no bitstream.
+
+Offered to write and test it here before opening a PR, with an explicit
+acceptance test for the gate itself: **it must fail on `xc7a35t` and pass on
+`xc7a200t` before it is worth anything.** A new gate that cannot reproduce the
+defect that motivated it is not evidence.
+
+Asked two questions that are theirs rather than mine — which parts they consider
+supported, and per-push versus nightly — and offered the worse fallback of
+keeping it here if they would rather not carry another workflow.
+
+**Next.** Build that gate here and demonstrate the acceptance test. Then the
+remaining smoke-table anomalies, if any survive.
