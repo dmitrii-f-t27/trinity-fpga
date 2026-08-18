@@ -22,20 +22,25 @@ earlier one. Append; do not rewrite history.
 
 ## Current state of the long threads
 
-*Last refreshed at iteration 016. This table decays — check it against the
+*Last refreshed at iteration 029. This table decays — check it against the
 iteration log before trusting a row, and refresh it when it disagrees.*
 
 | Thread | State | Evidence |
 |---|---|---|
-| `tri` build | Builds, links, runs; 18/144 smoke-tested; usage-exit convention **gated** | gate `tri builds` |
+| `tri` build | Builds, links, runs; 18/144 smoke-tested | gate `tri builds` |
 | `build.zig` under 0.16 | Clean; only vendored raylib still fails | Codegen Validation |
+| usage-exit convention | **49 sites fixed, 0 remain, gated** | gate step, iteration 025 |
+| unreachable files | 395 of 744 under `src/tri`; **ratcheted, not deleted** | `.github/reachability-baseline` |
 | BUFR configuration | **Fixed upstream, merged** | nextpnr-xilinx#151 |
 | BUFR from a pin | Blocked on prjxray `047b` (I2IOCLK rows) | issue #149 |
 | IDDR / #114 | Site config eliminated; 4 `IFF.ZSRVAL_Q` bits left; **needs the board** | issue #114 |
-| Router / #154 | Filed with a control; a35t only, of three parts tested | issue #154 |
-| Part-coverage gate | **4 parts green**; only a35t fails, of four tested | run 32138267197 |
+| Router / #154 | Filed with a control; a35t only, of four parts tested | issue #154 |
+| Part-coverage gate | **4 parts green**; Kintex uses IBUFDS | run 32150382712 |
+| IOB divergence / #120 | Draft; blast radius measured — 6 of 8 goldens change | `research/benchmark-timing-correction.md` sibling |
 | Benchmark timing claim | **Retracted — the correction was itself wrong** | `research/benchmark-timing-correction.md` |
 | `zig-golden-float` | **Unpushed commits — clone --recursive fails for everyone** | README |
+| Skill `stale-reference` | 12 sections; §11–§12 cover defects in the repair itself | `.claude/skills/` |
+| Literature review | **Blocked 6+ iterations** — web tooling returns a model error | not written from memory |
 
 ## Iteration log
 
@@ -994,3 +999,18 @@ rather than written from memory.
 **Next.** Short iterations: check the four signals above, run the gates if
 anything landed, report no change otherwise. That is the correct mode for a loop
 that has run out of unblocked work, and it is preferable to inventing some.
+
+### 029 — 2026-08-20, night
+
+**No change on any of the four signals.** #154 one reply, #120 and #149 none,
+`main` carries only my commits, `zig-golden-float` still unpushed.
+
+Refreshed the state table above, which had not been touched since iteration 016
+and predated the usage-convention work, the ratchet, the fourth coverage part
+and six sections of the skill. **A stale summary at the head of the memory is
+the failure this journal documents**, so it gets refreshed when it drifts rather
+than when someone trips over it.
+
+**Consecutive no-change iterations: 1.** Recording the count so the pattern is
+visible. If it grows, that is the signal to pause the loop rather than let it
+tick — the work is not stalled, it is finished pending other people.
