@@ -1249,6 +1249,75 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // Thirteen modules src/tri imports by name that the March build.zig never
+    // knew about -- the code grew them while the build sat unparseable. Wired
+    // in one pass rather than one per CI round.
+    const arrow_of_time_mod = b.createModule(.{
+        .root_source_file = b.path("src/time/arrow_of_time.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const gravity_mod = b.createModule(.{
+        .root_source_file = b.path("src/tri/tri_gravity.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const kaggle_mod = b.createModule(.{
+        .root_source_file = b.path("src/kaggle/kaggle.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const measurement_mod = b.createModule(.{
+        .root_source_file = b.path("src/tri/tri_measurement.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const monopoles_mod = b.createModule(.{
+        .root_source_file = b.path("src/tri/tri_monopoles.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const origin_of_life_mod = b.createModule(.{
+        .root_source_file = b.path("src/biology/origin_of_life.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const quantum_gravity_full_mod = b.createModule(.{
+        .root_source_file = b.path("src/gravity/quantum_gravity_full.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const regex_mod = b.createModule(.{
+        .root_source_file = b.path("src/tri/gen_regex.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const sacred_bench_mod = b.createModule(.{
+        .root_source_file = b.path("src/tri/sacred_bench.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const sacred_constants_mod = b.createModule(.{
+        .root_source_file = b.path("src/sacred_constants.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const sacred_synth_report_mod = b.createModule(.{
+        .root_source_file = b.path("src/tri/sacred_synth_report.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const superconductivity_mod = b.createModule(.{
+        .root_source_file = b.path("src/superconductivity/room_temperature_superconductivity.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const ternary_complexity_mod = b.createModule(.{
+        .root_source_file = b.path("src/tri/math/ternary_complexity.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     // TRI-27 CLI module. Present in the April build.zig, absent from this
     // one: the code kept moving for four months while the build did not, so
     // main.zig now imports a module that the last parseable build predates.
@@ -2411,6 +2480,19 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .link_libc = true, // src/tri/env_loader.zig calls into libc
             .imports = &.{
+                .{ .name = "arrow_of_time", .module = arrow_of_time_mod },
+                .{ .name = "gravity", .module = gravity_mod },
+                .{ .name = "kaggle", .module = kaggle_mod },
+                .{ .name = "measurement", .module = measurement_mod },
+                .{ .name = "monopoles", .module = monopoles_mod },
+                .{ .name = "origin_of_life", .module = origin_of_life_mod },
+                .{ .name = "quantum_gravity_full", .module = quantum_gravity_full_mod },
+                .{ .name = "regex", .module = regex_mod },
+                .{ .name = "sacred_bench", .module = sacred_bench_mod },
+                .{ .name = "sacred_constants", .module = sacred_constants_mod },
+                .{ .name = "sacred_synth_report", .module = sacred_synth_report_mod },
+                .{ .name = "superconductivity", .module = superconductivity_mod },
+                .{ .name = "ternary_complexity", .module = ternary_complexity_mod },
                 .{ .name = "golden_chain", .module = golden_chain_storm_mod },
                 .{ .name = "tri27_cli", .module = tri27_cli_mod },
                 .{ .name = "trinity_swe", .module = vibeec_swe },
