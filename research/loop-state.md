@@ -27,7 +27,7 @@ iteration log before trusting a row, and refresh it when it disagrees.*
 
 | Thread | State | Evidence |
 |---|---|---|
-| `tri` build | **Builds, links and runs** — 144 commands | gate `tri builds` |
+| `tri` build | **Builds, links and runs**; 18 of 144 commands smoke-tested | gate `tri builds` |
 | `build.zig` under 0.16 | Clean; only vendored raylib still fails | Codegen Validation |
 | BUFR configuration | **Fixed upstream, merged** | nextpnr-xilinx#151 |
 | BUFR from a pin | Blocked on prjxray `047b` (I2IOCLK rows) | issue #149 |
@@ -764,3 +764,40 @@ sixteen standing in the other.
 **Next.** Unchanged: Hans (part list, cadence, goldens offer), Carlos (`047b`),
 the board for #114. A reachability gate is proposed in the note but not built —
 it needs a decision about what to do with 395 files first.
+
+### 022 — 2026-08-19, night
+
+**Built the reachability ratchet.** I had deferred it as needing a decision
+about the 395 unreachable files; that was wrong — a ratchet needs no decision.
+It counts, compares against `.github/reachability-baseline` (395), and fails
+only on an *increase*. A decrease asks for the baseline to be lowered in the
+same commit. Nothing is deleted. Green: 744 files, 395 unreachable, delta 0.
+
+**Smoke list 12 → 18**, the six added by reading each handler rather than
+guessing. It found two defects on its first run:
+
+* **`spiral` aborted** — `for (args[1..])` where `args[0]` was guarded a line
+  above and `args[1..]` was not. `n` defaults to 12, so a no-argument call is
+  *supported* and used to panic. Now conditional.
+* **`formula` reported a usage error as success** — third command in that file
+  after `phi`, `fib` and `lucas`. Unlike `spiral` it has no default, so a
+  missing argument really is an error. Now exits 2.
+
+**The distinction between those two is the point.** One command must work with
+no arguments; the other must refuse. A uniform edit would have made them alike
+and broken one. Reading both is what separated them.
+
+**Instrument fixed first, and it paid immediately.** The smoke step recorded one
+line per command, so a panic's backtrace went in the bin — the case it exists to
+catch. Failing commands now keep full output as an artefact. The retained trace
+pointed at `math/commands.zig:504`, while `grep` for that handler returns
+`tri_math.zig` and `tri_math_backup.zig` as well: **three copies, and I would
+have edited a dead one.** Second near-miss of that kind in two iterations, and
+the reason the ratchet exists.
+
+Third time this session the right move was to make the instrument speak rather
+than stare harder at its output. The others: `-freference-trace=12`, and
+splitting "does it build" from "does it run".
+
+**Next.** Unchanged externally. `formula`/`fib`/`lucas`/`phi` now agree on exit
+2; whether the other 126 commands do is unmeasured.
