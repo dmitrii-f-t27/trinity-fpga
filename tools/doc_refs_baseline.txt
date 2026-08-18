@@ -8,7 +8,7 @@ AGENTS.md: names `math/sacred_physics.t27`, which does not exist
 AGENTS.md: names `nn/hslm.t27`, which does not exist
 AGENTS.md: names `queen/lotus.t27`, which does not exist
 CLAUDE.md: names `docs/zig-migration-rules.md`, which does not exist
-HANDOFF_2026_07_03.md: names `wave-loop-2026-07-paused.md`, which does not exist
+docs/handoff/HANDOFF_2026_07_03.md: names `wave-loop-2026-07-paused.md`, which does not exist
 README.md: names `research/goldenfloat-positioning.md`, which does not exist
 docs/DOCUMENTATION_INDEX.md: names `project_farm_patterns.md`, which does not exist
 docs/DOCUMENTATION_INDEX.md: names `src/vsa/README.md`, which does not exist
