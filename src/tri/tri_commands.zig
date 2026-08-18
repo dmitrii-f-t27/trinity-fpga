@@ -199,6 +199,9 @@ pub fn runBenchCommandAsync(allocator: std.mem.Allocator, args: []const []const 
     const job_system = @import("job_system.zig");
     _ = job_system;
     std.debug.print("⚠️  bench async: TODO - job system not configured\n", .{});
+    // Every path through this function prints a TODO and does nothing, so
+    // reporting success left callers unable to tell it apart from a run.
+    return error.NotImplemented;
 }
 /// Internal benchmark execution (runs when --_internal-job-exec flag is set)
 pub fn runBenchCommandInternal(allocator: std.mem.Allocator) !void {
