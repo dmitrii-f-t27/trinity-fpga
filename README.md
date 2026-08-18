@@ -108,10 +108,16 @@ python3 conformance/gf64_conformance_ax7203.py --bit ${DESIGN}.bit
 Stated up front, because it makes documented instructions fail.
 
 **`zig build` does not resolve.** Under the Zig 0.16.0 in this environment it stops at
-`build.zig:69: no field or member function named 'linkLibC' in 'Build.Step.Compile'` — a 0.15 → 0.16
-API break. `build.zig` itself was restored on 2026-08-18 (`0728b93a`) after a period when it did not
-exist at all, so this is a narrower failure than before, but every `tri …` command in the
-documentation still describes intent rather than a working tool. Nothing above this line depends on
+`build.zig:2869: no field or member function named 'linkSystemLibrary' in 'Build.Step.Compile'` — a
+0.15 → 0.16 API break on a raylib GUI target. Seven `linkSystemLibrary` call sites remain, plus
+three each of `addIncludePath` and `addCSourceFile` that the same migration will reach.
+
+This note has a shelf life and has already expired once: it named `build.zig:69` and `linkLibC`
+until 2026-08-18, when those eight sites were migrated to `root_module.link_libc` and the next
+break surfaced one layer down. A "known-broken" line is a claim like any other — date it, name the
+exact line, and re-run the command before trusting it.
+
+Nothing above this line depends on
 it: the oracles, the conformance harnesses and the bitstream flow are Python and Verilog.
 
 ---
