@@ -22,13 +22,19 @@ earlier one. Append; do not rewrite history.
 
 ## Current state of the long threads
 
+*Last refreshed at iteration 016. This table decays — check it against the
+iteration log before trusting a row, and refresh it when it disagrees.*
+
 | Thread | State | Evidence |
 |---|---|---|
-| `tri` build | Restored, compiling further each round | gate `tri builds` |
+| `tri` build | **Builds, links and runs** — 144 commands | gate `tri builds` |
+| `build.zig` under 0.16 | Clean; only vendored raylib still fails | Codegen Validation |
 | BUFR configuration | **Fixed upstream, merged** | nextpnr-xilinx#151 |
-| BUFR from a pin | Blocked on prjxray `047b` (I2IOCLK rows) | issue #149 comment |
-| IDDR / #114 | Site config eliminated; 4 `IFF.ZSRVAL_Q` bits left | issue #114 comment |
-| Benchmark write-up | Two corrections owed, not yet written | — |
+| BUFR from a pin | Blocked on prjxray `047b` (I2IOCLK rows) | issue #149 |
+| IDDR / #114 | Site config eliminated; 4 `IFF.ZSRVAL_Q` bits left; **needs the board** | issue #114 |
+| Router / #154 | Filed with a control; a35t only, of three parts tested | issue #154 |
+| Part-coverage gate | 3 parts green; Kintex awaits one answer from Hans | run 32132592070 |
+| Benchmark timing claim | **Retracted — the correction was itself wrong** | `research/benchmark-timing-correction.md` |
 | `zig-golden-float` | **Unpushed commits — clone --recursive fails for everyone** | README |
 
 ## Iteration log
@@ -556,3 +562,48 @@ it is correct but that it is checkable.
 **Next.** Kintex needs one answer from Hans (differential clock acceptable, or a
 board with a single-ended one). `xc7z035` unexamined. Otherwise unchanged: #114
 needs the board, #149 needs 047b.
+
+### 015 — 2026-08-19, night
+
+Recorded late; iteration 015 did the work and skipped the journal entry, which
+is the same omission this journal exists to prevent.
+
+**`xc7z035` cannot be added, and upstream's own `demos.yml` says why:**
+
+    Known-failing projects (BRAM/LUTFF legaliser spiral on artix7,
+    missing xc7z035 tilegrid) are intentionally not part of the subset.
+
+No tilegrid means chipdb cannot be generated, so the gate would report
+INCONCLUSIVE forever. Reason recorded in the workflow header rather than as a
+permanently red row.
+
+**That line also supports openXC7#154 from their side rather than mine.** Their
+single gate is scoped to what passes, with known-failing cases excluded by
+hand. A part nothing exercises cannot fail — which is how a35t reached "cannot
+route a three-line flip-flop" without one red run.
+
+**Skill §11 grew from four instances to seven** and got a statement rather than
+a gesture: *a rule that holds for every case you looked at, applied to a set
+containing a case you did not.* The larger sample added something the first four
+did not show — the exceptions are never in the sites that motivated the edit,
+always in the adjacent ones. Each rule was true when written and false when
+extended.
+
+### 016 — 2026-08-19, night
+
+**Refreshed the state table at the top of this file**, which had not been touched
+since iteration 001 and was wrong in three rows: `tri` was listed as "compiling
+further each round" when it builds and runs; the benchmark corrections were
+listed as owed when one had been retracted as wrong; and #154 and the coverage
+gate were absent entirely, being younger than the table.
+
+A stale summary at the top of the memory is worse than none — a later iteration
+reads it first and trusts it. Added a line saying it decays and to check it
+against the log.
+
+**No upstream reply since Hans's pin pointer.** Kintex still waits on one answer.
+
+**Nothing else is unblocked**, and the honest list of who holds what is: Hans
+(differential clock question), Carlos (`047b`), the user (board A/B for #114,
+pushing `zig-golden-float`), and whoever owns the GUI targets (raylib under
+0.16).
