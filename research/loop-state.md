@@ -143,3 +143,47 @@ the instrument report more precisely, not to look harder at the same output.
 **Next.** Verify individual commands actually work (144 of them; `--help`
 running proves startup, not function). Then the two benchmark corrections, and
 a reduced case for the `Invalid global constant node` router failure.
+
+### 004 — 2026-08-18, night
+
+**Skill written.** `.claude/skills/stale-reference/SKILL.md` — the transferable
+half of this repair, in the register of `measurement-discipline`: every rule a
+failure that happened. Six instances of "code moved out, reference stayed
+behind" tabulated, plus the two mistakes the repair itself made.
+
+**The gate now runs commands, not just builds them.** `--help` proves `main()`
+starts and nothing more. Fourteen of the 144 advertised commands are sampled
+each build. It found something on the first run:
+
+| | before | after |
+|---|---|---|
+| `stats` | exit 0, "TODO - not implemented yet" | exit 1 |
+| `doctor` | exit 0, "TODO - not implemented yet" | exit 1 |
+
+**Twenty sites** in `tri_commands.zig` printed "not implemented" and returned
+normally. A caller could not distinguish work done from work never written —
+the same defect as everything else this session, one layer up. They now return
+`error.NotImplemented`; the message is unchanged, only the exit code stopped
+lying.
+
+**Unexplained, recorded rather than claimed.** `verify` went from exit 124 (a
+20-second timeout) to exit 0 between runs, with nothing touching it. Either a
+side effect of the lazy corpus, or the command is flaky. Do not attribute this
+to the fix without evidence; re-check it next iteration and treat a second
+timeout as the real state.
+
+**Still open from the same table.** `fib` and `lucas` print usage and exit 0,
+while `phi` in the same situation exits 2 — two conventions in one binary. Not
+fixed here because which is correct is a decision, not a repair.
+
+**Third self-inflicted defect.** The mass edit that added the returns put two of
+them *before* a trailing print, producing unreachable code. Same shape as the
+other two: a uniform edit applied to sites that were not uniform. The parse
+check that would have caught it was skipped because the local toolchain had
+been cleaned up and CI was "good enough" — it cost a full round.
+
+**Running score: ~20 defects closed, 3 introduced, all 3 caught by the gate
+within one cycle.** That ratio is the argument for the gate, not for care.
+
+**Next.** Re-check `verify`. Decide the usage-exit convention. Then the two
+benchmark corrections and the router-failure reducer, both untouched since 001.
