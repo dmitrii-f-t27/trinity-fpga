@@ -11,9 +11,12 @@
 //! a second version of the truth, which is the failure this whole session has
 //! been repairing.
 //!
-//!   tri journal            the most recent iteration entry
-//!   tri loop invariants   the rules a new iteration must not break
-//!   tri loop all          the whole journal
+//!   tri journal              the most recent iteration entry
+//!   tri journal invariants   the rules a new iteration must not break
+//!   tri journal all          the whole journal
+//!
+//! Not `tri loop`: that name already belongs to pipeline step ten,
+//! `tri loop decide`, routed to dev_workflow.
 //!
 //! phi^2 + 1/phi^2 = 3 = TRINITY
 
