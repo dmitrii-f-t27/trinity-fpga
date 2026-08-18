@@ -90,3 +90,31 @@ Not "we verify openXC7". What is true is narrower and checkable:
 
 The last two matter more than the count. A method that only ever confirms its
 author is not a method.
+
+---
+
+## Correction and addition: what the shipped goldens actually are
+
+Added at iteration 020, after testing an idea that did not survive.
+
+`prjxray-db` ships four Vivado-built bitstreams — `artix7/harness/arty-a7/{swbut,uart,pmod}` and `artix7/harness/basys3/swbut` — each with a `design.bit`, a `design.dcp`, a `design.json` and a `design.txt`.
+
+**The idea that failed.** I expected `design.json` to be a yosys netlist, which would allow the strongest possible test: feed the identical netlist to both toolchains and diff the resulting bitstreams. It is not. Its top-level keys are `info`, `ports` and `required_features` — no `cells`, no `modules`, no `netnames`. These are fuzzing harness descriptors, not rebuildable designs, and the `.dcp` needs Vivado to open. **No whole-design differential build is available from them.**
+
+**What they are instead, and it is not nothing.** `design.txt` maps each port to its pin and its routing node, and `required_features` is a published list of FASM features the golden bitstream is known to contain:
+
+| harness | features listed |
+|---|---|
+| `arty-a7/swbut` | 433 |
+| `arty-a7/uart` | 199 |
+| `arty-a7/pmod` | 431 |
+| `basys3/swbut` | 864 |
+
+Mostly clock distribution — `CLK_BUFG_REBUF_*`, `BUFGCTRL.BUFGCTRL_X0Y0.IN_USE`, and so on. That is a vendor-derived statement of what a correct clock configuration contains, in exactly the vocabulary openXC7 emits.
+
+**Two usable things follow, neither of which is a differential build:**
+
+1. **A configuration oracle.** Decode `design.bit` and read what Vivado programs for a known pin at a known IOSTANDARD. This is what openXC7/nextpnr-xilinx#120 already does, and how the two divergent IOB bits were found. It generalises: every pin in `design.txt` is a case.
+2. **A feature-presence check.** For a design routing its clock the same way, those features should appear. That is weaker than a diff, and it is checkable today with no vendor tool.
+
+**The correction to make elsewhere**: #120 describes these as bitstreams "nothing uses as a reference", which is true, and I took that to mean more was available from them than is. The reference they support is per-feature, not per-design.
