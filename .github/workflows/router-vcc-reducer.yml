@@ -64,7 +64,7 @@ jobs:
             docker run --rm -v "$PWD/../..:/w" -w /w/research/router-vcc-reducer "$OPENXC7_IMAGE" bash -c "
               yosys -p 'synth_xilinx -flatten -abc9 -arch xc7 -top top; write_json /w/out/$v.json' $v.v \
                 > /w/out/$v.synth.log 2>&1 || exit 20
-              nextpnr-xilinx --chipdb /w/chipdb/${PART}.bin --xdc base.xdc \
+              nextpnr-xilinx --chipdb /w/chipdb/${PART}.bin --xdc $v.xdc \
                 --json /w/out/$v.json --fasm /w/out/$v.fasm \
                 > /w/out/$v.pnr.log 2>&1
             "
@@ -78,8 +78,8 @@ jobs:
           say() { echo "$1" >> $GITHUB_STEP_SUMMARY; echo "$1"; }
           say '## Which variant does the router refuse?'
           say ''
-          say '| variant | what it isolates | rc | error |'
-          say '|---|---|---|---|'
+          say '| variant | what it isolates | rc | verdict | error |'
+          say '|---|---|---|---|---|'
           declare -A what=(
             [v1_iddr_const]='IDDR, CE/R/S constant — as reported'
             [v2_iddr_ports]='IDDR, CE/R/S from ports'
@@ -90,7 +90,17 @@ jobs:
           for v in v1_iddr_const v2_iddr_ports v3_iddr_ce_only v4_ff_const v5_iddr_no_rs; do
             rc=$(grep "^$v rc=" out/status.txt | tail -1 | sed 's/.*rc=//')
             err=$(grep -oE 'ERROR: [^\\n]{0,60}' "out/$v.pnr.log" 2>/dev/null | head -1)
-            say "| \`$v\` | ${what[$v]} | ${rc:-?} | ${err:-—} |"
+            # Classify, because 'it failed' is three different facts. The first
+            # run of this reducer reused one XDC for every variant, so four of
+            # them died on a missing IOSTANDARD and never reached the router --
+            # and the table reported that indistinguishably from a finding.
+            case "$err" in
+              *"Invalid global constant node"*) kind='**TARGET DEFECT**' ;;
+              *IOSTANDARD*|*"type PAD"*)        kind='my XDC is wrong — not a finding' ;;
+              "")                               kind='built' ;;
+              *)                                kind='other router error' ;;
+            esac
+            say "| \`$v\` | ${what[$v]} | ${rc:-?} | $kind | ${err:-—} |"
           done
           say ''
           say 'rc=0 built. rc=20 failed in yosys, which would be a broken variant'
