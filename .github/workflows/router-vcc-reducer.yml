@@ -107,9 +107,48 @@ jobs:
           say 'rather than a finding. Anything else is the router.'
           exit 0
 
+
+      # The control that decides how big this is. v4 is a three-line flip-flop
+      # with no I/O primitive; if it cannot route on xc7a35t, either the part
+      # is broken in this flow or openXC7 cannot build anything -- and the
+      # second is refuted by this repository's own benchmark, which builds on
+      # xc7a200t five times a run. Settle it rather than assert it.
+      - name: CONTROL — the same three-line design on xc7a200t
+        run: |
+          set +e
+          say() { echo "$1" >> $GITHUB_STEP_SUMMARY; echo "$1"; }
+          mkdir -p ctl
+          docker run --rm -v "$PWD:/w" -w /w "$OPENXC7_IMAGE" bash -c "
+            set -e
+            cd /nextpnr-xilinx
+            BB=\$(find / -name bbasm -type f -perm -u+x 2>/dev/null | head -1)
+            python3 xilinx/python/bbaexport.py --device xc7a200tfbg484-2 --bba /w/ctl/c.bba
+            \$BB -l /w/ctl/c.bba /w/ctl/a200.bin
+          " > ctl/chipdb.log 2>&1
+          docker run --rm -v "$PWD:/w" -w /w/research/router-vcc-reducer "$OPENXC7_IMAGE" bash -c "
+            yosys -p 'synth_xilinx -flatten -abc9 -arch xc7 -top top; write_json /w/ctl/v4.json' v4_ff_const.v > /w/ctl/synth.log 2>&1
+            nextpnr-xilinx --chipdb /w/ctl/a200.bin --xdc v4_ff_const_a200.xdc \
+              --json /w/ctl/v4.json --fasm /w/ctl/v4.fasm > /w/ctl/pnr.log 2>&1
+          "
+          RC=$?
+          ERR=$(grep -oE 'ERROR: .{0,60}' ctl/pnr.log 2>/dev/null | head -1)
+          say ''
+          say "### Control: v4 on xc7a200tfbg484-2 — rc=$RC"
+          say '```'
+          say "${ERR:-built without error}"
+          say '```'
+          if [ $RC -eq 0 ]; then
+            say 'Builds on a200t, fails on a35t ⇒ **part-specific**, not a universal router defect.'
+          else
+            say 'Fails on both ⇒ the defect is not part-specific, and the reducer is the whole story.'
+          fi
+          exit 0
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: router-vcc-reducer
-          path: out
+          path: |
+            out
+            ctl
           retention-days: 90
