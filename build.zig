@@ -1238,11 +1238,20 @@ pub fn build(b: *std.Build) void {
     });
 
     // VSA module for TRI (moved up: needed by tvc_corpus_mod and fluent CLI)
-    const vsa_tri = b.createModule(.{
-        .root_source_file = b.path("src/vsa.zig"),
+    //
+    // Taken from the zig-hdc dependency rather than from a local src/vsa.zig.
+    // That file, and the whole src/vsa/ tree behind it, were extracted to
+    // zig-hdc by 9da363bc5 -- but this reference was left pointing at the
+    // deleted path, so the build could not resolve it afterwards. Restoring
+    // the files locally would mean re-vendoring a library that was
+    // deliberately split out, and the facade pulls in common -> hybrid ->
+    // bigint + packed_trit behind it. zig-hdc exports exactly this facade as
+    // the module 'zig-hdc-vsa'.
+    const zig_hdc_dep = b.dependency("zig_hdc", .{
         .target = target,
         .optimize = optimize,
     });
+    const vsa_tri = zig_hdc_dep.module("zig-hdc-vsa");
     // TVC Corpus module for TRI (moved up: needed by fluent CLI and hybrid chat)
     const tvc_corpus_mod = b.createModule(.{
         .root_source_file = b.path("src/tvc/tvc_corpus.zig"),
@@ -2379,6 +2388,7 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/tri/main.zig"),
             .target = target,
             .optimize = optimize,
+            .link_libc = true, // src/tri/env_loader.zig calls into libc
             .imports = &.{
                 .{ .name = "trinity_swe", .module = vibeec_swe },
                 .{ .name = "igla_chat", .module = vibeec_chat },
