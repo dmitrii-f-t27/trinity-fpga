@@ -2866,7 +2866,7 @@ pub fn build(b: *std.Build) void {
                 .optimize = optimize,
             }),
         });
-        trinity_node_gui.linkSystemLibrary("raylib");
+        trinity_node_gui.root_module.linkSystemLibrary("raylib", .{});
         trinity_node_gui.root_module.link_libc = true;
         b.installArtifact(trinity_node_gui);
 
@@ -2887,7 +2887,7 @@ pub fn build(b: *std.Build) void {
                 .optimize = optimize,
             }),
         });
-        photon_demo.linkSystemLibrary("raylib");
+        photon_demo.root_module.linkSystemLibrary("raylib", .{});
         photon_demo.root_module.link_libc = true;
         b.installArtifact(photon_demo);
 
@@ -2912,7 +2912,7 @@ pub fn build(b: *std.Build) void {
                 .optimize = optimize,
             }),
         });
-        photon_immersive.linkSystemLibrary("raylib");
+        photon_immersive.root_module.linkSystemLibrary("raylib", .{});
         photon_immersive.root_module.link_libc = true;
         b.installArtifact(photon_immersive);
 
@@ -2949,10 +2949,10 @@ pub fn build(b: *std.Build) void {
                 },
             }),
         });
-        trinity_canvas.linkSystemLibrary("raylib");
+        trinity_canvas.root_module.linkSystemLibrary("raylib", .{});
         // v8.4: Add raygui include path and C implementation
-        trinity_canvas.addIncludePath(b.path("external/raygui/src"));
-        trinity_canvas.addCSourceFile(.{ .file = b.path("src/vsa/raygui_impl.c") });
+        trinity_canvas.root_module.addIncludePath(b.path("external/raygui/src"));
+        trinity_canvas.root_module.addCSourceFile(.{ .file = b.path("src/vsa/raygui_impl.c") });
         // TEMP: Disable install until raygui.h is available
         // b.installArtifact(trinity_canvas);
 
@@ -3082,7 +3082,7 @@ pub fn build(b: *std.Build) void {
                     .name = "trinity-canvas-wasm-check",
                     .root_module = wasm_root,
                 });
-                wasm_canvas.linkSystemLibrary("raylib");
+                wasm_canvas.root_module.linkSystemLibrary("raylib", .{});
                 wasm_canvas.root_module.link_libc = true;
                 // TEMP: Disable install until raygui.h is available
                 // b.installArtifact(wasm_canvas);

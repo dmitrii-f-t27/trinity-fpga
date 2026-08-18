@@ -43,7 +43,15 @@ jobs:
       - name: Build Project
         if: steps.zigsetup.outputs.present == 'true'
         run: |
-          zig build
+          # -Dci=true is the flag build.zig already declares for exactly this:
+          # "CI mode: skip GUI and system-library targets". Without it the
+          # graph pulls in the raylib-dependent photon targets, whose sources
+          # (src/vsa/photon_*.zig, raygui_impl.c) are absent from the tree and
+          # whose vendored raylib package does not build under 0.16 either.
+          # Those targets cannot build under any toolchain today; skipping them
+          # is what the option exists for, and is preferable to deleting
+          # someone's targets on my way past.
+          zig build -Dci=true
 
       - name: Run Codegen Validation
         if: steps.zigsetup.outputs.present == 'true' && hashFiles('scripts/validate_codegen.sh') != ''
