@@ -467,7 +467,7 @@ pub const TVCCorpus = struct {
         for (0..mem_vec_len) |i| {
             var byte: [1]u8 = undefined;
             _ = try file.readAll(&byte);
-            corpus.memory_vector.unpacked_cache.?[i] = @bitCast(byte[0]);
+            corpus.memory_vector.unpacked_cache[i] = @bitCast(byte[0]);
         }
 
         // Entries
@@ -499,7 +499,7 @@ pub const TVCCorpus = struct {
             for (0..q_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.query_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
+                entry.query_vec.unpacked_cache[j] = @bitCast(byte[0]);
             }
 
             // Response vector
@@ -511,7 +511,7 @@ pub const TVCCorpus = struct {
             for (0..r_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.response_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
+                entry.response_vec.unpacked_cache[j] = @bitCast(byte[0]);
             }
 
             // Bound vector
@@ -523,7 +523,7 @@ pub const TVCCorpus = struct {
             for (0..b_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.bound_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
+                entry.bound_vec.unpacked_cache[j] = @bitCast(byte[0]);
             }
 
             // Query text
@@ -627,7 +627,7 @@ pub const TVCCorpus = struct {
             for (0..q_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.query_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
+                entry.query_vec.unpacked_cache[j] = @bitCast(byte[0]);
             }
 
             // Response vector
@@ -639,7 +639,7 @@ pub const TVCCorpus = struct {
             for (0..r_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.response_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
+                entry.response_vec.unpacked_cache[j] = @bitCast(byte[0]);
             }
 
             // Bound vector
@@ -651,7 +651,7 @@ pub const TVCCorpus = struct {
             for (0..b_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.bound_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
+                entry.bound_vec.unpacked_cache[j] = @bitCast(byte[0]);
             }
 
             // Query text
