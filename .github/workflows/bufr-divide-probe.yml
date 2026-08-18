@@ -119,6 +119,59 @@ jobs:
           '
           wc -l out/*.fasm
 
+      # Does the FASM become a bitstream? Separate question from "are the right
+      # features emitted", and the one that decides whether a BUFR fed from an
+      # input pin is usable at all today.
+      #
+      # The probe's FASM contains
+      #   HCLK_IOI3_*.HCLK_IOI_IO_PLL_CLK0_DMUX.HCLK_IOI_I2IOCLK_TOP0
+      # and segbits_hclk_ioi3.db at d17fea2 has ZERO rows matching I2IOCLK --
+      # fuzzer 047 has no IBUF specimen, so that leg is structurally unreachable
+      # in its design space (@cavearr's root cause). Whether that makes
+      # fasm2frames fail, or silently drop the feature, changes what the fix
+      # ordering has to be. Measure it rather than assert it.
+      - name: Can the FASM be turned into frames?
+        run: |
+          set +e
+          say() { echo "$1" >> $GITHUB_STEP_SUMMARY; echo "$1"; }
+          docker run --rm -v "$PWD:/w" -w /w "$OPENXC7_IMAGE" bash -c '
+            source /prjxray/env/bin/activate
+            DB=/nextpnr-xilinx/xilinx/external/prjxray-db/artix7
+            for t in stock patched; do
+              fasm2frames --part '"$PART"'-1 --db-root $DB \
+                /w/out/bufr_divide.$t.fasm > /w/out/$t.frames 2> /w/out/$t.f2f.err
+              echo "$t rc=$?" >> /w/out/f2f.status
+            done
+          '
+          say ""
+          say "### Does the FASM become a bitstream?"
+          say ""
+          cat out/f2f.status 2>/dev/null | while read -r line; do say "- \`$line\`"; done
+          # The exception, not the head of the file: the first lines are an
+          # antlr import warning that says nothing, and burying a decisive
+          # error under it is how that error comes to read as noise. Measured
+          # in run 32100921307:
+          #
+          #   FasmLookupError: Segment DB HCLK_IOI3, key
+          #   HCLK_IOI3.HCLK_IOI_IO_PLL_CLK0_DMUX.HCLK_IOI_I2IOCLK_TOP0 not found
+          #
+          # identically for stock and patched, so it is the database gap and
+          # not #151.
+          for t in stock patched; do
+            if [ -s "out/$t.f2f.err" ]; then
+              say ""
+              say "\`$t\`:"
+              say '```'
+              say "$(grep -aE 'Error|error:' "out/$t.f2f.err" | tail -2)"
+              say '```'
+            fi
+          done
+          I2=$(grep -c 'I2IOCLK' out/bufr_divide.patched.fasm)
+          say ""
+          say "The FASM contains $I2 \`I2IOCLK\` feature(s); the database has 0 rows for them."
+          say "This step reports what that costs — it does not gate the run."
+          exit 0
+
       - name: The verdict
         run: |
           set +e
