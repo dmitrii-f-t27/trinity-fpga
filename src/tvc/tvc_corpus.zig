@@ -234,7 +234,7 @@ pub const TVCCorpus = struct {
         self.count += 1;
 
         // 4. Bundle into memory vector (NO FORGETTING)
-        self.memory_vector = vsa.bundle2(&self.memory_vector, &bound_vec, allocator);
+        self.memory_vector = vsa.bundle2(&self.memory_vector, &bound_vec);
 
         // Update stats
         self.total_stores += 1;
@@ -351,7 +351,7 @@ pub const TVCCorpus = struct {
         // Memory vector (packed)
         self.memory_vector.ensureUnpacked();
         for (0..self.memory_vector.trit_len) |i| {
-            const byte: [1]u8 = .{@bitCast(self.memory_vector.getTritChecked(i))};
+            const byte: [1]u8 = .{@bitCast(self.memory_vector.getTrit(i))};
             try file.writeAll(&byte);
         }
 
@@ -377,7 +377,7 @@ pub const TVCCorpus = struct {
             std.mem.writeInt(u32, &buf4, @intCast(entry.query_vec.trit_len), .little);
             try file.writeAll(&buf4);
             for (0..entry.query_vec.trit_len) |j| {
-                const byte: [1]u8 = .{@bitCast(entry.query_vec.getTritChecked(j))};
+                const byte: [1]u8 = .{@bitCast(entry.query_vec.getTrit(j))};
                 try file.writeAll(&byte);
             }
 
@@ -386,7 +386,7 @@ pub const TVCCorpus = struct {
             std.mem.writeInt(u32, &buf4, @intCast(entry.response_vec.trit_len), .little);
             try file.writeAll(&buf4);
             for (0..entry.response_vec.trit_len) |j| {
-                const byte: [1]u8 = .{@bitCast(entry.response_vec.getTritChecked(j))};
+                const byte: [1]u8 = .{@bitCast(entry.response_vec.getTrit(j))};
                 try file.writeAll(&byte);
             }
 
@@ -395,7 +395,7 @@ pub const TVCCorpus = struct {
             std.mem.writeInt(u32, &buf4, @intCast(entry.bound_vec.trit_len), .little);
             try file.writeAll(&buf4);
             for (0..entry.bound_vec.trit_len) |j| {
-                const byte: [1]u8 = .{@bitCast(entry.bound_vec.getTritChecked(j))};
+                const byte: [1]u8 = .{@bitCast(entry.bound_vec.getTrit(j))};
                 try file.writeAll(&byte);
             }
 
