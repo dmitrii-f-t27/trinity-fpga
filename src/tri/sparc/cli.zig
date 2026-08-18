@@ -406,7 +406,7 @@ fn runBatchFit(allocator: Allocator, data_content: []const u8, options: SparcOpt
         },
         .csv => {
             std.debug.print("name,chi_squared,reduced_chi_squared,is_good_fit,num_points\n", .{});
-            for (results) |r| {
+            for (results.items) |r| {
                 const good_str = if (r.is_good) "true" else "false";
                 std.debug.print("{s},{e},{e},{s},{}\n", .{
                     r.name, r.chi_sq, r.reduced_chi_sq, good_str, r.num_points,
@@ -511,7 +511,7 @@ fn outputCsv(allocator: Allocator, result: mod.FitResult, points: []const mod.Ga
         result.chi_squared,
         result.dof,
         result.reduced_chi_squared,
-    }) catch unreachable;
+    });
 
     // Data points header
     std.debug.print("\nradius_kpc,velocity_kms,velocity_err_kms\n", .{});
@@ -520,7 +520,7 @@ fn outputCsv(allocator: Allocator, result: mod.FitResult, points: []const mod.Ga
             point.radius,
             point.velocity,
             point.velocity_err,
-        }) catch unreachable;
+        });
     }
 }
 
