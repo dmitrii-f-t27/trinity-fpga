@@ -478,3 +478,38 @@ not uniform.
 the coverage gate needs their part list, and raylib needs a version that
 supports 0.16 or the GUI targets dropped. If the loop fires again with no reply,
 the honest report is "no change" rather than invented work.
+
+### 013 — 2026-08-19, night
+
+**Upstream replied — the first response on any of these threads.**
+@hansfbaier on #154: litex-hub/litex-boards has pin assignments for a great many
+boards, *"or am I misunderstanding something?"*
+
+He was not misunderstanding, and my hesitation was unnecessary.
+`digilent_arty_s7.py` names `xc7s50csga324-1` exactly, so `clk12 F14`,
+`user_sw0 H14`, `user_led0 E18` were a search away, not a research project.
+
+**Part coverage extended to three parts.** The Spartan expectation is recorded
+as `pass` and marked in the file as a **prediction, not a measurement** — that
+part has never been built by this gate. If it fails like a35t, the pinned
+expectation makes it a finding rather than a line to edit away afterwards.
+Recording a guess as a guess is the only thing that makes the next result mean
+anything.
+
+**Kintex still absent, for a stated reason.** The board carrying exactly
+`xc7k325t-ffg676-2` (`sitlinv_stlv7325_v1`) has only differential clock inputs,
+marked TODO in its own file. The ffg676 boards with clean single-ended pins
+(`berkeleylab_marble`) are a different die, `xc7k160t`. Package-level pins are
+*probably* transferable — and "probably" is what produced four self-inflicted
+failures in the first #154 reducer. Question goes back to Hans rather than a
+guess going into the matrix.
+
+**Process slip worth recording.** The first dispatch of the extended gate never
+ran: `gh workflow run` sat at the end of an `&&` chain and was never reached. I
+reported it as started. Third time this session I have taken the absence of an
+error for confirmation of an action — the fix is to check the thing happened,
+not that nothing complained.
+
+**Next.** The three-part result. If Spartan passes, propose the PR to upstream
+with two parts of evidence and one open question; if it fails, that is a second
+part-specific defect and a bigger finding than the gate itself.
