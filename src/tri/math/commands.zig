@@ -380,7 +380,7 @@ pub fn runEvalCommand(allocator: std.mem.Allocator, args: []const []const u8) !v
 pub fn runComputeCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
     if (args.len == 0) {
         std.debug.print("Usage: tri math compute [spiral|verify|compare] [args...]\n", .{});
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
 
     const operation = args[0];
@@ -1075,7 +1075,7 @@ pub fn runEvidenceCommand(allocator: std.mem.Allocator, args: []const []const u8
         std.debug.print("  Show sacred formula evidence card for a constant or prediction\n", .{});
         std.debug.print("  Example: tri math evidence \"fine structure\"\n", .{});
         std.debug.print("  Example: tri math evidence Lambda_QCD\n", .{});
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
 
     // Join args into query, lowercase for matching
@@ -1219,7 +1219,7 @@ pub fn runSearchBestFitCommand(allocator: std.mem.Allocator, args: []const []con
     if (args.len == 0) {
         std.debug.print("Usage: tri math search <value>\n", .{});
         std.debug.print("  Find best sacred formula match for a numerical value\n", .{});
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
     const value = std.fmt.parseFloat(f64, args[0]) catch {
         std.debug.print("Error: '{s}' is not a valid number\n", .{args[0]});

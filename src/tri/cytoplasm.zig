@@ -622,7 +622,7 @@ fn runSearch(allocator: Allocator, args: []const []const u8) !void {
         std.debug.print("{s}Usage:{s} tri cell search <query>\n", .{ YELLOW, RESET });
         std.debug.print("  Example: tri cell search faculty\n", .{});
         std.debug.print("  Searches: cell ID, name, description\n\n", .{});
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
 
     const query = args[0];
@@ -856,7 +856,7 @@ fn runInfo(allocator: Allocator, args: []const []const u8) !void {
         std.debug.print("    --verbose        Show full error traces\n", .{});
         std.debug.print("\n  Example: tri cell info trinity.hslm\n", .{});
         std.debug.print("           tri cell info nonexistent-cell --suggest-fix\n", .{});
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
 
     const cell_id = args[0];
@@ -1072,7 +1072,7 @@ fn runInit(allocator: Allocator, args: []const []const u8) !void {
         std.debug.print("    frontend           → apps/<name>/\n", .{});
         std.debug.print("    --with-test        Also create <name>.test.zig\n", .{});
         std.debug.print("    --template <name>  Use template from library (see: tri cell templates)\n", .{});
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
 
     const name = args[0];
@@ -1596,7 +1596,7 @@ fn runDeps(allocator: Allocator, args: []const []const u8) !void {
         std.debug.print("       tri cell deps --cycles\n", .{});
         std.debug.print("       tri cell deps --dead\n", .{});
         std.debug.print("       tri cell deps --validate [--threshold=0.8]\n", .{});
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
 
     const cell_id = args[0];
@@ -4361,7 +4361,7 @@ fn runToggleEnabled(allocator: Allocator, args: []const []const u8, enable: bool
         std.debug.print("{s}Usage:{s} tri cell {s} <cell-id>\n", .{
             YELLOW, RESET, if (enable) "enable" else "disable",
         });
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
 
     const cell_id = args[0];
@@ -4885,7 +4885,7 @@ fn runCreate(allocator: Allocator, args: []const []const u8) !void {
         std.debug.print("    tri cell create src/gravity       # from directory\n", .{});
         std.debug.print("    tri cell create src/vsa.zig       # from standalone file\n", .{});
         std.debug.print("    tri cell create --agent my-agent  # scaffold agent cell + .md\n", .{});
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
 
     // Handle --agent flag
@@ -5939,7 +5939,7 @@ fn runMap(allocator: Allocator) !void {
 fn runExplain(allocator: Allocator, args: []const []const u8) !void {
     if (args.len == 0) {
         std.debug.print("{s}Usage:{s} tri cell explain <cell-id>\n", .{ YELLOW, RESET });
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
     const target_id = args[0];
 
@@ -9690,7 +9690,7 @@ fn runBatch(allocator: Allocator, args: []const []const u8) !void {
         std.debug.print("  {s}--fix{s}   Fix all cells with health < 70%%\n", .{ GREEN, RESET });
         std.debug.print("  {s}--sign{s}  Sign all L2 cells\n", .{ GREEN, RESET });
         std.debug.print("  {s}--test{s}  Run tests for all cells\n", .{ GREEN, RESET });
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
 
     const op = args[0];
