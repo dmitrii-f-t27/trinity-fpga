@@ -448,3 +448,33 @@ not an ornament.
 
 **Next.** Whether `Codegen Validation` gets past line 69 under 0.16 — if it does,
 the next error is the real state of the 0.15→0.16 gap rather than a method name.
+
+### 012 — 2026-08-19, night
+
+**build.zig is 0.16-clean, confirmed in CI rather than only locally.** On
+`c58b52e7d` the Codegen Validation run shows **zero** remaining errors in this
+repository's build definition; the only two are inside the vendored raylib
+package (`std.mem.trimLeft`, `std.process.getEnvVarOwned`, both removed in
+0.16). Nine Compile-to-Module sites converted after enumerating the class out of
+the 0.16 standard library rather than fixing one per round.
+
+**Two of my own errors on that change**, both caught before they landed:
+`-Dci=true` cannot help because build.zig's body compiles whole regardless of
+runtime branches (a local pre-commit hook caught it), and the conversion
+identified modules by a `_mod` suffix that `wasm_root` does not follow.
+
+**Wrote to Hans and Carlos** — option B of the three offered. It carries #154
+with its control, the working part-coverage gate offered as a PR, the state of
+#149 and #114, the withdrawn timing correction, and three questions that block
+further progress: which parts they consider supported, per-push or nightly, and
+pin assignments for the three parts I cannot verify.
+
+**Running score for the session: ~20 defects closed in other people's code, 5
+introduced by me, all 5 caught by automation within one cycle, none noticed by
+me first.** All five share one shape — a uniform edit applied to sites that were
+not uniform.
+
+**Next.** Nothing here is unblocked. #114 needs the AX7203, #149 needs `047b`,
+the coverage gate needs their part list, and raylib needs a version that
+supports 0.16 or the GUI targets dropped. If the loop fires again with no reply,
+the honest report is "no change" rather than invented work.
