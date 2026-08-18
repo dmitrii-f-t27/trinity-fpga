@@ -467,7 +467,11 @@ pub fn runPhiCommand(allocator: std.mem.Allocator, args: []const []const u8) !vo
 pub fn runFibCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
     if (args.len == 0) {
         std.debug.print("Usage: tri fib <n>\n", .{});
-        return;
+        // Same exit code as runPhiCommand above, which handles the identical
+        // situation correctly. These two printed the usage line and returned
+        // normally, so a caller could not tell a missing argument from a
+        // successful run.
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
     const n = try std.fmt.parseInt(usize, args[0], 10);
     var wr = DirectWriter{};
@@ -477,7 +481,11 @@ pub fn runFibCommand(allocator: std.mem.Allocator, args: []const []const u8) !vo
 pub fn runLucasCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
     if (args.len == 0) {
         std.debug.print("Usage: tri lucas <n>\n", .{});
-        return;
+        // Same exit code as runPhiCommand above, which handles the identical
+        // situation correctly. These two printed the usage line and returned
+        // normally, so a caller could not tell a missing argument from a
+        // successful run.
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
     const n = try std.fmt.parseInt(usize, args[0], 10);
     var wr = DirectWriter{};
