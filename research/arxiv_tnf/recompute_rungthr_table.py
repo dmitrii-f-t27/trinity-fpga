@@ -13,10 +13,17 @@ comp./threshold/separates numbers verbatim (30/51/58, 8.988110 -> 10.009651,
     column        source
     pair          summary_tie_aware[i].pair                (strict_range)
     cells         rows[].tnf_phys, constant per pair       (strict_range)
-    reach         rows[].tnf_reach                         (per_rung)   <- OTHER FILE
+    reach         (3^E_t-1)/2 - 1, checked against the oracle    <- NOT a record
     comp.         summary_tie_aware[i].comparable          (strict_range)
     threshold     midpoint of [max_D_loss, min_D_win]      (strict_range)
     separates?    separates + max_D_loss/min_D_win/wins    (strict_range)
+
+THE REACH COLUMN WAS WRONG BY ONE IN ALL THREE ROWS UNTIL THIS SCRIPT SAID SO.
+`per_rung.tnf_reach` records 40/121/364, which is Delta = (3^E-1)/2, the OFFSET
+constant. The reach is Delta-1: the oracle decodes 2^39 finite and saturates at
+2^40, and prop:uncentred states "the representable binade indices are
+-(Delta-1) ... +(Delta-1)" and derives it. A first pass here reconstructed all 18
+cells and PASSED, because the table and the record held the same wrong quantity.
 
 Five of six columns come from the one object; `reach` is in no field of
 strict_range at all. It is recovered two ways, and both are asserted: it is
@@ -85,6 +92,43 @@ def recompute_tie_aware(strict):
             "total_rows_for_pair": sum(1 for r in strict["rows"] if r["pair"] == pair),
         })
     return tol, out
+
+
+def reach_is_the_offset_not_the_reach(fmt_params):
+    """The record's `tnf_reach` is Delta = (3^E-1)/2, which is the OFFSET constant,
+    and the reach is Delta-1. Verified against the shipped oracle, not argued:
+
+        TNF(4,8)    2^39 decodes finite, 2^40 decodes to the special value
+        TNF(5,23)   2^120 finite, 2^121 special
+        TNF(6,21)   2^363 finite, 2^364 special
+
+    The paper's own Proposition prop:uncentred says the same in one line -- "the
+    representable binade indices are -(Delta-1) ... +(Delta-1)" -- and derives it:
+    the offset field takes 3^E values, the top row is the special value and the
+    bottom is zero, leaving 3^E-2 rows.
+
+    THIS GUARD EXISTS BECAUSE THE TABLE ONCE AGREED WITH THE RECORD PERFECTLY.
+    A first pass reconstructed all 18 cells, confirmed reach against
+    `tnf_reach` AND against the closed form (3^E-1)/2, and passed -- because both
+    hold the same wrong quantity. Agreement between a table and its record cannot
+    detect a record that stores the wrong thing; only an independent definition
+    can, and here the paper supplies one.
+    """
+    import sys as _sys
+    _sys.path.insert(0, "../../conformance")
+    from fractions import Fraction as _F
+    import tnf_ref as _t
+    out = {}
+    for (E, M) in fmt_params:
+        f = _t.TNFFormat(exp_trits=E, mant_bits=M)
+        D = (3 ** E - 1) // 2
+        last = _t.decode(f, _t.encode(f, _F(2) ** (D - 1)))
+        over = _t.is_special(f, _t.encode(f, _F(2) ** D))
+        assert last != 0 and not _t.is_special(f, _t.encode(f, _F(2) ** (D - 1))), \
+            f"E={E}: 2^{D-1} should be representable"
+        assert over, f"E={E}: 2^{D} should saturate"
+        out[(E, M)] = D - 1
+    return out
 
 
 def reach_from_record(perrung):
@@ -240,12 +284,17 @@ def main():
 
         # column 3: reach -- identified, not assumed
         checked += 1
-        cf = reach_closed_form(p["exp_trits"])
-        if reach_rec.get(p["pair"]) != cf:
+        # The record's tnf_reach is the OFFSET Delta; the reach is Delta-1, which
+        # the oracle decides and prop:uncentred states. Compare the printed cell to
+        # the reach, and separately assert the record holds the offset -- so a
+        # future edit that "fixes" the record to match the old table fails here.
+        cf = reach_closed_form(p["exp_trits"]) - 1
+        if reach_rec.get(p["pair"]) != cf + 1:
             bad.append(f"{tag} reach: per_rung tnf_reach {reach_rec.get(p['pair'])} "
                        f"!= (3^{p['exp_trits']}-1)/2 = {cf}")
         if not at_printed_precision(cf, p["reach"]):
-            bad.append(f"{tag} reach: printed {p['reach']} record {cf}")
+            bad.append(f"{tag} reach: printed {p['reach']} but the oracle "
+                       f"saturates one binade later, so the reach is {cf}")
 
         # column 4: comp.
         checked += 1

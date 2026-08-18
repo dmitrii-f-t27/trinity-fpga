@@ -1003,7 +1003,7 @@ none of them.}
 \end{figure}
 
 \paragraph{On the axis.} The bins are powers of two. Read as \emph{decades} the
-far column is not a win at all: TNF16's exponent reaches $\pm40$ in powers of
+far column is not a win at all: TNF16's exponent reaches $\pm39$ in powers of
 two, roughly $\pm12$ decades, so beyond that it overflows while an unbounded
 regime keeps working. This workload stops at $2^{\pm38}$ and therefore never
 reaches that edge --- nothing clips in the far bin, and an earlier draft's count
@@ -1456,8 +1456,8 @@ ninefold.
 Corollary~\ref{cor:three} forbids recommending a budget without naming a workload,
 so we named one. At the 16-bit class the extra range is not consumed:
 quantised-inference tensors span roughly $2^{-14}$ to $2^{14}$, and $E_t = 4$
-already clips nothing at $\pm 40$ binades --- zero clips in 2000 values. $E_t = 6$
-would have bought $\pm 364$ binades at bit-identical error, which is range nobody
+already clips nothing at $\pm 39$ binades --- zero clips in 2000 values. $E_t = 6$
+would have bought $\pm 363$ binades at bit-identical error, which is range nobody
 spends at sixteen bits. So $M = 11$: the error falls by $4.09$, which is what two
 more mantissa bits buy, and against takum16 the rung moves from
 $0.90\times / 2.72\times / 5.66\times$ to $3.70\times / 11.21\times / 22.68\times$,
@@ -6909,9 +6909,9 @@ win columns are the extreme $D$ values on either side of the separating interval
 \hline
 pair & cells & reach & comp. & threshold & separates? \\
 \hline
-TNF$(4,8)$ / \texttt{takum16} & $16$ & $\pm 40$ & $30$ & $D \gtrsim 9.5$ & yes, $8.99 \to 10.01$ \\
-TNF$(5,23)$ / \texttt{takum32} & $32$ & $\pm 121$ & $51$ & $D \gtrsim 21.9$ & yes, $19.86 \to 23.87$ \\
-TNF$(6,21)$ / \texttt{takum32} & $32$ & $\pm 364$ & $58$ & none & no, $0$ wins in $58$ \\
+TNF$(4,8)$ / \texttt{takum16} & $16$ & $\pm 39$ & $30$ & $D \gtrsim 9.5$ & yes, $8.99 \to 10.01$ \\
+TNF$(5,23)$ / \texttt{takum32} & $32$ & $\pm 120$ & $51$ & $D \gtrsim 21.9$ & yes, $19.86 \to 23.87$ \\
+TNF$(6,21)$ / \texttt{takum32} & $32$ & $\pm 363$ & $58$ & none & no, $0$ wins in $58$ \\
 \hline
 \end{tabular}
 \end{table}
