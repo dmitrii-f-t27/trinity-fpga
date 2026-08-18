@@ -129,6 +129,34 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Distinct files with errors: $(grep -oE '^[^:]+\.zig' build.log 2>/dev/null | sort -u | wc -l)" >> $GITHUB_STEP_SUMMARY
 
+
+      # Startup is not function. --help proves main() runs; it proves nothing
+      # about the 144 commands it advertises. This samples the ones that should
+      # be pure and side-effect free, and reports which answer.
+      - name: Do the commands work?
+        continue-on-error: true
+        run: |
+          set +e
+          BIN=$(find zig-out .zig-cache -name tri -type f -perm -u+x 2>/dev/null | head -1)
+          [ -z "$BIN" ] && { echo "no binary"; exit 0; }
+          say() { echo "$1" >> $GITHUB_STEP_SUMMARY; }
+          say '### Command surface'
+          say ''
+          say '| command | exit | first line |'
+          say '|---|---|---|'
+          ok=0; bad=0
+          for c in version info status phi constants math fib lucas gematria sacred stats verify doctor; do
+            out=$(timeout 20 "$BIN" "$c" 2>&1); rc=$?
+            first=$(printf '%s' "$out" | sed 's/\x1b\[[0-9;]*m//g' | grep -v '^[[:space:]]*$' | head -1 | cut -c1-58)
+            if [ $rc -eq 0 ]; then ok=$((ok+1)); else bad=$((bad+1)); fi
+            say "| \`$c\` | $rc | ${first:-(no output)} |"
+          done
+          say ''
+          say "**$ok exited 0, $bad did not** — of 14 sampled from 144 advertised."
+          say ''
+          say 'Exit 0 means it ran, not that it is correct. This is a smoke test.'
+          exit 0
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
