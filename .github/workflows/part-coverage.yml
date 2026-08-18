@@ -37,6 +37,21 @@
 # settled xc7s50csga324-1 immediately: digilent_arty_s7.py names that exact
 # part. My hesitation was unnecessary and the pins were a search away.
 #
+# xc7z035 is NOT here, and the reason comes from upstream's own demos.yml:
+#
+#     Known-failing projects (BRAM/LUTFF legaliser spiral on artix7,
+#     missing xc7z035 tilegrid) are intentionally not part of the subset.
+#
+# So that part has no tilegrid in the database and chipdb generation cannot
+# succeed. This gate would report INCONCLUSIVE for it -- correctly, since that
+# is the harness and the database rather than the router -- and a permanently
+# inconclusive entry teaches nothing that this comment does not.
+#
+# Worth noting for its own sake: that line confirms from upstream's side what
+# openXC7#154 argues from ours. Their one gate is scoped to what passes, and
+# the known-failing cases are excluded by hand. A part nothing exercises cannot
+# fail, which is how a35t reached "cannot route a flip-flop" unnoticed.
+#
 # xc7k325tffg676 is not here yet, and the reason is specific rather than
 # reluctance. The board carrying that exact part, sitlinv_stlv7325_v1, has only
 # differential clock inputs and they are marked TODO/unverified in that file.
