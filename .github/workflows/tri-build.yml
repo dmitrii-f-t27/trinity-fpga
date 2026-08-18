@@ -95,6 +95,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          mkdir -p out
           BIN=$(find zig-out .zig-cache -name tri -type f -perm -u+x 2>/dev/null | head -1)
           if [ -z "$BIN" ]; then echo "no binary produced"; exit 0; fi
           echo '### `tri --help`' >> $GITHUB_STEP_SUMMARY
@@ -109,6 +110,7 @@ jobs:
       - name: What the binary reports
         if: success()
         run: |
+          mkdir -p out
           BIN=$(find zig-out .zig-cache -name tri -type f -perm -u+x 2>/dev/null | head -1)
           if [ -z "$BIN" ]; then
             echo "::warning::built without error but no tri binary found"; exit 0
@@ -144,6 +146,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          mkdir -p out
           BIN=$(find zig-out .zig-cache -name tri -type f -perm -u+x 2>/dev/null | head -1)
           [ -z "$BIN" ] && { echo "no binary"; exit 0; }
           # Both destinations. Writing only to the summary produced a report
@@ -165,6 +168,12 @@ jobs:
           for c in version info status phi constants math fib lucas gematria sacred stats doctor \
                    bio cosmos formula intelligence neuro spiral; do
             out=$(timeout 20 "$BIN" "$c" 2>&1); rc=$?
+            # Keep the whole output of anything that did not exit 0. The first
+            # line is enough for a table and useless for a panic: `spiral`
+            # aborted with 'start index 1 is larger than end index' and the
+            # backtrace went in the bin, which is the instrument discarding
+            # exactly the case it exists to catch.
+            if [ $rc -ne 0 ]; then printf '%s\n' "$out" > "out/cmd-$c.log"; fi
             first=$(printf '%s' "$out" | sed 's/\x1b\[[0-9;]*m//g' | grep -v '^[[:space:]]*$' | head -1 | cut -c1-58)
             if [ $rc -eq 0 ]; then ok=$((ok+1)); else bad=$((bad+1)); fi
             say "| \`$c\` | $rc | ${first:-(no output)} |"
@@ -183,4 +192,5 @@ jobs:
             build.log
             graph.log
             run.log
+            out
           retention-days: 30
