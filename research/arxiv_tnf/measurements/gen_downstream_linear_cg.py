@@ -162,9 +162,59 @@ def main():
         else:
             out['results'][name] = solve(fmt)
         out['results'][name].pop('history', None)
-    path='/home/user/workspace/wave_audit/tnf_downstream_linear_cg_2026-08-14.json'
-    with open(path, 'w', encoding='utf-8') as f: json.dump(out, f, ensure_ascii=False, indent=2)
-    print(json.dumps(out, ensure_ascii=False, indent=2))
-    print('saved', path)
+    # Reproducibility block: everything a third party needs to obtain the same
+    # numbers, recorded inside the artefact rather than in prose about it.
+    import hashlib, platform, subprocess
+    def _sha(p):
+        try:
+            return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+        except Exception:
+            return None
+    here = os.path.dirname(os.path.abspath(__file__))
+    root = os.path.abspath(os.path.join(here, '..', '..', '..'))
+    try:
+        head = subprocess.run(['git', '-C', root, 'rev-parse', 'HEAD'],
+                              capture_output=True, text=True, timeout=20).stdout.strip()
+    except Exception:
+        head = None
+    out['reproduction'] = {
+        'command': 'python3 research/arxiv_tnf/measurements/gen_downstream_linear_cg.py',
+        'cwd': 'repository root (gHashTag/trinity-fpga)',
+        'git_head': head,
+        'python': platform.python_version(),
+        'numpy': np.__version__,
+        'platform': platform.platform(),
+        'stopping_rule': ('loop stops when the stored residual reaches exactly zero, '
+                          'when the stored curvature denominator ceases to be finite '
+                          'and non-zero, or at max_iterations; the relative-residual '
+                          'tolerance is recorded but does not terminate the loop'),
+        'x0': [0.0, 0.0],
+        'error_metric': 'relative_solution_error = ||x_hat - x_true||_2 / ||x_true||_2, recomputed in float64',
+        'residual_metric': 'relative_residual_64 = ||A64 x_hat - b64||_2 / ||b64||_2, recomputed in float64 from unrounded A and b',
+        'tnf_parameters': {'E_t': 4, 'M': 8, 'note': 'physical-cell budget rung, not the reconciled TNF16 (4,11)'},
+        'takum16_reference': 'conformance/takum_ref.py, TakumFormat("takum16", 16)',
+        'oracle_sha256': {
+            'conformance/tnf_ref.py': _sha(os.path.join(root, 'conformance', 'tnf_ref.py')),
+            'conformance/takum_ref.py': _sha(os.path.join(root, 'conformance', 'takum_ref.py')),
+            'this_generator': _sha(os.path.abspath(__file__)),
+        },
+    }
+    # The hash cannot include its own field without becoming circular.  Name
+    # the hashed object explicitly: it is the canonical payload before the
+    # digest field is appended.
+    canonical_payload = json.dumps(out, ensure_ascii=False, indent=2, sort_keys=True)
+    out['artefact_sha256_of_canonical_payload'] = hashlib.sha256(
+        canonical_payload.encode('utf-8')
+    ).hexdigest()
+    for path in (os.path.join(here, 'tnf_downstream_linear_cg_2026-08-14.json'),
+                 '/home/user/workspace/wave_audit/tnf_downstream_linear_cg_2026-08-14.json'):
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(out, f, ensure_ascii=False, indent=2, sort_keys=True)
+            print('saved', path)
+        except Exception as e:
+            print('could not save', path, e)
+    print(json.dumps(out, ensure_ascii=False, indent=2, sort_keys=True))
+    print('canonical payload sha256', out['artefact_sha256_of_canonical_payload'])
 
 if __name__ == '__main__': main()

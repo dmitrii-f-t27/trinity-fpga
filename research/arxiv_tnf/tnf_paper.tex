@@ -570,6 +570,16 @@ tapered format $M_{\mathrm{eff}}$ decreases with $|e|$, and the slope
 $\mathrm{d}M_{\mathrm{eff}}/\mathrm{d}|e|$ is the taper rate in bits of
 significand per binade.
 \end{theorem}
+\begin{proof}
+By definition, $M_{\mathrm{eff}}$ is the number of significand bits retained
+after decoding at a given band. It is constant on the bands exactly when that
+number is constant and every band is representable; exhaustion of the range
+removes the corresponding bands from the comparison. For a tapered encoding,
+the field budget transferred to the regime or exponent grows with $|e|$, so the
+remaining significand width is a decreasing function of $|e|$. Its derivative
+with respect to the binade index is therefore precisely the signed change in
+retained significand bits per binade; the stated taper rate uses its magnitude.
+\end{proof}
 
 Table~\ref{tab:meff} applies it. The measurement is a uniform significand on
 $[1,2)$ so that $\mathbb{E}[1/s] = \ln 2$ exactly, removing the workload from the
@@ -620,6 +630,15 @@ holds it. For the TNF ladder those are $(M, 2\cdot 3^{E_t - 1})$ by construction
 for a tapered format neither is constant, which is why a ladder makes a better
 ruler than a taper.
 \end{corollary}
+\begin{proof}
+For a TNF rung the field widths are fixed, so the significand retains the same
+$M$ positions at every ordinary binade.  The balanced-ternary exponent has
+$3^{E_t-1}$ positive and the same number of negative nonzero states, giving
+$2\cdot3^{E_t-1}$ binades in the stated convention.  A tapered code instead
+allocates a variable-length regime or characteristic as the exponent changes;
+Theorems~\ref{thm:posit} and~\ref{thm:takum} show that this consumes
+significand positions, so neither coordinate remains constant.
+\end{proof}
 
 
 
@@ -696,6 +715,19 @@ for every $e$ tested. The significand therefore loses
   \quad\text{bits: a staircase, arithmetic in } |e| .
 \]
 \end{theorem}
+\begin{proof}
+Write $|e|=q\,2^{es}+r$ with $0\le r<2^{es}$.
+The posit regime consumes one terminating bit in addition to the $q$ complete
+useed intervals, so its length is $k+1=q+1$ and
+$k=\lfloor |e|/2^{es}\rfloor+1$ in the encoder's regime convention.
+After the sign, regime, and exponent fields have been consumed, increasing
+$q$ by one removes exactly one available significand bit from a fixed-width
+word. Hence the loss relative to the central band is $q$, namely
+$\Delta M_{\mathrm{posit}}(e)=\lfloor |e|/2^{es}\rfloor$.
+The remainder $r$ changes only the exponent residue and not this count, so
+the dependence is a staircase rather than a linear fit.
+\end{proof}
+
 
 The Posit Standard (2022) fixes $es = 2$ at every precision~\cite{gustafson}, so
 the step is one bit per four binades at all widths --- which is why the loss
@@ -713,6 +745,19 @@ significand therefore loses
   \quad\text{bits: a staircase, geometric in } |e| .
 \]
 \end{theorem}
+\begin{proof}
+The characteristic width is the number of binary places needed to distinguish
+the nonnegative integer $|e|$ from zero through its current magnitude.
+For $|e|=0$ this count is zero; for $|e|\ge1$ it is the unique integer $r$
+with $2^r\le |e|+1<2^{r+1}$, hence
+$r=\lfloor\log_2(|e|+1)\rfloor$.
+The 3-bit regime field is fixed and therefore contributes no variation with
+$e$. Each increment of $r$ consumes one additional significand bit, so the
+loss is exactly the displayed $r$ and changes only when $|e|+1$ crosses a
+power of two. The word width does not enter this counting argument, which
+gives the same law at 16, 32, and 64 bits.
+\end{proof}
+
 
 \begin{corollary}[The two families differ in kind, not degree]
 Within its range a fixed-field format loses nothing; a posit loses one bit of
@@ -737,6 +782,15 @@ its regime, which is why 16- and 32-bit posits cannot reach there at all. This i
 the mechanism behind takum's stated improvement on posits~\cite{takum}, stated as
 a quantity.
 \end{corollary}
+\begin{proof}
+The fixed-field case has a constant exponent-field length, so its effective
+mantissa is independent of $|e|$.  For posit, Theorem~\ref{thm:posit} changes
+$\Delta M$ by one whenever $|e|$ crosses the next multiple of $2^{es}$.
+For takum, Theorem~\ref{thm:takum} changes it by one whenever $|e|+1$
+crosses the next power of two.  These trigger sets are arithmetic and
+geometric respectively, which proves the stated distinction without comparing
+the resulting formats by a single aggregate score.
+\end{proof}
 
 \begin{corollary}[A rate is not always the right summary]
 Both laws are staircases, so a fitted slope is a summary and not the thing itself,
@@ -875,6 +929,17 @@ unbounded range, precision decaying at the rate of their regime code, arithmetic
 for posit and geometric for takum. Neither choice is better in the abstract; what
 the dichotomy establishes is that they are the only two available.
 \end{corollary}
+\begin{proof}
+For a fixed-field rung, $E_t$ and $M$ are constant, so every binade in its
+finite support has the same significand width. Given any finite binade count
+$b$, choose an integer $E_t\ge2$ with $3^{E_t}-1\ge b$ and set
+$N=1+E_t+M$; the resulting rung covers that count while retaining the chosen
+$M$. Varying $N$ therefore supplies the range without making one fixed-width
+rung tapered. Conversely, an unbounded exponent code has unbounded codeword
+length, and Theorem~\ref{thm:dichotomy} forces its effective mantissa to decay.
+Thus the two constructions realise the two alternatives stated, while the
+theorem gives no ordering between their different trade-offs.
+\end{proof}
 
 Read against Corollary~\ref{cor:ladder}, the three tapered constants in
 Table~\ref{tab:taxonomy} become a statement about codes rather than about
@@ -1896,6 +1961,17 @@ and $22\times$ faster to decode. The published bounded-regime posit
 variants~\cite{positgap}, which cap the regime field precisely to avoid the scan,
 are the same conclusion reached from the other direction.
 \end{corollary}
+\begin{proof}
+The structural part follows from Theorem~\ref{thm:floor}: a logarithmic
+length-prefixed code meets the Kraft lower bound, whereas the unary code does
+not.  The measured round-trip costs in Table~\ref{tab:regimecost} are
+$438$ and $40$ LUTs, respectively, so their ratio is
+$438/40=10.95$, which rounds to the stated $11\times$.  The corresponding
+decode frequencies are $36.8$ and $805.8$\,MHz; their ratio
+$805.8/36.8=21.90$ gives the stated $22\times$ frequency advantage.  These
+are measurements of this harness and device, not claims about energy or an
+arbitrary datapath.
+\end{proof}
 
 \begin{corollary}[The post-route price of unbounded range]
 \label{cor:price}
@@ -1906,6 +1982,16 @@ format that declines it. Section~\ref{sec:convert} converts those LUTs into the
 same currency as the accuracy results, which is the only way to say whether they
 matter.
 \end{corollary}
+\begin{proof}
+A fixed-field format reads its exponent and significand from fixed positions and
+has no regime codec, so its regime contribution is $0$ LUTs by construction.
+For the two tapered codec models, Table~\ref{tab:regimecost} records the
+measurements $40$ and $438$ LUTs on the XC7A200T; their minimum and maximum are
+therefore those two values. These numbers are measurements, not consequences of
+Theorem~\ref{thm:dichotomy}; that theorem supplies only the structural comparison.
+Thus the stated range of measured regime costs follows without turning a device
+measurement into an algebraic prediction.
+\end{proof}
 
 We are left without an explanation for the empty gap. It is not domination, since
 the square-root code is Pareto-undominated; and it is not cost, since it is within
@@ -1986,6 +2072,19 @@ approximation and not a law: Theorem~\ref{thm:alpha} gives $A = f + cM^{2}$, und
 which $\alpha$ is not constant, so the relation holds only over a fitted window and
 does not extrapolate beyond it.
 \end{proposition}
+\begin{proof}
+Write $\varepsilon=C_{\varepsilon}2^{-M}$ and
+$A=C_A M^{\alpha}$ with $\alpha>0$ on the fitted window.  Solving the
+second relation gives $M=(A/C_A)^{1/\alpha}$, and therefore
+\[
+ \ln(1/\varepsilon)
+ =-\ln C_{\varepsilon}+(\ln 2)\,(A/C_A)^{1/\alpha}.
+\]
+The additive constant and the fixed scale factor do not change the stated
+power-law dependence.  The conclusion is conditional on the local constant
+$\alpha$ premise; the fitted quadratic model in Theorem~\ref{thm:alpha}
+is precisely why this proof does not justify extrapolation.
+\end{proof}
 
 Across the post-route synthesis sweep over $M \in [7,25]$ --- a sixfold range of area and a $250{,}000$-fold
 range of error --- the constant of proportionality holds to within $27\%$ and
@@ -2013,6 +2112,20 @@ monotonically toward $2$, and the marginal cost of a mantissa bit,
 $\lambda = \mathrm{d}A/\mathrm{d}M = 2cM$, is \emph{linear} in $M$ rather than
 fixed.
 \end{theorem}
+\begin{proof}
+The first displayed equation is the fitted structural model for this synthesis
+family; the numerical fit and its residual are reported immediately below, so
+the proof concerns its algebraic consequences rather than claiming that a fit is
+a hardware theorem. For $M>0$,
+\[
+\alpha(M)=\frac{\mathrm d\ln A}{\mathrm d\ln M}
+          =\frac{2cM^{2}}{f+cM^{2}}.
+\]
+If $f,c>0$, its derivative is
+$4cfM/(f+cM^{2})^{2}>0$, and its limit as $M\to\infty$ is $2$.
+Differentiating the same model gives
+$\lambda=\mathrm dA/\mathrm dM=2cM$, which is linear in $M$.
+\end{proof}
 
 Synthesising the same width-derived multiplier at fourteen mantissa widths from
 $M{=}7$ to $M{=}90$ --- $285$, $372$, $443$, $567$, $696$, $870$, $1238$, $1683$,
@@ -2104,6 +2217,15 @@ in the regime field; LUT area, in the codec; and precision at the extremes, in t
 taper. Theorem~\ref{thm:convert} and Theorem~\ref{thm:law} put all three in
 mantissa bits, so they can be added.
 \end{corollary}
+\begin{proof}
+The regime occupies one word position per stored regime digit, so its first currency
+is counted directly by the field layout. Theorem~\ref{thm:convert} maps a codec's
+LUT area to the equivalent number of mantissa bits at the same rung, while
+Theorem~\ref{thm:law} expresses the remaining precision as effective mantissa bits.
+After these two maps, all three quantities have the same unit; the statement that
+they can be added is therefore a change of accounting coordinates, not a claim that
+their physical mechanisms are identical.
+\end{proof}
 
 Applied honestly, Corollary~\ref{cor:three} separates the two tapered families
 rather than lumping them. Against posit the LUT-area term alone is $8.14$ bits at
@@ -2127,6 +2249,14 @@ advantage is therefore strongest where the words are narrowest, which is the
 regime in which quantised inference operates and not the one in which numerical
 linear algebra does.
 \end{corollary}
+\begin{proof}
+For a fixed codec area $C$, Theorem~\ref{thm:oneoverm} gives the equivalent
+mantissa budget $C/(2cM)$.  With the unary $C=438$ and the fitted
+$c=2.4455$, substitution at $M=11$ gives $438/(2\cdot2.4455\cdot11)
+=8.1411\ldots$, while $M=21$ gives $4.2644\ldots$.  The expression is
+strictly decreasing in $M>0$, so widening the word reduces the number of
+mantissa bits purchased by the same fixed decoder cost.
+\end{proof}
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-62-failedextrapolat.png}
 \caption{Canon plate. A registered global extrapolation underestimates TNF64, while a fixed-overhead-plus-quadratic structural model follows the fourteen-width synthesis sweep closely.}
@@ -2190,6 +2320,16 @@ mantissa width. A logarithmic law requires evaluating an exponential, whose cost
 is a table or an iterative kernel and is independent of the field layout ---
 therefore independent of the staircase form of Section~\ref{sec:taxonomy}.
 \end{theorem}
+\begin{proof}
+In the linear case the factor $2^e$ is a binary place-value shift of the
+significand; extracting the fields does not require an operation whose size is
+set by the number of binades.  In the logarithmic case the decoded real
+$\ell$ must be mapped to $2^\ell$ before it can enter a binary datapath, so a
+table or an iterative approximation is required for non-integer $\ell$.
+That evaluator is parameterised by its target precision and approximation
+degree, whereas the staircase only changes how $\ell$ was encoded.  Thus the
+two costs are orthogonal under the value-law model stated above.
+\end{proof}
 
 Theorem~\ref{thm:valuelaw} is a second axis, orthogonal to the first. The
 staircase taxonomy classifies how a format spends \emph{precision}; the value law
@@ -2264,6 +2404,28 @@ orders of magnitude and raising it blows the logic budget. The honest reading is
 that decoding a logarithmic format into a \texttt{binary64} datapath costs slightly
 more than this entire device, and that a larger part is required to hold it.
 \end{corollary}
+\begin{proof}
+For $P=48$, direct substitution in the stated $k(d)$ formula gives
+\[
+\begin{aligned}
+(d,k)&=(1,23),(2,15),(3,11),(4,8),\\
+\mathrm{RAM}&=(10{,}923,43,3,1),\\
+\mathrm{LUT}&=(5{,}634,11{,}269,16{,}903,22{,}538).
+\end{aligned}
+\]
+Thus $d=1$ is memory-infeasible and $d=2$ is the least-LUT feasible point.
+For $P=105$, the same calculation gives
+\[
+\begin{aligned}
+(d,k)&=(3,25),(4,20),(5,16),(6,13),\\
+\mathrm{RAM}&=(95{,}574,2{,}987,187,24),\\
+\mathrm{LUT}&=(80{,}885,107{,}847,134{,}808,161{,}770).
+\end{aligned}
+\]
+The cases $d\leq4$ exceed the RAM budget or, at $d=5$, the LUT budget;
+$d\geq6$ already exceed the LUT budget at $d=6$, and the linear LUT term
+only increases thereafter. Hence no binary64 point fits the device.
+\end{proof}
 
 We had previously written that binary64 decode ``is not a design'' at roughly
 $3.6$\,Tbit. That figure is the $d = 2$ corner of the curve and taking it for the
@@ -2289,6 +2451,18 @@ withdrawn. This is a
 larger and more robust statement than the accuracy result, and unlike it,
 Theorem~\ref{thm:floor} places no range bound on it.
 \end{corollary}
+\begin{proof}
+For a linear law, the exponent contributes the binary place-value factor
+$2^e$; with a fixed-width exponent field, extracting $e$ selects fixed bit
+positions and applying $2^e$ is a place shift.  Both operations are
+compile-time wiring in the decoder, so they introduce neither a
+range-dependent scan nor an approximation table or iterative evaluator.
+The $480$- and $40$-LUT figures are the post-route measurements in
+Table~\ref{tab:realcodecs} and Corollary~\ref{cor:price}, respectively; the
+proof uses them as measured device costs rather than deriving them from the
+format law.  The withdrawn $3.15$\,Mbit figure therefore cannot affect this
+structural conclusion.
+\end{proof}
 
 We flag one asymmetry rather than let it pass. A logarithmic value law buys
 something real in exchange: multiplication becomes addition. The comparison above
@@ -2333,6 +2507,22 @@ minimiser in that class. ``Implementable'' here names exactly that class ---
 scaling by a shift, with no polynomial and no table --- and is not a claim that
 other radices cannot be built.
 \end{theorem}
+
+\begin{proof}
+If $r^e$ is obtained by shifting a binary word for every integer $e$, then
+$r^e=2^{ke}$ for some integer $k\geq1$, hence $r=2^k$; conversely, such a
+radix is implemented by a shift by $ke$ positions.  For $r>1$, logarithmic
+differentiation gives
+\[
+ \frac{\mathrm d}{\mathrm dr}\ln\kappa(r)
+ =\frac{2}{r-1}-\frac1r-\frac{1}{r\ln r}
+ =\frac{(r+1)\ln r-(r-1)}{r(r-1)\ln r}.
+\]
+The numerator is positive because
+$\ln r>2(r-1)/(r+1)$: the difference is zero at $r=1$ and has derivative
+$(r-1)^2/[r(r+1)^2]>0$.  Thus $\kappa$ is strictly increasing on $r>1$,
+so its restriction to $2^k$, $k\geq1$, has the unique minimum at $r=2$.
+\end{proof}
 
 \begin{figure}[t]\centering
 \includegraphics[width=\textwidth]{tnf_radix.pdf}
@@ -2382,6 +2572,17 @@ on $M$ alone and the range on $E$ alone.
 Name the fabric, the required range, and which side of the dichotomy the workload
 sits on, and the format follows.
 \end{corollary}
+\begin{proof}
+Theorem~\ref{thm:radixopt} fixes the scale radix, and
+Theorem~\ref{thm:nofree} fixes the best packed exponent encoding once the
+fabric is named.  Theorem~\ref{thm:dichotomy} partitions the remaining choice
+into fixed fields versus a taper.  Within the fixed-field branch,
+Theorem~\ref{thm:law} assigns the range to $E$ and the precision to $M$;
+therefore naming the required range determines the admissible split.  These
+dependencies leave no free axis after the fabric, workload range, and branch
+have been supplied, which is exactly the stated procedure rather than a claim
+that one format wins independently of those inputs.
+\end{proof}
 
 So the question ``is there an ideal format'' has an answer, provided it is asked
 with its three arguments supplied. Asked without them it is not underdetermined
@@ -2400,6 +2601,18 @@ in particular none on a binary fabric, where axis 2 returns a binary exponent
 instead, and none against a tapered format outside TNF's own range, where
 Theorem~\ref{thm:floor} forbids it.
 \end{corollary}
+\begin{proof}
+Apply Corollary~\ref{cor:determined} with the fabric fixed to balanced ternary,
+the fixed-field branch selected, and the workload range supplied. Its first
+axis fixes the scale radix to two, while its second axis fixes the exponent
+encoding to ternary on this fabric. Theorem~\ref{thm:law} then assigns
+$E_t$ positions to that exponent and the remaining positions to
+$M=N-1-E_t$, so the resulting object is precisely TNF. The same corollary
+also shows why the conclusion is conditional: changing the fabric changes the
+exponent encoding, and choosing the tapered branch invokes the bound in
+Theorem~\ref{thm:floor} rather than the fixed-field construction. Thus the
+optimality claim follows only for the named arguments.
+\end{proof}
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-69-conditionalforma.png}
 \caption{Canon plate. The paper treats format optimality as conditional on fabric, required range, and the bounded-versus-tapered choice, and restricts TNF's claim to its stated domain.}
@@ -2444,27 +2657,39 @@ LUT ratio, quoted there as $5.1\times$ --- which handed TNF pre-widened fields w
 theirs, and is withdrawn. The version after that reported $3.1\times$ at 16 bits
 and $5.6\times$ at 32 --- on TNF modules that did not implement the specified
 format. At the specified parameters, and checked against a reference, the
-advantage is smaller and it is real.}
+advantage is smaller and it is real. The ratio column is computed from the
+unrounded quotients and not from the printed four-digit ones: at 32 bits the
+printed column divides to $3.99$ and the unrounded measurement to $3.98$, and the
+smaller figure is the one reported. $^{\ast}$: the baseline frequency is stated in
+no record file in the repository at this revision, and no place-and-route log for
+any row of this table is in the tree. Those three cells --- and the frequency ratio
+and the throughput ratios computed from them --- are illustrative here and support
+no hardware-performance claim until the runs are repeated with their logs
+committed. Row-level records exist for our own rows and not for the baselines,
+which is an asymmetry a reader should weigh rather than a detail.}
 \label{tab:tnet}
 \begin{tabular}{llrrrr}
 \toprule
 width & format & LUTs & $F_{\max}$ & MHz/LUT & ratio \\
 \midrule
 8 bits & \textbf{TNF8} & $\mathbf{545}$ & $62.13$\,MHz & $\mathbf{0.1140}$ & $\mathbf{1.39\times}$ \\
-8 bits & posit8 & $540$ & $44.33$\,MHz & $0.0821$ & --- \\
+8 bits & posit8 & $540$ & $44.33^{\ast}$\,MHz & $0.0821$ & --- \\
 \addlinespace
 16 bits & \textbf{TNF16} & $\mathbf{565}$ & $66.28$\,MHz & $\mathbf{0.1173}$ & $\mathbf{2.07\times}$ \\
-16 bits & posit16 & $712$ & $40.38$\,MHz & $0.0567$ & --- \\
+16 bits & posit16 & $712$ & $40.38^{\ast}$\,MHz & $0.0567$ & --- \\
 \addlinespace
-32 bits & \textbf{TNF32} & $\mathbf{569}$ & $66.91$\,MHz & $\mathbf{0.1176}$ & $\mathbf{3.99\times}$ \\
-32 bits & posit32 & $953$ & $28.16$\,MHz & $0.0295$ & --- \\
+32 bits & \textbf{TNF32} & $\mathbf{569}$ & $66.91$\,MHz & $\mathbf{0.1176}$ & $\mathbf{3.98\times}$ \\
+32 bits & posit32 & $953$ & $28.16^{\ast}$\,MHz & $0.0295$ & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-$1.68\times$ in area and $2.38\times$ in frequency, so $3.98\times$ in throughput
+$1.67\times$ in area and $2.38\times$ in frequency, so $3.98\times$ in throughput
 per LUT --- measured end to end rather than assembled from separate decoder and
-adder figures. The decomposition says why: against a $1{,}477$-LUT multiplier and
+adder figures. The frequency factor carries the $^{\ast}$ of its baseline cell, so
+the product is illustrative at this revision on the same terms as the table; the
+area factor divides two three-digit LUT counts, which no text-matching provenance
+check can resolve either way. The decomposition says why: against a $1{,}477$-LUT multiplier and
 a $384$-LUT adder, posit's $456$-LUT decoder is $20\%$ of the datapath; with the
 multiplier gone it is $54\%$. For takum the same shift takes $85\%$ to $97\%$, and
 brings $84$ RAMB36 tiles with it.
@@ -2478,6 +2703,14 @@ $1 + \Delta/(D_0{+}M{+}A)$ to $1 + \Delta/(D_0{+}A)$. The advantage of a
 decoder-free format therefore grows exactly as the multiplier shrinks, and is
 largest where there is none.
 \end{corollary}
+\begin{proof}
+The decoder share is its cost divided by the total, so eliminating $M$ changes
+the denominator from $D+M+A$ to $D+A$.  If the two formats have decoder costs
+$D_0$ and $D_0+\Delta$, their area ratio is
+$1+\Delta/(D_0+M+A)$ before the removal and
+$1+\Delta/(D_0+A)$ after it.  For nonnegative costs the latter denominator is
+smaller, and the ratio is therefore no smaller; the dependence is exact.
+\end{proof}
 
 Three things this does not say, and each would otherwise be found in minutes.
 
@@ -2926,6 +3159,22 @@ Theorem~\ref{thm:rangeperbit}: the encoding slack does not survive, which is why
 BNF16 and TNF16 synthesise within $1\%$ of one another while the number-axis
 frontier separates them.
 \end{corollary}
+\begin{proof}
+The first quantity is the difference between one binary position per exponent
+bit and the ternary storage rate, hence its coefficient is
+$1-\log_3 2=0.369070\ldots$. The second is obtained by substituting
+$\kappa(2)=0.721347\ldots$ and $\kappa(3)=1.213652\ldots$:
+\[
+\log_2\!\frac{\kappa(3)}{\kappa(2)}
+-\log_3(\log_2 3)
+=0.750589\ldots-0.419220\ldots
+=0.331368\ldots.
+\]
+The first number changes the exponent encoding while the second changes the
+scale radix. Theorem~\ref{thm:radixopt} fixes TNF's scale radix at $2$, so
+these are coordinates on independent axes and no cancellation or addition is
+defined between them.
+\end{proof}
 
 A previous revision of this corollary asserted that the two quantities cancel at
 an $E$ satisfying $\Delta = 0.331\,E_t$. That equation has no solution but
@@ -3105,6 +3354,16 @@ a pair of integers with $F$ the Fibonacci sequence. Rescaling between layers is
 therefore a shift-and-add, and the zero-multiplier property survives to arbitrary
 depth.
 \end{corollary}
+\begin{proof}
+For $k=1$ the identity is $\varphi=F_1\varphi+F_0$. If
+$\varphi^k=F_k\varphi+F_{k-1}$, multiplication by $\varphi$ and
+$\varphi^2=\varphi+1$ give
+$\varphi^{k+1}=F_k+ (F_k+F_{k-1})\varphi
+=F_{k+1}\varphi+F_k$.
+Induction proves the identity for every $k\geq1$. The coefficients are integers,
+so multiplying a lattice pair by $\varphi$ is the map $(a,b)\mapsto(b,a+b)$,
+which is a shift-and-add operation and introduces no multiplier.
+\end{proof}
 
 This is the practical content of Theorem~\ref{thm:goldalpha}, and it is what
 separates the $\varphi$ alphabet from the $\{-1,0,+1\}$ one used throughout the
@@ -3270,6 +3529,17 @@ remaining five give roots in $\{0,\pm1\}$ except for $b=1,a=\pm1$.
 Nothing lies between the shift and $\varphi$. $\varphi$ is the unique
 multiply-free refinement of the power-of-two ladder available at two registers.
 \end{corollary}
+\begin{proof}
+At degree two the companion polynomial has the form
+$r^2-ar-b=0$ with $a,b\in\{-1,0,1\}$, so there are nine coefficient pairs.
+The discriminant is $a^2+4b$.  Direct enumeration leaves only
+$(a,b)=(1,1)$ and $(-1,1)$ with a real root whose modulus exceeds one;
+their roots are respectively $\varphi$ and $-\varphi$.  The other real
+roots have modulus at most one, or give the trivial zero or unit scales.
+Thus the positive two-register refinement is $\varphi$, while the preceding
+shift ladder has ratio $2$ by the degree-one case of
+Theorem~\ref{thm:hierarchy}.
+\end{proof}
 
 So the multiply-free scale is not a point but a hierarchy indexed by algebraic
 degree, and each degree buys finer granularity for one more register.
@@ -3282,14 +3552,20 @@ $13.97\%$ against $\varphi$'s $23.61\%$.
 \begin{table}[t]\centering
 \caption{One scale application, xc7a200t, median of five seeds. Matched: neither
 unit has a direction mux. Level error is $(r-1)/(r+1)$, the worst relative gap
-on a ladder of ratio $r$.}
+on a ladder of ratio $r$, and is analytic in $r$ rather than measured. $^{\ast}$:
+this frequency is stated in no record file in the repository at this revision,
+where the other three rows are ---
+\texttt{ONE\_ADDER\_FAMILY\_2026-08-10.md} and
+\texttt{LADDER\_COST\_AND\_LAW\_2026-08-10.md} --- so it is illustrative and carries
+no hardware-performance claim. The 32-bit comparison in the text uses the two rows
+that do have records.}
 \label{tab:hierarchy}
 \begin{tabular}{lrrrr}
 \toprule
 scale & LUT & FF & $F_{\max}$ (MHz) & level error \\
 \midrule
 $\varphi$, 16-bit          & \textbf{149} & 128 & 307.69 & $23.61\%$ \\
-plastic, 16-bit            & 186 & 160 & 318.47 & $\mathbf{13.97\%}$ \\
+plastic, 16-bit            & 186 & 160 & $318.47^{\ast}$ & $\mathbf{13.97\%}$ \\
 \addlinespace
 $\varphi$, 32-bit          & \textbf{223} & 192 & \textbf{247.10} & $23.61\%$ \\
 plastic, 32-bit            & 228 & 200 & 231.21 & $\mathbf{13.97\%}$ \\
@@ -3872,6 +4148,17 @@ the family below, so the family is Pisot at $d=2$ and $d=3$ and at no higher
 degree: every later member is finer than Siegel's floor and therefore cannot be
 Pisot.
 \end{theorem}
+\begin{proof}
+For $d=2$, the positive root is $\varphi=1.618033\ldots$ and the other root is
+$-\varphi^{-1}$, so its conjugate has modulus below one. For $d=3$, the
+positive root is $\rho=1.324717957\ldots$; the product of the two remaining
+conjugates is $\rho^{-1}$, so their common modulus is
+$1/\sqrt{\rho}=0.868837\ldots<1$. For $d\ge4$, since
+$\rho^d>\rho^3=\rho+1$, the root of $x^d-x-1$ lies strictly below $\rho$.
+Siegel's lower bound says that no Pisot number lies below $\rho$, so no such
+later root is Pisot. This proves the asserted boundary, using Siegel's theorem
+for the external lower-bound step.
+\end{proof}
 
 Computed conjugate moduli agree exactly: $0.6180$ at $d=2$, $0.8688$ at $d=3$,
 then $1.0633$, $1.0990$, $1.0992$, $1.0920$, $1.0837$ at $d=4\ldots8$. The
@@ -3892,7 +4179,7 @@ because a reader who assumes a normaliser would be assuming something the
 mathematics forbids.
 
 \begin{theorem}[The one-adder family]\label{thm:oneadder}
-For every $d$ the polynomial $r^{d}=r+1$ has a unique real root above one. It
+For every integer $d\geq2$ the polynomial $r^{d}=r+1$ has a unique real root above one. It
 has exactly two non-zero coefficients, so its companion map is
 \[
   (x_0,\dots,x_{d-1}) \;\mapsto\; (x_{d-1},\; x_0+x_{d-1},\; x_1,\dots,x_{d-2}),
@@ -3901,6 +4188,17 @@ has exactly two non-zero coefficients, so its companion map is
 above. Any granularity a logarithmic subdivision offers is therefore reachable
 without a multiplier, at the cost of registers alone.
 \end{theorem}
+\begin{proof}
+For $d\geq2$, $f(r)=r^d-r-1$ is negative at $r=1$ and positive at $r=2$,
+so a root lies in $(1,2)$. Since $f'(r)=dr^{d-1}-1>0$ for $r\geq1$,
+that root is unique. The displayed companion matrix has only the two
+non-zero polynomial coefficients, hence its only arithmetic operation is the
+sum $x_0+x_{d-1}$; the other entries are wires and registers. The root is
+strictly above $2^{1/d}$ because $r^d=r+1>2$. Finally, for any
+$\varepsilon>0$, $(1+\varepsilon)^d>2+\varepsilon$ for all sufficiently
+large $d$, so the root is below $1+\varepsilon$; hence it tends to $1$,
+as does $2^{1/d}$, and the difference tends to zero.
+\end{proof}
 
 The map is verified exact over $3000$ random coordinate vectors at $d=5$ and
 $d=8$. The convergence is quick: $r/2^{1/d}$ is $1.1441$ at $d=2$, $1.0159$ at
@@ -4157,6 +4455,19 @@ more than an addition --- a subtraction plus the comparison selecting it --- so
 the floor of a non-closed path lies above the floor of a closed path whose step
 is a single addition.
 \end{theorem}
+\begin{proof}
+In the stated cascade, a stage must first compare the current residue with its
+threshold and then subtract that threshold when the comparison selects it.
+The select bit is data-dependent, so the subtraction cannot be completed before
+the comparison; these two operations form one serial dependency at the
+datapath width. Inserting a register between them does not shorten the
+compare-and-subtract step: it creates an additional pipeline stage and carries
+the decision as state. The closed path has one data-dependent operation per
+step, namely the addition. Thus, under the same datapath and register model,
+the non-closed stage has a strictly longer carry dependency than the closed
+stage; this is a lower bound on the period, not a claim about a particular
+place-and-route result.
+\end{proof}
 
 At the plateau the trade is $7.8\times$ and $19.7\times$ the area,
 $3.6\times$ and $8.3\times$ the registers, $32$ and $48$ cycles of latency, and
@@ -4237,39 +4548,44 @@ trits and eleven mantissa bits where the specification gives six and
 twenty-five, TNF64 likewise --- and none had a reference, which is how the
 divergence survived to be quoted. Written from the specification and checked
 against it they agree on every code swept, and they cost eight to eleven places
-each. What is left at the top is the alphabet, which agrees on all four of its
+each. $^{\ast}$: the frequency in that row is stated in no record file in the
+repository at this revision --- fifteen of the twenty-one rows carry the mark, and
+no place-and-route log for any row of this table is in the tree --- so those cells,
+and the ordering by MHz/LUT that follows from them, are illustrative here and
+support no hardware-performance claim. The six unmarked rows are all ours, which
+is the asymmetry to weigh. What is left at the top is the alphabet, which agrees on all four of its
 codes. The storage column is the packed word of the module that was placed, so the
 16-bit rung reads 17 bits and $2^{17}$ codes: that module predates the
 reconciliation to $M = 11$, which would make the packed word 19 bits and the
 exhaustive sweep $524{,}288$ codes. That rung has not been re-placed, and no
 number in this table should be read as the reconciled 16-bit format.}
 \label{tab:fullthroughput}
-\small
+\small\setlength{\tabcolsep}{4pt}
 \begin{tabular}{rlrrrrrl}
 \toprule
 & format & storage & LUT & MHz & MHz/LUT & spread & conformance \\
 \midrule
-1 & \textbf{GFTernary} (ours) & 2 bits & 463 & 83.19 & \textbf{0.1797} & $6.61$ & all 4 codes \\
-2 & binary32 & 32 bits & 472 & 77.00 & 0.1631 & $6.37$ & not swept \\
-3 & fp8 e5m2 & 8 bits & 480 & 67.06 & 0.1397 & $5.46$ & 6 of 256 wrong \\
-4 & VAX F & 32 bits & 527 & 73.51 & 0.1395 & $4.43$ & not swept \\
-5 & fp8 e4m3 & 8 bits & 485 & 67.02 & 0.1382 & $6.78$ & 14 of 256 wrong \\
-6 & \textbf{GF10} (ours) & 10 bits & 533 & 72.16 & \textbf{0.1354} & $5.08$ & all 1{,}024 \\
-7 & binary16 & 16 bits & 522 & 63.30 & 0.1213 & $7.74$ & all 65{,}536 \\
-8 & \textbf{GF14} (ours) & 14 bits & 587 & 71.15 & \textbf{0.1212} & $4.54$ & all 16{,}384 \\
-9 & minifloat & 8 bits & 558 & 67.06 & 0.1202 & $5.49$ & not swept \\
+1 & \textbf{GFTernary} (ours) & 2 bits & 463 & $83.19^{\ast}$ & \textbf{0.1797} & $6.61$ & all 4 codes \\
+2 & binary32 & 32 bits & 472 & $77.00^{\ast}$ & 0.1631 & $6.37$ & not swept \\
+3 & fp8 e5m2 & 8 bits & 480 & $67.06^{\ast}$ & 0.1397 & $5.46$ & 6 of 256 wrong \\
+4 & VAX F & 32 bits & 527 & $73.51^{\ast}$ & 0.1395 & $4.43$ & not swept \\
+5 & fp8 e4m3 & 8 bits & 485 & $67.02^{\ast}$ & 0.1382 & $6.78$ & 14 of 256 wrong \\
+6 & \textbf{GF10} (ours) & 10 bits & 533 & $72.16^{\ast}$ & \textbf{0.1354} & $5.08$ & all 1{,}024 \\
+7 & binary16 & 16 bits & 522 & $63.30^{\ast}$ & 0.1213 & $7.74$ & all 65{,}536 \\
+8 & \textbf{GF14} (ours) & 14 bits & 587 & $71.15^{\ast}$ & \textbf{0.1212} & $4.54$ & all 16{,}384 \\
+9 & minifloat & 8 bits & 558 & $67.06^{\ast}$ & 0.1202 & $5.49$ & not swept \\
 10 & \textbf{BNF16} (ours) & 17 bits & 571 & 67.13 & \textbf{0.1176} & $3.30$ & all 131{,}072, 0 wrong \\
 11 & \textbf{TNF32} (ours) & 36 bits & 569 & 66.91 & \textbf{0.1176} & $6.03$ & sampled 9{,}997, 0 wrong \\
 12 & \textbf{TNF16} (ours) & 17 bits & 565 & 66.28 & \textbf{0.1173} & $8.56$ & all 131{,}072 \\
 13 & \textbf{TNF64} (ours) & 65 bits & 572 & 65.38 & \textbf{0.1143} & $8.73$ & sampled, 0 wrong \\
 14 & \textbf{TNF8} (ours) & 10 bits & 545 & 62.13 & \textbf{0.1140} & $3.63$ & all 1{,}024, 0 wrong \\
 15 & \textbf{GF+8} (ours) & 8 bits & 628 & 63.05 & \textbf{0.1004} & $1.08$ & selector live; no reference \\
-16 & posit8 & 8 bits & 540 & 44.33 & 0.0821 & $4.02$ & not swept \\
-17 & takum16 & 16 bits & 789 & 58.96 & 0.0747 & $5.75$ & not swept \\
-18 & IBM hex32 & 32 bits & 687 & 46.78 & 0.0681 & $3.78$ & not swept \\
-19 & LNS16 & 16 bits & 658 & 43.04 & 0.0654 & $0.45$ & not swept \\
-20 & posit16 & 16 bits & 712 & 40.38 & 0.0567 & $1.02$ & 4 of 65{,}536 wrong \\
-21 & posit32 & 32 bits & 953 & 28.16 & 0.0295 & $2.29$ & not swept \\
+16 & posit8 & 8 bits & 540 & $44.33^{\ast}$ & 0.0821 & $4.02$ & not swept \\
+17 & takum16 & 16 bits & 789 & $58.96^{\ast}$ & 0.0747 & $5.75$ & not swept \\
+18 & IBM hex32 & 32 bits & 687 & $46.78^{\ast}$ & 0.0681 & $3.78$ & not swept \\
+19 & LNS16 & 16 bits & 658 & $43.04^{\ast}$ & 0.0654 & $0.45$ & not swept \\
+20 & posit16 & 16 bits & 712 & $40.38^{\ast}$ & 0.0567 & $1.02$ & 4 of 65{,}536 wrong \\
+21 & posit32 & 32 bits & 953 & $28.16^{\ast}$ & 0.0295 & $2.29$ & not swept \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -4357,6 +4673,15 @@ requantisation, has $n^{d+1}$ terms. A value in $\mathbb{Z}[\varphi]$ has two
 components for every $d$, since $\varphi^{a}\varphi^{b} = \varphi^{a+b}$ adds
 exponents rather than multiplying terms.
 \end{theorem}
+\begin{proof}
+At depth zero there are the $n$ original terms.  Each additional runtime scale
+multiplies every existing term by one of the $n$ generators, so one composition
+changes the count by the factor $n$.  Induction on $d$ therefore gives
+$n\cdot n^{d}=n^{d+1}$ terms before any algebraic collection of equal terms.
+For $\mathbb{Z}[\varphi]$, write a value as $a+b\varphi$; multiplying by
+$\varphi^{k}$ maps it to
+$a\varphi^{k}+b\varphi^{k+1}$, still two coefficients, because exponents add.
+\end{proof}
 
 \begin{theorem}[Shifter cost]
 \label{thm:shifter}
@@ -4364,6 +4689,14 @@ A runtime-variable shift over $W$ bits costs $\Theta(W\log W)$ LUTs; a fixed
 permutation costs zero. An $n$-term APoT applier is therefore
 $\Theta(nW\log W)$ and a Fibonacci step is $\Theta(W)$.
 \end{theorem}
+\begin{proof}
+A variable shift selects one of $W$ offsets for each output bit; the standard
+logarithmic multiplexer network has $\Theta(\log W)$ stages and $W$ outputs,
+so its LUT cost is $\Theta(W\log W)$.  A fixed permutation is wiring and
+therefore needs no LUTs.  An $n$-term APoT applier instantiates $n$ such
+variable-shift paths, giving $\Theta(nW\log W)$, while one Fibonacci step
+is a fixed-width addition and costs $\Theta(W)$.
+\end{proof}
 
 This is the effect we had missed, and it is larger than the one we predicted. We
 had been calling APoT ``shift-add'' and treating that as free. A shift by a
@@ -4411,6 +4744,15 @@ costs $\Theta(W)$ independent of the scale, since a constant shift is wiring.
 Hence when the scale is frozen after training the recurrence loses for every
 $K \ge 1$.
 \end{theorem}
+\begin{proof}
+Each unrolled recurrence stage processes a $W$-bit operand and contributes a
+non-zero fixed-width datapath, so $K$ stages contribute $\Theta(KW)$ area.
+When the shift amounts are compile-time constants, their permutations are wires;
+the remaining fixed-width additions form one $\Theta(W)$ path, independent of
+the chosen scale.  For every $K\geq1$ the former therefore retains a
+$K$-dependent stage cost while the latter does not, which gives the stated
+ordering in the frozen-scale model.
+\end{proof}
 
 Post-route estimate: a constant-shift APoT-2 applier costs $26$ LUTs, against $64$, $128$
 and $256$ for $\varphi^{k}$ unrolled at $K=2,4,8$. At the realistic $K=8$ that is
@@ -4423,6 +4765,15 @@ with whether the scale is a compile-time constant or a runtime variable, because
 a constant shift is wiring and a variable shift is a barrel of
 $\Theta(W\log W)$.
 \end{theorem}
+\begin{proof}
+With a compile-time scale, each shift is a fixed permutation of the $W$ wires,
+so the shift contributes no LUTs and the remaining fixed-width addition is
+$\Theta(W)$.  With a runtime scale selecting among $W$ offsets, each output
+passes through $\Theta(\log W)$ stages of two-to-one multiplexers, giving
+$\Theta(W\log W)$ LUTs.  Thus the same algebraic scale has different area
+orders depending only on when its exponent is bound; no ordering independent
+of that binding regime follows.
+\end{proof}
 
 \begin{theorem}[A barrel is priced by range, not by width]
 \label{thm:barrelrange}
@@ -4431,6 +4782,13 @@ layers measured here that range is $3.15$ octaves, so two bits suffice. An area
 comparison that sizes the field larger is measuring a competitor that would never
 be built.
 \end{theorem}
+\begin{proof}
+The measured span satisfies $2<3.15\leq4$, so a binary selector with
+$\lceil\log_2 3.15\rceil=2$ bits covers it, whereas one bit does not.
+Consequently, bits beyond those two encode scale choices absent from this
+workload; charging them compares against an over-provisioned implementation
+rather than the stated competitor.
+\end{proof}
 
 At a two-bit field APoT-2 costs $130$ LUTs against our $199$. The $2.22\times$
 advantage reported above was an artefact of a five-bit field, and is withdrawn.
@@ -4580,6 +4938,14 @@ scale is a power of the alphabet base, and accumulation is the only remaining
 operation, the multiplications the datapath must perform are exactly
 $\{\text{base}^{k}\}$. General multiplication is never requested.
 \end{theorem}
+\begin{proof}
+Sign-select applies the coded weight without multiplying the input, so the only
+per-term scale operation is $x\mapsto x\,\text{base}^{k}$ for the exponent
+selected by the layer.  The inner product then combines these terms by
+addition.  Thus every required multiplicative factor is a power of the base,
+and no factor outside $\{\text{base}^{k}\}$ is requested under the stated
+assumptions.
+\end{proof}
 
 \begin{corollary}[Sufficiency]
 \label{cor:sufficiency}
@@ -4587,6 +4953,20 @@ A ring closed under addition and under multiplication by powers of its generator
 is sufficient for such a datapath. $\mathbb{Z}[\varphi]$ is such a ring with both
 operations at $\Theta(W)$.
 \end{corollary}
+\begin{proof}
+Closure under addition and multiplication by the generator means that every
+term produced by the datapath remains in the same ring; induction on the number
+of scale applications then gives closure under every power of that generator.
+For $\mathbb{Z}[\varphi]$, use $\varphi^2=\varphi+1$: for
+$u=a+b\varphi$ and $v=c+d\varphi$,
+\[
+ uv=(ac+bd)+(ad+bc+bd)\varphi,
+\]
+so multiplication by $\varphi$ maps the two integer coordinates to
+$(b,a+b)$ and addition is coordinatewise.  Fixed-width integer adders and
+registers implement these coordinate updates in $\Theta(W)$ under the
+datapath model used here; this is not a post-route cost claim.
+\end{proof}
 
 \begin{corollary}[The other two are mis-provisioned]
 \label{cor:misprov}
@@ -4607,6 +4987,15 @@ and any representation applies it at the cost of a single scale. The term growth
 of Theorem~\ref{thm:termgrowth} occurs if and only if $d$ or the scales become
 known only at runtime.
 \end{theorem}
+\begin{proof}
+For scales $r^{k_1},\ldots,r^{k_d}$ known before execution, their product is
+$r^{k_1+\cdots+k_d}$, so the compiler replaces the chain by one scale and the
+datapath applies it once.  Conversely, if the exponent or one of the scales is
+not known until execution, the corresponding product cannot be reduced to one
+compile-time constant; each runtime choice remains in the expansion counted by
+Theorem~\ref{thm:termgrowth}.  Thus the stated reduction is exactly the
+compile-time case, subject to the theorem's no-requantisation assumption.
+\end{proof}
 
 This removes three of the four cases where we had claimed a depth advantage. A
 low-rank factorisation, a folded convolution and batch norm, and a residual
@@ -4643,13 +5032,13 @@ per-tensor or per-channel scale, and every published sub-8-bit training result
 using them carries block scales \emph{and} a higher-precision master weight.
 Gradients span many orders of magnitude; a word with no range cannot hold them.}
 \label{tab:rejected}
-\small
+\small\setlength{\tabcolsep}{4pt}
 \begin{tabular}{llll}
 \toprule
 format & exponent & what supplies the range & trains alone \\
 \midrule
 \texttt{int8} & $e=0$ & learned per-tensor scale & no \\
-\multicolumn{4}{l}{\quad\emph{post-route estimate from the same harness:} $454$ LUT, $78.83$\,MHz, $0.1736$ MHz/LUT, spread $11.00$} \\
+\multicolumn{4}{l}{\quad\emph{post-route estimate from the same harness:} $454$ LUT, $78.83^{\ast}$\,MHz, $0.1736$ MHz/LUT, spread $11.00$} \\
 \texttt{int4} & $e=0$ & block scale (32 or 16 elements) & no \\
 \texttt{int12}--\texttt{int24} accum. & $e=0$ & fixed point, set by hand & no \\
 E2M1 element alone & $e=2$ in-block & shared UE8M0, outside & no \\
@@ -4670,9 +5059,14 @@ it is why the stack trains on the part.
 
 \paragraph{Why \texttt{int8} is reported apart.}
 An \texttt{int8} datapath scores $0.1736$\,MHz/LUT at a median of five placement
-seeds ($454$ LUT at $78.83$\,MHz), against GFTernary's $0.1797$ ($463$ LUT at
-$83.19$\,MHz) --- a $3.5\%$ difference inside seed spreads of $11.0$ and $6.6$
-percentage points, so the two are not separated by this flow. The rounded
+seeds ($454$ LUT at $78.83^{\ast}$\,MHz), against GFTernary's $0.1797$ ($463$ LUT at
+$83.19^{\ast}$\,MHz) --- a $3.5\%$ difference inside seed spreads of $11.0$ and $6.6$
+percentage points, so the two are not separated by this flow. Neither frequency is
+stated in a record file in the repository at this revision, and no place-and-route
+log for either is in the tree, so both are illustrative and neither supports a
+hardware-performance claim; the conclusion drawn from them here is that the two are
+\emph{not} separated, which is the direction in which an unsourced pair is safe to
+read. The rounded
 $0.180$ against $0.181$ of an earlier version was not the harness figure. An earlier version of
 this paper reported $0.189$ against $0.177$ and called it a $7\%$ lead; that came
 from a single placement run and is withdrawn. \texttt{int8} is excluded from that table even so, and the
@@ -4728,6 +5122,15 @@ at $b = 31$. The strictness is the same fact as the positive packing loss of
 Theorem~\ref{thm:nofree}, so the packed budget never beats the binary one and
 generally loses to it.
 \end{theorem}
+\begin{proof}
+The exponent field has $3^{E_t}$ states and the significand has $2^m$ codes,
+so their product is at most the $2^{N-1}$ non-sign codewords of an $N$-bit
+word.  A workload spanning $b+1$ binades requires
+$E_t\geq\lceil\log_3(b+1)\rceil$; substituting the least such integer gives
+the displayed packed bound.  The real relaxation uses
+$\log_2 3\,\log_3(b+1)=\log_2(b+1)$, while rounding the exponent upward
+adds a nonnegative amount smaller than $\log_2 3$.
+\end{proof}
 
 \begin{corollary}[The slack is a position artefact]
 \label{cor:slackartefact}
@@ -4735,6 +5138,13 @@ A ternary exponent encoding provides no budget slack at equal storage. The
 $0.3691E$ of Corollary~\ref{cor:slack} exists only at equal \emph{position}
 count, that is on a fabric where a position is physically ternary.
 \end{corollary}
+\begin{proof}
+The position-level slack counts one trit as one physical position.  On a binary
+fabric the same exponent field occupies $\lceil E_t\log_2 3\rceil$ bits, and
+Theorem~\ref{thm:nofree} shows that its utilisation is strictly below one for
+$E_t>0$.  Thus the apparent slack cannot enlarge an equal-storage binary word;
+it survives only when a position is physically ternary.
+\end{proof}
 
 Measured at equal storage against the catalogue, $6$ of $17$ sampled formats are
 dominated rather than all of them. Every uniform binary format spending all its
@@ -4853,6 +5263,14 @@ A width-$N$ format escaping $\mathcal{F}_N$ must violate the hypothesis of
 Theorem~\ref{thm:budget}: either its significand is not held at every magnitude
 (a taper), or its scale field is not inside the word (a block).
 \end{corollary}
+\begin{proof}
+Assume the negation: the format has an in-word scale field and a constant
+significand at every magnitude.  These are exactly the uniform-format
+hypotheses of Theorem~\ref{thm:budget}, so the format obeys its bound and
+belongs to the position-budget family rather than escaping it.  Therefore any
+escape must abandon at least one hypothesis: taper the significand, or move the
+scale outside the word as a block scale.
+\end{proof}
 
 \paragraph{The bound is tight, and it is not vacuous.} Equality in
 Theorem~\ref{thm:coverage} is attained by construction, since the width rule
@@ -5039,6 +5457,15 @@ positions. If the position must itself be encoded in bits, the format is bounded
 by $3^{E_t} 2^{M} \le 2^{N-1}$, and since $3^{E_t}$ never divides a power of two
 the remainder is lost.
 \end{theorem}
+\begin{proof}
+For a fixed value range $V=2^E$, binary needs $E$ positions, whereas ternary
+needs $E/\log_2 3=E\log_3 2$ positions. Their difference is therefore
+$E(1-\log_3 2)=0.3690702464\ldots E$. If the ternary exponent occupies
+$E_t$ positions and the mantissa occupies $M$ binary bits, their code space is
+$3^{E_t}2^M$; fitting it into an $(N-1)$-bit payload gives the displayed
+inequality. Because $3^{E_t}$ is odd and greater than one, it cannot divide
+$2^{N-1}$, so the binary packing leaves a non-zero remainder.
+\end{proof}
 
 The remainder is arithmetic, not engineering, and it is largest exactly where
 modern formats live:
@@ -5258,7 +5685,7 @@ continuous integration; the full statement is in the accompanying note.
 \subsection{Figures whose generating data is not in the repository}
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-52-provenance.png}
-\caption{Canon plate. Of 885 distinctive literals, 882 trace to the tree that produced them; the three that do not are retained and marked, and five document-to-code pairs still have no gate.}
+\caption{Canon plate. The substring gate reports 882 of 885 distinctive literals as tracing to the tree; a stricter registry restricted to frequencies finds 16 of 40 with no record file, every one of them marked in place, and five document-to-code pairs still have no gate.}
 \label{fig:canon-provenance}
 \end{figure}
 
@@ -5273,52 +5700,118 @@ tolerating them: constants stated beside the formula that produces them ($23$ of
 them, correctly absent from any data file), and rounding, where a data literal
 extending the printed digits counts as the source.
 
-Re-run on this revision over $6{,}108$ data files, the check finds $885$
-distinctive literals in the paper of which \textbf{two} trace to no file; a third,
-found by the audit described immediately below rather than by the check itself,
-brings the listed total to \textbf{three}. They are
-listed rather than deleted, because a figure that cannot be traced is not thereby
-shown to be wrong:
+Re-run on this revision over $6{,}108$ data files, the check reports $885$
+distinctive literals of which two trace to no file. That figure is an artefact of
+how the check matches, and the honest number is larger.
 
-The check has a weakness we found by auditing its passes rather than its failures,
-and it belongs in the table's neighbourhood. It matches a literal as a
-\emph{substring} of a data file's text, so a short literal is reported as sourced
-whenever it occurs inside a longer unrelated number. Two figures reading $3.15$
-passed on exactly that basis and neither had a generating file: a takum32 decode
-table in Mbit, now withdrawn from Corollary~\ref{cor:zeropath}, and the octave span
-of Theorem~\ref{thm:barrelrange}, which is retained and flagged in
-Table~\ref{tab:untraced} below. A literal of three or four characters should be
-matched on word boundaries; until the gate does so, its pass is weaker evidence for
-short literals than for long ones.
+The weakness was found by auditing the check's passes rather than its failures. It
+matches a literal as a \emph{substring} of a data file's text with separators
+stripped, so a short literal is reported as sourced whenever its digits occur
+inside a longer unrelated number. Two figures reading $3.15$ passed on exactly that
+basis and neither had a generating file: a takum32 decode table in Mbit, now
+withdrawn from Corollary~\ref{cor:zeropath}, and the octave span of
+Theorem~\ref{thm:barrelrange}. A frequency such as $307.69$ passes because the
+digits $30769$ appear inside a conformance-vector column. A literal of three or
+four significant characters should be matched on word boundaries; until the gate
+does so, its pass is weak evidence for short literals and no evidence at all for
+frequencies.
+
+A second, stricter registry (\texttt{tools/}\allowbreak\texttt{freq\_provenance.py},
+output in \texttt{research/}\allowbreak\texttt{arxiv\_tnf/}\allowbreak\texttt{freq\_provenance.json}) was therefore written for the
+one quantity in this paper with the widest seed spread: achieved frequency. It
+takes only prose and script files --- \texttt{*.md} and \texttt{*.py} under
+\texttt{research/}, \texttt{fpga/}, \texttt{conformance/}, \texttt{docs/} and the
+repository root, the places where a measurement is actually written down --- and it
+requires a delimited match rather than a substring. Its result on this revision:
+of \textbf{40} frequency literals in this paper, \textbf{16} are stated in no
+record file. Every one of the sixteen is marked $^{\ast}$ where it appears, and
+carries no hardware-performance claim.
+
+The distribution of the sixteen is the part that matters. All fifteen marked rows
+of Table~\ref{tab:fullthroughput} are baselines or formats whose frequency was
+never written down; the six unmarked rows are all ours. The same asymmetry holds in
+Table~\ref{tab:tnet}, where all three posit frequencies are unsourced and all three
+TNF frequencies trace to
+\texttt{TNF\_SPEC\_CORRECTION\_2026-08-11.md} or
+\texttt{BROKEN\_IS\_SMALL\_2026-08-11.md}. An ordering by MHz per LUT in which our
+rows have records and the rows they are ranked above do not is not evidence of the
+ordering, and is presented here as illustrative.
+
+Worse, and decisive for the release question: \textbf{no place-and-route log is in
+the repository tree at all}. \texttt{git ls-files} finds zero \texttt{*.log} files;
+the only one in the working tree is the \LaTeX{} log of this document. A
+withdrawal note in \texttt{research/frontier/} states that the ladder frequencies
+rest on $298$ \texttt{nextpnr-xilinx} logs under \texttt{fpga/phiscale/}; that
+directory holds $145$ files and none of them is a log. So even the twenty-four
+sourced frequencies are sourced to a \emph{document that reports a measurement},
+not to the tool output that produced it. Under the standard this paper applies
+elsewhere --- a claim is closed by a command, its inputs, its log and a hash --- the
+entire frequency column of this paper is open. It is reported, marked, and not
+relied upon for any conclusion.
+
+One further disagreement belongs here rather than in a footnote. The same
+twenty-one-point experiment is tabulated twice in this project: as
+Table~\ref{tab:fullthroughput} here, and in \texttt{fpga/tnet/MATRIX.md}, which
+describes itself in the same words --- one synthesised datapath, XC7A200T, no DSP,
+one harness. The two disagree row by row. \texttt{binary16} reads $552$ LUT at
+$62.69$ there against $522$ at $63.30$ here; takum16 $817$ at $64.16$ against $789$
+at $58.96$; GFTernary $466$ at $82.51$ against $463$ at $83.19$; posit32 $955$ at
+$28.33$ against $953$ at $28.16$; the 16-bit TNF rung $495$ at $71.90$ against $565$
+at $66.28$. Two tables for one described experiment is exactly the document-to-code
+pair Theorem~\ref{thm:doctrace} below predicts will go unguarded, and it is not
+resolved by choosing the more favourable one. Until a run reconciles them, neither
+is the record.
 
 \begin{table}[t]\centering
-\caption{Figures with no generating file in the repository, on this revision. Each
-is retained, flagged, and should be re-measured before it is relied upon. The
-previous revision reported seven such figures against a smaller file set; five of
-those now trace, and the count is restated rather than carried forward. The third
-row was not reported by the gate at all --- it was found by auditing the gate's
-passes, as described above.}
+\caption{Figures with no record file in the repository, on this revision, from the
+strict registry. Each is retained and marked $^{\ast}$ at every point of use, and
+none supports a hardware-performance claim. Earlier revisions of this subsection
+reported two or three such figures; that count came from the substring gate and is
+restated here rather than carried forward. The octave span was found by auditing
+the gate's passes and is not a frequency.}
 \label{tab:untraced}
-\begin{tabular}{ll}
+\begin{tabular}{lll}
 \toprule
-figure & where it appears \\
+figure & where it appears & class \\
 \midrule
-$318.47$\,MHz & plastic 16-bit row of the multiply-free ratio table \\
-$63.30$\,MHz & \texttt{binary16} row of the conformance-and-cost table \\
-$3.15$ octaves & scale range over 210 layers, Theorem~\ref{thm:barrelrange} \\
+$318.47$\,MHz & plastic 16-bit, Table~\ref{tab:hierarchy} & ours, unsourced \\
+$83.19$\,MHz & GFTernary, Tables~\ref{tab:fullthroughput} and text & ours, unsourced \\
+$78.83$\,MHz & \texttt{int8}, Table~\ref{tab:rejected} and text & baseline \\
+$77.00$\,MHz & \texttt{binary32}, Table~\ref{tab:fullthroughput} & baseline \\
+$73.51$\,MHz & VAX F, Table~\ref{tab:fullthroughput} & baseline \\
+$72.16$\,MHz & GF10, Table~\ref{tab:fullthroughput} & ours, unsourced \\
+$71.15$\,MHz & GF14, Table~\ref{tab:fullthroughput} & ours, unsourced \\
+$67.06$\,MHz & fp8 e5m2 and minifloat, Table~\ref{tab:fullthroughput} & baseline \\
+$67.02$\,MHz & fp8 e4m3, Table~\ref{tab:fullthroughput} & baseline \\
+$63.30$\,MHz & \texttt{binary16}, Table~\ref{tab:fullthroughput} & baseline \\
+$58.96$\,MHz & takum16, Table~\ref{tab:fullthroughput} & baseline \\
+$46.78$\,MHz & IBM hex32, Table~\ref{tab:fullthroughput} & baseline \\
+$44.33$\,MHz & posit8, Tables~\ref{tab:tnet} and~\ref{tab:fullthroughput} & baseline \\
+$43.04$\,MHz & LNS16, Table~\ref{tab:fullthroughput} & baseline \\
+$40.38$\,MHz & posit16, Tables~\ref{tab:tnet} and~\ref{tab:fullthroughput} & baseline \\
+$28.16$\,MHz & posit32, Tables~\ref{tab:tnet} and~\ref{tab:fullthroughput} & baseline \\
+\addlinespace
+$3.15$ octaves & 210-layer scale range, Theorem~\ref{thm:barrelrange} & not a frequency \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The check cannot show a number is right; it finds numbers with no source, which
+Neither check can show a number is right; they find numbers with no source, which
 is strictly weaker and still enough. A figure nobody can trace to a file is one
 nobody can re-check, and after twenty withdrawals that is exactly where a stale
-value survives. The first two are achieved frequencies, the quantity with the
-widest seed spread in this paper, so neither should be quoted without a
-re-measurement; that is the pattern this check exists to surface. The third was
-found by the substring audit above rather than by the gate, and the two-bit shift
+value survives. Sixteen of the seventeen entries above are achieved frequencies,
+the quantity with the widest seed spread in this paper, and none of them should be
+quoted without a re-measurement whose log is committed. The remaining entry was
+found by the substring audit rather than by either gate, and the two-bit shift
 field that Theorem~\ref{thm:barrelrange} concludes from it survives any span below
-four octaves, so the conclusion is more robust than the figure supporting it.
+four octaves, so that conclusion is more robust than the figure supporting it.
+
+What this subsection therefore does not claim: that the frequency measurements are
+wrong. They may well be right. It claims that at this revision they are not
+reproducible from the released artefact, that this is a defect of the artefact and
+not of the design, and that the way to close it is a place-and-route run whose
+constraints, tool versions, seed, timing report and worst slack are committed
+alongside the numbers --- not a further edit to this paragraph.
 
 \begin{theorem}[A document is an artefact, and its pairs need guarding]
 \label{thm:doctrace}
@@ -5357,6 +5850,16 @@ $M_{\mathrm{eff}}$ is linear in $|e|$, so its slope is well-defined without a
 window. A geometric taper's is linear in $\log|e|$, so no line fits it and its
 apparent slope is a property of the window alone.
 \end{theorem}
+\begin{proof}
+Write the fixed-field comparison as $m=M_0$ and the taper as $M(e)$.
+For an arithmetic taper, $M(e)=a-c|e|$ on each branch, so solving
+$M(e)=m$ gives a linear binade coordinate independent of the chosen fitting
+window.  For a geometric taper, $M(e)=p-\log_2|e|$; a line fitted over
+a window replaces this logarithm by a window-dependent surrogate slope.
+Changing the window therefore changes the inferred crossing, whereas the
+closed logarithmic equation does not.  Thus window dependence is equivalent
+to the failure of the arithmetic form in the stated model.
+\end{proof}
 
 Measured across windows $1$--$9$ and $1$--$20$, the split is exact: posit16,
 posit32 and posit64 move by $1.08\times$, $1.00\times$ and $1.09\times$, while
@@ -5371,6 +5874,12 @@ field of constant $m$ solves exactly:
 \]
 with no window required.
 \end{corollary}
+\begin{proof}
+At the crossing, equality with the fixed field gives
+$p-\log_2 x=m$.  Rearranging yields $\log_2 x=p-m$ and hence
+$x=2^{p-m}$.  The equation contains no fitting-window endpoints, so the
+closed crossing is determined by the two model parameters alone.
+\end{proof}
 
 \begin{table}[t]\centering
 \caption{Crossovers, computed by the model each taper's form requires. A
@@ -5417,6 +5926,17 @@ then no $x$ exists such that one leads for all $|e| < x$ and the other for all
 $|e| > x$. The well-posed statistic is the duty cycle --- the fraction of each
 period on which each leads --- together with $P$.
 \end{theorem}
+\begin{proof}
+Because $m$ lies strictly inside the attained band, one phase in every period
+has $M_{\mathrm{eff}}>m$ and another has $M_{\mathrm{eff}}<m$. Periodicity
+repeats both phases after every integer multiple of $P$, arbitrarily far along
+the $|e|$ axis. Therefore neither ordering can hold on a whole tail
+$|e|>x$, so a single crossover point does not exist. The fraction of one
+period occupied by the set $\{e:M_{\mathrm{eff}}(e)>m\}$ is invariant under
+translation by $P$; its complement is the opposing duty cycle. Recording that
+fraction together with $P$ therefore captures the repeated comparison without
+inventing a nonexistent threshold.
+\end{proof}
 
 Measured on IBM hexadecimal 32, whose $M_{\mathrm{eff}}$ by binade reads
 $21.03$, $21.75$, $22.94$, $19.95$, then repeats: amplitude $3.07$ bits, period
@@ -5432,6 +5952,15 @@ comparison against a constant format: a difference for constant, a linear
 crossover for arithmetic, an exponential crossover $2^{p-m}$ for geometric, and a
 duty cycle for wobble.
 \end{corollary}
+\begin{proof}
+For the constant form, subtracting the competitor leaves a constant difference,
+so there is no crossing coordinate to solve for.  The arithmetic form is linear
+in $|e|$, giving the linear crossing in Theorem~\ref{thm:formwindow}; the
+geometric form gives $x=2^{p-m}$ by Corollary~\ref{cor:geomcross}.  For a
+periodic wobble, Theorem~\ref{thm:wobblecross} rules out a single crossing and
+leaves the duty cycle as the well-posed statistic.  These four cases exhaust the
+staircase forms used by the taxonomy, so the prescribed comparison shape follows.
+\end{proof}
 
 The mapping from form to answer-shape is stated here, and we make no claim about
 how the literature reports. An earlier version of this paragraph said that
@@ -5484,7 +6013,9 @@ synthesised, and the broader formal-verification effort for floating-point
 arithmetic continues independently of the P3109 track~\cite{mohanty2025}, while
 the cost of applying formal tools to register-transfer code is itself falling, with
 open-source multi-agent pipelines now reported for formally checked RTL
-repair~\cite{tran2026rtlrepair}. Against
+repair~\cite{tran2026rtlrepair}, and an executable hardware-intent layer has been
+proposed to make microarchitectural obligations explicit before RTL lowering
+and synthesis~\cite{cheng2026hint}. Against
 that, a conformance transcript replayed on a specific part is not a weaker proof
 of the same thing but a different object: it is evidence about a physical device
 and its bitstream, which a proof about an HDL description does not provide, and it
@@ -5537,6 +6068,22 @@ accumulator. The comparative picture across INT and FP at fine granularity is
 surveyed for the same generation of formats in~\cite{int_vs_fp2025}, and the
 performance--efficiency trade-off for low-precision formats was mapped
 earlier in~\cite{mlformats}.
+
+\paragraph{A direct threat to the representation--computation separation.}
+CurveFP is a recent and materially different warning against over-generalising
+the separation used in this paper: it co-designs a block-scaled,
+logarithmic representation with a closed product operation, and reports
+downstream language-model results together with a preliminary accelerator-tile
+area result~\cite{qiao2026curvefp}. We therefore mark it as
+\textbf{[угроза]} to any claim that a representation-level observation is
+unlikely to transfer to computation. It is not a head-to-head comparison with
+TNF: CurveFP uses block scales and interleaved logarithmic curves, whereas TNF
+uses a fixed ternary-derived field split, and the result record is a preprint
+with a different workload and hardware model. The conclusion supported here is
+narrower: our own TNF evidence must be stated as task- and rung-specific, and
+the conjugate-gradient table above is not evidence about language-model
+training, product closure, area, or energy. A direct CurveFP--TNF experiment
+remains open.
 
 \paragraph{Contemporaneous ternary and alternative-format hardware.} Ternary
 inference hardware on FPGA is an active line independent of this
@@ -5805,6 +6352,13 @@ a comparable space on the CPU side~\cite{exagemm2026}. In a different applicatio
 domain, number formats for FFT IP cores are chosen against Pareto fronts with
 post-place-and-route PPA~\cite{fftformats2026} --- methodologically the nearest
 published relative of Table~\ref{tab:paretobudget}, and it predates it.
+MXAttention adds a task-specific counterpoint: for MXFP4 attention it combines a
+data-free scaling boundary with pre-normalization quantisation and reports
+downstream video-generation results close to FP16~\cite{yu2026mxattention}.
+This is a block-scaled, fixed-format method rather than a TNF field-selection
+comparison; it therefore strengthens the warning that representation SQNR alone
+does not settle a downstream claim, rather than establishing an advantage for
+either format.
 
 So the general claim --- that Pareto selection over numerical formats is
 unaddressed --- is false, and we withdraw it. What survives is narrower and is the
@@ -6612,7 +7166,7 @@ We state plainly what is not here. The sweep is a prepared, committed workflow;
 at the time of writing it has not been run, and no row of it is reported anywhere
 in this paper. Post-route numbers from it would be \emph{[measured, CI synthesis]}
 and yosys estimates \emph{[modelled]}; neither is a hardware measurement. Hardware
-means a UART transcript from the AX7203 board carrying XC7A200T silicon
+means a UART transcript from the AX7203 board's XC7A200T FPGA fabric
 (\texttt{xc7a200tfbg484-2}, IDCODE \texttt{0x13636093}) alongside a green
 continuous-integration URL and an artefact digest, and no amount of synthesis
 substitutes for it.
@@ -6663,7 +7217,7 @@ format & $\hat\mu$ (SI) & rel.\ error vs \texttt{float64} & iterations to $10^{-
 
 \paragraph{What it shows, and only that.} TNF32 lands $1.60\times$ closer to the
 \texttt{float64} solution than \texttt{takum32} does, and settles in $21$
-iterations against that format's $27$. This is the first number in this paper
+iterations against that format's $27$. This is a task-level number in this paper
 about the result of a computation rather than about the storage of a value, and it
 points the same way as the representation measurements on a workload that meets
 the condition of Section~\ref{sec:window}. That is the whole of the positive
@@ -6731,15 +7285,34 @@ format & relative solution error & external relative residual & iterations run \
 \end{tabular}
 \end{table}
 
-On this one system, TNF$(4,8)$ has a slightly smaller externally recomputed residual
-than \texttt{takum16}, but a slightly larger solution error; \texttt{binary16}
-has the smallest solution error among the three low-precision candidates. This
-is a task-level observation for one matrix and one rung, not a format ranking.
-The solver iteration count is not a throughput result, and the synthetic
-system supplies no evidence about energy, area or FPGA timing. The generator and
-the machine-written result record are stored with the other measurements. The
-plain reading is that this second task shows no advantage for the format: it is
-reported because it was run, not because it agrees.
+In this experiment TNF$(4,8)$ did not beat \texttt{takum16} on solution error:
+$2.25\times10^{-3}$ against $2.18\times10^{-3}$. It had the smaller externally
+recomputed residual, $1.02\times10^{-4}$ against $2.95\times10^{-4}$, and
+\texttt{binary16} had the smallest solution error of the three low-precision
+candidates at $1.44\times10^{-3}$. No general conclusion about the suitability or
+superiority of any of these formats follows from one $2\times2$ SPD case; this is a
+task-level observation for one matrix and one rung. The solver iteration count is
+not a throughput result, and the synthetic system supplies no evidence about
+energy, area or FPGA timing. The negative reading stands as written and is not
+softened: on the metric this experiment was built to measure, the format did not
+win. It is reported because it was run, not because it agrees.
+
+\begin{sloppypar}
+The run is a closed artefact rather than a claim about one. Command:
+\texttt{python3}\ \texttt{research/}\allowbreak\texttt{arxiv\_tnf/}\allowbreak\texttt{measurements/}\allowbreak\texttt{gen\_downstream\_}\allowbreak\texttt{linear\_cg.py}
+from the repository root. The record
+(\texttt{measurements/}\allowbreak\texttt{tnf\_downstream\_}\allowbreak\texttt{linear\_cg\_}\allowbreak\texttt{2026-08-14.json}) carries $A$ in
+raw scale, $x_{\text{true}}$, the generated $b$, $x_0 = (0,0)$, the stopping rule
+verbatim, the cap of $80$, the recorded tolerance $10^{-6}$, the $\texttt{float32}$
+accumulator convention, the rung $(E_t,M)=(4,8)$ with the note that it is not the
+reconciled $(4,11)$, the \texttt{takum16} reference module, \texttt{git} head,
+interpreter and \texttt{numpy} versions, SHA-256 of both oracles and of the
+generator, and a SHA-256 of the canonical record payload (with the digest field
+excluded). Re-running it on this revision reproduced
+every digit of Table~\ref{tab:downstream-cg}. Unlike the frequency column discussed
+in Section~\ref{sec:provenance}, this result is reproducible from the released
+artefact.
+\end{sloppypar}
 
 \paragraph{A third task attempted, and a metric we disqualified.} We also ran the
 logistic map $x \mapsto 3.9\,x(1-x)$, intending to score candidates by the
@@ -7016,6 +7589,7 @@ is not asserted here.
 \bibitem{elias1975} P.~Elias, ``Universal codeword sets and representations of the integers,'' \emph{IEEE Trans. Inform. Theory}, vol.~21, no.~2, pp.~194--203, 1975.
 \bibitem{positgap} Closing the Gap Between Float and Posit Hardware Efficiency, arXiv:2603.01615.
 \bibitem{mlformats} Performance-Efficiency Trade-off of Low-Precision Numerical Formats in Deep Neural Networks, arXiv:1903.10584.
+\bibitem{qiao2026curvefp} Y.~Qiao, ``CurveFP: Co-Designing Numerical Representation and Product Arithmetic for Language Models,'' arXiv:2608.10010, 8~August 2026. \url{https://arxiv.org/abs/2608.10010}
 \bibitem{boyd1985} D.~W.~Boyd, ``The maximal modulus of an algebraic integer,''
 \emph{Math.\ Comp.}, vol.~45, no.~171, pp.~243--249, 1985.
 \bibitem{wu2010} Q.~Wu, ``The smallest Perron numbers,'' \emph{Math.\ Comp.},
@@ -7134,6 +7708,12 @@ Computing: A Systematic Review,'' \emph{IEEE Access}, vol.~13, 2024.
 
 \bibitem{ada2026mx} ``Heterogeneity-Aware Microscaling for Efficient Low-Bit LLM Inference,'' arXiv:2608.03867. \url{https://arxiv.org/abs/2608.03867}
 
+\bibitem{yu2026mxattention} J.~Yu, J.~Lin, L.~Kong, A.~Chen, W.~Sun, C.~Zeng,
+W.~Lan, J.~Li, Z.~Zheng, Z.~Yue, D.~Ke, F.~Yi, T.~Hu, Y.~Ding, Y.~Yao, and
+J.~Wang, ``MXAttention: Data-Free Optimal Scaling and Pre-Normalization
+Quantization for MXFP4 Attention,'' arXiv:2607.24377, 2026.
+\url{https://arxiv.org/abs/2607.24377}
+
 \bibitem{exagemm2026} ``ExaGEMM: Exploration Framework for CPU-Driven ML Inference via Associative In-Register Computing for Low-Bit GEMM,'' arXiv:2607.14622. \url{https://arxiv.org/abs/2607.14622}
 
 \bibitem{fftformats2026} ``New Number Formats for FFT IP Cores in Optical OFDM Transceivers,'' arXiv:2607.17835. \url{https://arxiv.org/abs/2607.17835}
@@ -7161,6 +7741,11 @@ Computing: A Systematic Review,'' \emph{IEEE Access}, vol.~13, 2024.
 \bibitem{gao2026cubicquant} X.~Gao, ``CubicQuant: Parametric Non-Uniform Codebooks for High-Throughput LLM Inference with 1--8-Bit Weights,'' arXiv:2608.06763, 7~August 2026. \url{https://arxiv.org/abs/2608.06763}
 
 \bibitem{tran2026rtlrepair} H.~T.~Tran, ``Open-Source LLM-Driven Formal Verification: A Multi-Agent Pipeline for RTL Repair,'' arXiv:2607.28877, 30~July 2026. \url{https://arxiv.org/abs/2607.28877}
+
+\bibitem{cheng2026hint} T.~Cheng, Y.~Liu, D.~Zuo, Z.~Shi, H.~Zhang, X.~Hu,
+M.~He, H.~Yan and Q.~Xu, ``HINT: Toward an Executable Hardware-Intent
+Representation Layer for LLM-Driven RTL Generation,'' arXiv:2608.07625, 7~August
+2026. \url{https://arxiv.org/abs/2608.07625}
 
 \bibitem{earplynch2026powers} B.~Earp-Lynch, S.~Earp-Lynch, O.~Kihel and P.~Tiebekabe, ``Powers as Fibonacci Sums,'' arXiv:2608.04445, 5~August 2026. \url{https://arxiv.org/abs/2608.04445}
 
