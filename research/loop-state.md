@@ -722,3 +722,45 @@ the ninth: take every field of an identifier from one source.
 
 **Next.** Still waiting on Hans (part list, cadence, and now the goldens offer),
 Carlos (`047b`), and the board for #114.
+
+### 020 — 2026-08-19, night
+
+Hypothesis tested and refuted: `design.json` in prjxray-db's four harness
+bitstreams is not a yosys netlist (`info`, `ports`, `required_features` only),
+so no whole-design differential build is available from them. They support a
+**per-feature** reference — `required_features` publishes 433/199/431/864 FASM
+features per harness — not a per-design one. Correction appended to
+`research/where-this-work-sits.md`, where I had implied more.
+
+### 021 — 2026-08-19, night
+
+**No external change** — no replies on #154, #149 or #120.
+
+**Nearly edited a dead file, and that turned into a measurement.** Scanning for
+command handlers safe to add to the smoke test, the scan returned
+`runFibCommand`, `runLucasCommand` and `runPhiCommand` in
+`src/tri/tri_math_backup.zig` — **imported by nothing**. I had fixed those three
+earlier in `src/tri/math/commands.zig`. Two copies exist; the live one is the
+one I edited, but only because I checked.
+
+**395 of 744 files under `src/tri` are reached by neither `build.zig` nor any
+relative import** — 3.13 MB. Written up in `research/src-tri-reachability.md`
+with the method and its weakness stated: dead files importing each other keep
+each other "reached", so the true figure is **larger**, not smaller. Nothing
+deleted — that is the user's call, and a one-pass analysis is not grounds for it.
+
+**Method correction worth recording.** The first count was 407. Adding
+`b.path()` from `build.zig` as a reachability source brought it to 395. I nearly
+published the larger figure; twelve files is a small error but a striking number
+deserves the check before it is quoted, not after.
+
+**What the orphan actually costs**, since "dead code" sounds harmless: a 228 KB
+file answers `grep` with plausible, editable, unreachable code. A defect repair
+landing in it would look correct, pass review, and change nothing. That is the
+same failure `zig-hdc`'s header records from the other side — two maintained
+copies of `src/vsa/*` diverged, and fixing sixteen defects in one left all
+sixteen standing in the other.
+
+**Next.** Unchanged: Hans (part list, cadence, goldens offer), Carlos (`047b`),
+the board for #114. A reachability gate is proposed in the note but not built —
+it needs a decision about what to do with 395 files first.
