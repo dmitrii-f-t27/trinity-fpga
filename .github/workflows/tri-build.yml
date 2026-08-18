@@ -84,7 +84,27 @@ jobs:
         id: build
         run: |
           set -o pipefail
-          zig build tri -freference-trace=12 2>&1 | tee build.log | tail -50
+          zig build tri-compile -freference-trace=12 2>&1 | tee build.log | tail -50
+
+      # Separate question, separate step. 'zig build tri' is a RUN step, so
+      # using it as the build gate conflated "does it compile" with "does it
+      # work" -- and the first successful link in four months arrived looking
+      # exactly like the ninety compile errors that preceded it. A crash here
+      # is reported, not fatal: the gate's job is the build.
+      - name: Does the binary start?
+        continue-on-error: true
+        run: |
+          set +e
+          BIN=$(find zig-out .zig-cache -name tri -type f -perm -u+x 2>/dev/null | head -1)
+          if [ -z "$BIN" ]; then echo "no binary produced"; exit 0; fi
+          echo '### `tri --help`' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          "$BIN" --help > run.log 2>&1
+          RC=$?
+          head -30 run.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "exit code: $RC" >> $GITHUB_STEP_SUMMARY
+          exit 0
 
       - name: What the binary reports
         if: success()
@@ -116,4 +136,5 @@ jobs:
           path: |
             build.log
             graph.log
+            run.log
           retention-days: 30

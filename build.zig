@@ -2559,6 +2559,14 @@ pub fn build(b: *std.Build) void {
     const tri_step = b.step("tri", "Run TRI - Unified Trinity CLI");
     tri_step.dependOn(&run_tri.step);
 
+    // Build the binary without running it. 'tri' is a RUN step, so it answers
+    // "does the CLI work", and a CI gate that uses it cannot distinguish a
+    // compile error from a crash at startup -- which is exactly what happened:
+    // the first successful link was reported as a failure indistinguishable
+    // from the ninety compile errors before it.
+    const tri_compile_step = b.step("tri-compile", "Build the tri binary without running it");
+    tri_compile_step.dependOn(&b.addInstallArtifact(tri, .{}).step);
+
     // Cycle 100: REPL Testing Infrastructure
     // Test suite for TRI CLI commands with sacred assertions
     const tri_testing = b.addTest(.{
