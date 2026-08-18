@@ -801,3 +801,41 @@ splitting "does it build" from "does it run".
 
 **Next.** Unchanged externally. `formula`/`fib`/`lucas`/`phi` now agree on exit
 2; whether the other 126 commands do is unmeasured.
+
+### 023 — 2026-08-20, night
+
+**Measured the usage-exit convention across the tree instead of sampling it.**
+Handlers printing a `Usage:` line: 15 exit honestly, 29 return normally.
+Narrowing to the unambiguous shape — `if (args.len == 0) { print("Usage: …");
+return; }`, a required argument missing reported as success — gives **49 sites
+in 15 files**.
+
+**Eleven fixed, 38 measured and left.** The boundary: only files already
+importing `tri_exit_codes`. The other 38 sit in 13 files that would each need an
+import added, and a mass edit that also performs import surgery across thirteen
+files is a different risk from one that changes a return statement.
+
+**Three of the eleven were in `math/commands.zig`** — a file I had already been
+through this session for `phi`, `fib`, `lucas` and `formula`. Fixing the four a
+smoke test happened to exercise left three of the same defect in the same file.
+*The difference between fixing what a test reports and fixing what the code
+contains.*
+
+**Tenth self-inflicted defect, and it is the first one repeated.** My "already
+imports" test was `'tri_exit_codes' in source` — a substring match. In
+`cytoplasm.zig` that string occurred once, at line ~2480, inside a
+function-local import bound to the name `exit_codes`. So the match was on the
+module **path in a string literal**, not on a declared identifier, and eight
+sites referenced a name not in scope.
+
+That is precisely iteration 006's defect — `grep 'pub const GoldenChain'`
+matching `GoldenChainAgent` — which was written into skill §5 at the time. **A
+substring is not an identifier**, known and violated again in a new disguise.
+Caught by CI in one round.
+
+**Process note.** The rebase hit vendored `zig-pkg` packages another session had
+committed while mine existed untracked from a local build. Removed with
+`git clean -fdq zig-pkg` rather than by deleting paths one at a time as the
+error listed them.
+
+**Next.** 38 usage sites remain, each needing an import. Externally unchanged.
