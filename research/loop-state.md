@@ -187,3 +187,39 @@ within one cycle.** That ratio is the argument for the gate, not for care.
 
 **Next.** Re-check `verify`. Decide the usage-exit convention. Then the two
 benchmark corrections and the router-failure reducer, both untouched since 001.
+
+### 005 — 2026-08-19, night
+
+**I corrected a correction, and the original correction was wrong.**
+
+I told @cavearr by mail, and repeated in commit messages, that the benchmark's
+timing column needed fixing because "every openXC7 PASS was against nextpnr's
+12 MHz default rather than a real target". Two greps show that is wrong twice
+over:
+
+* `--freq` has been passed explicitly since `1437ed5cc`, the commit that
+  introduced the workflow. No build here ran on the 12 MHz default.
+* The harness emits `synth_ms, pnr_ms, bit_ms, total_ms, cores` and nothing
+  else. **There is no timing verdict field**, and the invocation carries
+  `--timing-allow-fail`. This half of the benchmark never produced a timing
+  column at all.
+
+Written up in `research/benchmark-timing-correction.md`, with what *is* wrong:
+the GF designs' XDC (`ax7203_corona.xdc`) contains **no `create_clock`**, so
+their only target is `--freq 5.0`; and for blinky the XDC asks 200 MHz while the
+flag asks 100 MHz — a 2× disagreement nobody has resolved.
+
+**The lesson, and it is the sharpest of the session.** A correction is a claim,
+and it inherits no credibility from being self-critical. Saying "I was wrong
+about X" does not establish that X was wrong. I carried a specific-sounding
+figure — a named default, a named unit — across three artefacts without opening
+the file, because specificity felt like evidence.
+
+Add to the invariants: **before publishing a correction, verify the thing being
+corrected, not only the correction.**
+
+**Wall-clock numbers are unaffected.** The harness times three subprocesses;
+none of this touches that. What it constrains is what may be said around them.
+
+**Next.** Send the correction to @cavearr and @hansfbaier — it revises something
+they were told. Then the router-failure reducer, still untouched since 001.
