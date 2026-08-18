@@ -4,7 +4,6 @@
 
 const std = @import("std");
 
-const tri_mutex = @import("mutex.zig");
 /// Async communication channel
 pub fn Channel(comptime T: type) type {
     return struct {
@@ -13,7 +12,7 @@ pub fn Channel(comptime T: type) type {
         sender_count: usize,
         receiver_count: usize,
         closed: bool,
-        mutex: tri_mutex.Mutex,
+        mutex: std.Thread.Mutex,
         allocator: std.mem.Allocator,
 
         const Self = @This();
@@ -26,7 +25,7 @@ pub fn Channel(comptime T: type) type {
                 .sender_count = 0,
                 .receiver_count = 0,
                 .closed = false,
-                .mutex = tri_mutex.Mutex{},
+                .mutex = std.Thread.Mutex{},
                 .allocator = allocator,
             };
         }

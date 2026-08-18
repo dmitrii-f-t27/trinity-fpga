@@ -22,7 +22,10 @@ pub fn main() !void {
         }
         const end = try std.time.Instant.now();
         const elapsed = end.since(start);
-        try stdout.print("Registry init + register: {d: >10} ns/op ({d:.3} us/op)\n", .{ @as(u64, @intCast(elapsed / iterations)), @as(f64, @floatFromInt(elapsed)) / @as(f64, @floatFromInt(iterations)) / 1000.0 });
+        try stdout.print("Registry init + register: {d: >10} ns/op ({d:.3} us/op)\n", .{
+            @as(u64, @intCast(elapsed / iterations)),
+            @as(f64, @floatFromInt(elapsed)) / @as(f64, @floatFromInt(iterations)) / 1000.0
+        });
     }
 
     // Benchmark 2: Sacred score calculation
@@ -40,7 +43,10 @@ pub fn main() !void {
         }
         const end = try std.time.Instant.now();
         const elapsed = end.since(start);
-        try stdout.print("Sacred score calculation: {d: >10} ns/op ({d:.3} us/op)\n", .{ @as(u64, @intCast(elapsed / iterations)), @as(f64, @floatFromInt(elapsed)) / @as(f64, @floatFromInt(iterations)) / 1000.0 });
+        try stdout.print("Sacred score calculation: {d: >10} ns/op ({d:.3} us/op)\n", .{
+            @as(u64, @intCast(elapsed / iterations)),
+            @as(f64, @floatFromInt(elapsed)) / @as(f64, @floatFromInt(iterations)) / 1000.0
+        });
         try stdout.print("  Score: {d:.3} (Trinity: {})\n", .{ total_score / @as(f64, @floatFromInt(iterations)), orchestrator.verifyTrinityIdentity() });
     }
 
@@ -50,7 +56,7 @@ pub fn main() !void {
         try orchestrator.registerCoreCommands(&registry, allocator);
         defer registry.deinit();
 
-        const commands = [_][]const u8{ "chat", "code", "gen", "fix", "explain", "pipeline", "plan", "verify", "math", "fib" };
+        const commands = [_][]const u8{"chat", "code", "gen", "fix", "explain", "pipeline", "plan", "verify", "math", "fib"};
 
         const start = try std.time.Instant.now();
         const iterations: usize = 100000;
@@ -60,7 +66,10 @@ pub fn main() !void {
         }
         const end = try std.time.Instant.now();
         const elapsed = end.since(start);
-        try stdout.print("Command lookup:           {d: >10} ns/op ({d:.3} us/op)\n", .{ @as(u64, @intCast(elapsed / iterations)), @as(f64, @floatFromInt(elapsed)) / @as(f64, @floatFromInt(iterations)) / 1000.0 });
+        try stdout.print("Command lookup:           {d: >10} ns/op ({d:.3} us/op)\n", .{
+            @as(u64, @intCast(elapsed / iterations)),
+            @as(f64, @floatFromInt(elapsed)) / @as(f64, @floatFromInt(iterations)) / 1000.0
+        });
     }
 
     try stdout.print("\n20 commands registered | Trinity identity verified\n", .{});

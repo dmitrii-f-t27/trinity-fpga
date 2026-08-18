@@ -190,10 +190,6 @@ pub const TVCCorpus = struct {
     /// Store query/response pair in TVC
     /// Returns entry ID on success
     pub fn store(self: *Self, allocator: std.mem.Allocator, query: []const u8, response: []const u8) !u64 {
-        // bundle2 stopped taking an allocator when the VSA core moved to
-        // zig-golden-float; the parameter stays for the callers' sake. The
-        // sibling search() already discards it the same way.
-        _ = allocator;
         if (self.count >= TVC_MAX_ENTRIES) {
             return error.CorpusFull;
         }
@@ -238,7 +234,7 @@ pub const TVCCorpus = struct {
         self.count += 1;
 
         // 4. Bundle into memory vector (NO FORGETTING)
-        self.memory_vector = vsa.bundle2(&self.memory_vector, &bound_vec);
+        self.memory_vector = vsa.bundle2(&self.memory_vector, &bound_vec, allocator);
 
         // Update stats
         self.total_stores += 1;
@@ -355,7 +351,7 @@ pub const TVCCorpus = struct {
         // Memory vector (packed)
         self.memory_vector.ensureUnpacked();
         for (0..self.memory_vector.trit_len) |i| {
-            const byte: [1]u8 = .{@bitCast(self.memory_vector.getTrit(i))};
+            const byte: [1]u8 = .{@bitCast(self.memory_vector.getTritChecked(i))};
             try file.writeAll(&byte);
         }
 
@@ -381,7 +377,7 @@ pub const TVCCorpus = struct {
             std.mem.writeInt(u32, &buf4, @intCast(entry.query_vec.trit_len), .little);
             try file.writeAll(&buf4);
             for (0..entry.query_vec.trit_len) |j| {
-                const byte: [1]u8 = .{@bitCast(entry.query_vec.getTrit(j))};
+                const byte: [1]u8 = .{@bitCast(entry.query_vec.getTritChecked(j))};
                 try file.writeAll(&byte);
             }
 
@@ -390,7 +386,7 @@ pub const TVCCorpus = struct {
             std.mem.writeInt(u32, &buf4, @intCast(entry.response_vec.trit_len), .little);
             try file.writeAll(&buf4);
             for (0..entry.response_vec.trit_len) |j| {
-                const byte: [1]u8 = .{@bitCast(entry.response_vec.getTrit(j))};
+                const byte: [1]u8 = .{@bitCast(entry.response_vec.getTritChecked(j))};
                 try file.writeAll(&byte);
             }
 
@@ -399,7 +395,7 @@ pub const TVCCorpus = struct {
             std.mem.writeInt(u32, &buf4, @intCast(entry.bound_vec.trit_len), .little);
             try file.writeAll(&buf4);
             for (0..entry.bound_vec.trit_len) |j| {
-                const byte: [1]u8 = .{@bitCast(entry.bound_vec.getTrit(j))};
+                const byte: [1]u8 = .{@bitCast(entry.bound_vec.getTritChecked(j))};
                 try file.writeAll(&byte);
             }
 
@@ -471,7 +467,7 @@ pub const TVCCorpus = struct {
         for (0..mem_vec_len) |i| {
             var byte: [1]u8 = undefined;
             _ = try file.readAll(&byte);
-            corpus.memory_vector.unpacked_cache[i] = @bitCast(byte[0]);
+            corpus.memory_vector.unpacked_cache.?[i] = @bitCast(byte[0]);
         }
 
         // Entries
@@ -503,7 +499,7 @@ pub const TVCCorpus = struct {
             for (0..q_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.query_vec.unpacked_cache[j] = @bitCast(byte[0]);
+                entry.query_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
             }
 
             // Response vector
@@ -515,7 +511,7 @@ pub const TVCCorpus = struct {
             for (0..r_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.response_vec.unpacked_cache[j] = @bitCast(byte[0]);
+                entry.response_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
             }
 
             // Bound vector
@@ -527,7 +523,7 @@ pub const TVCCorpus = struct {
             for (0..b_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.bound_vec.unpacked_cache[j] = @bitCast(byte[0]);
+                entry.bound_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
             }
 
             // Query text
@@ -600,7 +596,7 @@ pub const TVCCorpus = struct {
         for (0..mem_vec_len) |i| {
             var byte: [1]u8 = undefined;
             _ = try file.readAll(&byte);
-            self.memory_vector.unpacked_cache[i] = @bitCast(byte[0]);
+            self.memory_vector.unpacked_cache.?[i] = @bitCast(byte[0]);
         }
 
         // Entries
@@ -631,7 +627,7 @@ pub const TVCCorpus = struct {
             for (0..q_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.query_vec.unpacked_cache[j] = @bitCast(byte[0]);
+                entry.query_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
             }
 
             // Response vector
@@ -643,7 +639,7 @@ pub const TVCCorpus = struct {
             for (0..r_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.response_vec.unpacked_cache[j] = @bitCast(byte[0]);
+                entry.response_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
             }
 
             // Bound vector
@@ -655,7 +651,7 @@ pub const TVCCorpus = struct {
             for (0..b_len) |j| {
                 var byte: [1]u8 = undefined;
                 _ = try file.readAll(&byte);
-                entry.bound_vec.unpacked_cache[j] = @bitCast(byte[0]);
+                entry.bound_vec.unpacked_cache.?[j] = @bitCast(byte[0]);
             }
 
             // Query text

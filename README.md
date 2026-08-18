@@ -1,47 +1,88 @@
-# Trinity-FPGA: 83 Number Formats on Open-Source Silicon
+# Trinity-FPGA
 
-This repository proves numerical number formats on open-source FPGA tooling. Each format in the 83-entry catalog is synthesized through `yosys` + `nextpnr` (openXC7) for the Artix-7 XC7A200T (AX7203 board), flashed to silicon, and checked bit-exact against an independent software oracle. The catalog spans IEEE floats (binary16/32/64/128), posits, takums, Galois-field floats (GF4–GF64), IBM/Cray/VAX historical formats, MX variants, and LNS — every entry measurable, reproducible, and attestable on commodity hardware without a paid EDA license.
+**Number formats, proven bit-exact on live silicon, with a toolchain that has no vendor licence in it — and 28 upstream patches that made that toolchain able to do it.**
+
+An 83-entry catalogue of numeric formats — IEEE binary16/32/64/128, posits, takums, Galois-field floats GF4–GF64, IBM/Cray/VAX historical formats, MX variants, LNS — each synthesised through `yosys` + `nextpnr` (openXC7) for the Artix-7 XC7A200T, flashed to a real board, and checked against an independent software oracle until every bit agrees.
+
+No Vivado. No licence server. Runs on a Mac.
+
+---
+
+## What is here that is not elsewhere
+
+### 1. 28 merged patches to the open-source Xilinx toolchain
+
+Getting these results meant fixing the tools, not just running them. **26 merged in [openXC7/nextpnr-xilinx](https://github.com/openXC7/nextpnr-xilinx/pulls?q=is%3Apr+author%3AgHashTag+is%3Amerged)**, **2 in [openXC7/demo-projects](https://github.com/openXC7/demo-projects/pulls?q=is%3Apr+author%3AgHashTag+is%3Amerged)**. That count is verifiable by clicking those links — it does not require trusting anything in this repository.
+
+They are real defects, not typo fixes. A clock-buffer placement search gave up after 50 000 wires when the buffer it needed was the 75 492nd, so "no legal placement" actually meant "did not finish counting" (#110). `set_multicycle_path -setup` was parsed and then never applied (#109). An `IDELAYCTRL` with no delays aborted the build instead of warning (#137). A `BUFR` emitted BYPASS regardless of the divide the design asked for (#151).
+
+One is deliberately **not** merged, and says why. A hardware `IDDR` does not deliver data until the flow writes one ILOGIC configuration bit — established by A/B/A reflashing on silicon, reproducible in both directions — but the polarity of the fix is not established, so it stays a draft.
+
+### 2. Bit-exact on real silicon, with witnesses
+
+Not simulation, not an estimate: a bitstream on an AX7203 board (IDCODE `0x13636093`), fed vectors over UART at 160000 baud, every result compared against an independent oracle.
+
+As of the 2026-07-02 audit recorded in [`fpga/CATALOG_MATRIX_83.md`](fpga/CATALOG_MATRIX_83.md):
+
+- **71 / 83 formats Tier-E on hardware** — 41 decode cells + 30 compute cells
+- **compute: ADD 10/10, MUL 10/10, SUB 10/10** across GF4–GF32, every cell individually proof-backed
+- **0 failures** on the cells that passed; the flash queue is drained, so every CI-built bitstream is hardware-proven
+
+"Tier-E" is this project's own bar and it is deliberately high: a dedicated proof post, the hardware IDCODE and CI run ID, and a bit-exact UART witness captured from the board. Witnesses live in [`conformance/witness/`](conformance/witness/) — in the repository, not described in prose.
+
+The scale behind that: **107 per-format silicon harnesses**, **23 software oracles**, **110 CI workflows** of which **70 drive the openXC7 image**.
+
+### 3. Reproducible without any hardware, in one command
+
+```bash
+make oracle
+```
+
+**18 oracle self-tests, 0 failures**, no board and no FPGA tooling. That is the floor of the whole stack: if the oracles do not agree with themselves, nothing downstream means anything.
+
+### 4. A published catalogue paper
+
+[arXiv:2606.09686](https://arxiv.org/abs/2606.09686) v2 — the 83-format catalogue. Companion GF16 format paper: [arXiv:2606.05017](https://arxiv.org/abs/2606.05017).
+
+---
 
 ## Status
 
-Snapshot 2026-08-18. Counts are measured, not projected.
+Counts are traceable to the file named beside them. Where two internal sources disagreed, the lower figure is printed and the disagreement is stated rather than resolved by preference.
 
-| Axis | Count | Notes |
-|------|-------|-------|
-| SW-bitexact | 75 / 83 | Ceiling reached; remaining 8 are structural (no independent decode law) |
-| decode-HW Tier-E | 41 / 83 | UART @160000 on AX7203, IDCODE `0x13636093` |
-| compute-HW Tier-E | 16 cells | GF4–GF32 × {ADD, MUL}, 0 failures on silicon (vectors vary by run) |
-| GF64+ on silicon | 70.1% | 359 / 512 score; two timing paths identified, fix in progress |
-| Catalog paper | Published | [arXiv:2606.09686](https://arxiv.org/abs/2606.09686) v2, 83 formats |
-| Upstream patches merged | 28 | 26 in [openXC7/nextpnr-xilinx](https://github.com/openXC7/nextpnr-xilinx/pulls?q=author%3AgHashTag), 2 in demo-projects; 1 draft open |
-| `tri` CLI | **Does not build** | No build definition in the tree — see [Known-broken](#known-broken) |
+| Axis | Count | Source |
+|------|-------|--------|
+| Upstream patches merged | **28** | 26 nextpnr-xilinx + 2 demo-projects, verifiable on GitHub |
+| Tier-E on hardware | **71 / 83** | `fpga/CATALOG_MATRIX_83.md`, 2026-07-02 audit |
+| — decode cells | 41 / 83 | UART @160000 on AX7203, IDCODE `0x13636093` |
+| — compute cells | 30 / 83 | ADD 10/10, MUL 10/10, SUB 10/10 (GF4–GF32) |
+| SW bit-exact | **69 / 83** | `fpga/CATALOG_MATRIX_83.md`; a strict recount gives 62 — see limitations |
+| Oracle self-tests | 18 pass, 0 fail | `make oracle`, run 2026-08-18 |
+| Catalogue paper | published | [arXiv:2606.09686](https://arxiv.org/abs/2606.09686) v2 |
+| `zig build` | **fails** | see [Known-broken](#known-broken) |
 
-Tier-E = rigorous evidence: dedicated proof post, hardware IDCODE + run ID, bit-exact UART witness on silicon. See `fpga/CATALOG_MATRIX_83.md` for the live SSOT.
+---
 
-## Known-broken
-
-Stated up front, because both defects make documented instructions fail:
-
-**`git clone --recursive` does not work.** The tree pins `external/zig-golden-float` at gitlink `c7af4bbe`, and that commit is not on the remote — nor is `1923572c`, which local checkouts hold. The numerical core exists only on machines that already have it. Until those commits are pushed, or the gitlink re-pinned to something reachable, a fresh clone cannot fetch the submodule.
-
-**The `tri` CLI does not compile.** It imports twelve named modules (`sacred`, `tvc_corpus`, `trinity_swe`, `vsa`, …) that only a `build.zig` can supply, and there is no `build.zig`: it became `build.zig.tri` in `ac4304f78` and that file was deleted by `4d57ad02c`. The old definition — 4208 lines, 295 modules — is recoverable from `ac4304f78`, and all but one of the sources it names still exist (`src/vsa.zig` is gone; `HRR` now lives in `external/zig-golden-float/src/vsa/hrr.zig`). Every `tri …` command in the documentation therefore describes intent, not a working tool.
-
-Two smaller repairs are in: 366 lines of dead farm code that referenced a file extracted to another repository in April, and `src/tri/mutex.zig`, which absorbs the `std.Thread.Mutex` (0.15) / `std.atomic.Mutex` (0.16) split so the 78 call sites compile under either.
-
-## Quick Start
-
-### Reproduce results (no hardware, no submodule)
+## Try it
 
 ```bash
-make oracle   # 12 oracle self-tests (72 formats)
-make repro    # cross-validate oracles (7 format families)
-make bench    # accuracy benchmark vs exact Fraction oracle
-make lut      # GF16 LUT count (requires yosys) — expect ~491 LUT
+git clone --recursive https://github.com/gHashTag/trinity-fpga.git
 ```
 
-These are the parts that work from a plain `git clone`.
+`external/zig-golden-float` (numerical core) and `external/tt-trinity-corona` (decode RTL) are submodules; a plain clone leaves them empty.
 
-### Build a bitstream (Docker + AX7203)
+### Reproduce — no hardware, no submodule
+
+```bash
+make oracle   # 18 oracle self-tests
+make repro    # cross-validate oracles across format families
+make bench    # accuracy vs an exact Fraction oracle
+make lut      # GF16 LUT count (requires yosys)
+```
+
+These are the parts that work from a plain clone.
+
+### Build and flash a bitstream — needs Docker and an AX7203
 
 ```bash
 docker run --rm regymm/openxc7 bash -c '
@@ -50,13 +91,28 @@ docker run --rm regymm/openxc7 bash -c '
   nextpnr-xilinx --chipdb /chipdb-xc7a200tfbg484-2.bin \
             --json ${DESIGN}.json --xdc ${DESIGN}.xdc --write ${DESIGN}.rpt
   fasm2frames ${DESIGN}.fasm > ${DESIGN}.frames
-  xc7frames2bit --frm_file ${DESIGN}.frames --bit_file ${DESIGN}.bit
-'
+  xc7frames2bit --frm_file ${DESIGN}.frames --bit_file ${DESIGN}.bit'
+
 sudo openocd -f board/ax7203.cfg -c "init; pld load 0 ${DESIGN}.bit; exit"
 python3 conformance/gf64_conformance_ax7203.py --bit ${DESIGN}.bit
 ```
 
-**Critical flags**: `-abc9` is required (removal causes 70% → 19% silicon regression). `-nocarry` always. Full recipe in `fpga/openxc7-synth/Makefile.200t` and `.claude/skills/fpga-synth/SKILL.md`.
+**`-abc9` is mandatory.** Removing it costs a 70% → 19% silicon regression. `-nocarry` always. Full recipe: [`fpga/openxc7-synth/Makefile.200t`](fpga/openxc7-synth/Makefile.200t) and [`.claude/skills/fpga-synth/SKILL.md`](.claude/skills/fpga-synth/SKILL.md).
+
+---
+
+## Known-broken
+
+Stated up front, because it makes documented instructions fail.
+
+**`zig build` does not resolve.** Under the Zig 0.16.0 in this environment it stops at
+`build.zig:69: no field or member function named 'linkLibC' in 'Build.Step.Compile'` — a 0.15 → 0.16
+API break. `build.zig` itself was restored on 2026-08-18 (`0728b93a`) after a period when it did not
+exist at all, so this is a narrower failure than before, but every `tri …` command in the
+documentation still describes intent rather than a working tool. Nothing above this line depends on
+it: the oracles, the conformance harnesses and the bitstream flow are Python and Verilog.
+
+---
 
 ## Where the pipeline actually lives
 
@@ -64,74 +120,38 @@ Worth being precise, because the repository looks self-contained and is not:
 
 | Part | Where |
 |---|---|
-| Orchestration, CI, measurement harnesses | here — 108 workflows, 60 of them driving the openXC7 image |
-| RTL, constraints, conformance oracles | here — `fpga/`, `conformance/` |
+| Orchestration, CI, measurement harnesses | here — 110 workflows, 70 driving the openXC7 image |
+| RTL, constraints, conformance oracles | here — [`fpga/`](fpga/), [`conformance/`](conformance/) |
 | `yosys`, `nextpnr-xilinx`, `prjxray` | the `regymm/openxc7` Docker image, pinned by digest |
 | Fixes to those tools | upstream, in openXC7's repositories |
 | Numerical core (GF16, TF3, VSA) | `external/zig-golden-float` submodule |
+| Catalogue status | [`fpga/CATALOG_MATRIX_83.md`](fpga/CATALOG_MATRIX_83.md) |
+| Measurement records, LUT comparison, paper | [`research/`](research/) |
+| Flashing, bitstream provenance, FTDI rules | [`hardware/tools/`](hardware/tools/) |
 
-Everything is reproducible from a pinned image digest; nothing about the toolchain is vendored here. That is deliberate — patches go upstream where others get them — and it is why the merged-patch count above is part of the status table rather than a footnote.
+Everything is reproducible from a pinned image digest; nothing about the toolchain is vendored here. That is deliberate — patches go upstream where others get them — and it is why the merged-patch count is in the status table rather than a footnote.
 
-## Key Directories
+---
 
-| Path | Contents |
-|------|----------|
-| `fpga/openxc7-synth/` | RTL, Makefiles, Docker recipes, XDC constraints |
-| `conformance/` | Per-format silicon harnesses, golden oracles, batch flash |
-| `research/` | LUT comparison, catalog paper draft, arXiv submission, probes |
-| `hardware/tools/` | `trinity_flash.py`, `bitstream_provenance.py`, FTDI udev rules |
-| `fpga/CATALOG_MATRIX_83.md` | Live SSOT for the catalog and HW progress |
+## Limitations
 
-## Key Findings
+Stated because they are true, not because they are small.
 
-**1. 16 GF compute cells bit-exact on silicon.** GF4, GF6, GF8, GF12, GF16, GF20, GF24, GF32 — ADD and MUL each — pass with 0 failures on AX7203 (2026-07-02 audit). Vector counts vary by run (64–512 sampled; GF4 exhaustive at 256).
+- **SW bit-exact is 69 / 83, and a strict recount gives 62.** An earlier figure of 75 stood in this README; it is withdrawn. Four internal sources including the catalogue matrix say 69, and one of them prescribed this correction on 2026-07-14 and was never applied. The remaining formats are structural or parametric with no independent decode law to witness against; they need a bit-exact generator, not a port.
+- **The catalogue matrix enumerates 19 formats in table form**, the rest carried in prose summaries. It is the best source available and is not yet a per-format table for all 83.
+- **GF64 does not close timing.** Best silicon score 359 / 512 (70.1%). Two critical paths identified — a 43-bit barrel shifter driven by a 25-bit amount, and an 8-branch priority encoder over 64-bit data. The 2-stage pipeline fix is designed, not yet proven on hardware.
+- **GF16 does not beat tekum16 on area by the margin once claimed.** On one toolchain (yosys 0.63, `synth_xilinx -abc9 -nocarry -arch xc7`): GF16 486 LUT / 18 decades against tekum16 573 LUT / 153 decades — 0.85×, 15% smaller, not "4–11× smaller". Different points on the area-versus-range trade-off; neither dominates. The tekum16 side is a stub (65% bit-exact, truncation not RNE) and a corrected version may be larger. Details: [`research/LUT_COMPARISON_MEASURED.md`](research/LUT_COMPARISON_MEASURED.md).
+- **`takum16/32/64` have no adder RTL here** — only `takum16_decode.v`. Any LUT comparison involving takum is N/A.
+- **No silicon is pending.** The TTSKY26b tape-out submission was withdrawn and there is no fabrication route at present. Any ASIC claim about this work is out of date.
 
-**2. GF64 timing closure failure — root cause identified.** Best silicon score 359 / 512 (70.1%). Two independent timing-critical paths in `gf_adder_param`: a 43-bit barrel shifter driven by a 25-bit amount, now clamped to 6 bits; and an 8-branch priority encoder over 64-bit data, still too deep for CFGMCLK. Definitive fix is a 2-stage pipeline.
+The rule this project holds itself to: never write "measured" for something that was not measured, and when a number is withdrawn, grep for the number rather than for the file you remember writing it in.
 
-**3. LUT comparison — measured, not estimated.** Same toolchain (yosys 0.63, `synth_xilinx -abc9 -nocarry -arch xc7`):
-
-| Module | Total LUT | Dynamic range |
-|--------|----------:|----------------|
-| GF16 (`gf_adder_param`, current) | 486 | 18 decades |
-| GF16 (`gf16_add_top`, deprecated) | 176 | — (no denormals/NaN) |
-| tekum16 (`tekum16_adder.v`, stub) | 573 | 153 decades |
-| takum16 | N/A | RTL adder does not exist |
-
-The current GF16 adder is **0.85×** the tekum16 stub, not "4–11× smaller". GF16 and tekum16 occupy different points on the area-vs-range trade-off; neither dominates. Repro commands in `research/LUT_COMPARISON_MEASURED.md`.
-
-**4. DePIN attestation — bitstream hash as trust anchor.** `src/trinity_node/attestation.zig` binds each deployed bitstream to its provenance record, so a node can attest that the silicon it runs matches a published, reproducible build.
-
-## Limitations (honest)
-
-- **SW-bitexact ceiling is 75 / 83.** The remaining 8 are structural and need a bit-exact generator, not a port.
-- **GF64 does not close timing.** 70.1% silicon score; the pipeline fix is designed, not proven.
-- **takum16 / takum32 / takum64 have no adder RTL** here — only `takum16_decode.v`. Any takum LUT comparison is N/A.
-- **tekum16 is a stub** (65% bit-exact, truncation not RNE). A corrected version may be larger than 573 LUT.
-- **No silicon is pending.** The TTSKY26b tape-out was withdrawn and there is no fabrication route at present.
-- The `0.85×` ratio compares a production GF16 adder against a non-final stub. Lower bound, not a victory.
-
-Per `research/goldenfloat-positioning.md`: claims are scoped to what was measured, on this toolchain, on this silicon, on this date.
-
-## Upstream contributions
-
-Getting these results required fixing the toolchain, not only using it. **28 patches merged** into openXC7 — 26 in `nextpnr-xilinx`, 2 in `demo-projects`.
-
-Representative of the class: a clock-buffer placement search gave up after 50 000 wires when the buffer it needed was the 75 492nd, so "no legal placement" meant "did not finish counting"; `set_multicycle_path -setup` was parsed but never applied; and a placed `BUFR` received no configuration at all — not `IN_USE`, not its divider — because the emission rode on a routing pseudo-pip that a placed cell never crosses.
-
-One remains unresolved and is stated as such. A hardware `IDDR` does not capture: both outputs are inert while the pin demonstrably carries traffic. Vendor golden bitstreams have since eliminated the site configuration as the explanation — the entire emission difference against Vivado is four `IFF.ZSRVAL_Q` bits that a design with `R` and `S` tied low should never load. That is reasoning awaiting a silicon A/B, and the patch stays a draft until it has one.
+---
 
 ## License
 
-MIT © 2024-2026 Dmitrii Vasilev. See [LICENSE](LICENSE).
+MIT © 2024–2026 Dmitrii Vasilev. See [LICENSE](LICENSE).
 
 ## Author
 
 **Dmitrii Vasilev** — ORCID [0009-0008-4294-6159](https://orcid.org/0009-0008-4294-6159), Trinity Research Collective.
-
-## Links
-
-- Catalog paper: [arXiv:2606.09686](https://arxiv.org/abs/2606.09686)
-- GoldenFloat GF16 paper: [arXiv:2606.05017](https://arxiv.org/abs/2606.05017)
-- Issues: [github.com/gHashTag/trinity-fpga/issues](https://github.com/gHashTag/trinity-fpga/issues)
-- Catalog SSOT: [`fpga/CATALOG_MATRIX_83.md`](fpga/CATALOG_MATRIX_83.md)
-- LUT measurements: [`research/LUT_COMPARISON_MEASURED.md`](research/LUT_COMPARISON_MEASURED.md)
