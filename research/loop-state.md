@@ -839,3 +839,37 @@ committed while mine existed untracked from a local build. Removed with
 error listed them.
 
 **Next.** 38 usage sites remain, each needing an import. Externally unchanged.
+
+### 024 — 2026-08-20, night
+
+**The usage-exit convention is closed.** 38 remaining sites across 13 files
+converted; a re-scan now reports **0** sites printing a usage message and
+returning success. Build green.
+
+**The import path was not uniform, which is why this was deferred rather than
+swept in with the first eleven.** Ten files take `tri_exit_codes.zig`; three,
+one directory deeper, take `../tri_exit_codes.zig` —
+`commands/multi_cluster.zig`, `geometry/non_euclidean.zig`,
+`geometry/sacred_bridge.zig`. A single hardcoded path breaks exactly those
+three. **Eleventh instance of this session's one mistake, and the first
+prevented rather than discovered** — by computing the value per file instead of
+assuming the rows agree.
+
+Two defences from the skill applied together, both earned earlier tonight:
+
+* the edit asserts its plan — 13 files, 38 sites, abort otherwise;
+* files already holding the binding are skipped by matching the **declaration
+  at line start**, not the string anywhere in the file. The substring test is
+  what put an undeclared identifier into `cytoplasm.zig` one commit earlier.
+
+**Distribution is worth noting**: 17 of the 38 sit in `github_commands.zig`
+alone. The defect is not spread evenly — it clusters where many commands were
+written together from one template, which is also where a single wrong template
+does the most damage.
+
+**Running totals for the session**: ~20 defects closed in existing code plus 49
+usage sites, 10 introduced by me, all 10 caught by automation within one cycle,
+none noticed by me first.
+
+**Next.** Externally unchanged — Hans on the part list, Carlos on `047b`, the
+board for #114. The 395 unreachable files are ratcheted but untouched.
