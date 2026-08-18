@@ -223,3 +223,46 @@ none of this touches that. What it constrains is what may be said around them.
 
 **Next.** Send the correction to @cavearr and @hansfbaier — it revises something
 they were told. Then the router-failure reducer, still untouched since 001.
+
+### 006 — 2026-08-19, night
+
+**Filed openXC7/nextpnr-xilinx#154.** The router failure promised on #114 in
+iteration 001 is reduced, controlled and reported.
+
+**It is not an IDDR bug.** Five variants separated the hypotheses; `v4` — a
+three-line flip-flop with no IDDR, no I/O primitive and no constant tie —
+fails identically:
+
+    ERROR: Invalid global constant node 'INT_L_X0Y98/VCC_WIRE'
+
+**The control is what makes it publishable.** The same design on
+`xc7a200tfbg484-2` builds, rc=0. Same `.v`, same image, same commit. So:
+part-specific, not a general router defect — and the claim "openXC7 cannot
+route a flip-flop", which is what the a35t result alone would have supported,
+is false and would have been embarrassing to publish.
+
+**A second defect fell out.** `v2`/`v3` abort rather than error:
+`assertion_failure: user.cell->ports.at(user.port).net == ni` at
+`common/nextpnr.cc:466`, triggered by IDDR with `CE` from a port. Reported in
+the same issue with an offer to split it.
+
+**Fourth self-inflicted defect of the session.** The reducer's first run reused
+one XDC across variants that add ports, so four of five died on a missing
+IOSTANDARD and never reached the router — reported indistinguishably from a
+result. I had guarded against a yosys failure (`rc=20`) and not against a
+constraint failure, one commit after writing "a reducer that cannot tell those
+apart produces confident nonsense".
+
+**All four of my defects this session have the same shape:** a uniform edit or
+a uniform harness applied to sites that were not uniform. Orphaned parameter,
+prefix grep, unreachable return, shared XDC. That is a pattern, not four
+accidents, and it belongs in the skill rather than the journal.
+
+**One correction to iteration 005.** The 12 MHz figure is real —
+`Annotating ports with timing budgets for target frequency 12.00 MHz` appears
+in these logs, because this reducer passes no `--freq`. My error was
+attributing it to the benchmark harness, which does pass one. The retraction
+letter should say the claim was misattributed rather than invented.
+
+**Next.** Add the uniform-edit rule to `stale-reference`. Then `verify`'s
+unexplained timeout→0, and the `fib`/`lucas` exit-code convention.
