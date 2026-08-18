@@ -53,6 +53,13 @@ REGISTRY = [
          rule="full"),
     dict(rec="per_rung_2026-08-13g.json", label="tab:rungthr", kind="rows",
          rule="aggregate"),
+    # added when their regenerators landed (W875):
+    dict(rec="centering_2026-08-13f.json", label="tab:centring", kind="list",
+         rule="full"),
+    dict(rec="gpt2_window_2026-08-13e.json", label="tab:gpt2window", kind="list",
+         rule="full"),
+    dict(rec="breakeven_2026-08-14.json", label="tab:oneoverm", kind="rows",
+         rule="aggregate"),  # 5 printed rows are derived from 3 scalars via C/(2cM)
 ]
 
 
