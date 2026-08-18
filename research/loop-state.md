@@ -513,3 +513,46 @@ not that nothing complained.
 **Next.** The three-part result. If Spartan passes, propose the PR to upstream
 with two parts of evidence and one open question; if it fails, that is a second
 part-specific defect and a bigger finding than the gate itself.
+
+### 014 — 2026-08-19, night
+
+**Three-part coverage green, all matching their recorded expectations.**
+Run 32132592070:
+
+| part | result | expected |
+|---|---|---|
+| `xc7a35tcsg324-1` | fail — the #154 error | fail |
+| `xc7s50csga324-1` | pass | pass |
+| `xc7a200tfbg484-2` | pass | pass |
+
+So #154 is narrower than "some parts are broken": of three tested, **only a35t
+cannot route a flip-flop**. Reported to Hans on the issue.
+
+**Two more self-inflicted defects, sixth and seventh, both caught by the gate
+within one run each.**
+
+* The Spartan run first reported `fail`. nextpnr had finished with 0 errors;
+  `fasm2frames` refused because the db-root was hardcoded to `artix7` and
+  Spartan is `spartan7`. Family now lives in the matrix.
+* Fixing that broke the other direction: I widened the INCONCLUSIVE classifier
+  to treat assembler errors as harness faults, and a35t's genuine failure then
+  reported as inconclusive — a failed P&R leaves no FASM, so `fasm2frames` says
+  "No such file". The guard now applies only when nextpnr succeeded.
+
+**All seven of my defects this session are one shape**, and it is worth naming
+precisely now that the sample is large: *a rule that holds for the cases I was
+looking at, applied to a set containing a case I was not.* Orphaned parameter,
+prefix grep, unreachable return, shared XDC, `_mod` suffix heuristic, shared
+db-root, widened classifier.
+
+**The strongest evidence of the session, for the record.** The pinned
+expectation was wrong about Spartan — I predicted pass, the first run said fail
+— and being wrong is exactly what made it useful: the mismatch sent me to the
+logs instead of accepting a plausible result. **A gate that only confirms its
+author would have recorded a second part-specific defect that does not exist,
+and then hidden the real one.** The value of a written expectation is not that
+it is correct but that it is checkable.
+
+**Next.** Kintex needs one answer from Hans (differential clock acceptable, or a
+board with a single-ended one). `xc7z035` unexamined. Otherwise unchanged: #114
+needs the board, #149 needs 047b.
