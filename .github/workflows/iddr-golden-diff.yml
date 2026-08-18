@@ -71,10 +71,34 @@ jobs:
             make -j"$(nproc)" bitread >/dev/null 2>&1 || make -j"$(nproc)" >/dev/null 2>&1
             source /prjxray/env/bin/activate
             DB=/nextpnr-xilinx/xilinx/external/prjxray-db/artix7
+
+            # Find the tool rather than assuming its name: fasm2frames is a
+            # console script in the venv, bit2fasm may only exist as a script
+            # under utils/. A failure here must say what IS present, or it
+            # reads like a broken bitstream instead of a missing binary.
+            if command -v bit2fasm >/dev/null 2>&1; then
+              B2F="bit2fasm"
+            elif [ -f /prjxray/utils/bit2fasm.py ]; then
+              B2F="python3 /prjxray/utils/bit2fasm.py"
+            else
+              echo "::error::no bit2fasm found"
+              echo "venv bin: $(ls /prjxray/env/bin 2>/dev/null | tr "\n" " ")"
+              echo "utils:    $(ls /prjxray/utils/*.py 2>/dev/null | xargs -n1 basename | tr "\n" " ")"
+              exit 1
+            fi
+            echo "using: $B2F"
+
+            # bit2fasm shells out to bitread; prjxray locates it through these.
+            BITREAD=$(find /prjxray -name bitread -type f -perm -u+x 2>/dev/null | head -1)
+            [ -n "$BITREAD" ] && export XRAY_BITREAD="$BITREAD" \
+              && export PATH="$(dirname "$BITREAD"):$PATH"
+            echo "bitread: ${BITREAD:-NOT FOUND}"
+            export XRAY_DATABASE_DIR=$DB XRAY_DATABASE=artix7 XRAY_PART='"$PART"'
+
             for f in A_direct B_idelay; do
-              bit2fasm --part '"$PART"' --db-root $DB /w/ref/${f}_top.bit > /w/ref/$f.fasm 2>/w/ref/$f.err \
+              $B2F --part '"$PART"' --db-root $DB /w/ref/${f}_top.bit > /w/ref/$f.fasm 2>/w/ref/$f.err \
                 && echo "$f decoded: $(wc -l < /w/ref/$f.fasm) lines" \
-                || { echo "::error::bit2fasm failed on $f"; tail -3 /w/ref/$f.err; exit 1; }
+                || { echo "::error::bit2fasm failed on $f"; tail -5 /w/ref/$f.err; exit 1; }
             done
           '
 
