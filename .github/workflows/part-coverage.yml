@@ -129,7 +129,7 @@ jobs:
           # applied to the differential clocks generally; it does not.
           #
           # expect is a PREDICTION again. This part has never been built here.
-          - part: xc7k325tffg676-2
+          - part: xc7k325tffg676-1
             device: xc7k325tffg676
             clk: AB11
             clk_n: AC11
