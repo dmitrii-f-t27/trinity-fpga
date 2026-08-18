@@ -6,7 +6,7 @@ description: Repairing a build, tree, or dependency that rotted silently — why
 # Stale references, and gates that hide their own news
 
 Distilled from one evening that took a CLI from "no build definition exists" to a
-running binary — about twenty defects, **four of them introduced by the repair
+running binary — about twenty defects, **seven of them introduced by the repair
 itself** (§11). Every rule below is a specific failure that happened.
 
 The single sentence, if you read nothing else:
@@ -204,8 +204,11 @@ here were referenced nowhere in the build and were breaking it for nothing.
 
 ## 11. The uniform edit is the repair's own failure mode
 
-Four defects were introduced by the repair in one session. All four are the same
-mistake:
+Seven defects were introduced by the repair in one session. All seven are the
+same mistake, and with a sample that size it can be stated precisely:
+
+> **A rule that holds for every case you looked at, applied to a set containing
+> a case you did not.**
 
 | the edit | what it assumed | what bit |
 |---|---|---|
@@ -213,9 +216,15 @@ mistake:
 | `grep 'pub const GoldenChain'` | the name was unique | it matched `GoldenChainAgent` by prefix |
 | appended `return` after every stub print | the stubs were alike | two had a second print after it, now unreachable |
 | one XDC for five reducer variants | the variants had the same ports | four had extra ports and never reached the router |
+| rewrote calls on anything not ending `_mod` | modules follow that naming | `wasm_root` is a module and does not |
+| one `--db-root .../artix7` for every part | the parts share a family | a spartan7 part is not in the artix7 database |
+| widened a classifier to catch assembler errors | a missing FASM means a harness fault | after a failed P&R it means the failure the gate exists to detect |
 
-Not four accidents. One habit: **applying a uniform edit to sites that are not
-uniform**, then discovering the exceptions from the build rather than before it.
+Not seven accidents. One habit, and note where the exceptions live: never in
+the sites that motivated the edit, always in the ones adjacent to them. The
+`_mod` heuristic was derived from every module I had read; `wasm_root` was the
+one I had not. The `artix7` db-root was right for both parts in the matrix at
+the time it was written.
 
 The script that edits N places is the fastest tool available and the one most
 likely to be wrong, because its speed comes precisely from not looking at the
