@@ -133,6 +133,13 @@ jobs:
       # Startup is not function. --help proves main() runs; it proves nothing
       # about the 144 commands it advertises. This samples the ones that should
       # be pure and side-effect free, and reports which answer.
+      #
+      # `verify` is deliberately NOT in the list. It shells out to
+      # `zig build test`, which legitimately takes minutes, and a 20-second
+      # timeout made it look flaky -- 124, then 0, then 124 across three runs.
+      # That was my measurement being wrong, not the command: a smoke list of
+      # "pure commands" containing one that builds the project measures the
+      # cache, not the command. It was nearly filed as 'verify hangs'.
       - name: Do the commands work?
         continue-on-error: true
         run: |
@@ -149,14 +156,14 @@ jobs:
           say '| command | exit | first line |'
           say '|---|---|---|'
           ok=0; bad=0
-          for c in version info status phi constants math fib lucas gematria sacred stats verify doctor; do
+          for c in version info status phi constants math fib lucas gematria sacred stats doctor; do
             out=$(timeout 20 "$BIN" "$c" 2>&1); rc=$?
             first=$(printf '%s' "$out" | sed 's/\x1b\[[0-9;]*m//g' | grep -v '^[[:space:]]*$' | head -1 | cut -c1-58)
             if [ $rc -eq 0 ]; then ok=$((ok+1)); else bad=$((bad+1)); fi
             say "| \`$c\` | $rc | ${first:-(no output)} |"
           done
           say ''
-          say "**$ok exited 0, $bad did not** — of 14 sampled from 144 advertised."
+          say "**$ok exited 0, $bad did not** — of 13 sampled from 144 advertised."
           say ''
           say 'Exit 0 means it ran, not that it is correct. This is a smoke test.'
           exit 0

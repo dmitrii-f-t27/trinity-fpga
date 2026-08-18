@@ -266,3 +266,51 @@ letter should say the claim was misattributed rather than invented.
 
 **Next.** Add the uniform-edit rule to `stale-reference`. Then `verify`'s
 unexplained timeout→0, and the `fib`/`lucas` exit-code convention.
+
+### 007 — 2026-08-19, night
+
+**The re-check instruction paid for itself.** Iteration 004 recorded `verify`
+going from exit 124 to exit 0 without being touched, and said explicitly: do not
+attribute this to the fix, re-check next iteration, treat a second timeout as
+the real state. Third observation: **124 again**.
+
+**And then the explanation removed the defect entirely.** `tri verify` shells out
+to `zig build test`:
+
+    const test_result = std.process.Child.run(.{
+        .argv = &[_][]const u8{ "zig", "build", "test" },
+
+That legitimately takes minutes. My smoke list gives 20 seconds. So there was no
+hang and no flakiness — **my measurement was wrong**: a sample of "pure,
+side-effect-free commands" containing one that builds the whole project measures
+the build cache, not the command. `verify` is now out of that list, with the
+reason written where the list is.
+
+I was one step from filing "verify hangs". The thing that stopped me was the
+journal's own instruction to re-check before attributing.
+
+**Skill §11 added.** All four self-inflicted defects share one habit: a uniform
+edit applied to non-uniform sites. Three defences, cheapest first: print the
+matched lines and read them, assert the expected count, parse-check before
+committing.
+
+**Literature review blocked, and left blocked.** Both web tools returned a model
+error all iteration. Writing a prior-art section from memory is the exact failure
+this project documents, so it is not written. Recorded as blocked-with-reason.
+
+**A repository survey instead**, `research/where-this-work-sits.md`, with its
+method bounded in the first paragraph. Two findings worth carrying:
+
+* `f4pga/prjxray` has not been pushed since **2025-06-05** — fourteen months.
+  The database the whole ecosystem rests on is dormant, which is why fixes go to
+  openXC7's fork and why missing rows need a campaign rather than a request.
+* `openXC7/nextpnr-xilinx` is pushed daily and has **one** CI workflow, which
+  builds demos. `bit2fasm` appears nowhere in the tree: **no comparison against
+  a vendor bitstream runs in its CI at all.**
+
+Four of this month's five defects produced a bitstream that a build-only gate
+would pass. That is the gap, stated with sources.
+
+**Next.** The `fib`/`lucas` exit convention (they print usage and exit 0 while
+`phi` exits 2). Then propose the part-coverage gate upstream — a three-line flop
+across the supported part list would have caught #154 on the day it appeared.
