@@ -263,3 +263,43 @@ And when a row is added, one more habit: **take every field of an identifier
 from the same source.** The speed-grade defect came from reading a part's pins
 off a board file and its name off the same file, when the database that would
 be asked about it ships a different grade.
+
+---
+
+## 12. Test the classifier on answers you already know
+
+A script that decides something about many sites — which are safe, which are
+dead, which need the fix — is itself a claim, and it is the least examined thing
+in the room. Its output looks like data.
+
+**The case.** Deciding which of 144 CLI commands were safe for CI to execute.
+Three revisions in one sitting:
+
+| revision | verdict | why it was wrong |
+|---|---|---|
+| scan the handler body for risky calls | 180 of 208 safe | handlers delegate; the risk is one call deeper |
+| reject any handler calling project code | 87 safe | still cleared `git` |
+| — | — | `runGitCommand` does `std.process.Child.init` and `spawn()` |
+
+The third row is the diagnosis: the allow-list contained `std.` wholesale, and
+`std.process.Child` lives inside `std.`. A handler that spawns a subprocess read
+as print-only. A second hole: unqualified calls — `showRailwayHelp(...)`, no dot
+— were skipped entirely.
+
+**Every revision erred toward "safe".** Feeding revision 1 or 2 into CI would
+have run `deploy`, `serve` and `git` on every build.
+
+**The rule.** Before believing a classifier, run it against cases whose answer
+you already know — and choose them from *both* classes. `git` obviously spawns;
+`clean` is obviously a stub. Checking those two took one command and invalidated
+the whole direction.
+
+**The corollary that matters more.** Ask which way the classifier's errors run.
+One that occasionally misses a dead file wastes a little disk. One that
+occasionally calls a subprocess-spawning command "safe" executes `deploy` in CI.
+**When the error direction is asymmetric, a classifier that cannot be made sound
+should be abandoned, not tuned** — the fourth revision would have produced the
+number I wanted and no more truth than the third.
+
+Coverage that matters grows by reading. The smoke list here stayed at 18 of 144,
+each read individually, because that is the only figure anyone can defend.
