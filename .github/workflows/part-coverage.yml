@@ -185,8 +185,15 @@ jobs:
           # database and reported the resulting AssertionError as 'Spartan
           # fails to route' -- when nextpnr had in fact finished with 0 errors.
           # Guarding only chipdb and yosys left that gap.
+          # Only meaningful when P&R SUCCEEDED. If nextpnr failed there is no
+          # FASM to assemble, so 'No such file' from fasm2frames is a
+          # consequence of the real failure rather than a harness fault --
+          # and treating it as one made the genuine a35t failure report as
+          # inconclusive, which is the defect this gate exists to detect.
           HARNESS_ERR=0
-          grep -qE 'not found in|AssertionError|No such file' out/frames.log 2>/dev/null && HARNESS_ERR=1
+          if [ "$P" = 0 ]; then
+            grep -qE 'not found in|AssertionError|No such file' out/frames.log 2>/dev/null && HARNESS_ERR=1
+          fi
           if [ "$C" != 0 ] || [ "$S" != 0 ] || [ "$HARNESS_ERR" = 1 ]; then
             say '**Inconclusive.** chipdb, synthesis or the assembler harness failed,'
             say 'so this says nothing about the part — it is the harness or the image.'
