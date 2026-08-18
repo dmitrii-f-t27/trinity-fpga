@@ -413,3 +413,38 @@ listing 12 — removing `verify` never decremented the count. Corrected.
 answers #154, adapt the gate to their part list. Otherwise the honest options
 are: extend part coverage once pins are confirmed, or stop adding and let the
 gates run.
+
+### 011 — 2026-08-19, night
+
+**The empty queue was wrong: two gates were failing on my commits.** Checked
+ownership of each rather than assuming either way.
+
+**`Codegen Validation` — mine.** It builds with Zig **0.16**, and the `build.zig`
+I restored is the March file, where `linkLibC()` is a method 0.16 removed. Eight
+call sites, all one shape, converted to `root_module.link_libc` — the form this
+same file already uses **fifteen times**, so its own idiom rather than a new
+one, and one that works under 0.15 too. One file, two toolchains, one spelling.
+
+The edit asserted its own scope: exactly eight sites expected, zero survivors
+required, abort otherwise. **§11 applied rather than recalled** — and the
+assertion means a ninth site of a different shape would have stopped the script
+instead of being silently skipped.
+
+**Verified no regression**: `tri builds` (0.15) still passes on the same commit.
+
+**`Withdrawn numbers` — not mine.** It fails on `0.1173` in
+`research/arxiv_tnf/tnf_paper.tex`, a document I have not touched this session.
+Left alone.
+
+**Three more paper gates fail** — Document references, Orphaned artefacts,
+Undefined outputs — all on work another session is actively doing. Not touched:
+interfering with live parallel work is worse than leaving a red gate that
+belongs to someone else.
+
+**Worth noting about this repository**: it has a gate whose entire job is to
+catch withdrawn claims reappearing in the text. Given that this session
+retracted one of its own corrections and then qualified the retraction, that is
+not an ornament.
+
+**Next.** Whether `Codegen Validation` gets past line 69 under 0.16 — if it does,
+the next error is the real state of the 0.15→0.16 gap rather than a method name.
