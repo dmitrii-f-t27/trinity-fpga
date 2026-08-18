@@ -27,7 +27,7 @@ iteration log before trusting a row, and refresh it when it disagrees.*
 
 | Thread | State | Evidence |
 |---|---|---|
-| `tri` build | **Builds, links and runs**; 18 of 144 commands smoke-tested | gate `tri builds` |
+| `tri` build | Builds, links, runs; 18/144 smoke-tested; usage-exit convention **gated** | gate `tri builds` |
 | `build.zig` under 0.16 | Clean; only vendored raylib still fails | Codegen Validation |
 | BUFR configuration | **Fixed upstream, merged** | nextpnr-xilinx#151 |
 | BUFR from a pin | Blocked on prjxray `047b` (I2IOCLK rows) | issue #149 |
@@ -873,3 +873,39 @@ none noticed by me first.
 
 **Next.** Externally unchanged — Hans on the part list, Carlos on `047b`, the
 board for #114. The 395 unreachable files are ratcheted but untouched.
+
+### 025 — 2026-08-20, night
+
+**Gated the usage-exit convention.** Reports `sites: 0`; all steps green.
+
+Two iterations went into finding and fixing 49 sites. Nothing stopped a
+fiftieth appearing tomorrow, and the next person would have measured 49 again.
+The repair without the gate is a deferred recurrence — which is the argument
+this whole session keeps making, now applied to my own work rather than
+someone else's.
+
+**Static, not sampled.** It covers all 144 commands; the smoke test runs 18. The
+first four instances were found only because the smoke list happened to include
+them, and three more sat in the same file untouched until a tree-wide scan.
+
+**It matches one shape on purpose.** A command asked for help explicitly must
+print usage and exit 0, so matching the word would fail working commands. That
+distinction cost a careful reading of 29 handlers; it is now encoded rather than
+remembered.
+
+**The error message names the fix and the precedent** — `exitWithCode`, as
+`phi`, `fib`, `lucas` and `formula` do. A gate that says only "you broke it"
+sends the reader to find out how, and in this tree they might find out from one
+of the 395 unreachable files.
+
+**Three instruments now exist, each grown from a specific miss:**
+
+| instrument | the miss it came from |
+|---|---|
+| reachability ratchet | nearly editing a dead copy of a handler |
+| failure-output retention | a panic backtrace discarded by the smoke step |
+| usage-convention gate | 49 sites found twice, once by accident |
+
+**Next.** Externally unchanged. Nothing self-contained left that does not need a
+decision — the 395 files need one, and the remaining `tri` coverage needs a
+judgement about which commands are safe to execute.
