@@ -156,14 +156,21 @@ jobs:
           say '| command | exit | first line |'
           say '|---|---|---|'
           ok=0; bad=0
-          for c in version info status phi constants math fib lucas gematria sacred stats doctor; do
+          # Six added after reading their handlers rather than guessing: bio, cosmos,
+          # formula, intelligence, neuro and spiral have handlers that print and
+          # touch nothing else -- no Child.run, no file handles, no sockets. The
+          # scan that found them also pointed at three handlers in
+          # tri_math_backup.zig, a file nothing imports; see
+          # research/src-tri-reachability.md.
+          for c in version info status phi constants math fib lucas gematria sacred stats doctor \
+                   bio cosmos formula intelligence neuro spiral; do
             out=$(timeout 20 "$BIN" "$c" 2>&1); rc=$?
             first=$(printf '%s' "$out" | sed 's/\x1b\[[0-9;]*m//g' | grep -v '^[[:space:]]*$' | head -1 | cut -c1-58)
             if [ $rc -eq 0 ]; then ok=$((ok+1)); else bad=$((bad+1)); fi
             say "| \`$c\` | $rc | ${first:-(no output)} |"
           done
           say ''
-          say "**$ok exited 0, $bad did not** — of 12 sampled from 144 advertised."
+          say "**$ok exited 0, $bad did not** — of 18 sampled from 144 advertised."
           say ''
           say 'Exit 0 means it ran, not that it is correct. This is a smoke test.'
           exit 0
