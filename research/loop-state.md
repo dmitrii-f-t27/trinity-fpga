@@ -1042,3 +1042,26 @@ That is a different and larger piece of work, and it needs someone who knows
 what a valid argument is for each.
 
 **Consecutive no-change iterations: 2.**
+
+### 031 — 2026-08-20, night
+
+**Third consecutive no-change iteration.** All signals flat: #154 one reply,
+#120 and #149 none, submodule unpushed, no commits on `main` but mine.
+
+At iteration 029 I wrote that a growing no-change count is the signal to pause
+the loop deliberately rather than let it tick. It has reached three. **I am not
+stopping it unilaterally** — a continuous loop is what was asked for, and the
+user is asleep and cannot be consulted — but the recommendation belongs on the
+record, and it is in the report.
+
+**Wrote `research/HANDOFF-morning.md`** instead: the things that need a person,
+in one file, with the commands to run. Five minutes for the submodule push,
+the FASM-level A/B for #114 with both outcomes stated in advance, the two
+decisions that are the user's, who is waiting on what, and the two unsent
+letters — noting that the retraction matters more than the status letter,
+because a wrong claim of mine may already have been acted on.
+
+That is the last thing the loop can produce without new input. Further
+iterations should check the four signals and stop.
+
+**Consecutive no-change iterations: 3.**
