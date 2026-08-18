@@ -685,3 +685,40 @@ ones the current rows happen to agree on.*
 **Next.** Nothing unblocked. `xc7z035` stays out (upstream: missing tilegrid).
 Awaiting Hans on the part list and cadence; #114 needs the board; #149 needs
 `047b`.
+
+### 019 — 2026-08-19, night
+
+**Found an open draft of mine I had lost track of: PR #120**, two IOB bits that
+diverge from Vivado on essentially every 7-series design. Not stale — updated
+2026-08-18 — and held not by doubt but by coordination: the patch changes the
+bitstream of any design with an LVCMOS33 pad, so `demo-projects` goldens stop
+matching.
+
+**Measured what "the goldens no longer match" actually costs**, since it had
+never been stated. Eight committed goldens; **six change, two must not**:
+
+| golden | standard | changes |
+|---|---|---|
+| arty, basys-3, zybo, genesys2, qmtech, litex-arty-s7 | LVCMOS33 | yes |
+| `blinky-kc705` | no LVCMOS33 | **no** |
+| `blinky-stlv7325` | LVCMOS15 | **no** |
+
+**The two that must not change are the valuable half.** They turn a bulk
+regeneration into something falsifiable: six diffs that should touch only the
+two named IOB bits, and two files that must come out byte-identical. If either
+of those moves, the patch reaches further than its description claims.
+
+*A regeneration that cannot fail is not evidence the patch is right.* Same
+principle as the coverage gate's pinned expectations, applied to an artefact
+update rather than a test.
+
+Offered to produce that table as a PR against `demo-projects`, and said plainly
+I will not touch their reference artefacts uninvited.
+
+**Skill §11 now at nine instances**, with the matrix corollary: *a matrix with N
+rows teaches you nothing about the N+1th, and the values most likely to be
+hardcoded are the ones the current rows happen to agree on.* Plus the habit from
+the ninth: take every field of an identifier from one source.
+
+**Next.** Still waiting on Hans (part list, cadence, and now the goldens offer),
+Carlos (`047b`), and the board for #114.
