@@ -33,7 +33,7 @@ iteration log before trusting a row, and refresh it when it disagrees.*
 | BUFR from a pin | Blocked on prjxray `047b` (I2IOCLK rows) | issue #149 |
 | IDDR / #114 | Site config eliminated; 4 `IFF.ZSRVAL_Q` bits left; **needs the board** | issue #114 |
 | Router / #154 | Filed with a control; a35t only, of three parts tested | issue #154 |
-| Part-coverage gate | 3 parts green; Kintex awaits one answer from Hans | run 32132592070 |
+| Part-coverage gate | **4 parts green**; only a35t fails, of four tested | run 32138267197 |
 | Benchmark timing claim | **Retracted — the correction was itself wrong** | `research/benchmark-timing-correction.md` |
 | `zig-golden-float` | **Unpushed commits — clone --recursive fails for everyone** | README |
 
@@ -643,3 +643,45 @@ skill entry earning its keep rather than just recording history.
 **Next.** Still nothing unblocked from outside. Command coverage remains 12
 tested of 144 advertised; extending it means deciding which commands are safe to
 execute, since the list includes `clean`, `deploy`, `spawn` and `serve`.
+
+### 018 — 2026-08-19, night
+
+**Four parts green. Only a35t fails.** Run 32138267197:
+
+| part | result | expected |
+|---|---|---|
+| `xc7a35tcsg324-1` | fail — the #154 error | fail |
+| `xc7a200tfbg484-2` | pass | pass |
+| `xc7s50csga324-1` | pass | pass |
+| `xc7k325tffg676-1` | pass | pass |
+
+Kintex added with `IBUFDS` on a differential clock, as promised to Hans on the
+issue rather than waiting for his answer. It builds through `fasm2frames`.
+
+**Two corrections to things I had told him**, both now on the issue:
+
+* The `# TODO verify / test` comment in `sitlinv_stlv7325_v1.py` is on `clk156`
+  and `clk150`, **not** on `clk200`, which is the one I used. I generalised from
+  two lines to all of them.
+* The Kintex part id is `-1`, not `-2`. I took the speed grade from the board
+  that supplied the pins rather than from the database that would be asked
+  about it.
+
+**Ninth self-inflicted defect**, and a new angle on the same shape: taking one
+field from one source and the rest from another without checking they agree.
+
+**What the gate got right, which is the whole design.** It reported the Kintex
+misconfiguration as **INCONCLUSIVE**, not as "Kintex cannot route" — the
+distinction added two iterations earlier after the spartan7/artix7 database
+mix-up. Two of four rows produced a harness fault before settling, and neither
+became a false finding.
+
+**A property worth stating for §11**: this file has now baked in a per-part
+value three times — `LVCMOS33`, the `artix7` db-root, and the speed grade — each
+correct for every row present when written. *A matrix with N rows teaches you
+nothing about the N+1th, and the properties most likely to be hardcoded are the
+ones the current rows happen to agree on.*
+
+**Next.** Nothing unblocked. `xc7z035` stays out (upstream: missing tilegrid).
+Awaiting Hans on the part list and cadence; #114 needs the board; #149 needs
+`047b`.
