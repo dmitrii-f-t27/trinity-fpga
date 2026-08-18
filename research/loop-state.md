@@ -607,3 +607,39 @@ against the log.
 (differential clock question), Carlos (`047b`), the user (board A/B for #114,
 pushing `zig-golden-float`), and whoever owns the GUI targets (raylib under
 0.16).
+
+### 017 — 2026-08-19, night
+
+**No external change.** No upstream replies; the failing gates are the same four
+belonging to the paper session plus Codegen Validation on vendored raylib.
+
+**Widened the stub search and found nine sites outside the earlier fix.** The
+first pass matched `"TODO - not implemented yet"`; searching every phrasing
+finds **29 print sites announcing non-implementation**, so nine were missed —
+eighth instance of the §11 shape this session.
+
+**Five of the nine are not defects**, and reading them individually is what
+established that:
+
+    tri fpga gen not implemented - use zig build vibee instead   redirect
+    Not implemented: use .tri specs instead                      redirect
+    Detailed trends analysis coming soon  (x2)                   analysis prints
+    Run with --write ... (coming soon)                           flag hint
+
+Each sits inside a command that works. Changing their exit codes would turn a
+working command into a failing one — **the distinction a blanket pattern edit
+destroys**, and the reason this fix was made by reading nine sites rather than
+by matching a string.
+
+**Two were real** and now return `error.NotImplemented`: `runBenchCommandAsync`
+(every path prints a TODO and returns void) and `runRepair` in
+`cytoplasm_registry.zig`. A third, `serve`, was already correct. Build green.
+
+**Method note worth keeping.** I predicted the §11 failure before making this
+edit and therefore inspected each site by hand. That is the first time this
+session the pattern was anticipated rather than discovered afterwards — the
+skill entry earning its keep rather than just recording history.
+
+**Next.** Still nothing unblocked from outside. Command coverage remains 12
+tested of 144 advertised; extending it means deciding which commands are safe to
+execute, since the list includes `clean`, `deploy`, `spawn` and `serve`.
