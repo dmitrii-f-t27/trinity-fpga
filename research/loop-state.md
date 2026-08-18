@@ -909,3 +909,36 @@ of the 395 unreachable files.
 **Next.** Externally unchanged. Nothing self-contained left that does not need a
 decision — the 395 files need one, and the remaining `tri` coverage needs a
 judgement about which commands are safe to execute.
+
+### 026 — 2026-08-20, night
+
+**Attempted the recommended option — extend the smoke list from 18 to every
+safe command — and stopped, because the classifier could not be made sound.**
+
+Three revisions in one iteration, each unsound in the *dangerous* direction:
+
+1. **Body-only scan for risky calls.** Reported 180 of 208 handlers safe —
+   including `clean`, `deploy`, `serve`, `swarm`. Wrong because those handlers
+   delegate; the risk sits one call deeper.
+2. **Stricter: reject any handler calling project code.** Reported 87. Still
+   included `git`.
+3. **Spot-check against known answers**, which is what settled it:
+   `runGitCommand` does `std.process.Child.init(argv, allocator)` and
+   `child.spawn()`. My allow-list contained `std.` wholesale, and
+   `std.process.Child` is inside `std.`. A second hole: unqualified calls
+   (`showRailwayHelp(...)`, no dot) were skipped entirely.
+
+**So the answer to "which commands are safe to execute" is not reliably
+computable this way**, and feeding revision 1 or 2 into CI would have run
+`deploy`, `serve` and `git` on every build. Recorded rather than iterated
+toward a fourth revision that produces a number I wanted.
+
+**What actually saved it** was testing the instrument on cases where the answer
+was already known — `git` obviously spawns, `clean` is obviously a stub. That
+check cost one command and invalidated two hours of direction.
+
+**Consequence:** the smoke list stays hand-verified and small. 18 of 144, each
+read individually. Coverage grows by reading, not by classification.
+
+**Next.** Externally unchanged. The remaining paths all need a decision that is
+not mine: the 395 unreachable files, and which risky commands may run in CI.
