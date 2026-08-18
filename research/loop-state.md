@@ -377,3 +377,39 @@ than inventing them.
 
 **Next.** Whatever upstream answers. Meanwhile: the smoke table is clean apart
 from documented stubs, and `verify` is out of it for cause.
+
+### 010 — 2026-08-19, night
+
+**Queue empty, so the deferred item got done.** Upstream has not replied to #154
+(every recent comment is mine), and web search still returns a model error — the
+literature review stays blocked rather than written from memory, for the second
+iteration running.
+
+**`tri journal` added**, the one repeatedly-requested thing that only became
+possible tonight. It prints a section of `research/loop-state.md`: latest entry,
+invariants, or all. It deliberately parses nothing — a command that *summarised*
+the journal would create a second version of the truth, which is the defect
+class this session exists to repair.
+
+**Two collisions caught before committing, for once**, rather than by the gate:
+
+* `tri_loop` is already bound to `heartbeat.zig` at main.zig:29, and Zig forbids
+  shadowing.
+* **`loop` is already a command.** Bare `tri loop` routes to `dev_workflow`
+  (main.zig:1532) and CLAUDE.md documents it as pipeline step ten, `tri loop
+  decide`. An early dispatch on that name would have stolen it silently — still
+  present, still documented, quietly doing something else. Renamed to `journal`.
+
+That is §11 working on the first attempt. Not entirely: the rename's `sed`
+matched one usage line of three and I read only the line I aimed at, leaving two
+stale references inside the file about stale references. Fixed in a follow-up.
+
+**Exit conventions are now consistent.** `phi`, `fib`, `lucas` all exit 2 on a
+missing argument; `stats` and `doctor` exit 1 as unimplemented stubs; the other
+seven exit 0 with real output. The smoke summary said "of 13 sampled" while
+listing 12 — removing `verify` never decremented the count. Corrected.
+
+**Next.** Nothing queued that does not depend on someone else. If upstream
+answers #154, adapt the gate to their part list. Otherwise the honest options
+are: extend part coverage once pins are confirmed, or stop adding and let the
+gates run.

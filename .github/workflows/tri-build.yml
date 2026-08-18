@@ -163,7 +163,7 @@ jobs:
             say "| \`$c\` | $rc | ${first:-(no output)} |"
           done
           say ''
-          say "**$ok exited 0, $bad did not** — of 13 sampled from 144 advertised."
+          say "**$ok exited 0, $bad did not** — of 12 sampled from 144 advertised."
           say ''
           say 'Exit 0 means it ran, not that it is correct. This is a smoke test.'
           exit 0
