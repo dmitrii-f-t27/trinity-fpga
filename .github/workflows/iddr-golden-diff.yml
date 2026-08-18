@@ -137,9 +137,55 @@ jobs:
           fi
           exit 0
 
+      # The decisive comparison for #114: build Hans's A design through openXC7
+      # and diff its ILOGIC configuration against Vivado's. IFFDELMUXE3 is now
+      # exonerated -- absence IS the direct position -- so what remains is
+      # whatever else Vivado programs on a working IDDR and we do not.
+      - name: Build the same design with openXC7 and diff the ILOGIC config
+        run: |
+          set +e
+          say() { echo "$1" >> $GITHUB_STEP_SUMMARY; echo "$1"; }
+          mkdir -p oxc
+          docker run --rm -v "$PWD:/w" -w /w "$OPENXC7_IMAGE" bash -c '
+            set -e
+            cd /nextpnr-xilinx
+            cp /w/bin/bbasm /usr/local/bin/bbasm 2>/dev/null || true
+            if [ ! -f /w/oxc/chip.bin ]; then
+              python3 xilinx/python/bbaexport.py --device xc7a35tcsg324-1 --bba /w/oxc/c.bba
+              $(find / -name bbasm -type f -perm -u+x 2>/dev/null | head -1) -l /w/oxc/c.bba /w/oxc/chip.bin
+            fi
+            cd /w/ref
+            yosys -p "synth_xilinx -flatten -abc9 -arch xc7 -top top; write_json /w/oxc/a.json" \
+                  A_direct_top.v > /w/oxc/synth.log 2>&1
+            nextpnr-xilinx --chipdb /w/oxc/chip.bin --xdc A_direct_top.xdc \
+                  --json /w/oxc/a.json --fasm /w/oxc/a.fasm > /w/oxc/pnr.log 2>&1
+          ' || { say "openXC7 build failed:"; say '```'; tail -8 oxc/pnr.log oxc/synth.log 2>/dev/null >> $GITHUB_STEP_SUMMARY; say '```'; exit 0; }
+
+          say ""
+          say "## What Vivado programs on a working IDDR that openXC7 does not"
+          say ""
+          # Compare feature NAMES with tile coordinates stripped: placement
+          # differs between the tools and is not the question.
+          norm() { grep -oE '\''ILOGIC_Y[01]\.[A-Za-z0-9_.]+'\'' "$1" | sort -u; }
+          norm ref/A_direct.fasm > oxc/viv.names
+          norm oxc/a.fasm        > oxc/oxc.names
+          say '```diff'
+          diff oxc/viv.names oxc/oxc.names >> $GITHUB_STEP_SUMMARY
+          say '```'
+          MISSING=$(comm -23 oxc/viv.names oxc/oxc.names | wc -l)
+          say ""
+          say "Features Vivado sets that openXC7 never emits: **$MISSING**"
+          say ""
+          say "\`IFFDELMUXE3\` is not among the candidates: this run showed \`P0\` appears"
+          say "only in the IDELAY build, so its absence in a direct design is the correct"
+          say "encoding of the direct position, not a missing bit."
+          exit 0
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: iddr-golden-fasm
-          path: ref
+          path: |
+            ref
+            oxc
           retention-days: 90
