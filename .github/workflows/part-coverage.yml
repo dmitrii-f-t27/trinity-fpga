@@ -31,13 +31,20 @@
 # motivated it is not evidence of anything.
 #
 # ON THE PART LIST. Upstream's demos workflow names xc7a35tcsg324-1,
-# xc7k325tffg676-1, xc7s50csga324-1 and xc7z035. Only two parts are here,
-# because a part needs pin assignments and I have verified pins for exactly
-# these two — a35t from prjxray's own arty-a7 harness, a200t from the control
-# run in openXC7#154. Guessing pins for the other three would produce failures
-# that are mine rather than the tool's, which is the failure mode that made the
-# first version of the #154 reducer useless. Add a part when its pins are
-# confirmed, not before.
+# xc7k325tffg676-1, xc7s50csga324-1 and xc7z035. Three are here.
+#
+# @hansfbaier pointed at litex-hub/litex-boards for pin assignments, which
+# settled xc7s50csga324-1 immediately: digilent_arty_s7.py names that exact
+# part. My hesitation was unnecessary and the pins were a search away.
+#
+# xc7k325tffg676 is not here yet, and the reason is specific rather than
+# reluctance. The board carrying that exact part, sitlinv_stlv7325_v1, has only
+# differential clock inputs and they are marked TODO/unverified in that file.
+# The ffg676 boards with clean single-ended pins -- berkeleylab_marble -- are a
+# different die (xc7k160t). Pins are package-level, so they are probably
+# transferable, and 'probably' is what produced the first #154 reducer's four
+# self-inflicted failures. Asked upstream whether a differential clock is
+# acceptable for a smoke design instead of assuming.
 #
 # phi^2 + 1/phi^2 = 3 = TRINITY
 
@@ -69,6 +76,24 @@ jobs:
             d: F21
             q: M22
             expect: pass        # the control
+          # Pins from litex-boards digilent_arty_s7.py, which names this exact
+          # part -- "s7-50": "xc7s50csga324-1" -- so they are read, not guessed:
+          # clk12 F14, user_sw0 H14, user_led0 E18, all LVCMOS33.
+          #
+          # @hansfbaier pointed at that repository when I said I had no verified
+          # pins. He was right and the hesitation was mine: the pins were a
+          # search away.
+          #
+          # `expect: pass` here is a PREDICTION, not a measurement -- this part
+          # has never been built in this gate. If Spartan fails like a35t, that
+          # is a finding, and this line is what makes it visible instead of
+          # something to quietly edit afterwards.
+          - part: xc7s50csga324-1
+            device: xc7s50csga324
+            clk: F14
+            d: H14
+            q: E18
+            expect: pass
     name: ${{ matrix.part }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
