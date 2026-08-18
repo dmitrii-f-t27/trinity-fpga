@@ -22,13 +22,15 @@ One is deliberately **not** merged, and says why. A hardware `IDDR` does not del
 
 Not simulation, not an estimate: a bitstream on an AX7203 board (IDCODE `0x13636093`), fed vectors over UART at 160000 baud, every result compared against an independent oracle.
 
-As of the 2026-07-02 audit recorded in [`fpga/CATALOG_MATRIX_83.md`](fpga/CATALOG_MATRIX_83.md):
+Recomputed by the repository's own tool, [`research/measure_tier_e_cells.py`](research/measure_tier_e_cells.py), rather than counted once by hand:
 
-- **71 / 83 formats Tier-E on hardware** — 41 decode cells + 30 compute cells
-- **compute: ADD 10/10, MUL 10/10, SUB 10/10** across GF4–GF32, every cell individually proof-backed
-- **0 failures** on the cells that passed; the flash queue is drained, so every CI-built bitstream is hardware-proven
+- **72 distinct (format, operation) cells** proven on silicon, over **49 distinct base formats**
+- of 226 proof comments, **75 carry all four required links** — CI run URL, SHA-256, UART log, IDCODE
+- **compute: ADD, MUL and SUB across GF4–GF32**, every cell individually proof-backed
 
-"Tier-E" is this project's own bar and it is deliberately high: a dedicated proof post, the hardware IDCODE and CI run ID, and a bit-exact UART witness captured from the board. Witnesses live in [`conformance/witness/`](conformance/witness/) — in the repository, not described in prose.
+"Tier-E" is this project's own bar and it is deliberately high: a dedicated proof post, the hardware IDCODE and CI run ID, and a bit-exact UART witness captured from the board. Board evidence is in [`fpga/evidence/`](fpga/evidence/) — see [`gf16_add_hw_replay_20260704.md`](fpga/evidence/gf16_add_hw_replay_20260704.md) for a complete chain. (The TSV files under `conformance/witness/` are SoftPosit and libtakum *software* reference dumps, not board captures.)
+
+A figure of "71 / 83" appeared here earlier and is withdrawn: it added 41 decode *formats* to 30 compute *operations* and double-counted gf10 and gf14, against a denominator of formats. The tool above is the source now, because it can be recomputed.
 
 The scale behind that: **107 per-format silicon harnesses**, **23 software oracles**, **110 CI workflows** of which **70 drive the openXC7 image**.
 
@@ -53,9 +55,9 @@ Counts are traceable to the file named beside them. Where two internal sources d
 | Axis | Count | Source |
 |------|-------|--------|
 | Upstream patches merged | **28** | 26 nextpnr-xilinx + 2 demo-projects, verifiable on GitHub |
-| Tier-E on hardware | **71 / 83** | `fpga/CATALOG_MATRIX_83.md`, 2026-07-02 audit |
-| — decode cells | 41 / 83 | UART @160000 on AX7203, IDCODE `0x13636093` |
-| — compute cells | 30 / 83 | ADD 10/10, MUL 10/10, SUB 10/10 (GF4–GF32) |
+| Cells proven on silicon | **72** (format, operation) pairs | `research/measure_tier_e_cells.py`, read live from issue #199 |
+| — distinct base formats | **49** | same tool |
+| — proofs with all four links | 75 of 226 | CI URL + SHA-256 + UART log + IDCODE |
 | SW bit-exact | **69 / 83** | `fpga/CATALOG_MATRIX_83.md`; a strict recount gives 62 — see limitations |
 | Oracle self-tests | 18 pass, 0 fail | `make oracle`, run 2026-08-18 |
 | Catalogue paper | published | [arXiv:2606.09686](https://arxiv.org/abs/2606.09686) v2 |
@@ -93,7 +95,7 @@ docker run --rm regymm/openxc7 bash -c '
   fasm2frames ${DESIGN}.fasm > ${DESIGN}.frames
   xc7frames2bit --frm_file ${DESIGN}.frames --bit_file ${DESIGN}.bit'
 
-sudo openocd -f board/ax7203.cfg -c "init; pld load 0 ${DESIGN}.bit; exit"
+sudo openocd -f fpga/openxc7-synth/ax7203_al321.cfg -c "init; pld load 0 ${DESIGN}.bit; exit"
 python3 conformance/gf64_conformance_ax7203.py --bit ${DESIGN}.bit
 ```
 
