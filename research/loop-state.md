@@ -1014,3 +1014,31 @@ than when someone trips over it.
 **Consecutive no-change iterations: 1.** Recording the count so the pattern is
 visible. If it grows, that is the signal to pause the loop rather than let it
 tick — the work is not stalled, it is finished pending other people.
+
+### 030 — 2026-08-20, night
+
+**No external change.** Signals unchanged for the second consecutive iteration.
+
+**Tried to grow smoke coverage by reading, per iteration 026's conclusion, and
+stopped one step short of a useless change.** Read five candidate handlers —
+`groups`, `evidence`, `nuclear`, `particles`, `identities` — and verified all
+five side-effect free, including one hop deeper for `identities`, whose
+`printAllIdentities` is also pure. `particles` is pure arithmetic over inline
+constants.
+
+Then checked whether they are dispatched at top level. **None is.** All five are
+subcommands, presumably of `math`. `tri groups` would land in the
+unknown-command path, so adding them would have measured the dispatcher's error
+handling and reported it as command coverage.
+
+**So the smoke list stays at 18**, and the useful finding is about what remains:
+the reachable top-level commands are largely covered, and the rest of the 144
+are subcommands needing a two-token invocation with a valid argument. Testing
+`tri math evidence` without a name now correctly exits 2 — which is the
+convention working, and not a test of the command.
+
+Meaningful coverage beyond this means supplying real arguments per subcommand.
+That is a different and larger piece of work, and it needs someone who knows
+what a valid argument is for each.
+
+**Consecutive no-change iterations: 2.**
