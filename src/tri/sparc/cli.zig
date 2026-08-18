@@ -585,7 +585,7 @@ fn runList(allocator: Allocator, options: SparcOptions) !void {
                 try galaxy_obj.put("inclination_deg", json.Value{ .float = galaxy.inclination });
                 try galaxy_obj.put("position_angle_deg", json.Value{ .float = galaxy.position_angle });
 
-                try root.append(allocator, json.Value{ .object = galaxy_obj });
+                try root.append(json.Value{ .object = galaxy_obj });
             }
 
             {
