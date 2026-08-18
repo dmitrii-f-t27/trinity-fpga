@@ -60,3 +60,46 @@ reaches them.
 
 **Next.** Whatever the gate reports. Then: the two benchmark corrections, and a
 minimal reproducer for the `Invalid global constant node` router failure.
+
+### 002 — 2026-08-18, same evening
+
+**Method change that paid for itself.** Fixing "no module named X" one CI round
+at a time was costing a build per defect and finding them in the compiler's
+order rather than mine. Enumerated instead: 34 named imports under `src/tri`,
+21 wired, 13 missing. All 13 in one commit. Prefer the inventory to the
+iteration whenever the defect class is enumerable.
+
+**Defects closed this round.** zig-hdc API drift (`bundle2` arity,
+`getTritChecked` → `getTrit`), 13 unwired modules, `golden_chain` bound to the
+wrong file of that name, an orphaned parameter, a `{m}` format specifier, 14
+C-style `{:.3f}` specifiers, `for` over an `ArrayList` instead of `.items`,
+`catch unreachable` on a void, `'●'` assigned into a `u8`, and
+`totalVelocity` called with an allocator it no longer takes.
+
+**Two of them were mine**, both caught by the gate rather than by me:
+dropping `bundle2`'s allocator orphaned `store()`'s parameter, and a
+`grep 'pub const GoldenChain'` matched `GoldenChainAgent` by prefix, so I wired
+a module to the wrong file on a fuzzy name match. Both now have a habit
+attached: after removing an argument, check the enclosing function still uses
+its parameter; and a prefix match is not an identity match.
+
+**The recurring shape, now with six instances.** Every structural defect found
+today is the same one: code moved out, a reference stayed behind.
+`local_farm.zig` (farm → trinity-training), `src/vsa.zig` (VSA → zig-hdc),
+`quantum_gravity_full.zig` (physics → zig-physics), the zig-hdc API drift after
+its own dedup, `build.zig` itself, and the submodule gitlink pointing at an
+unpushed commit. None was caught at extraction time, because nothing ran the
+build.
+
+**Instrument improvement.** Added `-freference-trace=12` to the gate after a
+comptime format error reported std's line and hid the call site behind "8
+reference(s) hidden". It named the real line on the first run afterwards.
+
+**Judgement worth keeping.** `'●'` in a `u8` would also have compiled if I had
+swapped it for ASCII — and would have silently downgraded the plot. The print
+loop already emitted the glyph as a literal and only used the buffer as a
+marker, so markers were the correct fix. The cheaper repair is not always the
+smaller change.
+
+**Next.** Whatever the gate says. Then the two benchmark corrections, and a
+reduced test case for the `Invalid global constant node` router failure.
