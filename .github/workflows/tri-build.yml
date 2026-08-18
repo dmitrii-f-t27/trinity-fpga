@@ -1,0 +1,115 @@
+# Does the tri CLI build?
+#
+# It did not, for four months, and nothing said so. build.zig stopped parsing
+# on 2026-03-20 (0e9efbb93), was edited by 73 further commits that could never
+# have been validated, then renamed to build.zig.tri and deleted. The CLI that
+# this project's own documentation calls its entry point could not be compiled
+# by anyone, with any Zig version, and no gate noticed.
+#
+# This is that gate. It is deliberately dumb: fetch the pinned toolchain,
+# build, report. A build that fails here has failed for real users.
+#
+# Zig 0.15.2, not 0.16: the tree has ~951 std.fs call sites and ~383
+# std.process ones written against the 0.15 API, and 0.16 moved the filesystem
+# into std.Io with different semantics. Migrating is a real project; pinning
+# the toolchain the code was written for is the honest interim.
+#
+# Runs on Linux because Zig 0.15.2 cannot link against current macOS SDKs --
+# it fails on its own build runner there, before touching project code.
+#
+# phi^2 + 1/phi^2 = 3 = TRINITY
+
+name: tri builds
+
+on:
+  push:
+    paths:
+      - 'build.zig'
+      - 'build.zig.zon'
+      - 'src/tri/**'
+      - 'src/vsa**'
+      - '.github/workflows/tri-build.yml'
+  pull_request:
+    paths:
+      - 'build.zig'
+      - 'build.zig.zon'
+      - 'src/tri/**'
+      - 'src/vsa**'
+  workflow_dispatch:
+
+env:
+  ZIG_VERSION: '0.15.2'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false   # the gitlink is unfetchable; see README
+
+      - name: Fetch Zig ${{ env.ZIG_VERSION }}
+        run: |
+          set -e
+          curl -sSL --retry 3 -o zig.tar.xz \
+            "https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz"
+          tar xf zig.tar.xz
+          echo "$PWD/zig-x86_64-linux-${ZIG_VERSION}" >> $GITHUB_PATH
+
+      - name: zig version
+        run: zig version
+
+      # Parsing is a separate question from linking, and it is the one that
+      # regressed unnoticed for four months. Ask it first and by name.
+      - name: Does build.zig parse?
+        run: |
+          zig ast-check build.zig
+          echo "build.zig parses" >> $GITHUB_STEP_SUMMARY
+
+      - name: Does the build graph load?
+        run: |
+          set -o pipefail
+          zig build --help 2>&1 | tee graph.log | head -40
+          echo '### Build graph' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -E '^  [a-z]' graph.log | head -25 >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Build tri
+        id: build
+        run: |
+          set -o pipefail
+          zig build tri 2>&1 | tee build.log | tail -40
+
+      - name: What the binary reports
+        if: success()
+        run: |
+          BIN=$(find zig-out .zig-cache -name tri -type f -perm -u+x 2>/dev/null | head -1)
+          if [ -z "$BIN" ]; then
+            echo "::warning::built without error but no tri binary found"; exit 0
+          fi
+          echo '### tri --help' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          "$BIN" --help 2>&1 | head -40 >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Where it stopped
+        if: failure()
+        run: |
+          echo '### First errors' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -E 'error:' build.log 2>/dev/null | head -12 >> $GITHUB_STEP_SUMMARY || \
+            tail -20 build.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Distinct files with errors: $(grep -oE '^[^:]+\.zig' build.log 2>/dev/null | sort -u | wc -l)" >> $GITHUB_STEP_SUMMARY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tri-build-logs
+          path: |
+            build.log
+            graph.log
+          retention-days: 30
