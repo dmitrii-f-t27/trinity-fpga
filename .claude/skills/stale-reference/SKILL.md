@@ -6,7 +6,7 @@ description: Repairing a build, tree, or dependency that rotted silently — why
 # Stale references, and gates that hide their own news
 
 Distilled from one evening that took a CLI from "no build definition exists" to a
-running binary — about twenty defects, **seven of them introduced by the repair
+running binary — about twenty defects, **nine of them introduced by the repair
 itself** (§11). Every rule below is a specific failure that happened.
 
 The single sentence, if you read nothing else:
@@ -204,7 +204,7 @@ here were referenced nowhere in the build and were breaking it for nothing.
 
 ## 11. The uniform edit is the repair's own failure mode
 
-Seven defects were introduced by the repair in one session. All seven are the
+Nine defects were introduced by the repair in one session. All nine are the
 same mistake, and with a sample that size it can be stated precisely:
 
 > **A rule that holds for every case you looked at, applied to a set containing
@@ -219,6 +219,7 @@ same mistake, and with a sample that size it can be stated precisely:
 | rewrote calls on anything not ending `_mod` | modules follow that naming | `wasm_root` is a module and does not |
 | one `--db-root .../artix7` for every part | the parts share a family | a spartan7 part is not in the artix7 database |
 | widened a classifier to catch assembler errors | a missing FASM means a harness fault | after a failed P&R it means the failure the gate exists to detect |
+| took a part's speed grade from the board supplying its pins | one source is one source | the database that answers about it ships a different grade |
 
 Not seven accidents. One habit, and note where the exceptions live: never in
 the sites that motivated the edit, always in the ones adjacent to them. The
@@ -241,3 +242,24 @@ places. Three cheap defences, in order of value:
 The general form, which is the same rule as §4 seen from the other side: the
 sites that look alike enough to edit mechanically are exactly the sites nobody
 has read recently.
+
+### The matrix corollary
+
+A CI matrix is the same trap wearing different clothes. One workflow in this
+repository baked in a per-part value **three separate times** — the IOSTANDARD
+(`LVCMOS33`), the database root (`artix7`), and the part's speed grade — and
+each was correct for every row present on the day it was written.
+
+> **A matrix with N rows teaches you nothing about the N+1th, and the values
+> most likely to be hardcoded are exactly the ones the current rows happen to
+> agree on.**
+
+The defence is cheap and worth applying before adding any row: for each literal
+in the shared code path, ask which row would have to change for this to be
+wrong — and if you cannot name one, that is because you have only looked at the
+rows that agree.
+
+And when a row is added, one more habit: **take every field of an identifier
+from the same source.** The speed-grade defect came from reading a part's pins
+off a board file and its name off the same file, when the database that would
+be asked about it ships a different grade.
