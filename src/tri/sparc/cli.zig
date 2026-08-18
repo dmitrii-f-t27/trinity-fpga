@@ -669,6 +669,12 @@ fn runPlot(allocator: Allocator, options: SparcOptions) !void {
         }
 
         // Draw row
+        // One byte per column. The glyphs printed below are multi-byte
+        // UTF-8, so the buffer holds ASCII markers and the print loop draws
+        // the real characters -- it already did, and only ever compared these
+        // values, so nothing about the output changes.
+        const MARK_POINT: u8 = 'o';
+        const MARK_LINE: u8 = '-';
         var row_buffer: [PLOT_WIDTH]u8 = undefined;
         @memset(&row_buffer, ' ');
         for (0..PLOT_WIDTH) |x| {
@@ -680,7 +686,7 @@ fn runPlot(allocator: Allocator, options: SparcOptions) !void {
                 const v_pos = PLOT_HEIGHT - 1 - @as(usize, @intFromFloat((p.velocity / max_v) * @as(f64, @floatFromInt(PLOT_HEIGHT - 1))));
 
                 if (x == x_pos and y == v_pos) {
-                    row_buffer[x] = '●'; // Data point
+                    row_buffer[x] = MARK_POINT;
                     break;
                 }
             }
@@ -705,16 +711,16 @@ fn runPlot(allocator: Allocator, options: SparcOptions) !void {
                 const model_y = PLOT_HEIGHT - 1 - @as(usize, @intFromFloat((model_v / max_v) * @as(f64, @floatFromInt(PLOT_HEIGHT - 1))));
 
                 if (y == model_y or (y + 1 == model_y and model_y < PLOT_HEIGHT)) {
-                    row_buffer[x] = '─'; // Model line
+                    row_buffer[x] = MARK_LINE;
                 }
             }
         }
 
         // Print row
         for (row_buffer) |c| {
-            if (c == '●') {
+            if (c == MARK_POINT) {
                 std.debug.print("{s}●{s}", .{ colorize("", .blue), colorize("", .reset) });
-            } else if (c == '─') {
+            } else if (c == MARK_LINE) {
                 std.debug.print("{s}─{s}", .{ colorize("", .green), colorize("", .reset) });
             } else {
                 std.debug.print(" ", .{});
