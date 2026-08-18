@@ -341,3 +341,39 @@ keeping it here if they would rather not carry another workflow.
 
 **Next.** Build that gate here and demonstrate the acceptance test. Then the
 remaining smoke-table anomalies, if any survive.
+
+### 009 — 2026-08-19, night
+
+**The part-coverage gate exists and passes its own acceptance test.**
+Run 32122683650:
+
+| part | nextpnr | fasm2frames | result | expected |
+|---|---|---|---|---|
+| `xc7a35tcsg324-1` | 255 | 1 | fail — `Invalid global constant node X0Y98/VCC_WIRE` | fail |
+| `xc7a200tfbg484-2` | 0 | 0 | pass | pass |
+
+Both jobs end "Matches the recorded expectation — gate is sound". It reproduces
+openXC7#154 and does not false-positive on a working part, which was the
+condition set in iteration 008 before it was worth proposing. Demonstrated on
+the issue with an offer to open it as a PR.
+
+**Three properties it was given deliberately**, each from a failure earlier in
+this session:
+
+* **It checks itself.** Expectations are pinned per part; a mismatch in either
+  direction fails with a different message. A gate that cannot demonstrate it
+  still detects something should not be able to report green — the build gate
+  spent four months doing exactly that.
+* **chipdb/yosys failures are INCONCLUSIVE, not part results.** The first #154
+  reducer lacked this and reported four of my own broken XDC files as findings.
+* **It runs to `fasm2frames`.** #149 places and routes cleanly and has no
+  bitstream; stopping at P&R would call that fine.
+
+**Two parts, not four, and the reason is written in the file.** Verified pins
+exist for exactly these two. Guessing pins for the Kintex, Spartan and Zynq
+parts would manufacture failures that are mine — the same mistake as the shared
+XDC, which is now skill §11. Asked upstream for working pin assignments rather
+than inventing them.
+
+**Next.** Whatever upstream answers. Meanwhile: the smoke table is clean apart
+from documented stubs, and `verify` is out of it for cause.
