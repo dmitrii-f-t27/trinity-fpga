@@ -50,8 +50,8 @@ def main():
                  f"under a 4096x outlier e3m4 zeroes most of the tensor ({z_rule*100:.0f}%)")
     bad += check(z_e4m3 < 0.10,
                  f"where e4m3 fields lose little ({z_e4m3*100:.1f}%)")
-    bad += check(z_rule > B.FLUSH_GATE,
-                 "so the feasibility gate must exclude it, whatever its error score")
+    bad += check(z_rule > B.FLUSH_REPORT_AT,
+                 "so the flush rate is worth reporting beside the error score")
 
     # Every row's NAME must agree with the split beside it, and the widths must
     # add up. `tri mutate` showed the whole CANDIDATES table surviving: nothing
@@ -70,8 +70,11 @@ def main():
                 bad += check(False, f"{width}b row '{name}' does not match e{e}m{m}")
     bad += check(True, "every row's name matches its split, and 1+e+m equals the width")
 
-    # And the gate itself must be capable of excluding something.
-    bad += check(0 < B.FLUSH_GATE < 0.5, "the gate is a real threshold, not 0 or 1")
+    # The threshold only annotates now. perplexity_sweep.py measured the same
+    # splits on three real models and ranked e3m4 FIRST at 8 bits despite it
+    # zeroing 1.75% of GPT-2's weights, so disqualifying on this number would
+    # have thrown away the best candidate.
+    bad += check(0 < B.FLUSH_REPORT_AT < 0.5, "it is a real threshold, not 0 or 1")
 
     print()
     print("All assertions hold." if not bad else f"{bad} assertion(s) failed")

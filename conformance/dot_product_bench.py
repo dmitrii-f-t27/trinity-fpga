@@ -113,10 +113,18 @@ def bench(fmt, gen, n=256, trials=120, seed=3):
     return (sum(errs) / len(errs) if errs else float("inf")), (zeroed / total if total else 0.0)
 
 
-# A format that zeroes more than this share of a tensor is not a candidate,
-# whatever its error score says. Same discipline as the loss gate in
-# split_rule_sweep.py: rank only among the feasible.
-FLUSH_GATE = 0.01
+# Flushed weights are REPORTED, not used to disqualify.
+#
+# This started as a hard gate at 1%: a format zeroing more than that was called
+# unusable whatever its error score. perplexity_sweep.py then measured the same
+# splits on three real models and contradicted it -- on GPT-2, e3m4 zeroes 1.75%
+# of weights on average and still gives the LOWEST perplexity of the four
+# candidates, while e2m5 zeroes 12.65% and costs 16%.
+#
+# So moderate flushing is cheap and the threshold was calibrated on a proxy. The
+# number stays, because it is the thing relative error cannot see; the verdict
+# goes, because a task metric outranks a proxy gate.
+FLUSH_REPORT_AT = 0.01
 
 
 def heavy_tailed():
@@ -139,14 +147,13 @@ def main():
             a_err, a_z = bench(f, lambda: random.gauss(0, 1))
             h_err, h_z = bench(f, heavy_tailed)
             rows.append((name, a_err, h_err, max(a_z, h_z)))
-        feasible = [r for r in rows if r[3] <= FLUSH_GATE]
-        best = min((r[1] for r in feasible), default=None)
+        best = min(r[1] for r in rows)
         for name, a, c, z in rows:
             mark = "  <- the rule" if name.startswith("rule") else ""
-            if z > FLUSH_GATE:
-                mark += f"  UNUSABLE: zeroes {z*100:.1f}% of the tensor"
-            elif a == best:
-                mark += "  (best of the feasible)"
+            if z > FLUSH_REPORT_AT:
+                mark += f"  (zeroes {z*100:.1f}% -- see perplexity_sweep.py)"
+            if a == best:
+                mark += "  (lowest error here)"
             print(f"  {name:<18} {a:>13.3e} {c:>14.3e} {z*100:>7.1f}%{mark}")
         print()
 
@@ -162,8 +169,12 @@ def main():
     print("    e4m3 fields 2.1%        e5m2 fields 0.0%")
     print()
     print("That is what the wider splits are for, and it is why OCP FP8 carries")
-    print("more exponent than the golden section would give it. Ranking here is")
-    print("now among the feasible only.")
+    print("more exponent than the golden section would give it.")
+    print()
+    print("The flush rate is reported and no longer disqualifies. That gate was a")
+    print("proxy, and perplexity_sweep.py contradicted it on three real models:")
+    print("e3m4 zeroes 1.75% of GPT-2's weights and still gives the lowest")
+    print("perplexity of the four candidates.")
     print()
     print("Regime note, from the literature rather than from taste: E4M3 is the")
     print("weight format and E5M2 the gradient/activation one, because activation")
