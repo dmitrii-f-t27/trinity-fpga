@@ -69,12 +69,14 @@ jobs:
             clk: E3
             d: A8
             q: H5
+            family: artix7
             expect: fail        # openXC7#154
           - part: xc7a200tfbg484-2
             device: xc7a200tfbg484
             clk: U22
             d: F21
             q: M22
+            family: artix7
             expect: pass        # the control
           # Pins from litex-boards digilent_arty_s7.py, which names this exact
           # part -- "s7-50": "xc7s50csga324-1" -- so they are read, not guessed:
@@ -93,6 +95,7 @@ jobs:
             clk: F14
             d: H14
             q: E18
+            family: spartan7
             expect: pass
     name: ${{ matrix.part }}
     runs-on: ubuntu-latest
@@ -152,7 +155,7 @@ jobs:
           docker run --rm -v "$PWD:/w" -w /w "$OPENXC7_IMAGE" bash -c '
             source /prjxray/env/bin/activate
             fasm2frames --part ${{ matrix.part }} \
-              --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/artix7 \
+              --db-root /nextpnr-xilinx/xilinx/external/prjxray-db/${{ matrix.family }} \
               /w/out/d.fasm > /w/out/d.frames
           ' > out/frames.log 2>&1
           echo "frames_rc=$?" >> $GITHUB_OUTPUT
@@ -177,9 +180,16 @@ jobs:
           say "| fasm2frames | $F |"
           say ''
 
-          if [ "$C" != 0 ] || [ "$S" != 0 ]; then
-            say '**Inconclusive.** chipdb or synthesis failed, so this says nothing'
-            say 'about the part — it is the harness or the image.'
+          # A harness fault anywhere is inconclusive, not a part result. The
+          # first three-part run pointed a spartan7 build at the artix7
+          # database and reported the resulting AssertionError as 'Spartan
+          # fails to route' -- when nextpnr had in fact finished with 0 errors.
+          # Guarding only chipdb and yosys left that gap.
+          HARNESS_ERR=0
+          grep -qE 'not found in|AssertionError|No such file' out/frames.log 2>/dev/null && HARNESS_ERR=1
+          if [ "$C" != 0 ] || [ "$S" != 0 ] || [ "$HARNESS_ERR" = 1 ]; then
+            say '**Inconclusive.** chipdb, synthesis or the assembler harness failed,'
+            say 'so this says nothing about the part — it is the harness or the image.'
             say '```'
             tail -5 out/chipdb.log out/synth.log 2>/dev/null >> $GITHUB_STEP_SUMMARY
             say '```'
