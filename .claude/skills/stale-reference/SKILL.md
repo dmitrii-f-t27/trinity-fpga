@@ -6,8 +6,8 @@ description: Repairing a build, tree, or dependency that rotted silently — why
 # Stale references, and gates that hide their own news
 
 Distilled from one evening that took a CLI from "no build definition exists" to a
-running binary — about twenty defects, **two of them introduced by the repair
-itself**. Every rule below is a specific failure that happened.
+running binary — about twenty defects, **four of them introduced by the repair
+itself** (§11). Every rule below is a specific failure that happened.
 
 The single sentence, if you read nothing else:
 
@@ -102,7 +102,9 @@ correct code, which is why they look plausible.
 
 ## 5. Two mistakes the repair itself made
 
-Recorded because they are the ones a careful person still makes.
+Recorded because they are the ones a careful person still makes. Two more
+followed later in the same session; §11 collects all four and names what they
+have in common.
 
 **A prefix match is not an identity match.** `grep 'pub const GoldenChain'`
 matched `GoldenChainAgent`, so a module was wired to the wrong file of a
@@ -197,3 +199,36 @@ here were referenced nowhere in the build and were breaking it for nothing.
 6. Record what was left deliberately unfixed and why. "Not in the module graph,
    so nothing has compiled it against this signature" is a reason; "looked fine"
    is not.
+
+---
+
+## 11. The uniform edit is the repair's own failure mode
+
+Four defects were introduced by the repair in one session. All four are the same
+mistake:
+
+| the edit | what it assumed | what bit |
+|---|---|---|
+| dropped an argument from every `bundle2` call | the callers were alike | one enclosing function stopped using its parameter |
+| `grep 'pub const GoldenChain'` | the name was unique | it matched `GoldenChainAgent` by prefix |
+| appended `return` after every stub print | the stubs were alike | two had a second print after it, now unreachable |
+| one XDC for five reducer variants | the variants had the same ports | four had extra ports and never reached the router |
+
+Not four accidents. One habit: **applying a uniform edit to sites that are not
+uniform**, then discovering the exceptions from the build rather than before it.
+
+The script that edits N places is the fastest tool available and the one most
+likely to be wrong, because its speed comes precisely from not looking at the
+places. Three cheap defences, in order of value:
+
+1. **Print what you are about to change, with context, and read it.** All four
+   would have been visible in a diff of the matched lines.
+2. **Assert the count.** If the change should touch twenty sites, say twenty and
+   fail if it is nineteen or twenty-one.
+3. **Parse-check before committing.** Available every time; skipped once because
+   the local toolchain had been cleaned up and CI was "good enough". That saved
+   a minute and cost a full round.
+
+The general form, which is the same rule as §4 seen from the other side: the
+sites that look alike enough to edit mechanically are exactly the sites nobody
+has read recently.
