@@ -21,6 +21,10 @@ on:
         description: 'Comma-separated tops to P&R (empty = ALL tnet arms)'
         required: false
         default: ''
+      fmax_search:
+        description: 'Binary-search the highest --freq that still routes (reference config only; multiplies runtime)'
+        required: false
+        default: 'false'
 
 env:
   ALL_ARMS: 's_bin16,s_bin32,s_bnf16,s_fp8e4m3,s_fp8e5m2,s_gf10,s_gf14,s_gfplus8,s_gfternary,s_ibmhfp,s_int8,s_lns16,s_minifl,s_posit16,s_posit32,s_posit8,s_takum16,s_tnf16,s_vaxf'
@@ -139,6 +143,39 @@ jobs:
               continue
             fi
             {
+              # W937: --freq is not decoration under router1 -- it is consumed
+              # through criticality and budgets, so the figure harvested at
+              # --freq 50 is the slack the router happened to leave, not the
+              # design's limit. The field's practice is the opposite: target 1-2 ns
+              # periods so the tool is pushed. When fmax_search is on, binary-search
+              # the highest constraint that still routes cleanly and report THAT
+              # with the constraint beside it. Reference configuration only,
+              # because a search across configurations would not be one quantity.
+              FMAX_SEARCH="${{ github.event.inputs.fmax_search }}"
+              SEARCH_HI=""
+              if [ "$FMAX_SEARCH" = "true" ] && [ "$COMPARABLE" = "1" ]; then
+                set -- $CFG_USED; SP=$1; SR=$2
+                SEED_N="${CLEAN##*seed}"
+                LO=50; HI=800
+                while [ $((HI - LO)) -gt 10 ]; do
+                  MID=$(( (LO + HI) / 2 ))
+                  rm -f build/tnet/${TOP}_srch.json
+                  docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
+                    --chipdb /work/build/tnet/chipdb/xc7a200tfbg484-2.bin \
+                    --xdc /work/fpga/tnet/bench.xdc \
+                    --json /work/build/tnet/${TOP}.json \
+                    --write /work/build/tnet/${TOP}_srch.json \
+                    --freq ${MID}.0 --seed $SEED_N --placer $SP --router $SR > /tmp/srch_${TOP}.log 2>&1 || true
+                  if [ -f build/tnet/${TOP}_srch.json ] && ! grep -q "Failed to find a route" /tmp/srch_${TOP}.log \
+                     && ! grep -qi "timing.*not met\|Max frequency.*FAIL" /tmp/srch_${TOP}.log; then
+                    LO=$MID
+                  else
+                    HI=$MID
+                  fi
+                done
+                SEARCH_HI="$LO"
+                echo "::notice::${TOP} highest clean constraint ~${LO} MHz (binary search, ${CFG_USED})"
+              fi
               CFG_USED="${CLEAN%/seed*}"
               CFG_USED="${CFG_USED//\// }"
               COMPARABLE=0
@@ -162,6 +199,8 @@ jobs:
                 *)         FSRC="router2-unverified-may-be-placer-estimate" ;;
               esac
               echo "fmax_source=${FSRC}"
+              [ -n "$SEARCH_HI" ] && echo "fmax_highest_clean_constraint_mhz=${SEARCH_HI}"
+              [ -n "$SEARCH_HI" ] && echo "fmax_search_note=highest --freq that still routed cleanly at the reference configuration; the 50 MHz figure above is headroom at a relaxed target"
               echo "luts=$(grep -E 'SLICE_LUTX' /tmp/np_${TOP}.log | tail -1 | grep -oE '[0-9]+/' | head -1 | tr -d /)"
               echo "ffs=$(grep -E 'SLICE_FFX' /tmp/np_${TOP}.log | tail -1 | grep -oE '[0-9]+/' | head -1 | tr -d /)"
               echo "fmax=$(grep -E 'Max frequency for clock' /tmp/np_${TOP}.log | tail -1 | sed 's/^.*: //')"
