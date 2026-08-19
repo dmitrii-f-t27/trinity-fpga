@@ -828,7 +828,7 @@ catalogue.
 
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-10-taxonomy.png}
-\caption{Canon plate. The taxonomy of Section~\ref{sec:taxonomy}: four staircase forms, the counts they resolve the catalogue into, and the gap between the arithmetic and logarithmic regimes that the classification names.}
+\caption{Canon plate. The taxonomy of this section: four staircase forms, the counts they resolve the catalogue into, and the gap between the arithmetic and logarithmic regimes that the classification names.}
 \label{fig:canon-taxonomy}
 \end{figure}
 
@@ -965,7 +965,7 @@ in the gap; the answer corrects a suggestion we made before building them.
 
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-11-accuracy.png}
-\caption{Canon plate. The accuracy measurement of Section~\ref{sec:accuracy}, read by magnitude bin: a tie where the comparison format has not yet spent its mantissa, and a widening advantage where it runs out of exponent.}
+\caption{Canon plate. The accuracy measurement of this section, read by magnitude bin: a tie where the comparison format has not yet spent its mantissa, and a widening advantage where it runs out of exponent.}
 \label{fig:canon-accuracy}
 \end{figure}
 
@@ -1275,7 +1275,7 @@ carry test, a saturating exponent add and a bit select.
 
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-12-width.png}
-\caption{Canon plate. The two width defects of Section~\ref{sec:width}: a bus wide enough only for the configuration that was tested, the silent truncation this produced, and the clean sweep once every width is derived from the format's own parameters.}
+\caption{Canon plate. The two width defects of this section: a bus wide enough only for the configuration that was tested, the silent truncation this produced, and the clean sweep once every width is derived from the format's own parameters.}
 \label{fig:canon-width}
 \end{figure}
 
@@ -1534,7 +1534,7 @@ no hardware has been placed at those reconciled widths.
 
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-13-whyternary.png}
-\caption{Canon plate. The ternary case of Section~\ref{sec:whyternary}, bounded in both directions: radix economy as a state-slot argument, what a binary fabric takes back from the encoding, and the separation of the radix choice from the encoding.}
+\caption{Canon plate. The ternary case of this section, bounded in both directions: radix economy as a state-slot argument, what a binary fabric takes back from the encoding, and the separation of the radix choice from the encoding.}
 \label{fig:canon-whyternary}
 \end{figure}
 
@@ -1805,7 +1805,7 @@ right on any fabric, and the encoding choice is right on one.
 
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-14-codes.png}
-\caption{Canon plate. The regime field as a prefix code (Section~\ref{sec:codes}): the unary and logarithmic staircases, and the Kraft floor no format of unbounded range can taper beneath.}
+\caption{Canon plate. The regime field as a prefix code (this section): the unary and logarithmic staircases, and the Kraft floor no format of unbounded range can taper beneath.}
 \label{fig:canon-codes}
 \end{figure}
 
@@ -2045,7 +2045,7 @@ are wrong, and we record that rather than replace it with a third.
 
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-15-convert.png}
-\caption{Canon plate. Converting fabric area into precision (Section~\ref{sec:convert}): the marginal area of a mantissa bit, the exchange rate it defines, and the resulting bill for the regime field.}
+\caption{Canon plate. Converting fabric area into precision (this section): the marginal area of a mantissa bit, the exchange rate it defines, and the resulting bill for the regime field.}
 \label{fig:canon-convert}
 \end{figure}
 
@@ -2320,7 +2320,7 @@ mantissa bits purchased by the same fixed decoder cost.
 
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-16-valuelaw.png}
-\caption{Canon plate. The value law costs more than the field layout (Section~\ref{sec:valuelaw}): an exponent read where it lies, the same law decoded through memory, and the published all-logic form given alongside it.}
+\caption{Canon plate. The value law costs more than the field layout (this section): an exponent read where it lies, the same law decoded through memory, and the published all-logic form given alongside it.}
 \label{fig:canon-valuelaw}
 \end{figure}
 
@@ -5140,13 +5140,12 @@ zero DSP, with backpropagation in the format itself.
 
 
 \subsection{Withdrawal: the frontier at equal storage}
+\label{sec:packedfrontier}
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-49-equalstorage.png}
 \caption{Canon plate. Counted at equal storage rather than equal positions, six of seventeen sampled formats remain dominated, and the equal-position frontier is withdrawn.}
 \label{fig:canon-equalstorage}
 \end{figure}
-
-\label{sec:packedfrontier}
 
 Corollary~\ref{cor:nosurvivors} and Corollary~\ref{cor:slack} count positions.
 A format is stored in bits, and that difference is the whole of the slack.
@@ -7146,11 +7145,20 @@ a winner.
 While building the gating above we measured the representable range of the
 comparison format by probing our own \texttt{takum} oracle rather than by reading
 its parameterisation, and the result corrects a framing this paper carried
-earlier. The smallest positive and largest finite magnitudes of \texttt{takum} are
-$3.45 \times 10^{-77}$ and $2.07 \times 10^{180}$, a reach of about $\pm 599$
-binades, and they are \emph{identical} for \texttt{takum16} and \texttt{takum32}:
-the width buys precision, not reach. Against that, the $(4,8)$ rung reaches
-$\pm 39$ binades and the $(5,23)$ rung $\pm 120$.
+earlier. An exhaustive decode enumeration of all $65{,}536$ \texttt{takum16}
+codes gives smallest positive $1.84 \times 10^{-77}$ and largest finite
+$5.61 \times 10^{76}$ --- $\pm 255$ binades, reciprocal-symmetric ends
+($1/\text{max} \approx \text{min}$), exactly the published takum reach; the
+monotone extreme codes of \texttt{takum32} decode to $2^{\pm 255}$ as well, so
+the reach is \emph{identical} for \texttt{takum16} and \texttt{takum32}: the
+width buys precision, not reach. (An earlier revision of this paragraph printed
+$3.45 \times 10^{-77}$ and $2.07 \times 10^{180}$, ``about $\pm 599$
+binades''; neither end reproduces from the shipped oracle --- the encode
+saturates at $2^{255}$ and underflows below $2^{-255}$, and the quoted minimum
+is $2^{-254}$, twice the true one, which is a band edge rather than the code
+space's edge. The numbers are corrected here; the paragraph's conclusions were
+drawn from the ordering, which survives.) Against that, the $(4,8)$ rung
+reaches $\pm 39$ binades and the $(5,23)$ rung $\pm 120$.
 
 Two consequences follow. Any suggestion that a ternary exponent field buys
 dynamic range relative to \texttt{takum} is withdrawn; at every width we compared,
@@ -7160,6 +7168,21 @@ worked from, that \texttt{takum} reach is about $\pm 255$ binades and scales wit
 width, was simply wrong --- it was inferred from a bias constant instead of
 measured. We record it here because a wrong number that was never printed is
 still a wrong number that shaped a design decision.
+
+\paragraph{The band where any of this matters, measured.} Accumulation of 64
+terms across widening log-uniform bands (\texttt{conformance/wide\_band\_bench.py},
+results in \texttt{research/WIDE\_BAND\_2026-08-19.md}; the $\pm 3$-decade band
+reproduces the three-way-tie bench exactly) puts numbers on the trade: inside
+$\pm 11$ decades the $(4,8)$ rung, \texttt{takum16} and the true base-3
+\texttt{tekum10} tie with zero failures; the $(4,8)$ rung's usable band ends
+between $\pm 11$ and $\pm 13$ decades --- 50 of 60 trials failed at $\pm 13$,
+all 60 from $\pm 16$ --- precisely where its span $[1.8 \times 10^{-12},
+1.1 \times 10^{12}]$ says it must, while \texttt{tekum10} (span $\pm 87$
+decades by code-space scan) and \texttt{takum16} ($\pm 77$) finish every trial
+out to $\pm 30$ decades at $10^{-2}$-class error. The qualifier the measurement
+adds: \texttt{takum16}, a binary format, degrades exactly as gracefully as
+base-3 \texttt{tekum}, so wide-band robustness is an argument for
+\emph{tapering}, not for radix 3.
 
 \subsection{A boundary contract, and the gate that now enforces it}
 \label{sec:boundarygate}
