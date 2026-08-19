@@ -46,13 +46,20 @@ jobs:
         run: |
           TOP=${{ matrix.top }}
           mkdir -p build/tnet metrics
-          SRCS=$(ls fpga/tnet/*.v | grep -v '/tb_' | tr '\n' ' ')
+          # W924: tw_*.v are elaboration-time self-checks -- they execute
+          # $finish inside the frontend and killed yosys before write_json,
+          # which the pnr stage then reported as 'Failed to open JSON'.
+          SRCS=$(ls fpga/tnet/*.v | grep -v '/tb_' | grep -v '/tw_' | tr '\n' ' ')
           docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
             read_verilog ${SRCS};
             hierarchy -top ${TOP};
             synth_xilinx -abc9 -nocarry -arch xc7 -top ${TOP};
             setundef -zero -params; stat; write_json build/tnet/${TOP}.json" 2>&1 | tee /tmp/y.log
-          ! grep -q "^ERROR" /tmp/y.log
+          # W924: yosys errors carry the FILE PATH first ("file.v:12: ERROR:"),
+          # so anchored ^ERROR missed a fatal death. Match anywhere, and
+          # require the json to actually exist.
+          ! grep -q "ERROR" /tmp/y.log
+          test -f build/tnet/${TOP}.json
           {
             echo "top=${TOP}"
             echo "lc=$(grep -oE 'Estimated number of LCs: *[0-9]+' /tmp/y.log | grep -oE '[0-9]+' | tail -1)"
