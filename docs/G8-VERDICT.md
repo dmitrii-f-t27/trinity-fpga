@@ -12,11 +12,27 @@ toolchain, 1.6–41.7 %; "reproduced" below means WITHIN-NOISE, never equality.
 GF10 0.95×, GF14 0.90×, GFTernary 0.90×, fp8 e4m3 1.06×, fp8 e5m2 1.09×,
 takum16 1.09×, IBM hex32 1.11×, posit8 1.14×, posit16 1.19×, posit32 1.32×.
 
-**One row does NOT reproduce: LNS16 — CI 62.66 MHz vs published 43.04 MHz
-(1.46×, outside the band).** The published figure has no in-tree record
-(MATRIX.md's corrected rerun does not include LNS16); the CI row is now the
-only sourced number for this format. Author input needed: original log, or
-the paper's row is superseded by the CI measurement.
+**WITHDRAWN (W935): "LNS16 does not reproduce" was not established.** The
+sentence that stood here said the published 43.04 MHz has no in-tree record and
+that MATRIX.md's corrected rerun does not include LNS16. Both halves are false.
+`fpga/tnet/MATRIX.md:35` lists LNS16 at **43.11 MHz**, 0.16% from the published
+value. The verdict read a blank cell off its own instrument: the workflow's REF
+table carried `None` for six formats MATRIX.md does list (takum16, posit8,
+LNS16, posit16, posit32, IBM hex32) — fixed in the same change as this
+withdrawal.
+
+Two agreeing numbers therefore stand against one CI row, and the arithmetic that
+called that row an outlier used a denominator the band was never defined with.
+The band 1.6–41.7% is `(max − min) / median` over per-seed sets. Applied to the
+LNS16 pair by its own definition, |62.66 − 43.04| / 52.85 = **37.1%, inside the
+band**; the 45.6% quoted before came from `(CI − published) / published`.
+
+What remains true and is worth the author's attention: the CI row disagrees with
+two agreeing in-tree numbers by more than a third, and LNS16 is the most
+configuration-sensitive design in the audited set (4.66× best-to-worst across
+placer/router pairs — the largest of all 21). The likeliest explanation is the
+configuration confound fixed in #630, not a defect in the paper's row. This
+needs one re-measurement under the reference configuration, not author input.
 
 **One row is uninstrumented: "plastic 16-bit, 318.47 MHz"** — a
 tab:hierarchy design, not a tnet tract; no harness in the sweep.
