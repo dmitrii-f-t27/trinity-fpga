@@ -98,6 +98,15 @@ jobs:
           ARMS="${{ github.event.inputs.pnr_arms }}"
           [ -z "$ARMS" ] && ARMS="$ALL_ARMS"
           mkdir -p metrics
+          # W935: the ladder takes the FIRST configuration that routes, so two
+          # arms can be measured under two different placers -- and this
+          # project's own sweep puts the configuration effect at 3.71x-4.33x,
+          # unequal across candidates. A cross-format Fmax ordering that mixes
+          # configurations is therefore not a ranking. The ladder stays (an arm
+          # that only routes on "sa" must still be reported, not dropped), but
+          # every row now says which configuration produced it and whether that
+          # is the reference one, and the report refuses to rank across them.
+          REF_CFG="heap router1"
           for TOP in $(echo "$ARMS" | tr ',' ' '); do
             CLEAN=0
             for CFG in "heap router1" "heap router2" "sa router2"; do
@@ -130,9 +139,16 @@ jobs:
               continue
             fi
             {
+              CFG_USED="${CLEAN%/seed*}"
+              CFG_USED="${CFG_USED//\// }"
+              COMPARABLE=0
+              [ "$CFG_USED" = "$REF_CFG" ] && COMPARABLE=1
               echo "top=${TOP}"
               echo "status=routed"
               echo "seed=${CLEAN}"
+              echo "config=${CFG_USED// //}"
+              echo "reference_config=${REF_CFG// //}"
+              echo "comparable=${COMPARABLE}"
               echo "luts=$(grep -E 'SLICE_LUTX' /tmp/np_${TOP}.log | tail -1 | grep -oE '[0-9]+/' | head -1 | tr -d /)"
               echo "ffs=$(grep -E 'SLICE_FFX' /tmp/np_${TOP}.log | tail -1 | grep -oE '[0-9]+/' | head -1 | tr -d /)"
               echo "fmax=$(grep -E 'Max frequency for clock' /tmp/np_${TOP}.log | tail -1 | sed 's/^.*: //')"
@@ -169,8 +185,9 @@ jobs:
             "s_ibmhfp": (46.78, None),
           }
           print("## tnet tract sweep: CI-synth vs published\n")
-          print("| top | status | CI Fmax | untraced | MATRIX | CI/untraced |")
-          print("|---|---|---|---|---|---|")
+          print("| top | status | config | CI Fmax | untraced | MATRIX | CI/untraced |")
+          print("|---|---|---|---|---|---|---|")
+          off_ref = []
           for f in sorted(glob.glob("metrics/*.pnr.txt")):
               kv = dict(l.split("=",1) for l in open(f).read().splitlines() if "=" in l)
               top = kv.get("top","?"); st = kv.get("status","?")
@@ -179,9 +196,27 @@ jobs:
               ci = float(m.group(1)) if m else None
               u, x = REF.get(top, (None, None))
               rat = f"{ci/u:.2f}x" if (ci and u) else "-"
-              print(f"| {top} | {st} | {fm or '-'} | {u or '-'} | {x or '-'} | {rat} |")
+              cfg = kv.get("config", "-")
+              if st == "routed" and kv.get("comparable") != "1":
+                  off_ref.append((top, cfg))
+                  cfg += " (off-ref)"
+              print(f"| {top} | {st} | {cfg} | {fm or '-'} | {u or '-'} | {x or '-'} | {rat} |")
           print("\nSeed dispersion for this toolchain is 1.6-41.7% (audited);")
           print("a ratio inside that band is REPRODUCED-WITHIN-NOISE, not equality.")
+          if off_ref:
+              print(f"\n**{len(off_ref)} routed row(s) are OFF the reference configuration "
+                    f"({', '.join(t + ':' + c for t, c in off_ref)}).** Configuration moves Fmax "
+                    "by up to 4.3x on this fabric, unequally across candidates, so these rows may "
+                    "be compared against their own published value and NOT against each other or "
+                    "against reference-configuration rows.")
+          else:
+              print("\nAll routed rows are on the reference configuration (heap/router1), so "
+                    "cross-row comparison is at least configuration-controlled -- still subject "
+                    "to the seed band above.")
+          print("\nEvery Fmax here is nextpnr's estimate under `--freq 50.0 --timing-allow-fail`: "
+                "the tool optimised against a 50 MHz constraint and reported the slack it happened "
+                "to leave. That is headroom at a relaxed target, not achievable frequency, and it "
+                "is not comparable to a vendor-flow Fmax pushed to the design's limit.")
           PY
           cat report.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
