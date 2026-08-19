@@ -64,7 +64,15 @@ jobs:
           # edited a generated file by hand. That must fail, not be committed.
           git diff --exit-code --stat -- fpga/openxc7-synth/tnf_cost/ || {
             echo "::error::generated wrappers differ from committed ones -- do not hand-edit tnf_cost/"; exit 1; }
-          echo "arms=$(python3 -c "import json;print(json.dumps([a['top'] for a in json.load(open('fpga/openxc7-synth/tnf_cost/manifest.json'))['arms']]))")" >> "$GITHUB_OUTPUT"
+          # W935: a pnr_arms-scoped diagnostic re-synthesized ALL 104 arms to
+          # produce three jsons -- an hour of runner throttle per iteration.
+          # When pnr_arms is given, the yosys matrix shrinks to those arms.
+          PNR_ARMS="${{ github.event.inputs.pnr_arms }}"
+          if [ -n "$PNR_ARMS" ]; then
+            echo "arms=$(python3 -c "import json,sys;print(json.dumps(sys.argv[1].split(',')))" "$PNR_ARMS")" >> "$GITHUB_OUTPUT"
+          else
+            echo "arms=$(python3 -c "import json;print(json.dumps([a['top'] for a in json.load(open('fpga/openxc7-synth/tnf_cost/manifest.json'))['arms']]))")" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/upload-artifact@v4
         with: {name: tnf-cost-manifest, path: fpga/openxc7-synth/tnf_cost/manifest.json}
 
