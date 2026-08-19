@@ -46,12 +46,20 @@ PATHY = re.compile(r'`([A-Za-z0-9_./-]+\.(?:py|v|sh|tex|yml|yaml|md|t27|json))`'
 SIBLING_NAMES = ["t27", "trinity-s3ai", "claim-audit-lab", "tri-net", "trios-mesh",
                  "zig-golden-float"]
 
-# Third-party repositories this work references but does not own. Siblings are
-# ours and may be checked out next to us; these never will be, on any machine.
-# The upstream collaboration is newer than this checker, which is why the first
-# five references of this class arrived as failures rather than as exclusions.
+# Trees this checker cannot see, named by the first path segment. Two kinds,
+# one rule: if the author says which repository a file lives in, the reference
+# is answerable by a reader even though no runner can resolve it.
+#
+#   UPSTREAM  -- third-party, never checked out anywhere, ours to reference only
+#   OWNER     -- our OTHER repositories. `gHashTag/trinity/...`, owner-first,
+#                because `trinity/` alone would shadow the real ./trinity
+#                directory in this tree and silently excuse local rot. Checked:
+#                no ./gHashTag exists, and none of the UPSTREAM names collide
+#                with a directory here either.
 UPSTREAM = ["nextpnr-xilinx", "prjxray", "prjxray-db", "litex-boards", "litex",
             "openxc7", "yosys", "openFPGALoader"]
+OWNER = ["gHashTag"]
+QUALIFIED = set(UPSTREAM) | set(OWNER)
 
 def _index(root):
     """basename -> True, built once. The first version ran an rglob per reference
@@ -91,7 +99,7 @@ for d in DOCS:
         # it lives in can be -- and that is also the thing a reader needs. A
         # bare `design.json` is unresolvable by anybody; the prefixed form
         # names a file someone can actually go and open.
-        if p.split("/")[0] in UPSTREAM:
+        if p.split("/")[0] in QUALIFIED:
             upstream.append(f"{str(d.relative_to(ROOT))}: names `{p}`"); continue
         rel = str(d.relative_to(ROOT))
         if p.startswith("external/") or rel.startswith("external/"):
