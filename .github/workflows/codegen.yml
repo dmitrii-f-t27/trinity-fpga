@@ -114,12 +114,18 @@ jobs:
             echo "::endgroup::"
           done
 
+      # This step was `continue-on-error: true`, which meant it could not fail
+      # and so reported green while `zig build test` was erroring on six test
+      # compilations. A step that cannot fail says nothing, and its tick is
+      # indistinguishable from a real pass -- which is the exact defect this
+      # repository's other gates were audited for on the same day.
+      #
+      # `set -o pipefail` so the exit code survives the pipe to tail; without
+      # it the step reports tail's success no matter what zig did.
       - name: Do the tests pass?
-        continue-on-error: true
         run: |
-          set +e
-          zig build test 2>&1 | tail -30
-          echo "exit code: $?" >> $GITHUB_STEP_SUMMARY
+          set -o pipefail
+          zig build test 2>&1 | tail -40
 
       - name: TODO stubs in generated code
         if: always()

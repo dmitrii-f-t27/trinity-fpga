@@ -1349,6 +1349,17 @@ pub fn build(b: *std.Build) void {
     trinity_search.root_module.addImport("vsa", vsa_tri);
     trinity_query.root_module.addImport("vsa", vsa_tri);
 
+    // The test artifacts have the same problem and are declared even earlier.
+    // Six test compilations were failing on one line -- src/vm.zig naming
+    // @import("vsa") with no such module in their root -- and `zig build test`
+    // reported that through a step I had marked continue-on-error, so the gate
+    // went green while the tests did not compile. Fixed on both sides: the
+    // import is attached here, and the step no longer claims a pass it did not
+    // measure.
+    for ([_]*std.Build.Step.Compile{ main_tests, queen_api_tests, brain_bench, vm_tests, e2e_tests, c_api_tests }) |t_| {
+        t_.root_module.addImport("vsa", vsa_tri);
+    }
+
     // src/vm.zig names a JIT engine that CANNOT be built from anything that
     // exists. zig-hdc has src/vsa_jit.zig, but it reaches jit_unified.zig,
     // which imports "../../jit_arm64.zig" -- outside the package -- and
