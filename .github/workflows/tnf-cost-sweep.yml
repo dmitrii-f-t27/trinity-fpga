@@ -28,11 +28,18 @@ name: TNF cost sweep (E_t, M)
 # SHA256, recorded on issue #199. This workflow cannot produce that and does not
 # claim to.
 #
-# Cost control: yosys runs on every arm because it is cheap. nextpnr runs only on
-# the arms named in PNR_ARMS, because place-and-route on 104 arms is hours of
-# runner time and the routing-limit risk is real -- the takum-class cells already
-# fail routing on this fabric with -flatten. Arms that fail routing are recorded
-# as [routing-pending], not as zero and not as a defect.
+# Cost control. A full sweep -- no pnr_arms input -- runs yosys on every arm,
+# because yosys is cheap and the [modelled] rows for all 104 arms are themselves
+# a deliverable; nextpnr then runs on the PNR_DEFAULT set. When pnr_arms IS given
+# the run is a diagnostic, and the yosys matrix shrinks to exactly those arms:
+# before W935 a three-arm diagnostic re-synthesized all 104 first, an hour of
+# runner throttle spent to produce three jsons.
+#
+# nextpnr never runs on all 104: place-and-route there is hours of runner time
+# and the routing-limit risk is real -- the takum-class cells already fail
+# routing on this fabric with -flatten. Arms that fail routing are recorded as
+# [routing-pending], with the reason line and the nextpnr log attached, never as
+# zero and never as a defect.
 
 on:
   workflow_dispatch:
