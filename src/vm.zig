@@ -127,19 +127,12 @@ pub const VSAInstruction = struct {
 // VSA VM
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Import JIT engine for accelerated operations
-const vsa_jit = @import("vsa_jit.zig");
-
 pub const VSAVM = struct {
     registers: VSARegisters,
     program: std.ArrayListUnmanaged(VSAInstruction),
     halted: bool = false,
     allocator: std.mem.Allocator,
     cycle_count: u64 = 0,
-
-    // JIT engine for accelerated VSA operations
-    jit_engine: ?vsa_jit.JitVSAEngine = null,
-    jit_enabled: bool = true,
 
     // Trinity: Sacred execution context
     sacred_ctx: SacredContext,
@@ -149,16 +142,12 @@ pub const VSAVM = struct {
             .registers = .{},
             .program = .{},
             .allocator = allocator,
-            .jit_engine = vsa_jit.JitVSAEngine.init(allocator),
             .sacred_ctx = SacredContext.init(allocator),
         };
     }
 
     pub fn deinit(self: *VSAVM) void {
         self.program.deinit(self.allocator);
-        if (self.jit_engine) |*engine| {
-            engine.deinit();
-        }
         self.sacred_ctx.deinit();
     }
 
@@ -269,20 +258,6 @@ pub const VSAVM = struct {
         var src1 = self.getVReg(inst.src1).*;
         var src2 = self.getVReg(inst.src2).*;
 
-        // Try JIT-accelerated bind if enabled
-        if (self.jit_enabled) {
-            if (self.jit_engine) |*engine| {
-                // Copy src1 to dst, then bind in place
-                dst.* = src1;
-                if (engine.bind(dst, &src2)) {
-                    return;
-                } else |_| {
-                    // JIT failed, fall through to scalar
-                }
-            }
-        }
-
-        // Scalar fallback
         dst.* = tvc_vsa.bind(&src1, &src2);
     }
 
@@ -291,19 +266,6 @@ pub const VSAVM = struct {
         var src1 = self.getVReg(inst.src1).*;
         var src2 = self.getVReg(inst.src2).*;
 
-        // Try JIT-accelerated unbind (same as bind) if enabled
-        if (self.jit_enabled) {
-            if (self.jit_engine) |*engine| {
-                dst.* = src1;
-                if (engine.bind(dst, &src2)) {
-                    return;
-                } else |_| {
-                    // JIT failed, fall through to scalar
-                }
-            }
-        }
-
-        // Scalar fallback
         dst.* = tvc_vsa.unbind(&src1, &src2);
     }
 
@@ -326,19 +288,6 @@ pub const VSAVM = struct {
         var src1 = self.getVReg(inst.src1).*;
         var src2 = self.getVReg(inst.src2).*;
 
-        // Try JIT-accelerated dot product if enabled
-        if (self.jit_enabled) {
-            if (self.jit_engine) |*engine| {
-                if (engine.dotProduct(&src1, &src2)) |result| {
-                    self.registers.s0 = result;
-                    return;
-                } else |_| {
-                    // JIT failed, fall through to scalar
-                }
-            }
-        }
-
-        // Scalar fallback
         self.registers.s0 = src1.dotProduct(&src2, std.heap.page_allocator);
     }
 
@@ -346,19 +295,6 @@ pub const VSAVM = struct {
         var src1 = self.getVReg(inst.src1).*;
         var src2 = self.getVReg(inst.src2).*;
 
-        // Try JIT-accelerated cosine similarity if enabled
-        if (self.jit_enabled) {
-            if (self.jit_engine) |*engine| {
-                if (engine.cosineSimilarity(&src1, &src2)) |result| {
-                    self.registers.f0 = result;
-                    return;
-                } else |_| {
-                    // JIT failed, fall through to scalar
-                }
-            }
-        }
-
-        // Scalar fallback
         self.registers.f0 = tvc_vsa.cosineSimilarity(&src1, &src2);
     }
 
@@ -366,19 +302,6 @@ pub const VSAVM = struct {
         var src1 = self.getVReg(inst.src1).*;
         var src2 = self.getVReg(inst.src2).*;
 
-        // Try JIT-accelerated hamming distance if enabled
-        if (self.jit_enabled) {
-            if (self.jit_engine) |*engine| {
-                if (engine.hammingDistance(&src1, &src2)) |result| {
-                    self.registers.s0 = result;
-                    return;
-                } else |_| {
-                    // JIT failed, fall through to scalar
-                }
-            }
-        }
-
-        // Scalar fallback
         self.registers.s0 = @intCast(tvc_vsa.hammingDistance(&src1, &src2));
     }
 
@@ -866,32 +789,6 @@ pub const VSAVM = struct {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // JIT CONTROL
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// Enable or disable JIT acceleration
-    pub fn setJitEnabled(self: *VSAVM, enabled: bool) void {
-        self.jit_enabled = enabled;
-    }
-
-    /// Get JIT statistics (null if JIT not initialized)
-    pub fn getJitStats(self: *const VSAVM) ?vsa_jit.JitVSAEngine.Stats {
-        if (self.jit_engine) |*engine| {
-            return engine.getStats();
-        }
-        return null;
-    }
-
-    /// Print JIT statistics
-    pub fn printJitStats(self: *const VSAVM) void {
-        if (self.jit_engine) |*engine| {
-            engine.printStats();
-        } else {
-            std.debug.print("JIT engine not initialized\n", .{});
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
     // DEBUG
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -916,14 +813,6 @@ pub const VSAVM = struct {
         std.debug.print("║  halted: {}                              ║\n", .{self.halted});
         std.debug.print("║  total memory: {} bytes                  ║\n", .{self.registers.total_packed_bytes});
         std.debug.print("╠══════════════════════════════════════════╣\n", .{});
-        std.debug.print("║ JIT ACCELERATION:                        ║\n", .{});
-        std.debug.print("║  enabled: {}                             ║\n", .{self.jit_enabled});
-        if (self.jit_engine) |*engine| {
-            const stats = engine.getStats();
-            std.debug.print("║  ops: {}, hits: {}, rate: {d:.1}%         ║\n", .{ stats.total_ops, stats.jit_hits, stats.hit_rate });
-        } else {
-            std.debug.print("║  engine: not initialized                 ║\n", .{});
-        }
         std.debug.print("╚══════════════════════════════════════════╝\n\n", .{});
     }
 };
@@ -971,7 +860,6 @@ test "VSA VM bind/unbind" {
 
 test "VSA VM bundle similarity" {
     var vm = VSAVM.init(std.testing.allocator);
-    vm.jit_enabled = false; // Disable JIT (has bug in cosineSimilarity)
     defer vm.deinit();
 
     const program = [_]VSAInstruction{
@@ -992,7 +880,6 @@ test "VSA VM bundle similarity" {
 
 test "VSA VM permute" {
     var vm = VSAVM.init(std.testing.allocator);
-    vm.jit_enabled = false; // Disable JIT (has bug in cosineSimilarity)
     defer vm.deinit();
 
     const program = [_]VSAInstruction{
