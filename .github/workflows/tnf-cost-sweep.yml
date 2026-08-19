@@ -152,19 +152,7 @@ jobs:
               # arm now gets an XDC generated from its own yosys json: every
               # top-level port gets IOSTANDARD LVCMOS33, indexed and base
               # forms both, pads auto-placed (Fmax needs no LOCs).
-              python3 - "$TOP" <<'PYX' > /tmp/${TOP}.xdc
-              import json, sys
-              top = sys.argv[1]
-              d = json.load(open(f"build/tnfcost/{top}.json"))
-              ports = d["modules"][top]["ports"]
-              for name, meta in ports.items():
-                  bits = meta.get("bits", [])
-                  if len(bits) <= 1:
-                      print(f"set_property IOSTANDARD LVCMOS33 [get_ports {name}]")
-                  else:
-                      for i in range(len(bits)):
-                          print(f"set_property IOSTANDARD LVCMOS33 [get_ports {{{name}[{i}]}}]")
-              PYX
+              python3 -c "$(printf 'import json, sys\ntop = sys.argv[1]\nd = json.load(open(\"build/tnfcost/%%s.json\" %% top))\nfor n, m in d[\"modules\"][top][\"ports\"].items():\n    b = m.get(\"bits\", [])\n    if len(b) <= 1:\n        print(\"set_property IOSTANDARD LVCMOS33 [get_ports %%s]\" %% n)\n    else:\n        for k in range(len(b)):\n            print(\"set_property IOSTANDARD LVCMOS33 [get_ports {%%s[%%d]}]\" %% (n, k))\n')" "$TOP" > /tmp/${TOP}.xdc
               for s in 1 2 3 4; do
                 rm -f build/tnfcost/${TOP}_routed.json
                 docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
