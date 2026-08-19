@@ -10,11 +10,26 @@
 const std = @import("std");
 
 // Core modules
-pub const bigint = @import("bigint.zig");
-pub const packed_trit = @import("packed_trit.zig");
-pub const hybrid = @import("hybrid.zig");
-pub const vsa = @import("vsa/core.zig");
-pub const vsa_agent = @import("vsa/agent.zig");
+pub const bigint = @import("vsa_hybrid/bigint.zig");
+pub const packed_trit = @import("vsa_hybrid/packed_trit.zig");
+pub const hybrid = @import("vsa_hybrid/hybrid.zig");
+// src/vsa/ was extracted to gHashTag/zig-hdc and this directory is now empty;
+// the module `vsa` is that package's `zig-hdc-vsa`, whose root is the very
+// src/vsa.zig that used to live here. So `core` comes back through it.
+pub const vsa = @import("vsa").core;
+
+// vsa_agent is NOT restored. zig-hdc declines to export vsa/agent.zig with a
+// note that it "cannot compile and never could": it is a facade over
+// agent/types.zig, memory.zig, unified.zig, autonomous.zig and system.zig,
+// five files absent from that package and from gHashTag/trinity, which is
+// where it was migrated from. Verified here rather than taken on trust --
+// all five are absent.
+//
+// Re-exporting it from this root made every consumer of `trinity` unbuildable
+// for the sake of a name that resolves to nothing. Whether the agent layer
+// gets finished or dropped is a decision about that library, not a way to turn
+// this build green -- which is the same reason zig-hdc left the file in place
+// and merely stopped exporting it.
 pub const vm = @import("vm.zig");
 
 // SDK modules (high-level API)

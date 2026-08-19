@@ -1342,6 +1342,17 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     const vsa_tri = zig_hdc_dep.module("zig-hdc-vsa");
+
+    // trinity_mod is created at the top of this function, long before the
+    // dependency exists, so the import is attached here rather than in its
+    // initialiser. Without it, src/trinity.zig and the eleven files under
+    // src/ that say @import("vsa") -- sdk, sparse, science, vm, jit, parallel,
+    // c_api, simd_avx512, trinity_search, query_cli, e2e_test -- have no such
+    // module. They used to say @import("vsa.zig"), a FILE import of
+    // src/vsa.zig, which was extracted into zig-hdc and left behind a
+    // dangling name in every one of them.
+    trinity_mod.addImport("vsa", vsa_tri);
+
     // TVC Corpus module for TRI (moved up: needed by fluent CLI and hybrid chat)
     const tvc_corpus_mod = b.createModule(.{
         .root_source_file = b.path("src/tvc/tvc_corpus.zig"),
