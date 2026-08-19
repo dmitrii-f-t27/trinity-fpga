@@ -191,6 +191,8 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/queen_api.zig"),
             .target = target,
             .optimize = optimize,
+            // uses std.heap.c_allocator, which Zig requires be declared
+            .link_libc = true,
         }),
     });
     const run_queen_api_tests = b.addRunArtifact(queen_api_tests);
@@ -251,6 +253,8 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/c_api.zig"),
             .target = target,
             .optimize = optimize,
+            // uses std.heap.c_allocator, which Zig requires be declared
+            .link_libc = true,
         }),
     });
     const run_c_api_tests = b.addRunArtifact(c_api_tests);
