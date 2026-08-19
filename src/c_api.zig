@@ -253,7 +253,6 @@ export fn trinity_vsa_set_trit(v: ?*anyopaque, index: usize, value: i8) void {
     hv.ensureUnpacked();
     if (index >= hv.trit_len) return;
     if (value > 0) {
-        if (value > 0) {
         if (hv.unpacked_cache) |cache| cache[index] = 1;
     } else if (value < 0) {
         if (hv.unpacked_cache) |cache| cache[index] = -1;
