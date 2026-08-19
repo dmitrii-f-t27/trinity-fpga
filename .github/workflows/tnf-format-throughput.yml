@@ -174,15 +174,22 @@ jobs:
           python3 - <<'PY' | tee report.md
           import glob, re
           # published references: (format-key) -> (untraced MHz, MATRIX MHz)
+          # W935: six of these carried None for the MATRIX column while
+          # fpga/tnet/MATRIX.md listed all six, and s_minifl had no entry at all
+          # although the sweep routes it. The blanks were not neutral: the G8
+          # verdict read "no in-tree record" off this table and reported LNS16 as
+          # the one row that does not reproduce -- against a MATRIX value 0.16%
+          # from the published one. An instrument that prints a blank for data it
+          # was never given will be read as evidence of absence.
           REF = {
             "s_int8": (78.83, 84.86), "s_gfternary": (83.19, 82.51),
             "s_bin32": (77.00, 78.23), "s_vaxf": (73.51, 73.88),
             "s_gf10": (72.16, 73.14), "s_gf14": (71.15, 73.13),
             "s_fp8e4m3": (67.02, 71.95), "s_fp8e5m2": (67.06, 65.33),
-            "s_bin16": (63.30, 62.69), "s_takum16": (58.96, None),
-            "s_posit8": (44.33, None), "s_lns16": (43.04, None),
-            "s_posit16": (40.38, None), "s_posit32": (28.16, None),
-            "s_ibmhfp": (46.78, None),
+            "s_bin16": (63.30, 62.69), "s_takum16": (58.96, 64.16),
+            "s_posit8": (44.33, 43.55), "s_lns16": (43.04, 43.11),
+            "s_posit16": (40.38, 36.30), "s_posit32": (28.16, 28.33),
+            "s_ibmhfp": (46.78, 49.71), "s_minifl": (67.06, 62.38),
           }
           print("## tnet tract sweep: CI-synth vs published\n")
           print("| top | status | config | CI Fmax | untraced | MATRIX | CI/untraced |")
