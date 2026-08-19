@@ -367,3 +367,64 @@ That is §1 from the other side. A gate that answers *"is this number near a
 retraction"* while claiming to answer *"is this number retracted"* will be
 wrong in both directions at once: false on the neighbours, silent on the
 targets. When a gate fires, ask which question it actually asked.
+
+---
+
+## 14. A handoff note rots faster than the thing it describes
+
+The hand-off file said the next step on a hardware bug was "an A/B on four
+`IFF.ZSRVAL_Q` bits — the last standing hypothesis". I repeated that in three
+status reports and a dashboard across one day, and offered it as the highest-value
+remaining work.
+
+It had been answered weeks earlier. Those four bits **were** the real
+discrepancy; emitting them was the fix, it shipped as its own PR, and the thread
+had moved on to a different failure — the block is now correctly initialised and
+still never clocks. The experiment I kept promising would have re-tested a
+question whose answer was already merged.
+
+Nothing about the note looked stale. It was specific, it named real bits, and it
+was written by someone who had read the thread — which is exactly why it survived
+three re-readings of *itself* without anyone re-reading the *source*.
+
+**Rule.** A summary of a live thread is a cache with no invalidation. Before
+acting on one, open the thread. The cost is a minute; the cost of not doing it
+is running an experiment to confirm something already known, and telling
+collaborators you are about to.
+
+The tell is temporal, not textual: **ask when the note was written and what has
+happened in that thread since.** Not "does this still look right" — a stale note
+looks exactly as right as it did the day it was written.
+
+### The same shape, one layer up
+
+The blocker the thread actually names is a reference dump only vendor tools can
+produce. That had been sitting in plain sight in my own comment for weeks, under
+a sentence beginning "I still can't say what is wrong without…". A stated
+blocker is not a request until someone who can act on it is asked directly —
+and I had been carrying it as a fact about the world rather than as an ask with
+an owner.
+
+---
+
+## 15. When you cannot execute, say which part is reading
+
+Three JIT tests failed. The fix was found by decoding the emitted machine code
+by hand — the ModRM and SIB bytes, the `F6 /5` form of `IMUL`, the rel32
+displacements measured from the end of the instruction — and confirming the
+emitter was correct, then finding the defect one level up: the function pointer
+was handed out with no `callconv`, so Zig's unspecified `.auto` convention was
+being asked to agree with hand-written System V.
+
+**The tests skip unless `cpu.arch == .x86_64`, and the machine doing the fixing
+is arm64.** Every one of them has always skipped locally. The reading is the
+entire evidence; CI is the only executor.
+
+**Rule.** When the environment cannot run the thing being fixed, say so in the
+commit, in those words, before the fix is reviewed. Not as a hedge — as the
+scope of the claim. "The emitter decodes correctly and the convention was never
+declared" is a claim about source that reading can support. "This fixes the
+tests" is a claim about execution, and belongs to whoever ran them.
+
+A skipped test reports success exactly like a passing one — §12 again, arriving
+this time through the target architecture rather than through a classifier.
