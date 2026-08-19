@@ -122,10 +122,22 @@ jobs:
       #
       # `set -o pipefail` so the exit code survives the pipe to tail; without
       # it the step reports tail's success no matter what zig did.
+      # `| tail -40` kept the summary tree and threw away the compile errors
+      # above it, so a red step said "3 artifacts failed" and not one word about
+      # why. Keep the whole log, print the error lines specifically, and upload
+      # it -- the summary is the least useful part of a failure.
       - name: Do the tests pass?
         run: |
           set -o pipefail
-          zig build test 2>&1 | tail -40
+          zig build test > test.log 2>&1 || {
+            echo "### Test failures" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            grep -E 'error:|error!|failed:' test.log | head -30 | tee -a $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            grep -oE 'Build Summary:.*' test.log | tee -a $GITHUB_STEP_SUMMARY
+            exit 1
+          }
+          grep -oE 'Build Summary:.*' test.log | tee -a $GITHUB_STEP_SUMMARY
 
       - name: TODO stubs in generated code
         if: always()
@@ -144,6 +156,7 @@ jobs:
           path: |
             build.log
             graph.log
+            test.log
           retention-days: 30
 
   count-patterns:
