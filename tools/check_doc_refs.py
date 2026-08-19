@@ -46,6 +46,13 @@ PATHY = re.compile(r'`([A-Za-z0-9_./-]+\.(?:py|v|sh|tex|yml|yaml|md|t27|json))`'
 SIBLING_NAMES = ["t27", "trinity-s3ai", "claim-audit-lab", "tri-net", "trios-mesh",
                  "zig-golden-float"]
 
+# Third-party repositories this work references but does not own. Siblings are
+# ours and may be checked out next to us; these never will be, on any machine.
+# The upstream collaboration is newer than this checker, which is why the first
+# five references of this class arrived as failures rather than as exclusions.
+UPSTREAM = ["nextpnr-xilinx", "prjxray", "prjxray-db", "litex-boards", "litex",
+            "openxc7", "yosys", "openFPGALoader"]
+
 def _index(root):
     """basename -> True, built once. The first version ran an rglob per reference
     per sibling tree; 1511 references across six trees is a quarter of a million
@@ -60,7 +67,7 @@ _OWN = _index(ROOT)
 _SIB = {s_: _index(ROOT.parent / s_) for s_ in SIBLING_NAMES}
 
 fails, checked, refs = [], 0, 0
-cross, vendored, by_design = [], [], []
+cross, vendored, by_design, upstream = [], [], [], []
 for d in DOCS:
     try: txt = d.read_text(errors="ignore")
     except Exception: continue
@@ -77,6 +84,15 @@ for d in DOCS:
         # A temporary path is expected to be gone; naming one is not a broken
         # reference, it is a note about a run that has finished.
         if p.startswith(("/tmp/", "/private/tmp/", "/var/")): continue
+        # A path in a third-party repository is a real reference, and no CI
+        # runner will ever have that tree to check it against. Requiring the
+        # repo name as the first segment is what makes it checkable at all:
+        # existence cannot be confirmed, but the author having said WHICH tree
+        # it lives in can be -- and that is also the thing a reader needs. A
+        # bare `design.json` is unresolvable by anybody; the prefixed form
+        # names a file someone can actually go and open.
+        if p.split("/")[0] in UPSTREAM:
+            upstream.append(f"{str(d.relative_to(ROOT))}: names `{p}`"); continue
         rel = str(d.relative_to(ROOT))
         if p.startswith("external/") or rel.startswith("external/"):
             # A vendored document carries paths relative to ITS OWN root.
@@ -123,10 +139,16 @@ BASE = pathlib.Path(__file__).with_name("doc_refs_baseline.txt")
 print(f"documents scanned: {checked}   path references: {refs}")
 print(f"excluded as cross-repo (target exists in a sibling): {len(cross)}")
 print(f"excluded as vendored (relative to their own root):   {len(vendored)}")
+print(f"excluded as upstream (third-party, repo-qualified):  {len(upstream)}")
 print(f"excluded by declaration (documents recording absent names): {len(by_design)}")
 [print(f"    {b}") for b in by_design]
 (pathlib.Path(__file__).with_name("doc_refs_crossrepo.txt")
  .write_text("\n".join(sorted(cross)) + ("\n" if cross else "")))
+# Written for the same reason as the cross-repo list: an exclusion nobody can
+# see reads as coverage. These are the references the gate deliberately does
+# not verify, in a file someone can read.
+(pathlib.Path(__file__).with_name("doc_refs_upstream.txt")
+ .write_text("\n".join(sorted(upstream)) + ("\n" if upstream else "")))
 uniq = sorted(set(fails))
 if "--update-baseline" in _s.argv:
     BASE.write_text("\n".join(uniq) + ("\n" if uniq else ""))
