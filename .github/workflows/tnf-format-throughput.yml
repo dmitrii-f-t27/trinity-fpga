@@ -99,6 +99,7 @@ jobs:
                 rm -f build/tnet/${TOP}_routed.json
                 docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
                   --chipdb /work/build/tnet/chipdb/xc7a200tfbg484-2.bin \
+                  --xdc /work/fpga/tnet/bench.xdc \
                   --json /work/build/tnet/${TOP}.json \
                   --write /work/build/tnet/${TOP}_routed.json \
                   --freq 50.0 --seed $s --placer $P --router $R --timing-allow-fail > /tmp/np_${TOP}.log 2>&1 || true
@@ -108,8 +109,17 @@ jobs:
               done
             done
             if [ "$CLEAN" = "0" ]; then
-              echo "top=${TOP}"$'\n'"status=routing-pending" | tee metrics/${TOP}.pnr.txt
-              echo "::warning::${TOP} routing-pending on xc7a200tfbg484-2"
+              # W922: "routing-pending" must carry its REASON and its log --
+              # a tiny arm that cannot route is an infrastructure failure, not
+              # a fabric limit, and the two were indistinguishable before.
+              REASON=$(grep -m1 -E "ERROR|error:|Segmentation|Killed|failed" /tmp/np_${TOP}.log | cut -c1-200)
+              {
+                echo "top=${TOP}"
+                echo "status=routing-pending"
+                echo "reason=${REASON:-no-error-line-found}"
+              } | tee metrics/${TOP}.pnr.txt
+              cp /tmp/np_${TOP}.log metrics/${TOP}.nextpnr.log
+              echo "::warning::${TOP} routing-pending: ${REASON:-see log}"
               continue
             fi
             {
