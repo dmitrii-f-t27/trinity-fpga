@@ -3,12 +3,17 @@
 // ⲤⲀⲔⲢⲀ ⲪⲞⲢⲘⲨⲖⲀ: V = n × 3^k × π^m × φ^p × e^q
 
 const std = @import("std");
-const tvc_hybrid = @import("vsa_hybrid/hybrid.zig");
+// ONE source for the type. src/vsa_hybrid/ is a local leftover of the same
+// HybridBigInt the `vsa` module already exports, and taking the type from one
+// while calling functions from the other makes two nominally distinct types
+// out of one structural type -- which is what every
+// "expected vsa_hybrid.hybrid_impl.HybridBigInt, found ternary.hybrid.HybridBigInt"
+// was. The module is the source of truth.
 const tvc_vsa = @import("vsa");
 
-pub const HybridBigInt = tvc_hybrid.HybridBigInt;
-pub const Trit = tvc_hybrid.Trit;
-pub const MAX_TRITS = tvc_hybrid.MAX_TRITS;
+pub const HybridBigInt = tvc_vsa.HybridBigInt;
+pub const Trit = tvc_vsa.Trit;
+pub const MAX_TRITS = tvc_vsa.MAX_TRITS;
 
 // Sacred opcodes module (v7.0)
 const sacred_opcodes = @import("vm/opcodes.zig");
@@ -238,7 +243,7 @@ pub const VSAVM = struct {
     fn execVStore(self: *VSAVM, inst: VSAInstruction) void {
         // Store vector to scalar
         const src = self.getVReg(inst.src1);
-        self.registers.s0 = src.toI64(std.heap.page_allocator);
+        self.registers.s0 = src.toI64();
     }
 
     fn execVConst(self: *VSAVM, inst: VSAInstruction) void {
@@ -273,7 +278,7 @@ pub const VSAVM = struct {
         const dst = self.getVReg(inst.dst);
         var src1 = self.getVReg(inst.src1).*;
         var src2 = self.getVReg(inst.src2).*;
-        dst.* = tvc_vsa.bundle2(&src1, &src2, std.heap.page_allocator);
+        dst.* = tvc_vsa.bundle2(&src1, &src2);
     }
 
     fn execVBundle3(self: *VSAVM, inst: VSAInstruction) void {
@@ -281,14 +286,14 @@ pub const VSAVM = struct {
         var src1 = self.getVReg(inst.src1).*;
         var src2 = self.getVReg(inst.src2).*;
         var src3 = self.getVReg(inst.dst).*; // Use dst as third source
-        dst.* = tvc_vsa.bundle3(&src1, &src2, &src3, std.heap.page_allocator);
+        dst.* = tvc_vsa.bundle3(&src1, &src2, &src3);
     }
 
     fn execVDot(self: *VSAVM, inst: VSAInstruction) void {
         var src1 = self.getVReg(inst.src1).*;
         var src2 = self.getVReg(inst.src2).*;
 
-        self.registers.s0 = src1.dotProduct(&src2, std.heap.page_allocator);
+        self.registers.s0 = src1.dotProduct(&src2);
     }
 
     fn execVCosine(self: *VSAVM, inst: VSAInstruction) void {
@@ -309,20 +314,20 @@ pub const VSAVM = struct {
         const dst = self.getVReg(inst.dst);
         var src1 = self.getVReg(inst.src1).*;
         var src2 = self.getVReg(inst.src2).*;
-        dst.* = src1.add(&src2, std.heap.page_allocator);
+        dst.* = src1.add(&src2);
     }
 
     fn execVNeg(self: *VSAVM, inst: VSAInstruction) void {
         const dst = self.getVReg(inst.dst);
         const src = self.getVReg(inst.src1);
-        dst.* = src.negate(std.heap.page_allocator);
+        dst.* = src.negate();
     }
 
     fn execVMul(self: *VSAVM, inst: VSAInstruction) void {
         const dst = self.getVReg(inst.dst);
         var src1 = self.getVReg(inst.src1).*;
         var src2 = self.getVReg(inst.src2).*;
-        dst.* = src1.mul(&src2, std.heap.page_allocator);
+        dst.* = src1.mul(&src2);
     }
 
     fn execVMov(self: *VSAVM, inst: VSAInstruction) void {
@@ -374,7 +379,7 @@ pub const VSAVM = struct {
         var src2 = self.getVReg(inst.src2).*;
 
         var permuted = tvc_vsa.permute(&src2, 1);
-        dst.* = src1.add(&permuted, std.heap.page_allocator);
+        dst.* = src1.add(&permuted);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1034,10 +1039,8 @@ test "VSA VM f16: v_f16_load quantizes correctly" {
 
     // All values should be in {-1, 0, +1}
     for (0..16) |i| {
-        if (v0.unpacked_cache) |cache| {
-            const val = cache[i];
-            try std.testing.expect(val == -1 or val == 0 or val == 1);
-        }
+        const val = v0.unpacked_cache[i];
+        try std.testing.expect(val == -1 or val == 0 or val == 1);
     }
 }
 

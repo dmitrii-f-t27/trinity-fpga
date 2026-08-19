@@ -38,11 +38,19 @@ pub const science = @import("science.zig");
 pub const sparse = @import("sparse.zig");
 pub const jit = @import("jit.zig");
 
-// Re-export main types
+// Re-export main types.
+//
+// HybridBigInt and Trit come from the MODULE, not from src/vsa_hybrid/. That
+// directory is a local leftover of the same types the `vsa` module exports,
+// and taking the type from one while taking bind/bundle/permute from the other
+// splits one structural type into two nominal ones -- which is every
+// "expected vsa_hybrid.hybrid_impl.HybridBigInt, found ternary.hybrid.HybridBigInt"
+// that consumers of this root were failing on.
+const vsa_mod = @import("vsa");
 pub const BigInt = bigint.TVCBigInt;
 pub const PackedBigInt = packed_trit.PackedBigInt;
-pub const HybridBigInt = hybrid.HybridBigInt;
-pub const Trit = hybrid.Trit;
+pub const HybridBigInt = vsa_mod.HybridBigInt;
+pub const Trit = vsa_mod.Trit;
 
 // Re-export VSA operations
 pub const bind = vsa.bind;
@@ -94,7 +102,8 @@ pub const JitCompiler = jit.JitCompiler;
 pub const JitCache = jit.JitCache;
 
 // Constants
-pub const MAX_TRITS = hybrid.MAX_TRITS;
+pub const MAX_TRITS = vsa_mod.MAX_TRITS;
+// TRITS_PER_BYTE is not exported from the module root; it stays local.
 pub const TRITS_PER_BYTE = hybrid.TRITS_PER_BYTE;
 pub const PHI = science.PHI;
 pub const PHI_SQUARED = science.PHI_SQUARED;

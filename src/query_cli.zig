@@ -15,9 +15,8 @@
 
 const std = @import("std");
 const vsa = @import("vsa");
-const hybrid = @import("vsa_hybrid/hybrid.zig");
 
-const HybridBigInt = hybrid.HybridBigInt;
+const HybridBigInt = vsa.HybridBigInt;
 
 const DIM = 1024;
 const NUM_ENTITIES = 30;
@@ -70,15 +69,13 @@ fn bipolarRandom(dim: usize, seed: u64) HybridBigInt {
     var result = HybridBigInt.zero();
     result.mode = .unpacked_mode;
     result.dirty = true;
-    result.trit_len = @min(dim, hybrid.MAX_TRITS);
+    result.trit_len = @min(dim, vsa.MAX_TRITS);
 
     var rng = std.Random.DefaultPrng.init(seed);
     const random = rng.random();
 
     for (0..result.trit_len) |i| {
-        if (result.unpacked_cache) |cache| {
-            cache[i] = if (random.boolean()) @as(i8, 1) else @as(i8, -1);
-        }
+        result.unpacked_cache[i] = if (random.boolean()) @as(i8, 1) else @as(i8, -1);
     }
     return result;
 }

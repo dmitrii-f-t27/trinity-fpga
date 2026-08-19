@@ -50,8 +50,8 @@ pub fn computeStats(hv: *Hypervector) VectorStats {
     var sum_sq: i64 = 0;
 
     for (0..hv.data.trit_len) |i| {
-        if (hv.data.unpacked_cache) |cache| {
-            const t = cache[i];
+        {
+            const t = hv.data.unpacked_cache[i];
             if (t > 0) {
                 positive += 1;
             } else if (t < 0) {
@@ -450,9 +450,7 @@ pub const SparseHypervector = struct {
         for (0..self.indices.items.len) |i| {
             const idx = self.indices.items[i];
             const val = self.values.items[i];
-            if (hv.data.unpacked_cache) |cache| {
-                cache[idx] = val;
-            }
+            hv.data.unpacked_cache[idx] = val;
         }
 
         hv.data.dirty = true;

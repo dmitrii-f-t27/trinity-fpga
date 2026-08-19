@@ -1343,6 +1343,12 @@ pub fn build(b: *std.Build) void {
     // dangling name in every one of them.
     trinity_mod.addImport("vsa", vsa_tri);
 
+    // trinity-search and trinity-query build their own root modules far above
+    // this line, before the dependency exists, so their imports are attached
+    // here too. Both name @import("vsa") in source and had no imports at all.
+    trinity_search.root_module.addImport("vsa", vsa_tri);
+    trinity_query.root_module.addImport("vsa", vsa_tri);
+
     // src/vm.zig names a JIT engine that CANNOT be built from anything that
     // exists. zig-hdc has src/vsa_jit.zig, but it reaches jit_unified.zig,
     // which imports "../../jit_arm64.zig" -- outside the package -- and
@@ -1579,6 +1585,14 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "vsa", .module = vsa_tri },
                 .{ .name = "treesitter_zig", .module = ts_zig_mod },
                 .{ .name = "tri_train", .module = tri_train_mod },
+                // src/trinity_workspace.zig has always been here; the module was
+                // simply never declared, so server.zig's one call to
+                // cdToRepoRootSilent() had nothing to resolve against.
+                .{ .name = "trinity_workspace", .module = b.createModule(.{
+                    .root_source_file = b.path("src/trinity_workspace.zig"),
+                    .target = target,
+                    .optimize = optimize,
+                }) },
             },
         }),
     });
@@ -3221,6 +3235,8 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/tri/sacred_alu.zig"),
             .target = target,
             .optimize = .ReleaseFast,
+            // reaches std.c, which Zig requires declared rather than inferred
+            .link_libc = true,
         }),
     });
     b.installArtifact(sacred);
