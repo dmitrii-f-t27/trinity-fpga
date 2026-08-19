@@ -128,7 +128,7 @@ pub const VSAInstruction = struct {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Import JIT engine for accelerated operations
-const vsa_jit = @import("vsa_jit");
+const vsa_jit = @import("vsa_jit.zig");
 
 pub const VSAVM = struct {
     registers: VSARegisters,

@@ -1343,20 +1343,22 @@ pub fn build(b: *std.Build) void {
     // dangling name in every one of them.
     trinity_mod.addImport("vsa", vsa_tri);
 
-    // src/vm.zig drives a JIT engine at thirteen sites -- a working feature,
-    // not a vestige -- and its source went to zig-hdc with the rest of the VSA
-    // core. zig-hdc does not re-export it from the module root, so it is
-    // reached through the dependency's own path() rather than by editing the
-    // vendored package (an edit there is lost on the next fetch) or by
-    // deleting the JIT from the VM (a behaviour decision, not a build fix).
-    // vsa_jit.zig imports hybrid.zig and jit_unified.zig as siblings; both sit
-    // beside it in that package, so they resolve relative to it.
-    const vsa_jit_mod = b.createModule(.{
-        .root_source_file = zig_hdc_dep.path("src/vsa_jit.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    trinity_mod.addImport("vsa_jit", vsa_jit_mod);
+    // src/vm.zig names a JIT engine that CANNOT be built from anything that
+    // exists. zig-hdc has src/vsa_jit.zig, but it reaches jit_unified.zig,
+    // which imports "../../jit_arm64.zig" -- outside the package -- and
+    // jit_x86_64.zig. Neither backend is in zig-hdc, in either vendored
+    // golden_float, or in the zig-golden-float submodule.
+    //
+    // So it is the same shape as vsa/agent.zig: a facade over files that have
+    // never existed, which is why zig-hdc declines to export it rather than
+    // having merely forgotten to. Wiring it through zig_hdc_dep.path() was
+    // tried and turned one clean FileNotFound into two errors inside a
+    // dependency -- I had checked that jit_unified.zig parses and that its
+    // siblings exist, which says nothing about whether ITS imports resolve.
+    //
+    // Left dangling deliberately. Removing the JIT from the VM touches
+    // thirteen sites and the public getJitStats, and is a decision about that
+    // VM rather than a way to turn this build green.
 
     // TVC Corpus module for TRI (moved up: needed by fluent CLI and hybrid chat)
     const tvc_corpus_mod = b.createModule(.{
