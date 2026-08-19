@@ -94,7 +94,7 @@ fn verifyBundleNScaling() SotaMetric {
         vectors[i] = trinity.randomVector(DIM, @as(u32, @intCast(5000 + i)));
         ptrs[i] = &vectors[i];
     }
-    var bundled = trinity.bundleN(&ptrs) catch unreachable;
+    var bundled = trinity.bundleN(&ptrs);
     const sim = trinity.cosineSimilarity(&bundled, ptrs[0]);
     return .{
         .name = "BundleN (5 vec)",
