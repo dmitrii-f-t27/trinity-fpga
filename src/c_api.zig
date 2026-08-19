@@ -8,7 +8,7 @@
 
 const std = @import("std");
 const vsa = @import("vsa");
-const hybrid = @import("hybrid.zig");
+const hybrid = @import("vsa_hybrid/hybrid.zig");
 const encoding = @import("vsa/gen_encoding.zig");
 
 const HybridBigInt = hybrid.HybridBigInt;
