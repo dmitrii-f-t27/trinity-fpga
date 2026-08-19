@@ -66,7 +66,7 @@ pub const ThreadPool = struct {
 };
 
 /// Global allocator for pool
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+var gpa = std.heap.DebugAllocator(.{}){};
 
 /// Get or create global thread pool
 /// WARNING: NOT IMPLEMENTED - this was planned for a singleton pool pattern
