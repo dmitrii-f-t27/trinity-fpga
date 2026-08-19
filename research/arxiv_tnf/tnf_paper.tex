@@ -222,10 +222,11 @@ priced in mantissa-bit equivalents of FPGA fabric; Section~\ref{sec:valuelaw} th
 for a logarithmic format the field layout is the smaller half of that cost, and
 that we had been measuring the wrong half.
 
-Twenty of our own claims were falsified or narrowed by the measurements meant to
-support them, and each is retracted where it was made rather than quietly
-dropped; Section~\ref{sec:selfcheck} lists all twenty with their locations so the
-count can be checked against the text.
+Twenty of our own claims were falsified or narrowed during the work by the
+measurements meant to support them, two of those withdrawals later withdrawn in
+turn; each is recorded where it was made rather than quietly dropped, and
+Section~\ref{sec:selfcheck} lists all twenty with their locations so the count
+can be checked against the text.
 Section~\ref{sec:selfcheck} generalises the shape those errors took, because in
 almost every case the measurement was correct and the comparison around it was
 not.
@@ -678,8 +679,11 @@ required $0.125$. Three formats, three exact confirmations. We previously report
 a comparable per-binade rate for takum, and that was a category error on our part:
 takum's staircase is logarithmic, so fitting a line to it produces a number that
 depends on the interval fitted and describes nothing. Its correct constant is one
-bit per \emph{doubling} of $|e|$, and against that the four takum and three tekum
-rungs measure $0.83$ to $1.09$.
+bit per \emph{doubling} of $|e|$, and against that the four takum rungs and the
+three takum-layout oracles formerly labelled tekum measure $0.83$ to $1.09$.
+(True base-3 tekum --- arXiv:2512.10964, since implemented as
+\texttt{tekum\_true\_ref} --- counts its width in trits, tekum16 being 16 trits
+$= 25.4$ bits, and is not among these rungs.)
 
 \paragraph{Range exhaustion is distinguishable from tapering, and both from
 neither.} The distinction is not optional: our own first pass placed the
@@ -851,7 +855,7 @@ form & $M_{\mathrm{eff}}$ against $|e|$ & count & members and constants \\
 constant   & flat                          & $38$ & IEEE, bfloat, VAX, Cray, x87, GF, TNF \\
 wobble     & periodic, no trend            & $3$  & IBM hexadecimal, $\log_2 16 = 4$ bits \\
 arithmetic & $-2^{-es}$ per binade         & $5$  & posit16/32 $0.25$, posit64 $0.125$ \\
-geometric  & $-1$ per doubling             & $7$  & takum $\times 4$, tekum $\times 3$ \\
+geometric  & $-1$ per doubling             & $7$  & takum $\times 4$, takum-layout ``tekum'' oracles $\times 3$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1013,6 +1017,26 @@ unbounded one. We state the axis explicitly because an earlier internal note did
 and the omission points a reader at the one interpretation under which the
 result appears fabricated.
 
+\paragraph{Erratum (2026-08-18): width, the oracle, and the real tekum.} Three
+facts, each measured after the first draft, bound the table above. First, the
+takum oracle negated wrongly on every negative code until \#606 --- negation
+in takum flips the exponent sign --- and now matches libtakum on $65{,}534$ of
+$65{,}535$ codes; the table above is stated post-fix, and every ratio published
+before that fix is superseded. Second, every named rung of the specification
+ladder is wide of its name --- TNF8 stores 10 bits, TNF16 stores 17 at its
+specified $M{=}9$ (the adopted $M{=}11$ rung above is a nineteen-cell object,
+as the caption states), TNF32 30, TNF64 65, TNF1024 1025; the exact-width
+rungs are TNF(2,3) at 8 bits, TNF(4,8) at 16 and TNF(4,24) at 32, and every
+equal-storage claim must use those. Third, re-measured at equal stored width
+with the corrected oracles --- accumulation of 64 terms over $\pm3$ decades
+--- the 16-bit class is a three-way tie that includes the real base-3 tekum:
+tekum10 ($15.85$ stored bits) $8.56\mathrm{e}{-3}$, takum16
+$5.70\mathrm{e}{-3}$, TNF(4,8) $5.32\mathrm{e}{-3}$; the 32-bit class reads
+$1.43/1.26/1.20\mathrm{e}{-7}$ for tekum20/takum32/TNF(4,24). No format wins
+by more than the width it gives up. What survives is not an accuracy lead but
+structure: the fixed field's decode and adder (see Limitations) and the
+exactness of the construction.
+
 \section{The 16-bit field}\label{sec:field}
 
 \begin{figure}[htbp]\centering
@@ -1025,7 +1049,12 @@ result appears fabricated.
 Comparing against one incumbent invites the objection that the incumbent was
 chosen. Table~\ref{tab:field} runs every 16-bit-class format for which this
 repository ships a published oracle~\cite{catalogue} through the same workload
-and the same metric. Values that overflowed are counted separately rather than
+and the same metric. One width correction bounds the table: TNF16 as specified
+stores 17 bits --- four trits pack into seven --- and the adopted rung the
+table actually runs is a nineteen-cell object, so TNF16 sits in this class by
+name only; the exact-width 16-bit rung is TNF(4,8), which at equal stored
+width ties takum16 ($5.32\mathrm{e}{-3}$ against $5.70\mathrm{e}{-3}$ on
+64-term accumulation) rather than beating it. Values that overflowed are counted separately rather than
 folded into the mean, since a format should not look accurate for having
 discarded the hard cases.
 
@@ -1046,7 +1075,7 @@ format & $|e|<8$ & $|e|\,8$--$20$ & $|e|\,20$--$38$ \\
 \midrule
 \textbf{TNF16}    & $\mathbf{8.34\mathrm{e}{-5}}$ & $\mathbf{8.41\mathrm{e}{-5}}$ & $\mathbf{8.45\mathrm{e}{-5}}$ \\
 GF16 ($\varphi$)   & $3.41\mathrm{e}{-4}$ & $3.46\mathrm{e}{-4}$ & $5.76\mathrm{e}{-3}$ (465) \\
-takum16 / tekum16  & $3.08\mathrm{e}{-4}$ & $9.42\mathrm{e}{-4}$ & $1.92\mathrm{e}{-3}$ \\
+takum16            & $3.08\mathrm{e}{-4}$ & $9.42\mathrm{e}{-4}$ & $1.92\mathrm{e}{-3}$ \\
 posit16            & $1.25\mathrm{e}{-4}$ & $7.87\mathrm{e}{-4}$ & $1.37\mathrm{e}{-2}$ \\
 IEEE binary16      & $1.70\mathrm{e}{-4}$ & $1.15\mathrm{e}{-3}$ (313) & $1.46\mathrm{e}{-1}$ (2413) \\
 bfloat16           & $1.32\mathrm{e}{-3}$ & $1.34\mathrm{e}{-3}$ & $1.37\mathrm{e}{-3}$ \\
@@ -1118,8 +1147,11 @@ decimal orders and discards 2{,}413 values, and GF16's 6-bit exponent clips 465.
 \paragraph{At 32 bits the binary formats win outright.} Running the same
 workload on the 32-bit class: GF32 is flat at $3.4\mathrm{e}{-7}$ with no
 clipping, but IEEE binary32 is flat at $2.1\mathrm{e}{-8}$, and posit32 and
-takum32 are better still near unity ($2.1\mathrm{e}{-9}$ and
-$4.9\mathrm{e}{-9}$). Uniformity stops being the deciding property once there are
+takum32 are better still near unity ($2.1\mathrm{e}{-9}$, and
+$4.9\mathrm{e}{-9}$ measured with the pre-\#606 takum oracle). At exactly 32
+stored bits --- TNF32 as named stores 30 --- the corrected accumulation
+measurement makes the class a tie: TNF(4,24) $1.20\mathrm{e}{-7}$, takum32
+$1.26\mathrm{e}{-7}$, tekum20 ($31.70$ stored bits) $1.43\mathrm{e}{-7}$. Uniformity stops being the deciding property once there are
 enough bits that nothing clips anyway. The TNF argument is a 16-bit-class
 argument, and we do not extend it.
 
@@ -1139,9 +1171,16 @@ oracles produce identical figures on every bin, so we checked the whole 16-bit
 code space: all $65{,}536$ codes decode identically, with zero differences,
 although the two implementations differ by 242 lines. The reconstruction our
 tekum oracle implements \emph{is} takum16. Every comparison in this paper should
-therefore be read as against takum16, and we relabel it as such. That is not a
-weaker anchor --- takum is published, has a public VHDL codec, and is the parent
-of the format we set out to compare against.
+therefore be read as against takum16, and we relabel it as such. Two further
+facts, measured since, bound even that anchor. The takum oracle itself negated
+wrongly on every negative code until \#606 --- negation in takum flips the
+exponent sign --- and now matches libtakum on $65{,}534$ of $65{,}535$ codes,
+so every pre-\#606 ratio is superseded by the erratum above. And the real
+base-3 tekum is now implemented (\texttt{tekum\_true\_ref}, from
+arXiv:2512.10964 Definitions 7--8, exact on the paper's worked example and
+monotone on all $6{,}559$ tekum8 codes): its widths count \emph{trits}, so
+tekum16 is 16 trits $= 25.4$ bits with $3^{16}$ codes and was never a 16-bit
+competitor at all.
 \begin{figure}[htbp]\centering
 \includegraphics[width=\textwidth]{canon/canon-tnf-70-fieldflatness.png}
 \caption{Canon plate. The 16-bit results show flat fixed-field error across the three bands, contrast it with tapered changes by magnitude, and retain the lower-rung range failures in the ladder report.}
@@ -1815,9 +1854,13 @@ Theorem~\ref{thm:floor} is worth stating plainly because it bounds this work as
 much as its competitors: takum's regime is asymptotically optimal, and no format
 --- TNF included --- can beat it over unbounded range. What TNF does instead is
 decline the unbounded range, which Theorem~\ref{thm:dichotomy} shows is the only
-other option. The measured advantages of Section~\ref{sec:accuracy} are therefore
-advantages \emph{inside TNF's range}, which is where the taper has already cost
-takum the bits, and they should never be read as a claim beyond it.
+other option. The accuracy advantages Section~\ref{sec:accuracy} once claimed inside that
+range did not survive their own correction: with the takum oracle's negation
+defect fixed and the stored widths equalised, the accumulation measurement is
+a three-way tie among TNF(4,8), takum16 and true tekum, no format winning more
+than the width it gives up. What holds inside and outside the range alike is
+structural --- the fixed field has no regime codec and a $2.98\times$ smaller
+adder --- and that, not accuracy, is the claim this theorem leaves standing.
 
 \begin{theorem}[The regime's radix does not matter]
 \label{thm:radixinv}
@@ -2234,9 +2277,17 @@ regime would, spent on significand instead, raise the precision budget of a
 fixed-field format at the same class by roughly three quarters. Against takum the
 LUT-area term at the same $M$ is $0.74$ bits, which is small. The
 length-prefixed regime is cheap, and any argument for a fixed field made on area
-grounds is an argument against posit and not against takum. Against takum what
-remains is the accuracy result of Section~\ref{sec:accuracy}, bounded as
-Theorem~\ref{thm:floor} requires to TNF's own range.
+grounds is an argument against posit and not against takum --- on the
+regime-codec axis. On the full-adder axis the fixed field separates from takum
+as well: \texttt{tef\_add\_full} --- sign, subtract, round-to-nearest-even,
+normalise --- synthesises to $397$ LUT / $45$ CARRY4 at TNF(4,8) against
+$1{,}182$ LUT / $211$ CARRY4 for a 16-bit adder of the linear takum layout,
+$2.98\times$, verified on $3{,}000$ oracle vectors and $40$ chained 32-term
+accumulations with zero errors (Yosys 0.65, \texttt{synth\_xilinx},
+post-synthesis, no place-and-route, no board). What does \emph{not} remain
+against takum is accuracy: the equal-width re-measurement (erratum,
+Section~\ref{sec:accuracy}) is a tie, bounded as Theorem~\ref{thm:floor}
+requires to TNF's own range.
 
 \begin{corollary}[The area argument is a narrow-width argument]
 \label{cor:narrow}
@@ -2647,7 +2698,10 @@ fabric once the weight multiplier has vanished. The datapath is
 against an adder.
 
 \begin{table}[t]\centering
-\caption{One ternary neuron, matched width against matched width, every
+\caption{One ternary neuron, matched \emph{named} width against matched named
+width: the TNF rungs store more bits than their names --- TNF8 stores 10,
+TNF16 17, TNF32 30 --- so each row hands TNF that margin; the exact-width
+rungs are TNF(2,3), TNF(4,8) and TNF(4,24). Every
 accumulator bit observed, median of five placement seeds, XC7A200T, no DSP.
 Every candidate decodes a \emph{packed} word. Two corrections stand behind these
 numbers. An earlier version reported $440$ against $895$ LUTs --- a $2.03\times$
@@ -2806,7 +2860,10 @@ the dominating member named in each case:
 \begin{table}[t]\centering
 \caption{Dominance by width class. The family member that dominates is given for
 the hardest case in each class. Effective mantissa is measured; range is
-$3^{E_t}-1$, which is analytic for a fixed field.}
+$3^{E_t}-1$, which is analytic for a fixed field. Dominance is at equal
+\emph{position} count and was measured with the pre-\#606 takum oracle; at
+equal stored bits Section~\ref{sec:packedfrontier} withdraws it for the
+tapered formats --- takum16 escapes by $1.53$ bits.}
 \label{tab:nosurvivors}
 \begin{tabular}{rrll}
 \toprule
@@ -5146,9 +5203,12 @@ dominated rather than all of them. Every uniform binary format spending all its
 bits ties exactly: binary16 at $15.06$ against a budget of $15$, binary32 at
 $31.10$ against $31$, binary64 at $63.27$ against $63$. Those dominated are the
 ones wasting budget --- posit32 by $5.12$ positions, posit64 by $14.24$, takum32
-by $0.82$, tekum32 by $0.90$, \texttt{cray\_float} by $0.65$, and our own gf8 by
+by $0.82$, the takum-layout oracle formerly labelled tekum32 by $0.90$,
+\texttt{cray\_float} by $0.65$, and our own gf8 by
 $0.70$. Several tapered formats escape outright: posit8 by $1.16$, posit16 by
-$2.37$, takum16 by $1.53$, tekum16 by $1.49$. That is consistent with
+$2.37$, takum16 by $1.53$, the takum-layout ``tekum16'' by $1.49$. (True
+base-3 tekum counts its width in trits --- tekum16 is $25.4$ bits --- and
+belongs to no binary width class here.) That is consistent with
 Corollary~\ref{cor:escape} --- escape requires non-uniformity, a taper is
 non-uniform, and a uniform family cannot catch it at equal storage.
 
@@ -5856,7 +5916,8 @@ to the failure of the arithmetic form in the stated model.
 
 Measured across windows $1$--$9$ and $1$--$20$, the split is exact: posit16,
 posit32 and posit64 move by $1.08\times$, $1.00\times$ and $1.09\times$, while
-every takum and tekum moves by $1.39\times$ to $1.72\times$.
+every takum rung --- including the takum-layout oracles formerly labelled
+tekum --- moves by $1.39\times$ to $1.72\times$.
 
 \begin{corollary}[Closed form for a geometric taper]
 \label{cor:geomcross}
@@ -5890,16 +5951,18 @@ posit64 & arithmetic & $54.0$ \\
 takum16 & geometric & $\mathbf{1.8}$ \\
 takum32 & geometric & $\mathbf{2.6}$ \\
 takum64 & geometric & $\mathbf{62.7}$ \\
-tekum16 & geometric & $\mathbf{2.1}$ \\
-tekum32 & geometric & $\mathbf{2.4}$ \\
-takum8, tekum8 & geometric & TNF everywhere \\
+takum-layout ``tekum16'' oracle & geometric & $\mathbf{2.1}$ \\
+takum-layout ``tekum32'' oracle & geometric & $\mathbf{2.4}$ \\
+takum8, takum-layout ``tekum8'' & geometric & TNF everywhere \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 Six figures previously reported as ranges were computed by the wrong model and
-are corrected here: takum32 moves from $5.9$--$10.2$ to an exact $2.6$, tekum16
-from $4.2$--$6.5$ to $2.1$. The remaining window dependence is confined to
+are corrected here: takum32 moves from $5.9$--$10.2$ to an exact $2.6$, the
+takum-layout ``tekum16'' oracle
+from $4.2$--$6.5$ to $2.1$. (True tekum, arXiv:2512.10964, counts its width in
+trits and has no 16-bit member.) The remaining window dependence is confined to
 posit8, whose peak sits within $0.45$ bits of TNF8's so that any slope estimate
 divides a very small number.
 
@@ -7376,10 +7439,18 @@ ones: no regime codec, no exponential to
 evaluate. The ternary claim is architectural and is labelled as such throughout.
 
 \begin{enumerate}[leftmargin=*]
-\item \textbf{The comparison is against takum16, not tekum16.} The oracle
-labelled tekum decodes all $65{,}536$ 16-bit codes identically to the takum
-oracle. We report the comparison as against takum and note that a genuine tekum
-comparison remains to be done.
+\item \textbf{The comparison was against takum16, not tekum16 --- and the
+genuine tekum comparison has since been done.} The oracle labelled tekum
+decodes all $65{,}536$ 16-bit codes identically to the takum oracle; it is a
+linear binary model of takum's layout. \texttt{tekum\_true\_ref} now
+implements the real base-3 tekum of arXiv:2512.10964, Definitions 7--8 --- the
+paper's worked example reproduces exactly and the encoding is monotone on all
+$6{,}559$ tekum8 codes. Its widths count trits, so tekum16 is 16 trits
+$= 25.4$ bits with $3^{16}$ codes. At equal stored width the accumulation
+benchmark is a three-way tie: tekum10 ($15.85$ bits) $8.56\mathrm{e}{-3}$,
+takum16 $5.70\mathrm{e}{-3}$, TNF(4,8) $5.32\mathrm{e}{-3}$ at the 16-bit
+class, and $1.43/1.26/1.20\mathrm{e}{-7}$ at 32. No format wins by more than
+the width it gives up.
 
 \item \textbf{The reference oracle carried a sign defect, now fixed.} Round-tripping
 $1.5$ through the parameterised oracle returned $-1.5$ at mantissa widths of 21
@@ -7394,12 +7465,31 @@ check was add/mul commutativity, and an inverted sign survives on both sides of
 $a+b=b+a$. The check was real and blind to the class. A round-trip assertion sees
 it, costs one line per probe, and now runs at all nine rungs. tekum~\cite{tekum} is a descendant of takum~\cite{takum} adapted for balanced
 ternary. Our
-oracle reconstructs it from takum's field scheme; the full per-trit
-specification requires the tekum paper. The ratios are as good as that model.
+linear oracle reconstructed it from takum's field scheme; the full per-trit
+specification is now implemented from the tekum paper as
+\texttt{tekum\_true\_ref} (Definitions 7--8, exact on the worked example,
+monotone on all $6{,}559$ tekum8 codes). The takum oracle carried a defect of
+its own --- negation flips the exponent sign, and every negative code decoded
+wrongly until \#606; it now matches libtakum on $65{,}534$ of $65{,}535$ codes
+--- so every takum ratio measured before that fix is superseded by the
+equal-width tie of Section~\ref{sec:accuracy}.
 
-\item \textbf{No head-to-head in hardware.} takum's codec RTL is public and
-written in VHDL~\cite{takumrtl}. We did not synthesise it alongside TNF, so the cost figures are
-TNF's own. What is visible in that source, and what we report as structure
+\item \textbf{The head-to-head in hardware now exists, with caveats.} takum's
+published codec RTL is VHDL~\cite{takumrtl} and was not synthesised here, so
+those figures remain TNF's own. What has since been synthesised head-to-head:
+\texttt{tef\_add\_full} --- sign, subtract, round-to-nearest-even, normalise
+--- verified on $3{,}000$ oracle vectors plus $40$ chained accumulations of 32
+terms with zero errors, at $397$ LUT / $45$ CARRY4 for TNF(4,8) against
+$1{,}182$ LUT / $211$ CARRY4 for a 16-bit adder of the \emph{linear
+takum-layout model}, $2.98\times$; and the first real-tekum hardware,
+\texttt{tekum8\_decode.v}, exhaustively verified on all $6{,}558$ codes with
+zero errors, at $542$ LUT / $96$ CARRY4 against $1$ LUT for the TNF
+field-slice decode. Caveats, all of them: Yosys 0.65 \texttt{synth\_xilinx},
+last stat block only (an earlier extraction summed all blocks and inflated
+every figure threefold), post-synthesis with no place-and-route and no board;
+the adder competitor is a structural model of takum's layout, not the
+published VHDL; and on a ternary fabric tekum's trit extraction would be
+wiring. What is visible in that source, and what we report as structure
 rather than measurement, is this: the 16-bit codec instantiates a 725-line
 generated leading-zero counter and barrel shifter --- machinery a fixed-field
 format does not need for regime decoding.
