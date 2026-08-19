@@ -160,11 +160,19 @@ jobs:
               done
             done
             if [ "$CLEAN" = "0" ]; then
-              # A routing failure is a fabric limit, recorded as such. It is not
-              # a zero, not a defect in the format, and must never be dropped
-              # silently from the fit.
-              echo "top=${TOP}"$'\n'"status=routing-pending" | tee metrics/${TOP}.pnr.txt
-              echo "::warning::${TOP} routing-pending on xc7a200tfbg484-2"
+              # A routing failure is a fabric limit ONLY when the log says so.
+              # W922: run 3 put e2m1 -- a near-empty adder -- in routing-pending,
+              # which no fabric limit explains; without the log and the reason
+              # line, infrastructure failures were indistinguishable from
+              # fabric limits. Both now ship with the artefact.
+              REASON=$(grep -m1 -E "ERROR|error:|Segmentation|Killed|failed" /tmp/np_${TOP}.log | cut -c1-200)
+              {
+                echo "top=${TOP}"
+                echo "status=routing-pending"
+                echo "reason=${REASON:-no-error-line-found}"
+              } | tee metrics/${TOP}.pnr.txt
+              cp /tmp/np_${TOP}.log metrics/${TOP}.nextpnr.log
+              echo "::warning::${TOP} routing-pending: ${REASON:-see log}"
               continue
             fi
             {
