@@ -418,7 +418,7 @@ pub const VSAVM = struct {
         dst.ensureUnpacked();
         dst.trit_len = 16;
         inline for (0..16) |i| {
-            dst.unpacked_cache.?[i] = ternary_vec[i];
+            dst.unpacked_cache[i] = ternary_vec[i];
         }
     }
 
@@ -431,7 +431,7 @@ pub const VSAVM = struct {
         // Convert first 16 trits to f16
         var f16_vec: @Vector(16, f16) = undefined;
         inline for (0..16) |i| {
-            const trit: i8 = if (i < src.trit_len) src.unpacked_cache.?[i] else 0;
+            const trit: i8 = if (i < src.trit_len) src.unpacked_cache[i] else 0;
             f16_vec[i] = @floatCast(@as(f32, @floatFromInt(trit)));
         }
 
@@ -456,8 +456,8 @@ pub const VSAVM = struct {
         var a_f16: @Vector(16, f16) = undefined;
         var b_f16: @Vector(16, f16) = undefined;
         inline for (0..16) |i| {
-            const a_trit: i8 = if (i < a.trit_len) a.unpacked_cache.?[i] else 0;
-            const b_trit: i8 = if (i < b.trit_len) b.unpacked_cache.?[i] else 0;
+            const a_trit: i8 = if (i < a.trit_len) a.unpacked_cache[i] else 0;
+            const b_trit: i8 = if (i < b.trit_len) b.unpacked_cache[i] else 0;
             a_f16[i] = @floatCast(@as(f32, @floatFromInt(a_trit)));
             b_f16[i] = @floatCast(@as(f32, @floatFromInt(b_trit)));
         }

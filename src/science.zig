@@ -140,8 +140,8 @@ pub fn euclideanDistance(a: *Hypervector, b: *Hypervector) f64 {
     const len = @max(a.data.trit_len, b.data.trit_len);
 
     for (0..len) |i| {
-        const a_t: i64 = if (i < a.data.trit_len) a.data.unpacked_cache.?[i] else 0;
-        const b_t: i64 = if (i < b.data.trit_len) b.data.unpacked_cache.?[i] else 0;
+        const a_t: i64 = if (i < a.data.trit_len) a.data.unpacked_cache[i] else 0;
+        const b_t: i64 = if (i < b.data.trit_len) b.data.unpacked_cache[i] else 0;
         const diff = a_t - b_t;
         sum_sq += diff * diff;
     }
@@ -158,8 +158,8 @@ pub fn manhattanDistance(a: *Hypervector, b: *Hypervector) f64 {
     const len = @max(a.data.trit_len, b.data.trit_len);
 
     for (0..len) |i| {
-        const a_t: i64 = if (i < a.data.trit_len) a.data.unpacked_cache.?[i] else 0;
-        const b_t: i64 = if (i < b.data.trit_len) b.data.unpacked_cache.?[i] else 0;
+        const a_t: i64 = if (i < a.data.trit_len) a.data.unpacked_cache[i] else 0;
+        const b_t: i64 = if (i < b.data.trit_len) b.data.unpacked_cache[i] else 0;
         sum += @abs(a_t - b_t);
     }
 
@@ -176,8 +176,8 @@ pub fn jaccardDistance(a: *Hypervector, b: *Hypervector) f64 {
     const len = @max(a.data.trit_len, b.data.trit_len);
 
     for (0..len) |i| {
-        const a_t = if (i < a.data.trit_len) a.data.unpacked_cache.?[i] else 0;
-        const b_t = if (i < b.data.trit_len) b.data.unpacked_cache.?[i] else 0;
+        const a_t = if (i < a.data.trit_len) a.data.unpacked_cache[i] else 0;
+        const b_t = if (i < b.data.trit_len) b.data.unpacked_cache[i] else 0;
 
         const a_nz = a_t != 0;
         const b_nz = b_t != 0;
@@ -201,8 +201,8 @@ pub fn diceDistance(a: *Hypervector, b: *Hypervector) f64 {
     const len = @max(a.data.trit_len, b.data.trit_len);
 
     for (0..len) |i| {
-        const a_t = if (i < a.data.trit_len) a.data.unpacked_cache.?[i] else 0;
-        const b_t = if (i < b.data.trit_len) b.data.unpacked_cache.?[i] else 0;
+        const a_t = if (i < a.data.trit_len) a.data.unpacked_cache[i] else 0;
+        const b_t = if (i < b.data.trit_len) b.data.unpacked_cache[i] else 0;
 
         if (a_t != 0) a_count += 1;
         if (b_t != 0) b_count += 1;
