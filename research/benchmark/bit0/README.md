@@ -18,7 +18,7 @@ snapshots (`*-machine.txt`) accompany every CSV.
 | `openxc7/timing-context/max-frequency-lines.txt` | Every `Max frequency` and `Annotating ports…` line from every openXC7 stage log, with the log line number. **Read the LAST block per log**: since nextpnr-xilinx #139 (inside the freeze) each log carries the placer's pre-route ESTIMATE mid-flow and the routed analysis at the end. Minimum-over-all-lines mixes the two. |
 | `vivado/bench-20260815-162240.csv`, `vivado/bench-20260815-162613.csv` | **The clean Vivado 2026.1 campaign (v2)**, run hermetically (see `harness/vivado-nonet.sh`). Per-stage seconds (synth/place/route/bitgen), total, wns/tns/timing_met from `report_timing_summary`. Two files = the campaign was run in two consecutive batches; both are v2. |
 | `vivado/contaminated-v1/` | The first Vivado campaign, ARCHIVED AS EVIDENCE, never as rows: write_bitstream stalled 4–7 nondeterministic minutes on Flexera RUI telemetry making raw `connect()` calls that ignore the proxy env (`NOTE.md` has the diagnosis). |
-| `harness/` | The two harness scripts (`bench-openxc7.sh`, `bench.sh` + `run-design.tcl` + `designs.tsv`) and `vivado-nonet.sh` (rootless `unshare -r -n` wrapper with a dummy interface carrying the licensed MAC — the fix for the telemetry stall). |
+| `harness/` | The two harness scripts (`bench-openxc7.sh`, `bench.sh` + `run-design.tcl` + `designs.tsv`) and `vivado-nonet.sh` (rootless `unshare -r -n` wrapper with a dummy interface carrying the licensed MAC — the fix for the telemetry stall). **Archived evidence, not tooling** — see `harness/NOTE.md` before touching or copying anything in there. |
 
 ## Known caveats (already stated in the thread)
 
@@ -30,4 +30,34 @@ snapshots (`*-machine.txt`) accompany every CSV.
 - Every openXC7 timing "PASS" is against nextpnr's 12 MHz default target: the
   designs' own `create_clock` on the pad net does not propagate through
   IBUF/BUFG nor to PLL outputs in nextpnr-xilinx, so no domain carries the
-  intended target (issue to be filed).
+  intended target. Filed as
+  [openXC7/nextpnr-xilinx#155](https://github.com/openXC7/nextpnr-xilinx/issues/155).
+- **Ten of the twenty openXC7 rows timed a bitstream that does not run.** Both
+  `litex-ddr-arty-s7` designs are VexRiscv SoCs, five runs each, and the frozen
+  toolchain (`05aaa06`) predates `f1c77134` — the fix in
+  [openXC7/nextpnr-xilinx#150](https://github.com/openXC7/nextpnr-xilinx/pull/150),
+  where the console is dead at 16 MHz on silicon. The seconds are unaffected;
+  the harness times three subprocesses and none of this touches that. What is
+  affected is any sentence placed next to them: "openXC7 built this in N
+  seconds" stands, "and it met timing" does not, and for these two designs "and
+  it ran" does not either.
+
+## Reading the frequency figures
+
+Take them from `openxc7/timing-context/max-frequency-lines.txt`, and cite the
+log line. The routed values for the two SoC designs are:
+
+| design | line | clock | routed |
+|---|---|---|---|
+| `litex-ddr-arty-s7` | 1515 | `main_crg_clkout_buf0` | **68.73 MHz** |
+| `litex-ddr-arty-s7-deephier` | 1512 | `sys_clk` | **69.72 MHz** |
+
+Identical across all five runs of each — the seed is pinned, so there is no
+run-to-run spread to report.
+
+The placement estimates at lines 373 and 381 are 65.52 and 74.21. Note the
+direction: routing came out **above** the estimate on one design and **below**
+it on the other, so a figure that mixes the two is wrong in an unpredictable
+direction rather than merely imprecise. A published "65.5–69.7 MHz" range did
+exactly that — floor from an estimate, ceiling from a routed value — and is
+corrected on #150.
