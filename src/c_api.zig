@@ -8,7 +8,7 @@
 
 const std = @import("std");
 const vsa = @import("vsa");
-const hybrid = @import("vsa_hybrid/hybrid.zig");
+const hybrid = vsa;  // one source: the module, not the local vsa_hybrid copy
 const encoding = @import("vsa/gen_encoding.zig");
 
 const HybridBigInt = hybrid.HybridBigInt;

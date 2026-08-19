@@ -7,7 +7,7 @@
 // φ² + 1/φ² = 3
 
 const std = @import("std");
-const hybrid = @import("vsa_hybrid/hybrid.zig");
+const hybrid = vsa;  // one source: the module, not the local vsa_hybrid copy
 const vsa = @import("vsa");
 
 const HybridBigInt = hybrid.HybridBigInt;
