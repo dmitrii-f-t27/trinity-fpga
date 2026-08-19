@@ -149,6 +149,19 @@ jobs:
               echo "config=${CFG_USED// //}"
               echo "reference_config=${REF_CFG// //}"
               echo "comparable=${COMPARABLE}"
+              # W936, read out of nextpnr-xilinx's source rather than guessed:
+              # router1 runs its own post-route timing analysis (router1.cc), and
+              # consumes --freq through criticality/budgets. router2 -- the xc7
+              # default -- did NOT run a timing analysis until openXC7's
+              # 2026-08-11 commit, so the only "Max frequency" lines in a router2
+              # log came from placer1's mid-flow PRE-ROUTE estimates, in
+              # identically formatted text. A `tail -1` scraper therefore reads a
+              # post-route number under router1 and an estimate under router2.
+              case "$CFG_USED" in
+                *router1*) FSRC="router1-postroute" ;;
+                *)         FSRC="router2-unverified-may-be-placer-estimate" ;;
+              esac
+              echo "fmax_source=${FSRC}"
               echo "luts=$(grep -E 'SLICE_LUTX' /tmp/np_${TOP}.log | tail -1 | grep -oE '[0-9]+/' | head -1 | tr -d /)"
               echo "ffs=$(grep -E 'SLICE_FFX' /tmp/np_${TOP}.log | tail -1 | grep -oE '[0-9]+/' | head -1 | tr -d /)"
               echo "fmax=$(grep -E 'Max frequency for clock' /tmp/np_${TOP}.log | tail -1 | sed 's/^.*: //')"
@@ -220,10 +233,19 @@ jobs:
               print("\nAll routed rows are on the reference configuration (heap/router1), so "
                     "cross-row comparison is at least configuration-controlled -- still subject "
                     "to the seed band above.")
-          print("\nEvery Fmax here is nextpnr's estimate under `--freq 50.0 --timing-allow-fail`: "
-                "the tool optimised against a 50 MHz constraint and reported the slack it happened "
-                "to leave. That is headroom at a relaxed target, not achievable frequency, and it "
-                "is not comparable to a vendor-flow Fmax pushed to the design's limit.")
+          print("\nWhat an Fmax here is, precisely (nextpnr-xilinx source, W936). `--freq 50.0` "
+                "reaches place-and-route only through criticality and budgets: **router1 consumes "
+                "it, router2 does not**, so a router1 row is a design shaped by a 50 MHz target "
+                "and reported at the slack it was left with, while a router2 row is an "
+                "unconstrained critical path. Neither is a vendor-flow Fmax pushed to the limit, "
+                "and the two are not comparable to each other. Rows carry `fmax_source`: router2 "
+                "rows may be placer PRE-ROUTE estimates, because that flow ran no timing analysis "
+                "before openXC7's 2026-08-11 commit.")
+          print("\nAnd the timing model itself: every flip-flop carries a hardcoded 0.1 ns setup, "
+                "hold and clock-to-Q (xilinx/arch.cc:2507-2509) and the chipdb holds one speed "
+                "grade (bbaexport.py:356). Speed grade is decorative here, and the constant "
+                "endpoint delay favours shallow register-dominated designs over deep ones -- a "
+                "bias that reorders rather than offsets.")
           PY
           cat report.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
