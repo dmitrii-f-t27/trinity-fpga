@@ -7,19 +7,51 @@ conversation.
 
 ---
 
-## 1. Push `zig-golden-float` — five minutes, unblocks strangers
+## 1. ~~Push `zig-golden-float`~~ — DONE, and the diagnosis here was wrong
 
-`git clone --recursive` **fails for everyone**, including you on a new machine.
-The tree pins `external/zig-golden-float` at gitlink `c7af4bbe`, which is not on
-the remote; local checkouts hold `1923572c`, which is not on the remote either.
+**Fixed in `f2925251`. `git clone --recursive` works; verified by actually
+cloning.** Both submodules populate at their pinned SHAs.
 
-```bash
-cd /Users/playom/trinity-fpga/external/zig-golden-float && git push origin HEAD
+Recording the error, because the prescription in this section would have wasted
+the reader's time and not fixed anything.
+
+It said to push the submodule. **There was nothing to push.** The local checkout
+`1923572c` is already an ancestor of the submodule's `origin/main` — it is a
+hundred commits *behind* it, not ahead. `git push origin HEAD` would have
+reported "Everything up-to-date" and the clone would have kept failing.
+
+The real fault was one level up: `main` pinned the gitlink at `c7af4bbe`, and
+that object does not exist on the server.
+
+```
+$ git fetch --depth=1 https://github.com/gHashTag/zig-golden-float c7af4bbe...
+fatal: remote error: upload-pack: not our ref c7af4bbe...
 ```
 
-Then, in the parent repo, commit the gitlink so it names something fetchable.
-Until this happens, the numerical core exists only on machines that already have
-it — which includes no CI runner and no collaborator.
+Nor is it reachable from any remote branch — after fetching every branch it is
+still absent locally. So the fix was to repoint the gitlink at `1923572c`, which
+is fetchable, is what the working copy has always used, and is what the
+`trinet-fleet-truth` branch already pinned. Not a guess: the version the tree
+has actually been built against.
+
+Deliberately **not** bumped to the submodule's current `origin/main`. That is a
+hundred-commit upgrade with real risk and belongs in its own change.
+
+`external/tt-trinity-corona` was checked by the same method and was always fine.
+
+**The lesson worth keeping.** This section asserted two things — "`c7af4bbe` is
+not on the remote" (true) and "`1923572c` is not on the remote either" (false) —
+and prescribed a fix that followed only from the false half. Both claims were
+written from the same glance at the same output. The test that settled it,
+`git fetch <url> <sha>`, takes one second and returns an unambiguous
+`not our ref`.
+
+*Two* checks failed along the way while writing this, both reporting success:
+`set -- $pair` does not word-split in zsh, so a loop testing both submodules ran
+`git fetch` with empty arguments and printed `FETCHABLE ✓` for both; and `$?`
+after a pipeline captures `tail`, not `git`. Same family as everything in
+`.claude/skills/stale-reference/SKILL.md` §12 — when a check cannot fail, its
+output is indistinguishable from a pass.
 
 ---
 
