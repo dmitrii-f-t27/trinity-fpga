@@ -34,13 +34,40 @@ snapshots (`*-machine.txt`) accompany every CSV.
   [openXC7/nextpnr-xilinx#155](https://github.com/openXC7/nextpnr-xilinx/issues/155).
 - **Ten of the twenty openXC7 rows timed a bitstream that does not run.** Both
   `litex-ddr-arty-s7` designs are VexRiscv SoCs, five runs each, and the frozen
-  toolchain (`05aaa06`) predates `f1c77134` — the fix in
+  toolchain (`05aaa06bc`) predates `f1c771349` — the fix in
   [openXC7/nextpnr-xilinx#150](https://github.com/openXC7/nextpnr-xilinx/pull/150),
   where the console is dead at 16 MHz on silicon. The seconds are unaffected;
   the harness times three subprocesses and none of this touches that. What is
   affected is any sentence placed next to them: "openXC7 built this in N
   seconds" stands, "and it met timing" does not, and for these two designs "and
   it ran" does not either.
+
+## Would a re-run on a post-#150 toolchain change these numbers?
+
+**No — and the diff says so without needing a campaign.** `f1c771349` touches
+exactly one file, `xilinx/fasm.cc`, `+49/-1`, entirely inside
+`write_bram_width`. That function runs in the FASM backend, downstream of
+everything the harness times:
+
+| stage the harness times | what #150 touches | effect |
+|---|---|---|
+| `synth_ms` (yosys) | nothing | none |
+| `pnr_ms` (nextpnr place + route + FASM write) | two integer comparisons per BRAM width parameter, during FASM write | unmeasurable |
+| `bit_ms` (`fasm2frames` + `xc7frames2bit`) | sets additional bits in frames that were already emitted; frame count is fixed by the part | none |
+
+So the wall-clock rows stand as measured, and the headline ratio stands with
+them. The fix changes *what the bitstream contains*, not *how long it took to
+produce* — it emits `READ_WIDTH_B_18` / `WRITE_WIDTH_A_18` for SDP ports whose
+opposite side yosys leaves at 0, which is why the VexRiscv ROM returned garbage
+in the upper half of every read while the timing was fine.
+
+**What a re-run would legitimately establish is functional, not temporal:** that
+the design now boots. That is a silicon test on an Arty-S7, not a timing
+campaign — and it belongs with whoever holds that board.
+
+Two things make a timing re-run on other hardware worthless regardless: the
+campaign is *same-machine* by construction, and Vivado does not run on Apple
+Silicon at all, so the comparison half cannot be reproduced off bit0.
 
 ## Reading the frequency figures
 
