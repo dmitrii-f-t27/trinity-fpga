@@ -303,3 +303,67 @@ number I wanted and no more truth than the third.
 
 Coverage that matters grows by reading. The smoke list here stayed at 18 of 144,
 each read individually, because that is the only figure anyone can defend.
+
+---
+
+## 13. A baseline generated from a broken gate freezes the bug as known state
+
+A ratchet needs a baseline: the debt that exists today, which you fail only on
+top of. The baseline is produced by running the gate — so **if the gate is
+wrong, `--update-baseline` launders its defect into a file that reads like
+history.** Nobody re-derives a baseline. It looks like a record of the tree; it
+is a record of the checker.
+
+**The case.** A gate asked whether a number the paper *withdraws* is still
+asserted live elsewhere. It failed on `0.1173` — a current value, printed in two
+results tables, withdrawn by nobody.
+
+The withdrawal zone ran blank-line to blank-line. A LaTeX float has no blank
+line inside it, so a withdrawal sentence in the `\caption` — where a paper
+naturally puts one — made the zone span `\begin{table}` to `\end{table}` and
+swallow the **tabular body**. Every live number in that table became
+"withdrawn", and every legitimate appearance of one became a violation.
+
+Three things worth separating:
+
+1. **One zone of nine did it, and produced 14 of the 15 baseline entries.** The
+   baseline was 93% artefact.
+2. **The gate simultaneously missed everything it was aimed at.** The numbers
+   that caption actually withdraws are `440`, `895`, `5.1` — and the value
+   regex required two decimal places, so none of them matched. It flagged the
+   neighbours of its targets while seeing none of the targets.
+3. **The stale entries were not inert.** After the zone fix those 14 could never
+   fire again — so if the paper ever *did* withdraw one of those values, the
+   baseline would have silently excused it. A dead exclusion is a live hole.
+
+**Rules.**
+
+* When a ratchet fires on something that looks correct, **suspect the ratchet
+  before the content** — and read its baseline as evidence about the checker,
+  not about the tree. A baseline that is mostly one shape is a defect with a
+  shape.
+* After fixing a gate, **regenerate the baseline rather than editing the failing
+  line out of it.** Here it went from 15 entries to zero: the debt had never
+  been real.
+* **An empty baseline plus a blind checker is permanently green.** Emptying it
+  raises the stakes on §12: prove the gate still catches, from both classes,
+  *after* the baseline is empty. Injecting each genuinely-withdrawn value as a
+  live assertion — three of them — and confirming each is caught took one
+  command.
+* **A test that patches a file by string replacement must assert the file
+  changed.** A replace whose target is absent is a no-op, and the gate then
+  reports OK because nothing was injected — indistinguishable from a gate that
+  has gone blind. Check by checksum before trusting the result, and restore
+  byte-identically after.
+
+### The generalisation
+
+Both defects here were one mistake wearing two costumes: **a withdrawal
+withdraws a claim, not every number sharing its paragraph.** The zone was a
+proxy — "same paragraph" standing in for "same claim" — and proxies fail at
+their edges, which is exactly where a float boundary or a second sentence lives.
+
+That is §1 from the other side. A gate that answers *"is this number near a
+retraction"* while claiming to answer *"is this number retracted"* will be
+wrong in both directions at once: false on the neighbours, silent on the
+targets. When a gate fires, ask which question it actually asked.
