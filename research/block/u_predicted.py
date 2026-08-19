@@ -83,7 +83,9 @@ TAGS = [a for a in sys.argv[1:] if not a.startswith("--")] or ["gpt2", "pythia",
 MEASURED = {"gpt2": (0.2500, "align_u 13pt [0,0.55]"),
             "pythia": (0.4000, "align_u 13pt [0,0.55]"),
             "opt": (0.2500, "align_u 13pt [0,0.55]"),
-            "smollm2": (0.3410, "scale_settled 8pt [0,0.90]  -- DIFFERENT GRID")}
+            # re-swept on the common grid 2026-08-19 (align_u_smollm2.json); the old
+            # 0.3410 came from the 8pt [0,0.90] scale_settled grid and is superseded.
+            "smollm2": (0.3500, "align_u 13pt [0,0.55]")}
 
 
 def total_mse(tg, orig, u):
@@ -172,8 +174,8 @@ else:
           "  Fourth independent confirmation, and the sharpest, that weight-space error does not\n"
           "  determine loss response -- and no weight-only criterion can choose an alignment\n"
           "  constant.", flush=True)
-print("\n  Caveat carried, not hidden: smollm2's measured u* comes from a different sweep grid\n"
-      "  than the other three. Its row is reported but must not carry a conclusion until it is\n"
-      "  re-swept on the common grid.", flush=True)
+print("\n  Grid caveat RESOLVED 2026-08-19: smollm2 re-swept on the common 13pt [0,0.55] grid\n"
+      "  (align_u_smollm2.json): u* = 0.35, consistent with the superseded 0.3410 from the old\n"
+      "  8pt grid. All four measured u* now come from the same grid.", flush=True)
 json.dump(OUT, open(os.path.join(HERE, "u_predicted.json"), "w"), indent=1)
 print(f"\n  wrote u_predicted.json", flush=True)
