@@ -1343,6 +1343,21 @@ pub fn build(b: *std.Build) void {
     // dangling name in every one of them.
     trinity_mod.addImport("vsa", vsa_tri);
 
+    // src/vm.zig drives a JIT engine at thirteen sites -- a working feature,
+    // not a vestige -- and its source went to zig-hdc with the rest of the VSA
+    // core. zig-hdc does not re-export it from the module root, so it is
+    // reached through the dependency's own path() rather than by editing the
+    // vendored package (an edit there is lost on the next fetch) or by
+    // deleting the JIT from the VM (a behaviour decision, not a build fix).
+    // vsa_jit.zig imports hybrid.zig and jit_unified.zig as siblings; both sit
+    // beside it in that package, so they resolve relative to it.
+    const vsa_jit_mod = b.createModule(.{
+        .root_source_file = zig_hdc_dep.path("src/vsa_jit.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    trinity_mod.addImport("vsa_jit", vsa_jit_mod);
+
     // TVC Corpus module for TRI (moved up: needed by fluent CLI and hybrid chat)
     const tvc_corpus_mod = b.createModule(.{
         .root_source_file = b.path("src/tvc/tvc_corpus.zig"),
