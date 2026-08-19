@@ -103,8 +103,9 @@ pub const JitCache = jit.JitCache;
 
 // Constants
 pub const MAX_TRITS = vsa_mod.MAX_TRITS;
-// TRITS_PER_BYTE is not exported from the module root; it stays local.
-pub const TRITS_PER_BYTE = hybrid.TRITS_PER_BYTE;
+// TRITS_PER_BYTE is not exported from the module root, so it stays local --
+// and it lives in packed_trit, not hybrid, which is where I first pointed it.
+pub const TRITS_PER_BYTE = packed_trit.TRITS_PER_BYTE;
 pub const PHI = science.PHI;
 pub const PHI_SQUARED = science.PHI_SQUARED;
 pub const GOLDEN_IDENTITY = science.GOLDEN_IDENTITY;
