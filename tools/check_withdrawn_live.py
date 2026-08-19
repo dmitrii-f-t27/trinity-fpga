@@ -33,7 +33,22 @@ for m in WD.finditer(t):
     # the paragraph containing it
     start = t.rfind("\n\n", 0, m.start()) + 2
     end = t.find("\n\n", m.end())
-    zones.append((start, end if end > 0 else len(t)))
+    end = end if end > 0 else len(t)
+    # A float has no blank line between \begin{table} and \end{table}, so a
+    # withdrawal sentence written in the \caption -- which is where a paper
+    # naturally puts one -- made the paragraph span the entire environment and
+    # swallowed the TABULAR BODY. Every current value in that table then read
+    # as withdrawn, and its legitimate appearance elsewhere was reported as a
+    # withdrawn number asserted live. That is how 0.1173, TNF16's live MHz/LUT,
+    # came to be flagged from a caption withdrawing 440, 895 and 5.1.
+    #
+    # A caption withdraws numbers it NAMES; it does not withdraw the rows it
+    # introduces -- a withdrawn table would be deleted, not captioned. So the
+    # zone stops where the data begins.
+    body = t.find(r"\begin{tabular}", m.end())
+    if body != -1 and body < end:
+        end = body
+    zones.append((start, end))
 
 NUM = re.compile(r"\$?(\d+\.\d{2,})\$?")
 withdrawn = collections.defaultdict(list)
@@ -43,8 +58,16 @@ for s, e in zones:
         # a number introduced by the withdrawal as its replacement is not the
         # withdrawn one. The replacement follows 'against', 'median of', 'is now'.
         before = zone[max(0, m.start()-70):m.start()].lower()
+        # "measured identically" is the same root cause as the tabular clip
+        # above, in prose rather than in a float: a withdrawal withdraws a
+        # CLAIM, not every number sharing its paragraph. The APoT paragraph
+        # withdraws "the phi grid loses by 15x" and, in the same breath,
+        # reports the competitor measurements that motivate the withdrawal --
+        # 0.1651% and 0.0054%, both live, both restated in the results table
+        # thirty lines later. Reading them as withdrawn made the paper's own
+        # corrected figure a violation.
         if any(k in before for k in ("against ", "median of", "is now", "corrected",
-                                     "audited", "the two are")):
+                                     "audited", "the two are", "measured identically")):
             continue
         # A value that is a simple dyadic fraction -- 0.5, 0.25, 0.125 -- is not
         # distinctive: it names a bit width in one sentence and a storage cost in
