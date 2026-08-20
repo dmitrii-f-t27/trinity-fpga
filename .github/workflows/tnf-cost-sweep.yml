@@ -49,6 +49,10 @@ on:
         required: false
         default: ''
 
+# Container pinned by digest (W945): regymm/openxc7:latest resolved to
+# sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c on 2026-08-20. An unpinned tag means a rerun next month can
+# silently produce different numbers, which the TRETS artifact-evaluation
+# editorial names as one of the field's two defining reproducibility hurdles.
 env:
   # Q1 needs e4m9 and e4m11 side by side; Q2 needs the two arms past M = 25.
   PNR_DEFAULT: 'tnf_cost_e4m9_add_top,tnf_cost_e4m11_add_top,tnf_cost_e4m29_add_top,tnf_cost_e3m33_add_top,tnf_cost_e4m21_add_top'
@@ -97,13 +101,13 @@ jobs:
         with: {python-version: '3.12'}
       - name: Regenerate wrappers
         run: python3 fpga/openxc7-synth/gen/gen_tnf_cost_sweep.py
-      - name: Docker pull regymm/openxc7 (retry on transient 5xx)
+      - name: Docker pull regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c (retry on transient 5xx)
         run: |
           for i in 1 2 3 4 5 6; do
-            docker pull regymm/openxc7:latest && break
+            docker pull regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c && break
             echo "::warning::docker pull attempt $i failed, sleeping $((i*20))s"; sleep $((i*20))
           done
-          docker image inspect regymm/openxc7:latest >/dev/null 2>&1 || { echo "::error::docker pull failed after 6 retries"; exit 1; }
+          docker image inspect regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c >/dev/null 2>&1 || { echo "::error::docker pull failed after 6 retries"; exit 1; }
       - name: Yosys stat
         run: |
           TOP=${{ matrix.top }}
@@ -112,7 +116,7 @@ jobs:
           # deterministic for the GF cells (see issue #199), and keeping the flow
           # identical to the one that produced the audited rows is the whole
           # point of Q1.
-          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c yosys -p "
             read_verilog fpga/openxc7-synth/tnf_cost/${TOP}.v \
                          fpga/openxc7-synth/gf_adder_param.v \
                          fpga/openxc7-synth/gf_mul_param.v;
@@ -140,7 +144,7 @@ jobs:
         with: {pattern: 'tnfcost-json-*', merge-multiple: true, path: build/tnfcost}
       - name: Docker pull
         run: |
-          for i in 1 2 3 4 5 6; do docker pull regymm/openxc7:latest && break; sleep $((i*20)); done
+          for i in 1 2 3 4 5 6; do docker pull regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c && break; sleep $((i*20)); done
       - uses: actions/cache@v4
         id: chipdb
         with:
@@ -151,7 +155,7 @@ jobs:
         name: Build chipdb
         run: |
           mkdir -p build/tnfcost/chipdb
-          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 bash -c "cd /nextpnr-xilinx && python3 xilinx/python/bbaexport.py --device xc7a200tfbg484-2 --bba /work/build/tnfcost/chipdb/xc7a200tfbg484-2.bba && bbasm -l /work/build/tnfcost/chipdb/xc7a200tfbg484-2.bba /work/build/tnfcost/chipdb/xc7a200tfbg484-2.bin"
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c bash -c "cd /nextpnr-xilinx && python3 xilinx/python/bbaexport.py --device xc7a200tfbg484-2 --bba /work/build/tnfcost/chipdb/xc7a200tfbg484-2.bba && bbasm -l /work/build/tnfcost/chipdb/xc7a200tfbg484-2.bba /work/build/tnfcost/chipdb/xc7a200tfbg484-2.bin"
       - name: Place and route the Q1/Q2 arms
         run: |
           ARMS="${{ github.event.inputs.pnr_arms }}"
@@ -170,7 +174,7 @@ jobs:
               python3 -c "$(printf 'import json, sys\ntop = sys.argv[1]\nd = json.load(open(\"build/tnfcost/%%s.json\" %% top))\nfor n, m in d[\"modules\"][top][\"ports\"].items():\n    b = m.get(\"bits\", [])\n    if len(b) <= 1:\n        print(\"set_property IOSTANDARD LVCMOS33 [get_ports %%s]\" %% n)\n    else:\n        for k in range(len(b)):\n            print(\"set_property IOSTANDARD LVCMOS33 [get_ports {%%s[%%d]}]\" %% (n, k))\n')" "$TOP" > /tmp/${TOP}.xdc
               for s in 1 2 3 4; do
                 rm -f build/tnfcost/${TOP}_routed.json
-                docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
+                docker run --rm -v "$PWD:/work" -w /work regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c timeout --signal=KILL 1800 nextpnr-xilinx \
                   --chipdb /work/build/tnfcost/chipdb/xc7a200tfbg484-2.bin \
                   --xdc /tmp/${TOP}.xdc \
                   --json /work/build/tnfcost/${TOP}.json \

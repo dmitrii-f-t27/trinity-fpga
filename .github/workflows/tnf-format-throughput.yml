@@ -26,6 +26,10 @@ on:
         required: false
         default: 'false'
 
+# Container pinned by digest (W945): regymm/openxc7:latest resolved to
+# sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c on 2026-08-20. An unpinned tag means a rerun next month can
+# silently produce different numbers, which the TRETS artifact-evaluation
+# editorial names as one of the field's two defining reproducibility hurdles.
 env:
   ALL_ARMS: 's_bin16,s_bin32,s_bnf16,s_fp8e4m3,s_fp8e5m2,s_gf10,s_gf14,s_gfplus8,s_gfternary,s_ibmhfp,s_int8,s_lns16,s_minifl,s_posit16,s_posit32,s_posit8,s_takum16,s_tnf16,s_vaxf'
 
@@ -39,13 +43,13 @@ jobs:
         top: [s_bin16, s_bin32, s_bnf16, s_fp8e4m3, s_fp8e5m2, s_gf10, s_gf14, s_gfplus8, s_gfternary, s_ibmhfp, s_int8, s_lns16, s_minifl, s_posit16, s_posit32, s_posit8, s_takum16, s_tnf16, s_vaxf]
     steps:
       - uses: actions/checkout@v4
-      - name: Docker pull regymm/openxc7 (retry on transient 5xx)
+      - name: Docker pull regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c (retry on transient 5xx)
         run: |
           for i in 1 2 3 4 5 6; do
-            docker pull regymm/openxc7:latest && break
+            docker pull regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c && break
             echo "::warning::docker pull attempt $i failed, sleeping $((i*20))s"; sleep $((i*20))
           done
-          docker image inspect regymm/openxc7:latest >/dev/null 2>&1 || { echo "::error::docker pull failed"; exit 1; }
+          docker image inspect regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c >/dev/null 2>&1 || { echo "::error::docker pull failed"; exit 1; }
       - name: Yosys synth
         run: |
           TOP=${{ matrix.top }}
@@ -54,7 +58,7 @@ jobs:
           # $finish inside the frontend and killed yosys before write_json,
           # which the pnr stage then reported as 'Failed to open JSON'.
           SRCS=$(ls fpga/tnet/*.v | grep -v '/tb_' | grep -v '/tw_' | tr '\n' ' ')
-          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 yosys -p "
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c yosys -p "
             read_verilog ${SRCS};
             hierarchy -top ${TOP};
             synth_xilinx -abc9 -nocarry -arch xc7 -top ${TOP};
@@ -85,7 +89,7 @@ jobs:
         with: {pattern: 'tnet-json-*', merge-multiple: true, path: build/tnet}
       - name: Docker pull
         run: |
-          for i in 1 2 3 4 5 6; do docker pull regymm/openxc7:latest && break; sleep $((i*20)); done
+          for i in 1 2 3 4 5 6; do docker pull regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c && break; sleep $((i*20)); done
       - uses: actions/cache@v4
         id: chipdb
         with:
@@ -96,7 +100,7 @@ jobs:
         name: Build chipdb
         run: |
           mkdir -p build/tnet/chipdb
-          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 bash -c "cd /nextpnr-xilinx && python3 xilinx/python/bbaexport.py --device xc7a200tfbg484-2 --bba /work/build/tnet/chipdb/xc7a200tfbg484-2.bba && bbasm -l /work/build/tnet/chipdb/xc7a200tfbg484-2.bba /work/build/tnet/chipdb/xc7a200tfbg484-2.bin"
+          docker run --rm -v "$PWD:/work" -w /work regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c bash -c "cd /nextpnr-xilinx && python3 xilinx/python/bbaexport.py --device xc7a200tfbg484-2 --bba /work/build/tnet/chipdb/xc7a200tfbg484-2.bba && bbasm -l /work/build/tnet/chipdb/xc7a200tfbg484-2.bba /work/build/tnet/chipdb/xc7a200tfbg484-2.bin"
       - name: Place and route the arms
         run: |
           ARMS="${{ github.event.inputs.pnr_arms }}"
@@ -117,7 +121,7 @@ jobs:
               set -- $CFG; P=$1; R=$2
               for s in 1 2 3 4; do
                 rm -f build/tnet/${TOP}_routed.json
-                docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
+                docker run --rm -v "$PWD:/work" -w /work regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c timeout --signal=KILL 1800 nextpnr-xilinx \
                   --chipdb /work/build/tnet/chipdb/xc7a200tfbg484-2.bin \
                   --xdc /work/fpga/tnet/bench.xdc \
                   --json /work/build/tnet/${TOP}.json \
@@ -160,7 +164,7 @@ jobs:
                 while [ $((HI - LO)) -gt 10 ]; do
                   MID=$(( (LO + HI) / 2 ))
                   rm -f build/tnet/${TOP}_srch.json
-                  docker run --rm -v "$PWD:/work" -w /work regymm/openxc7 timeout --signal=KILL 1800 nextpnr-xilinx \
+                  docker run --rm -v "$PWD:/work" -w /work regymm/openxc7@sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c timeout --signal=KILL 1800 nextpnr-xilinx \
                     --chipdb /work/build/tnet/chipdb/xc7a200tfbg484-2.bin \
                     --xdc /work/fpga/tnet/bench.xdc \
                     --json /work/build/tnet/${TOP}.json \
