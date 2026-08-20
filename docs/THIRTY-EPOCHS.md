@@ -39,6 +39,26 @@ the affected one does not.
 |---|---:|---:|---:|
 | failures | **0 / 35** | 25 / 35 | 22 / 35 |
 
+## MNIST at thirty epochs, and a blind spot in our own statistic
+
+    TNF4       0/5 failures   98.0  97.6  97.8  97.9  97.8   (97.82 ± 0.15)
+    fp6 e2m3   4/5            19.2  81.0   9.6  12.7  11.3
+    fp6 e3m2   2/5            71.9  65.6  55.5  71.4  59.3
+
+By the 60 % threshold `fp6 e3m2` "passes" three of five. But its **best** run is
+**71.9** against TNF4's **worst** at **97.6**: the distributions do not overlap and
+the gap is **25.7 points**. A failure rate counts line-crossings; it is silent about
+a distribution dragged down uniformly without crossing.
+
+So neither summary survives alone — the mean hides bimodality, the rate hides
+uniform degradation. The only presentation that cannot mislead is the per-seed list,
+which is why every table here prints one.
+
+TNF4's own MNIST trajectory converges rather than drifting: **96.76 → 97.68 →
+97.82 ± 0.15** at 3 → 10 → 30 epochs.
+
+**Totals over eight configurations: TNF4 0/40, `fp6 e2m3` 29/40, `fp6 e3m2` 24/40.**
+
 ## What is still not settled
 
 Every run is an MLP. The CNN result at two epochs showed the same ordering with
