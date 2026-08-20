@@ -9,7 +9,13 @@ command rather than an act of attention.
 import json, pathlib, sys
 import numpy as np
 
-R = pathlib.Path("/Users/playom/t27/.claude/worktrees/igla-fpga-improvements-3f5e1a/docs/reports/upstream")
+# W948d: this page exists so somebody else can refute the numbers, and a hard-coded
+# author path makes that impossible. Records sit beside this script (upstream:
+# research/arxiv_tnf/measurements/) or in the directory named by T27_RECORDS.
+import os
+R = pathlib.Path(os.environ.get("T27_RECORDS") or pathlib.Path(__file__).resolve().parent)
+if (R / "measurements").is_dir():
+    R = R / "measurements"
 ok = bad = skip = 0
 
 
@@ -107,6 +113,32 @@ if hh:
     check("PACoGen экстракция posit16", hh["pacogen_data_extract_n16_es2"]["cells_per_unit"], 92.0)
     check("PACoGen сумматор posit16", hh["pacogen_posit_add_n16_es2"]["cells_per_unit"], 693.0)
     check("TNF сумматор 16 ячеек", hh["tnf_e4m8_add_16cells"]["cells_per_unit"], 561.67, tol=0.05)
+
+# W948d: the published tally said fp6 e2m3 failed 29 of 40; recomputing it from
+# the records gives 28. One document said 20/20 successes, another 29/40 failures
+# -- the same measurement in two polarities, which is how the off-by-one survived
+# three documents. So the tallies are now DERIVED here, in one polarity, from
+# every stability record present, rather than copied forward by hand.
+print("\n== устойчивость: пересчёт по всем записям")
+_TH = {"mnist": 60.0, "fashion": 60.0, "kmnist": 40.0}
+_tot, _cfg = {}, 0
+for _f in sorted(R.glob("stability*.json")):
+    _d = json.loads(_f.read_text())
+    if "runs" not in _d:
+        continue
+    _cfg += 1
+    _th = _TH[_d.get("task", "mnist")]
+    for _fmt, _runs in _d["runs"].items():
+        _acc = [_r[-1]["acc"] * 100 for _r in _runs.values()]
+        _t = _tot.setdefault(_fmt, [0, 0])
+        _t[0] += sum(1 for _a in _acc if _a >= _th)
+        _t[1] += len(_acc)
+if _tot:
+    check("конфигураций устойчивости", _cfg, 8, tol=0)
+    for _fmt, _want in (("TNF4", 40), ("fp6e3m2", 16), ("fp6e2m3", 12)):
+        if _fmt in _tot:
+            _s, _n = _tot[_fmt]
+            check(f"успехов {_fmt} из {_n}", _s, _want, tol=0)
 
 print(f"\n  ИТОГ: сошлось {ok}, расхождений {bad}, пропущено блоков {skip}")
 sys.exit(1 if bad else 0)
