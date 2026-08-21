@@ -27,7 +27,14 @@ import tnf_ref as T, fp8_ref as F8
 
 SEEDS = [20260820, 7, 1337, 424242, 99991]
 TASKS = {"mnist": SC / "mnist", "fashion": SC / "fashion"}
-FORMATS = {"TNF4": (T, T.TNFFormat(2, 1), 6), "fp4e2m1": (F8, F8.FORMATS["fp4_e2m1"], 4)}
+# W945: TNF4 is physically SIX bits (57 grid values); comparing it against a
+# 4-bit fp4 grid (15 values) is a width mismatch, and on sparse activations that
+# mismatch -- not the number system -- is what collapsed MNIST. The fair peers at
+# six bits are fp6_e2m3 and fp6_e3m2, both shipped by the same oracle.
+FORMATS = {"TNF4": (T, T.TNFFormat(2, 1), 6),
+           "fp6e2m3": (F8, F8.FORMATS["fp6_e2m3"], 6),
+           "fp6e3m2": (F8, F8.FORMATS["fp6_e3m2"], 6),
+           "fp4e2m1": (F8, F8.FORMATS["fp4_e2m1"], 4)}
 EPOCHS = 3
 
 
@@ -140,11 +147,13 @@ def main():
                 a = np.array(per[key][name])
                 print(f"   {lab:12} {name:9} {a.mean()*100:6.2f} ± {a.std(ddof=1)*100:4.2f}  "
                       f"падение {(b-a).mean()*100:+6.2f}", flush=True)
-            t = np.array(per[key]["TNF4"]); f = np.array(per[key]["fp4e2m1"])
-            dd = (t - f) * 100; se = dd.std(ddof=1) / np.sqrt(len(dd))
-            print(f"   {lab:12} ПАРНО TNF4−fp4: {dd.mean():+.2f} ± {se:.2f} п.п., "
-                  f"t={dd.mean()/se if se else float('inf'):.1f}, {int((dd>0).sum())}/5", flush=True)
-    p = SC / "lsq.json"
+            t = np.array(per[key]["TNF4"])
+            for opp in ("fp6e2m3", "fp6e3m2", "fp4e2m1"):
+                f = np.array(per[key][opp]); dd = (t - f) * 100
+                se = dd.std(ddof=1) / np.sqrt(len(dd))
+                print(f"   {lab:12} ПАРНО TNF4−{opp}: {dd.mean():+7.2f} ± {se:5.2f} п.п., "
+                      f"t={dd.mean()/se if se else float('inf'):6.1f}, {int((dd>0).sum())}/5", flush=True)
+    p = SC / "lsq6.json"
     p.write_text(json.dumps(out, indent=1))
     print("\nWROTE " + str(p), flush=True)
 
