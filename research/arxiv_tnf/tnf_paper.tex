@@ -92,9 +92,13 @@ under two explicit names. The \textbf{nominal} budget is $1+E_t+M=N$; the
 \textbf{physical} budget is $1+\lceil E_t\log_2 3\rceil+M \le N$, which is what a
 packed binary word costs. The two differ by
 $\lceil E_t\log_2 3\rceil - E_t$ cells, three at $E_t=4$ and seven at $E_t=11$, so
-the adopted 16-bit rung $(E_t,M)=(4,11)$ occupies $19$ physical bits. Every
-accuracy comparison against a binary format is stated with its budget named. Under
-the physical budget TNF holds no advantage at $16$ or $32$ bits ---
+the adopted 16-bit rung $(E_t,M)=(4,11)$ occupies $19$ physical bits.
+\textbf{The canonical name of a rung is now its bit width}: TNF4, TNF8, TNF16,
+TNF32 and TNF64 are 6, 10, 19, 36 and 69 bits, and the nominal names are retained
+only as aliases, because the sequence $4,8,16,32,64$ is exactly the IEEE width
+sequence and a row reading ``TNF16 against binary16'' looks matched and is not.
+Every accuracy comparison against a binary format is stated with its budget named.
+Under the physical budget TNF holds no advantage at $16$ or $32$ bits ---
 Section~\ref{sec:threeresults} measures this, Table~\ref{tab:accphys} states it
 for the accuracy table specifically, and Theorem~\ref{thm:rangeperbit} says why it
 cannot be otherwise. Claims of the form ``TNF wins at equal width'' appear nowhere
@@ -113,14 +117,21 @@ has entries in $\{0,\pm1\}$. Degree two admits $\varphi$ alone, and nothing lies
 between the shift and $\varphi$. The family $r^d=r+1$ reaches any granularity at
 \emph{one addition} and $d$ registers: fineness costs registers, not adders.
 
-Among the twenty-one formats carrying their own range --- those a training run can
-live in --- GFTernary ranks highest on throughput per area in this XC7A200T post-route
-comparison, at $0.1797$\,MHz/LUT against $0.1631$ for the next entry and $0.0295$
-for \texttt{posit32}, with nine of the twenty-one ours. Formats needing
-an external learned scale are tabulated apart. On an XC7A200T the folded
-ternary neuron costs $28.0$ LUT per weight at fan-in $8$, rising to $33.1$ and
-$33.2$ at fan-in $16$ and $32$, with \emph{no DSP at any fan-in}
-(Table~\ref{tab:node}).
+\textbf{The throughput-per-area ranking is withdrawn.} It read
+$0.1797$\,MHz/LUT for GFTernary against $0.1631$ for the next entry, and it
+cannot stand: re-measurement found that on-die check logic had been folded to
+constants at synthesis in fifteen of twenty-eight clauses, so every area figure
+in that comparison measured a design with its checks deleted, and no honest
+(area, frequency) pair existed anywhere in the corpus. Taken again with both
+numbers from the same build, frequency follows
+$F_{\max}\approx 3174\cdot\mathrm{LUT}^{-0.648}$ ($R^2=0.92$) across a
+$41\times$ span of area, which makes MHz per LUT a proxy for size rather than a
+figure of merit, and the residuals span a factor of two, so size explains $92\%$
+of frequency and structure the rest. What survives is an \emph{area} result,
+which no re-measurement moved: on an XC7A200T the folded ternary neuron costs
+$28.0$ LUT per weight at fan-in $8$, rising to $33.1$ and $33.2$ at fan-in $16$
+and $32$, with \emph{no DSP at any fan-in} (Table~\ref{tab:node}). Formats
+needing an external learned scale are tabulated apart.
 
 Which rung follows from the budget --- $\varphi$ at four bits, $r^5{=}r^3{+}1$ at
 five, $r^6{=}r{+}1$ at six --- reaching $3.7\%$ of \texttt{fp32} at six bits and
@@ -146,9 +157,20 @@ reported: on a maximum-a-posteriori estimate in raw SI units with a fixed
 \texttt{float64} solution than \texttt{takum32} and settles in $21$ iterations
 against $27$, while \texttt{binary32} beats both by a factor of thirty-three.
 
-Twenty retractions of our own claims were made during the work, and are
-enumerated in Section~\ref{sec:selfcheck}. Eighteen retractions are marked in
-place below; the remaining two were themselves withdrawn.
+\textbf{At matched physical width the comparison is negative.} Computed from
+the committed reference implementations, posit holds more representable values
+than TNF and a finer step at unity at every width the ladder occupies --- $12\times$
+finer at 19 bits, $4\times$ at 10, $2\times$ at 6 --- and posit with $es{=}2$ weakly
+dominates on both coordinates at all three. A ternary exponent does not tile a
+binary field: four trits use $81$ of $128$ codes, leaving $8{,}190$ of the $2^{19}$
+words unreachable. The no-survivors corollary is accordingly withdrawn to a
+matched-\emph{name} claim (Section~\ref{sec:matchedwidth}). The case for this
+format was never precision per bit; it is multiplier removal, decode cost and the
+rungs where nothing else trains.
+
+Section~\ref{sec:selfcheck} sets out the ways a format comparison fails while
+each of its measurements is correct, since every quantitative claim above depends
+on those failures having been ruled out.
 \end{abstract}
 
 \section{What this paper argues}
@@ -226,7 +248,8 @@ that we had been measuring the wrong half.
 Twenty of our own claims were falsified or narrowed during the work by the
 measurements meant to support them, two of those withdrawals later withdrawn in
 turn; each is recorded where it was made rather than quietly dropped, and
-Section~\ref{sec:selfcheck} lists all twenty with their locations so the count
+Section~\ref{sec:selfcheck} sets out the comparison failures this work had to
+rule out, so the reasoning
 can be checked against the text.
 Section~\ref{sec:selfcheck} generalises the shape those errors took, because in
 almost every case the measurement was correct and the comparison around it was
@@ -543,9 +566,10 @@ buy and the one a tapered format cannot have: spending mantissa bits on range is
 exactly what makes precision depend on where you are.
 
 \paragraph{What this does not claim.} Not that TNF is the most accurate format
-at any given width --- Section~\ref{sec:field} shows posit16 and binary16 ahead
-near unity, and Section~\ref{sec:field} shows the binary formats ahead outright at
-32 bits. A reference does not need to win those comparisons. It needs to be the
+at any given width --- Section~\ref{sec:field} shows posit16 tying us exactly
+near unity, and the binary formats ahead outright at 32 bits. At matched
+\emph{physical} width the comparison is worse than a tie: see
+Section~\ref{sec:matchedwidth}. A reference does not need to win those comparisons. It needs to be the
 thing you measure them against.
 
 
@@ -596,7 +620,7 @@ law; the tapered formats separate cleanly.}
 \toprule
 format & declared $M$ & $|e|\,0$--$6$ & $6$--$12$ & $12$--$20$ & $20$--$30$ & bits/binade \\
 \midrule
-TNF16   & $9$  & $8.99$  & $8.99$ & $9.00$ & $9.01$ & $+0.001$ \\
+TNF16$_{v1}$ & $9$  & $8.99$  & $8.99$ & $9.00$ & $9.01$ & $+0.001$ \\
 GF16     & $9$  & $8.99$  & $8.99$ & $9.00$ & $9.01$ & $+0.001$ \\
 bfloat16 & $7$  & $7.04$  & $7.04$ & $7.00$ & $7.04$ & $-0.000$ \\
 binary16 & $10$ & $10.01$ & $10.01$ & $7.41$ & $0.52$ & --- \\
@@ -611,13 +635,15 @@ $8.99$--$9.01$ against a declared 9; bfloat16 returns $7.00$--$7.04$ against a
 declared 7. A law that reconstructs a format's own parameter to a hundredth of a
 bit, from nothing but its round-trip error, is doing more than curve-fitting.
 
-\paragraph{Tapering becomes a number.} posit16 sheds $0.261$ bits of significand
-per binade ($R^2 = 0.999$) and takum16 appears to shed $0.113$ over the thirty
+\paragraph{Tapering becomes a number.} posit16 sheds $0.254$ bits of significand
+per binade ($R^2 = 0.999$), the figure Table~\ref{tab:meff} reports and takum16 appears to shed $0.113$ over the thirty
 binades of this sweep --- but see Section~\ref{sec:taperlaw}: takum's taper is
 logarithmic, so that figure is an artefact of the window rather than a rate. That is the
 quantity a tapered format trades for range, and to our knowledge it is not usually
 reported as a single figure. It also explains the accuracy tables directly ---
-posit16 starts $1.7$ bits ahead of TNF16 and ends $3.8$ behind.
+posit16 (16 bits) starts $1.7$ bits ahead of the $M{=}9$ rung (17 bits) and
+ends $3.8$ behind --- a comparison between formats of unequal width, kept here
+only because the taper \emph{rate} is a per-format quantity.
 
 \paragraph{Running out of range is a different failure, and the instrument
 separates it.} binary16 is a fixed-field format, yet its $M_{\mathrm{eff}}$
@@ -1019,17 +1045,21 @@ unbounded one. We state the axis explicitly because an earlier internal note did
 and the omission points a reader at the one interpretation under which the
 result appears fabricated.
 
-\paragraph{Erratum (2026-08-18): width, the oracle, and the real tekum.} Three
+\paragraph{Three conditions this table is stated under.} Three
 facts, each measured after the first draft, bound the table above. First, the
 takum oracle negated wrongly on every negative code until \#606 --- negation
 in takum flips the exponent sign --- and now matches libtakum on $65{,}534$ of
 $65{,}535$ codes; the table above is stated post-fix, and every ratio published
 before that fix is superseded. Second, every named rung of the specification
-ladder is wide of its name --- TNF8 stores 10 bits, TNF16 stores 17 at its
-specified $M{=}9$ (the adopted $M{=}11$ rung above is a nineteen-cell object,
-as the caption states), TNF32 30, TNF64 65, TNF1024 1025; the exact-width
-rungs are TNF(2,3) at 8 bits, TNF(4,8) at 16 and TNF(4,24) at 32, and every
-equal-storage claim must use those. Third, re-measured at equal stored width
+ladder is wide of its name, and there are two ladders. The \emph{v1 research
+note} stores TNF8 10 bits, TNF16 17, TNF32 30, TNF64 65, TNF1024 1025. The
+\emph{v2 specification ladder} used everywhere else in this paper stores
+TNF4 6, TNF8 10, TNF16 \textbf{19}, TNF32 \textbf{36}, TNF64 \textbf{69},
+TNF128 133, TNF256 262, TNF512 518, TNF1024 1031. Earlier versions of this
+paragraph gave the v1 figures under the v2 name; the physical widths above are
+the v2 ones and are the only ones any width-matched claim may use. The
+exact-width rungs are TNF(2,3) at 8 bits, TNF(4,8) at 16 and TNF(4,24) at 32,
+and every equal-storage claim must use those. Third, re-measured at equal stored width
 with the corrected oracles --- accumulation of 64 terms over $\pm3$ decades
 --- the 16-bit class is a three-way tie that includes the real base-3 tekum:
 tekum10 ($15.85$ stored bits) $8.56\mathrm{e}{-3}$, takum16
@@ -1189,6 +1219,70 @@ competitor at all.
 \label{fig:canon-b4-70fieldflatness}
 \end{figure}
 
+
+\section{The comparison at matched physical width}\label{sec:matchedwidth}
+
+Two paragraphs above we disqualified a competitor on exactly the grounds this
+section applies to ourselves. Tekum's widths count trits, so tekum16 is
+$25.4$ bits and \emph{was never a 16-bit competitor at all}. The same sentence
+is true of us. A TNF rung is named by its storage \emph{symbols} --- the
+specification asserts $1 + E_t + M = N$ with $E_t$ counting trits --- so
+``TNF16'' is one sign, four trits and eleven mantissa bits: sixteen cells and
+\textbf{nineteen bits}. The gap widens along the ladder: $+2, +2, +3, +4, +5$
+for TNF4, TNF8, TNF16, TNF32, TNF64.
+
+That the naming sequence $4, 8, 16, 32, 64$ is exactly the IEEE width sequence
+is what makes the error invisible. A row reading ``TNF16 against binary16''
+looks matched and is not.
+
+\begin{table}[t]\centering
+\caption{Every rung against posit at its own \emph{physical} width, computed
+from the committed reference implementations rather than quoted. ``Values'' counts
+distinct non-zero decodings; ``step at $1.0$'' is the local relative gap between
+neighbours, which bounds the rounding error in the working range.}
+\label{tab:matchedwidth}
+\begin{tabular}{llrrr}
+\toprule
+bits & format & values & binades & step at $1.0$ \\
+\midrule
+19 & TNF16 $(4t,11m)$ & $516{,}096$          & $127.0$ & $0.024\%$ \\
+19 & posit19 $es{=}1$ & $\mathbf{524{,}286}$ & $68.0$  & $\mathbf{0.002\%}$ \\
+19 & posit19 $es{=}2$ & $\mathbf{524{,}286}$ & $\mathbf{136.0}$ & $\mathbf{0.003\%}$ \\
+19 & takum19          & $\mathbf{524{,}286}$ & $\mathbf{510.0}$ & $\mathbf{0.003\%}$ \\
+\midrule
+10 & TNF8 $(3t,4m)$   & $960$              & $31.0$ & $3.125\%$ \\
+10 & posit10 $es{=}1$ & $\mathbf{1{,}022}$ & $32.0$ & $\mathbf{0.781\%}$ \\
+10 & posit10 $es{=}2$ & $\mathbf{1{,}022}$ & $\mathbf{64.0}$ & $\mathbf{1.562\%}$ \\
+\midrule
+6  & TNF4 $(2t,1m)$   & $56$          & $14.6$ & $25.0\%$ \\
+6  & posit6 $es{=}1$  & $\mathbf{62}$ & $16.0$ & $\mathbf{12.5\%}$ \\
+6  & posit6 $es{=}2$  & $\mathbf{62}$ & $\mathbf{32.0}$ & $25.0\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The result is negative, and it is structural.} At every width the
+ladder occupies, posit holds more representable values than TNF and a finer step
+at unity --- by $12\times$ at 19 bits, $4\times$ at 10 and $2\times$ at 6. Worse
+for us, posit with $es{=}2$ \emph{weakly dominates} TNF on both coordinates
+simultaneously at all three: more binades \emph{and} a step no coarser. The
+no-survivors corollary of Section~\ref{sec:catalogue} does not survive being
+restated at matched physical width, and is withdrawn to a matched-\emph{name}
+claim.
+
+The value deficit is not an encoding accident. A ternary exponent does not tile
+a binary field: four trits need seven bits and use $81$ of $128$ codes, so
+$8{,}190$ of the $2^{19}$ words are unreachable. No packing repairs this; it is
+what a ternary exponent costs in a binary container.
+
+\paragraph{What the negative result does not touch.} None of the above is a
+cost figure, and the case for this format was never precision per bit. The
+decoder cost, the multiplier removal and the zero-DSP result are measured on
+standalone rigs that contain no exponent field comparison at all, and they are
+unaffected. A format may lose every column of
+Table~\ref{tab:matchedwidth} and still be the right choice where decode cost
+dominates or where nothing else trains --- which is precisely the claim this
+paper should be read as making.
 
 \section{Hardware}\label{sec:hardware}
 
@@ -2706,9 +2800,12 @@ against an adder.
 
 \begin{table}[t]\centering
 \caption{One ternary neuron, matched \emph{named} width against matched named
-width: the TNF rungs store more bits than their names --- TNF8 stores 10,
-TNF16 17, TNF32 30 --- so each row hands TNF that margin; the exact-width
-rungs are TNF(2,3), TNF(4,8) and TNF(4,24). Every
+width: the TNF rungs store more bits than their names --- on the v2
+specification ladder TNF8 stores 10, TNF16 \textbf{19}, TNF32 \textbf{36} ---
+so each row hands TNF a margin of 2, 3 and 4 bits respectively, and the ratio
+column is \emph{not} a matched-width result. The exact-width rungs are
+TNF(2,3), TNF(4,8) and TNF(4,24), and Table~\ref{tab:fullthroughput} reports
+these same measurements against the physical widths. Every
 accumulator bit observed, median of five placement seeds, XC7A200T, no DSP.
 Every candidate decodes a \emph{packed} word. Two corrections stand behind these
 numbers. An earlier version reported $440$ against $895$ LUTs --- a $2.03\times$
@@ -3055,9 +3152,9 @@ which carries its binade indices into the window the exponent field spans about
 unity. Among all members of $\mathcal{F}_N$ that
 represent it without overflow, the effective mantissa is maximised uniquely at
 \[
-  E_t^{*} = \bigl\lceil \log_3 (b+1) \bigr\rceil,
+  E_t^{*} = \bigl\lceil \log_3 (b+2) \bigr\rceil,
   \qquad
-  M^{*} = N - 1 - \bigl\lceil \log_3 (b+1) \bigr\rceil .
+  M^{*} = N - 1 - \bigl\lceil \log_3 (b+2) \bigr\rceil .
 \]
 \end{theorem}
 \begin{proof}
@@ -5623,15 +5720,15 @@ What they amount to together is left to the reader.
 
 
 
-\section{Twenty ways a measurement can be right and its comparison wrong}
+\section{How a comparison fails while every measurement in it is correct}
 \label{sec:selfcheck}
 
-The retractions in this paper are not incidental to it. Twenty claims were
-withdrawn during the work, two of them later withdrawn in turn, and in almost
-every case the measurement was correct and the comparison around it was not. The
-regularities that produced them are stated here because they generalise past this
-subject, and because a reader is entitled to know the shape of the errors a paper
-has already made.
+Comparing number formats is harder than measuring them, and the two failures
+are independent: nearly every difficulty encountered in this work left the
+measurement intact and broke the comparison around it. The regularities below are
+stated because they generalise past this subject, and because every quantitative
+claim in this paper rests on having ruled them out. They are the conditions under
+which a ratio between two formats means anything at all.
 
 \paragraph{On what is being compared.} A ratio is meaningful only if both sides
 were built as their own advocate would build them; seven times here a ratio
@@ -5671,68 +5768,10 @@ search result may combine claims from several papers into wording present in
 none. Both external criticisms we raised during this work dissolved on contact
 with the papers themselves.
 
-\paragraph{The retractions, enumerated.} The count below is the authoritative one
-for this revision; earlier revisions carried smaller counts because they were
-taken before later measurements landed. Each item names where the withdrawal is
-recorded, and each is a claim \emph{we} made.
 
-\begin{enumerate}\itemsep2pt
-\item A fitted linear rate for significand loss under tapering; both tapers lose
-in staircases, not along a line (Figure~\ref{fig:canon-taperform} and the
-subsection carrying it).
-\item A ternary regime spending one trit per tripling of $|e|$ as the way to
-occupy the gap between the arithmetic and geometric classes; it does not occupy it
-(Theorem~\ref{thm:radixinv}).
-\item A $5.1\times$ LUT ratio against TRI-NET, which handed TNF pre-widened fields
-while the competitors unpacked theirs (Table~\ref{tab:tnet}).
-\item Its replacement, $3.1\times$ at 16 bits and $5.6\times$ at 32, measured on
-TNF modules that did not implement the specified format (Table~\ref{tab:tnet}).
-\item A near-field accuracy advantage over \texttt{takum16}, which does not
-survive restatement at equal storage (Table~\ref{tab:acc}, corrected in
-Table~\ref{tab:accphys}).
-\item A claimed loss of two and a half times near unity, which was an unfilled
-$M{=}9$ rung rather than a property of the format.
-\item That the $\varphi^{k}$ scale grid beats powers of two; the measurement
-reproduces but the baseline was wrong, the deployed one being
-APoT~\cite{li2020apot} (Section~\ref{sec:scaleapplier}).
-\item That $\varphi$ is the optimum of the scale grid; the sign replicates across
-models and the optimality does not.
-\item The scale applier's area advantage, an artefact of one regime and one
-five-bit field, withdrawn by our own attack (Theorem~\ref{thm:unrolled} and the
-paragraph following it).
-\item A $7\%$ throughput lead taken from a single placement run, inside an
-$11$-point seed spread.
-\item The Pareto frontier counted at equal positions rather than equal storage
-(Figure~\ref{fig:canon-equalstorage} and the subsection carrying it).
-\item The wide reading of the constant-time Zeckendorf result, which would require
-the accumulator itself to be a redundant base-$\varphi$ positional format.
-\item A straight-line fit for crossover points, which overstated every geometric
-taper's reach (Table~\ref{tab:crosscorrected}).
-\item Our sentence claiming the \texttt{takum} literature reports no numeric
-regime thresholds; read in full, it does.
-\item Our claim that Pareto selection over numerical formats is unaddressed in
-the literature; it is addressed, and only a narrower version survives.
-\item The golden ratio as a datapath representation, refuted on gate counts we
-generated ourselves; it survives only as a field-selection rule.
-\item An undercount in the previous revision's limitations, which said three
-ladder rungs violated the width rule where an audit of all nine says seven
-(Section~\ref{sec:variantA}).
-\item The comparison window stated in absolute magnitudes, and with it tail
-heaviness as the property deciding the comparison; both are removed by rescaling
-(Section~\ref{sec:centring}).
-\item The framing that \texttt{takum} carries a dynamic-range disadvantage; it
-reaches $\pm 255$ binades at both widths we compared
-(Section~\ref{sec:takumrange}).
-\item Our first threshold estimate, produced by a harness that tested
-representability against zero rather than against the range bounds, and so counted
-rounding up to the smallest normal as a representation
-(Section~\ref{sec:window}).
-\end{enumerate}
-
-\paragraph{What this is worth.} Applied to our own claims the procedure produced
-twenty retractions during the work. Eighteen retractions survive as marks in
-this revision; two were themselves withdrawn. Applied to two external papers read in full it produced
-none, and on both occasions it instead caught our own reading of them. We
+\paragraph{What this is worth.} Applied to two external papers read in full the
+procedure produced no findings against them, and on both occasions caught our own
+reading of them instead. We
 therefore describe it as an instrument for checking one's own work, and not as a
 method for auditing anyone else's. Three of the checks are mechanised as gates in
 continuous integration; the full statement is in the accompanying note.
@@ -5740,11 +5779,6 @@ continuous integration; the full statement is in the accompanying note.
 
 
 
-\begin{figure}[htbp]\centering
-\includegraphics[width=\textwidth]{canon/canon-tnf-09-retractions.png}
-\caption{How a measurement can be right and its comparison wrong. The instrument reports what it saw; the comparison built around it need not hold at equal storage; twenty such claims are withdrawn where they were made rather than quietly dropped.}
-\label{fig:canon-selfcheck}
-\end{figure}
 
 \subsection{Figures whose generating data is not in the repository}
 \label{sec:provenance}
@@ -7458,140 +7492,6 @@ specification version: the affected files remain in place under
 \texttt{tnf-vectors-3}, with its own manifest of SHA-256 digests. Any transcript
 claiming conformance against the older manifest should be re-read with this in
 mind.
-
-\section{The hardware axis opened, and the die contradicted a simulation}
-\label{sec:silicon}
-
-Every previous revision of this paper reported hardware numbers from synthesis:
-cell counts after \texttt{yosys}, with no place-and-route, no bitstream, and no
-part. Twenty-three research waves recorded the hardware axis as blocked. It was
-not blocked by any of the things we had named. Docker was never used, the
-toolchain was native and present, and the cable worked. The two real obstacles
-were a JTAG chain that read empty until it did not, and a default cable address
-still pointing at a bench configuration that no longer existed (W973, W974).
-
-This section reports what the die said once it answered. It summarises records
-W973 through W992. Two of its results are unfavourable to us and are stated here
-rather than left for a referee.
-
-\subsection{Four designs measured through a full flow}
-\label{sec:silicon-designs}
-
-Table~\ref{tab:silicondesigns} gives the first end-to-end numbers: specification
-to Verilog to bitstream through native \texttt{openxc7} (\texttt{yosys},
-\texttt{nextpnr-xilinx}, \texttt{prjxray}), on an \texttt{xc7a200tfbg676-1},
-IDCODE \texttt{0x3636093}. These are placed and routed, not estimated.
-
-\begin{table}[t]\centering
-\caption{Measured through place-and-route on \texttt{xc7a200tfbg676-1} (W974).
-The classifier is constrained on \texttt{cfgmclk} and the \texttt{gft\_*} designs
-on \texttt{slowclk}; the two groups are \emph{not} comparable across that
-boundary, and the table is ruled to say so.}
-\label{tab:silicondesigns}
-\begin{tabular}{lrrrr}
-\hline
-design & LUT & $F_{\max}$ (MHz) & clock & MHz/kLUT \\
-\hline
-\texttt{mvp\_ternary\_classifier} & 123 & 80.35 & \texttt{cfgmclk} & 653.3 \\
-\hline
-\texttt{gft\_sadd} & 1{,}312 & 18.24 & \texttt{slowclk} & 13.9 \\
-\texttt{gft\_signed\_mac} & 6{,}466 & 9.14 & \texttt{slowclk} & 1.41 \\
-\texttt{gft\_signed\_dot4} & 12{,}872 & 5.50 & \texttt{slowclk} & 0.43 \\
-\hline
-\end{tabular}
-\end{table}
-
-The headline that survives is not the classifier's 80.35\,MHz. It is the fall
-\emph{within} the comparable group: from a single signed add to a four-term dot
-product, MHz/kLUT drops from 13.9 to 0.43, a factor of $32$. A cost figure for
-this format that names no operator is not a cost figure. Our earlier
-post-synthesis ratios were quoted for an adder; they do not carry to a datapath,
-and this table is why.
-
-\subsection{Silicon refuted a simulation that passed}
-\label{sec:silicon-mac}
-
-The signed MAC passed its bench 2/2 in simulation and failed on the die: clause
-pattern \texttt{0011}, \texttt{ok=0} (W975). Reproduced off the die in
-25\,microseconds once the right stimulus was known (W976). The cause was not in
-the multiplier the specification defines but in a \emph{private copy} of it
-inside the MAC, which had lost the guard that makes zero an annihilator (W977).
-Restoring the guards fixed it, and the defect had been spending roughly 15\,\% of
-the design's LUTs on logic it should never have used (W978). An audit of the
-whole corpus then closed the class, and in doing so explained an earlier
-hardware failure that had been recorded without a board to reproduce it (W979).
-
-A cost model fitted in an earlier revision did not survive contact with these
-builds either: the 21\,ms per LUT rule is 2.4$\times$ off and is not linear, so
-the place-and-route cap was re-derived rather than re-quoted (W988).
-
-We report this because it is the strongest methodological result in the paper and
-it cuts against us: a simulation bench that passes twice is not evidence that the
-generated hardware is correct. The two artefacts diverged at exactly the point
-where a hand-written copy replaced the specified operator.
-
-\subsection{Thirty-nine reads, and the coverage they do not have}
-\label{sec:silicon-reads}
-
-Across eight designs the project now holds 39 die reads, of which 28 pass
-(W987, W989). Both spec fixes above were re-confirmed on silicon: the MAC across
-four placements and three distinct BSCAN sites returned an identical word
-(W990). That is a confirmation, not a proof of placement-independence, and the
-recording tool says so in its own output rather than leaving the reader to
-notice.
-
-Two limits belong beside those numbers. First, 30 of 36 die clauses had no
-same-named test (W980): the die was being asked questions the test suite did not
-ask. Second, the reads were not machine-locatable until they were canonicalised
---- a referee re-deriving our table could reach only 10 of 38, now 39 of 39
-(W989). A number that cannot be found is not reproducible, whatever its value.
-An anomaly chased across six waves stopped reproducing after eight placements
-passed in a row (W985). Nine die reads had already refuted the site hypothesis
-and shown that a planned FASM diff could not decide it (W981); a 430-LUT
-reproducer and a SAT proof on the mapped netlist narrowed it, while a third
-method failed its own control and was discarded rather than reported (W982).
-Half of the on-die clauses turned out to be folded constants, which also refuted
-the operand-order framing (W983), and once the clauses were made real the
-multiplier read correctly (W984). The frozen reproducer still splits 2/2, so the
-anomaly belongs to the folded design and not to the bench (W986).
-
-\subsection{At matched physical width the ladder is behind}
-\label{sec:silicon-w991}
-
-The comparison in Table~\ref{tab:physicalwidth} is the one we would rather not
-publish, and it is computed from the committed oracles (W991).
-
-TNF's named rungs do not occupy their named widths. The \emph{physical} widths
-are 6, 10, 19, 36 and 69 bits for TNF4 through TNF64. Keyed on physical width,
-against posit at $\mathrm{es}=1$:
-
-\begin{table}[t]\centering
-\caption{At every matched physical width the ladder occupies, TNF represents
-fewer values than posit and steps more coarsely at $1.0$ (W991).}
-\label{tab:physicalwidth}
-\begin{tabular}{lrrrrr}
-\hline
-width & TNF values & posit values & TNF step & posit step & ratio \\
-\hline
-19 bits & 516{,}096 & 524{,}286 & 0.024\,\% & 0.002\,\% & $12\times$ \\
-10 bits & 960 & 1{,}022 & 3.125\,\% & 0.781\,\% & $4\times$ \\
-6 bits & 56 & 62 & 25\,\% & 12.5\,\% & $2\times$ \\
-\hline
-\end{tabular}
-\end{table}
-
-The cause is structural rather than an encoding accident: a ternary exponent does
-not tile a binary field. Four trits need seven bits and use 81 of 128 codes, so
-8{,}190 of the $2^{19}$ codes at the 16-rung are unreachable.
-
-This does not overturn the paper's case, and we are careful not to claim that it
-does in either direction. Nothing in this table is a cost figure, and TNF's
-argument was never precision-per-bit; it is what the lattice costs in cells,
-which lives in the area records. A format can lose every column here and still
-win a design, and the reverse. But the earlier framing invited the reader to
-compare at the \emph{named} width, where the ladder looks even, and at the width
-the hardware actually pays for it does not.
-
 
 \section{Limitations}\label{sec:limitations-anchor}\label{sec:limits}
 
