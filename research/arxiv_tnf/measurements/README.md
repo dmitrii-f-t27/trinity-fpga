@@ -27,3 +27,27 @@ whose harness tested representability against zero rather than against the range
 bounds, and the pre-fix workload sweep taken with the same harness. Both are
 superseded by the files above; the defect and its consequences are stated in the
 paper rather than hidden.
+
+## What this table covers, and what it does not
+
+The rows above are the records that back a *named table or figure in the paper*.
+They are a small part of the directory: the rest are records from the wider
+campaign, kept because deleting a measurement to tidy an index is how a directory
+starts disagreeing with what was actually run. The table is therefore **not a
+listing of this directory**, and no number for the ratio is written here, because
+a number written here is a number that goes stale. Ask instead:
+
+```
+python3 - <<'EOF'
+import os, re
+md = open("README.md").read()
+named = set(re.findall(r"`([A-Za-z0-9_.\-]+\.(?:json|py))`", md))
+here = {f for f in os.listdir(".") if f.endswith((".json", ".py"))}
+print("%d of %d files carry a row" % (len(named & here), len(here)))
+print("named but missing:", sorted(named - here) or "none")
+EOF
+```
+
+The second line is the one that matters. A file this table names and the
+directory does not hold is a broken index; a file the directory holds and this
+table does not name is simply a record that backs no published figure.

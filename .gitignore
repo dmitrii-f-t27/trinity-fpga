@@ -210,6 +210,10 @@ img/
 !docs/static/img/
 favicon.ico
 manifest.json
+# The rule above is for the generated PWA manifest, and it is unanchored, so on a
+# case-insensitive filesystem it also swallows research/block/MANIFEST.json --
+# silently on macOS, not at all on Linux. Same repository, two different commits.
+!research/block/MANIFEST.json
 og-image.svg
 robots.txt
 sitemap.xml

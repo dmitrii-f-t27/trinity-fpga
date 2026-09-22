@@ -1,0 +1,42 @@
+{
+  "EleutherAI/gpt-neo-125m": {
+    "canonical": "EleutherAI/gpt-neo-125m",
+    "lastModified": "2024-01-31T20:29:39.000Z",
+    "revision": "21def0189f5705e2521767faed922f1f15e7d7db"
+  },
+  "EleutherAI/pythia-160m": {
+    "canonical": "EleutherAI/pythia-160m",
+    "lastModified": "2023-07-09T15:52:09.000Z",
+    "revision": "50f5173d932e8e61f858120bcb800b97af589f46"
+  },
+  "HuggingFaceTB/SmolLM2-135M": {
+    "canonical": "HuggingFaceTB/SmolLM2-135M",
+    "lastModified": "2025-02-06T10:34:41.000Z",
+    "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2"
+  },
+  "Qwen/Qwen2.5-0.5B": {
+    "canonical": "Qwen/Qwen2.5-0.5B",
+    "lastModified": "2024-09-25T12:32:36.000Z",
+    "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987"
+  },
+  "bigscience/bloom-560m": {
+    "canonical": "bigscience/bloom-560m",
+    "lastModified": "2023-09-26T09:16:49.000Z",
+    "revision": "ac2ae5fab2ce3f9f40dc79b5ca9f637430d24971"
+  },
+  "facebook/opt-125m": {
+    "canonical": "facebook/opt-125m",
+    "lastModified": "2023-09-15T13:10:03.000Z",
+    "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6"
+  },
+  "gpt2": {
+    "canonical": "openai-community/gpt2",
+    "lastModified": "2024-02-19T10:57:45.000Z",
+    "revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e"
+  },
+  "state-spaces/mamba-130m-hf": {
+    "canonical": "state-spaces/mamba-130m-hf",
+    "lastModified": "2024-03-06T00:39:29.000Z",
+    "revision": "1e76775f628fbf1350fbe4dbb3d971ba64af25a1"
+  }
+}

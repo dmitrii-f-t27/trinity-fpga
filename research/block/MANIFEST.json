@@ -1,0 +1,5348 @@
+{
+  "generated_by": "reproduce_index.py",
+  "how_producers_were_found": "AST write sites -- open(p,'w'), Path(p).write_text, OUT-ish assignments -- matched by static path shape against the filenames present. Read sites are excluded on purpose: three scripts name align_u_{tag}.json and one writes it.",
+  "models": {
+    "EleutherAI/gpt-neo-125m": {
+      "canonical": "EleutherAI/gpt-neo-125m",
+      "lastModified": "2024-01-31T20:29:39.000Z",
+      "referenced_by": [
+        "epseff_gptneo.json",
+        "lineC_fifth.py",
+        "occupancy.py",
+        "seedctl_gptneo.json",
+        "seedctlhi_gptneo.json",
+        "sensitivity.py",
+        "sensitivity_gptneo.json"
+      ],
+      "revision": "21def0189f5705e2521767faed922f1f15e7d7db"
+    },
+    "EleutherAI/pythia-160m": {
+      "canonical": "EleutherAI/pythia-160m",
+      "lastModified": "2023-07-09T15:52:09.000Z",
+      "referenced_by": [
+        "campaignA_kl_pythia.json",
+        "campaignA_ppl_pythia.json",
+        "campaignB2_pythia.json",
+        "campaignB_pythia.json",
+        "campaignB_sel_kl_pythia_16w.json",
+        "campaignC_pythia.json",
+        "lineD_ruler_pythia.json",
+        "nsse_codebook_transfer_pythia.json",
+        "occupancy.py",
+        "onefit_kl_lloyd_pythia.json",
+        "onefit_kl_pythia.json",
+        "onefit_ppl_lloyd_pythia.json",
+        "onefit_ppl_pythia.json",
+        "sensitivity.py",
+        "sensitivity_pythia.json"
+      ],
+      "revision": "50f5173d932e8e61f858120bcb800b97af589f46"
+    },
+    "HuggingFaceTB/SmolLM2-135M": {
+      "canonical": "HuggingFaceTB/SmolLM2-135M",
+      "lastModified": "2025-02-06T10:34:41.000Z",
+      "referenced_by": [
+        "campaignA_kl_smollm2.json",
+        "campaignA_ppl_smollm2.json",
+        "campaignB2_smollm2.json",
+        "campaignB_sel_kl_smollm2_16w.json",
+        "campaignB_smollm2.json",
+        "campaignC_smollm2.json",
+        "lineD_ruler_smollm2.json",
+        "nsse_codebook_transfer_smollm2.json",
+        "occupancy.py",
+        "onefit_kl_lloyd_smollm2.json",
+        "onefit_kl_smollm2.json",
+        "onefit_ppl_lloyd_smollm2.json",
+        "onefit_ppl_smollm2.json",
+        "sensitivity.py",
+        "sensitivity_smollm2.json"
+      ],
+      "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2"
+    },
+    "Qwen/Qwen2.5-0.5B": {
+      "canonical": "Qwen/Qwen2.5-0.5B",
+      "lastModified": "2024-09-25T12:32:36.000Z",
+      "referenced_by": [
+        "campaignA_kl_qwen.json",
+        "campaignA_ppl_qwen.json",
+        "campaignB2_qwen.json",
+        "campaignB_qwen.json",
+        "campaignB_sel_kl_qwen_8w.json",
+        "campaignC_qwen.json",
+        "lineD_ruler_qwen.json",
+        "nsse_codebook_transfer_qwen.json",
+        "onefit_kl_lloyd_qwen.json",
+        "onefit_kl_qwen.json",
+        "onefit_ppl_lloyd_qwen.json",
+        "onefit_ppl_qwen.json",
+        "sensitivity_qwen.json"
+      ],
+      "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987"
+    },
+    "bigscience/bloom-560m": {
+      "canonical": "bigscience/bloom-560m",
+      "lastModified": "2023-09-26T09:16:49.000Z",
+      "referenced_by": [
+        "lineC_fifth.py",
+        "occupancy.py",
+        "seedctl_bloom.json",
+        "sensitivity.py",
+        "sensitivity_bloom.json"
+      ],
+      "revision": "ac2ae5fab2ce3f9f40dc79b5ca9f637430d24971"
+    },
+    "facebook/opt-125m": {
+      "canonical": "facebook/opt-125m",
+      "lastModified": "2023-09-15T13:10:03.000Z",
+      "referenced_by": [
+        "campaignA_kl_opt.json",
+        "campaignA_ppl_opt.json",
+        "campaignB2_opt.json",
+        "campaignB_opt.json",
+        "campaignB_sel_kl_opt_16w.json",
+        "campaignC_opt.json",
+        "epseff_opt.json",
+        "lineB_ruler_opt.json",
+        "lineD_ruler_opt.json",
+        "occupancy.py",
+        "onefit_kl_lloyd_opt.json",
+        "onefit_kl_opt.json",
+        "onefit_ppl_lloyd_opt.json",
+        "onefit_ppl_opt.json",
+        "seedctl_opt.json",
+        "seedctlhi_opt.json",
+        "sensitivity.py",
+        "sensitivity_opt.json"
+      ],
+      "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6"
+    },
+    "gpt2": {
+      "canonical": "openai-community/gpt2",
+      "lastModified": "2024-02-19T10:57:45.000Z",
+      "referenced_by": [
+        "occupancy.py",
+        "sensitivity.py"
+      ],
+      "revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e"
+    },
+    "state-spaces/mamba-130m-hf": {
+      "canonical": "state-spaces/mamba-130m-hf",
+      "lastModified": "2024-03-06T00:39:29.000Z",
+      "referenced_by": [
+        "lineC_fifth.py",
+        "lineC_mamba.json",
+        "occupancy.py",
+        "sensitivity.py",
+        "sensitivity_mamba.json"
+      ],
+      "revision": "1e76775f628fbf1350fbe4dbb3d971ba64af25a1"
+    }
+  },
+  "records": {
+    "align_harden_smollm2.json": {
+      "bytes": 19250,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "align_harden.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "1055aa0da1f743f597cd7f0a5932c17ea6fb63b80c617cdbb86b088053b1fbb7"
+    },
+    "align_harden_smollm2_wave1_120w.json": {
+      "bytes": 19250,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "align_harden.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "1055aa0da1f743f597cd7f0a5932c17ea6fb63b80c617cdbb86b088053b1fbb7"
+    },
+    "align_u_gpt2.json": {
+      "bytes": 3713,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "align_u.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "c996bcb9b76b5bf759d3c4a3a4291a8042f8be9827e058d984507dbce437b8a6"
+    },
+    "align_u_opt.json": {
+      "bytes": 3724,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "align_u.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "01003671088a4ffbaf9d88b5ec3bc64aa30d3db0327bdb13461d4db03af35d9f"
+    },
+    "align_u_pythia.json": {
+      "bytes": 3717,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "align_u.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "d9e4e298ab313da5b557f23de7f8633f4b96fe2bceace3d05d7361b7330ed298"
+    },
+    "align_u_qwen.json": {
+      "bytes": 3759,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "align_u.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "df8db179415ae04fcc032ed5ac3e67cfd36834007e2432fc77e9fbc5fe23492b"
+    },
+    "align_u_smollm2.json": {
+      "bytes": 3740,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "align_u.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "a91c0a59d229d6283f3970117368eec0c80b5b852204e5e27efe200265c2aeee"
+    },
+    "align_u_tiefloor_gpt2.json": {
+      "bytes": 920,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": null,
+      "producer_candidates": [
+        "align_u.py",
+        "align_u_tiefloor.py"
+      ],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "656f89e4bb6088c7d9f12ff95953ede2a87bc9b1edbafb1b65b16afe3b456b91"
+    },
+    "align_u_tiefloor_opt.json": {
+      "bytes": 505,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": null,
+      "producer_candidates": [
+        "align_u.py",
+        "align_u_tiefloor.py"
+      ],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "ef2adbc85c992a2a23983ee0486a3904fcb14b94c3a86f623d653b0feb37d7a9"
+    },
+    "align_u_tiefloor_pythia.json": {
+      "bytes": 298,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": null,
+      "producer_candidates": [
+        "align_u.py",
+        "align_u_tiefloor.py"
+      ],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "1a839148027ed43a1f52bba64836fefb58395a05e4bd9888b0108fa78b7b3047"
+    },
+    "attack4_scale_convention.json": {
+      "bytes": 515,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "attack4_scale_convention.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "825a1d42c9b66f4a8b2cf41aa4ae9428f2502b6db41d118a6c486a8c24174768"
+    },
+    "attack5_equal_budget.json": {
+      "bytes": 6080,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "attack5_equal_budget.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "853db83b4a93f2a4b2efff4a7947e68e137a2234c42e0b5311c6ceb363a2552a"
+    },
+    "attack5_fair_comparison.json": {
+      "bytes": 2882,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "attack5_fair_comparison.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "a18ea690b38be3bf7ce684bba53f9ddf8c23243b9a1f194c3e688dfa5cf7a6de"
+    },
+    "attack5_hessian_mse.json": {
+      "bytes": 16834,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "attack5_hessian_mse.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "a883b60a70837cbfa19f2733d6984349d573282c66792be075f51e0ce343ff11"
+    },
+    "block_bound.json": {
+      "bytes": 1538,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "block_bound.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "86de49fc17c1da4ae6220608099ffa18b80a76c290e5af24d3b88d62e2f1b687"
+    },
+    "block_ladder.json": {
+      "bytes": 776,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "block_ladder.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "38d07cb11ac38806ef12e9b5602a0a25060f183410bbfffbfee8c36ba05d9783"
+    },
+    "block_mixed.json": {
+      "bytes": 753,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "block_mixed.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "667763598a711339d539060783a14dfa4518b5ff84bc5891d9bfbedce469cb48"
+    },
+    "block_shape_scale.json": {
+      "bytes": 718,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "block_shape_scale.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "3e03f789847a5bc85e7a2cf598aa6cc03c6cd829fd5011f1fe983bc1e5c77cdb"
+    },
+    "campaignA_kl_opt.json": {
+      "bytes": 5959,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignA_run.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "3a3e7269cf24425592cdab70797acf7b36a6144001cd68dad007b2d053028255"
+    },
+    "campaignA_kl_pythia.json": {
+      "bytes": 5944,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignA_run.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "189cfbb2f5ba8b94a762d072a56b3b9515fa1d13eb1c49d409ada65dae20add3"
+    },
+    "campaignA_kl_qwen.json": {
+      "bytes": 5183,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignA_run.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "77deeb3dea1eb5d8878a1b2f0d5526382c77f90d3e94c7def16ba96269575f92"
+    },
+    "campaignA_kl_smollm2.json": {
+      "bytes": 5957,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignA_run.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "22ce21d79290c270fb326b2e4019247db7a3a01c2740bbb854b0a9a539597912"
+    },
+    "campaignA_ppl_opt.json": {
+      "bytes": 7846,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignA_run.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "d7a4f0b006784f0cfc928508d983948cde1cdc62f9d724e548542e612b44d069"
+    },
+    "campaignA_ppl_pythia.json": {
+      "bytes": 7830,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignA_run.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "62dea91aaef492a9726fd4c56e67a479a886d79aff2a4e074d388c3f0fc032ad"
+    },
+    "campaignA_ppl_qwen.json": {
+      "bytes": 5133,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignA_run.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "d9d323361b816752189bf013c6c7ddd4bc4fe1f124055387e2c4bd9de43f602a"
+    },
+    "campaignA_ppl_smollm2.json": {
+      "bytes": 7867,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignA_run.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "fc4fadef616c463c6675807c29b735a403172926499c6fd82633c14a052816e3"
+    },
+    "campaignA_stats.json": {
+      "bytes": 12064,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "campaignA_stats.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "5cbdabf72b84e4bb96df412112b700dd6a9dd219453a5b4c377aeec0333ca257"
+    },
+    "campaignB2_opt.json": {
+      "bytes": 3869,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB2_control.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "a7fdf0bc4e637759df2db1e94db3a68a6321b2c4c185c005f1a83a870d59981f"
+    },
+    "campaignB2_pythia.json": {
+      "bytes": 3844,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB2_control.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "77d6c136fca17ddf6fbbd3870ad2a3a3d2fa267d29183960ddc4ffa1472eb8f4"
+    },
+    "campaignB2_qwen.json": {
+      "bytes": 2705,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB2_control.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "be5b008cb3d2c5640aca147bf6e06a426afa1eaa46fc450be1af9a454b7834d1"
+    },
+    "campaignB2_smollm2.json": {
+      "bytes": 3888,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB2_control.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "2f116bee63a0f5fbcc7e4c6a832d80d99cd2bd68e9b8d58d865778282a71c957"
+    },
+    "campaignB_opt.json": {
+      "bytes": 16340,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "59dfe442fc769aff7eda6406081f288b25f6d8f7c6ed5646ef53a831318f075b"
+    },
+    "campaignB_pythia.json": {
+      "bytes": 16300,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "e3d2416bb3a7e565b8d9365357a92bd171e629ccf6412d4185b6760be3e78703"
+    },
+    "campaignB_qwen.json": {
+      "bytes": 10496,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "4f009d0f5c2a65622132319e47465bb402439a11d6b02babebe3c4920716ec13"
+    },
+    "campaignB_sel_kl_opt_16w.json": {
+      "bytes": 9805,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "449879b2c1c6b75d00fc52bb113891faed37627a82eb7a4890cd4dd53bf976f2"
+    },
+    "campaignB_sel_kl_pythia_16w.json": {
+      "bytes": 9681,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "805289a1d817cefd2775408b3216321ad19dbc6bd77ab24cdaac7a3141dffdcc"
+    },
+    "campaignB_sel_kl_qwen_8w.json": {
+      "bytes": 7156,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "ed02d0de74e700629dd00cee8f1cfb55f4d8276815521270808324ae72922e27"
+    },
+    "campaignB_sel_kl_smollm2_16w.json": {
+      "bytes": 9736,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "f6eddb56e560087fed19ade0578ed227a745132df7892ae9bf8f8a9773f938a7"
+    },
+    "campaignB_selector.json": {
+      "bytes": 8571,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "campaignB_selector.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "30db9fabd712fa1dfffea9aa992758ac5cadce62508635f70c700788fce60ab1"
+    },
+    "campaignB_smollm2.json": {
+      "bytes": 16375,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignB_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "d41cd4fca6dadac8b6b6df373a9db4da7181565bfd65f7ece4fac3c42c7639a4"
+    },
+    "campaignB_stats.json": {
+      "bytes": 2787,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "campaignB_stats.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "004142dfd10b972f11a3a60095bb1274842ec7a9c45482b4a461d655ae4774a3"
+    },
+    "campaignC_opt.json": {
+      "bytes": 8590,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignC_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "7c9a0d7e38dff728c8d7827936cfa5440aef914f7ba76b2fe90b0692913a8d08"
+    },
+    "campaignC_pythia.json": {
+      "bytes": 8555,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignC_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "535c593b8412cfe370be0a6141fd4c3b2aa20a9efe0309e77946ef955e945faf"
+    },
+    "campaignC_qwen.json": {
+      "bytes": 5470,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignC_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "1213d9771a36813ac814116b53004ce7f579e94aaf18656dbc7c43c4e843fea3"
+    },
+    "campaignC_ratio.json": {
+      "bytes": 83,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "campaignC_ratio.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "ef80fa774a3365be07053a48765a85eed4c0e51be101155acab861356aacf183"
+    },
+    "campaignC_smollm2.json": {
+      "bytes": 8600,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignC_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "4d185ba3def50a1572965a497c5cb75abc8e699e319a9c473baa53c426f346ae"
+    },
+    "campaignC_stats.json": {
+      "bytes": 8339,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "campaignC_stats.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "4ab7b73ce24e8113dab6f847a9258bc72a6a2709527be025e84d19f40d3e3e88"
+    },
+    "campaignD_kl15_smollm2_16win.json": {
+      "bytes": 8360,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": null,
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "e5353f4aa6eefb000c039dec3f55fea845ea59c553b74933861e152e483de564"
+    },
+    "campaignD_kl15_smollm2_8win.json": {
+      "bytes": 2352,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": null,
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "2cd3dccf1209ba1d0acda8e902e3368a630cc48a2f250ba7b0244a75e03eb611"
+    },
+    "campaignD_kl_opt.json": {
+      "bytes": 2146,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignD_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "23c97c4b48ec7b5a7e8cb8fb7d9faa19152d4f7da250e8eda78453403328c09c"
+    },
+    "campaignD_kl_pythia.json": {
+      "bytes": 2110,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignD_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "27119e4c1c9420c46e699ab749baac62ce350d693eb6849513048a269da7a4c4"
+    },
+    "campaignD_kl_qwen.json": {
+      "bytes": 2135,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignD_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "ea156cc2b48091179c28d023ad27aa5a622824f18f920f131ef89a66ee3e826e"
+    },
+    "campaignD_kl_smollm2.json": {
+      "bytes": 5282,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignD_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "e9938c48d8256b2357225c8ec23637c9106d5153c3615077afeb2115809eabde"
+    },
+    "campaignD_pred_opt.json": {
+      "bytes": 3579,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignD_pred.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "df3abf1baae78e9fcf22f0fd04f4a911d714ee1cbef0b349074924a5b7345eb5"
+    },
+    "campaignD_pred_pythia.json": {
+      "bytes": 3584,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignD_pred.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "c9d9fd25d2f9dc3de6a125478180ae66caac2d310469c9f12ae277831bcfa3e5"
+    },
+    "campaignD_pred_qwen.json": {
+      "bytes": 3576,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignD_pred.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "6a389f745900bed1fc7b50a877619468029184d10b0f66c31ff569eb42afcf5d"
+    },
+    "campaignD_pred_smollm2.json": {
+      "bytes": 3589,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignD_pred.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "308b157acdd74213fe4f6cee68fe30ca3c7321888256eea63e5bb9cf00d925bc"
+    },
+    "campaignD_rank.json": {
+      "bytes": 2709,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "campaignD_rank.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "9c814d2091fa6be2e3315b1aadbe2923acac8492dc60b8f705f5e7a89b976c31"
+    },
+    "campaignD_ruler.json": {
+      "bytes": 415,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignD_ruler.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "2caa9bd3c81731a25b7611549c0e720635e34282fff883ad7e7becc0cca0e40b"
+    },
+    "campaignD_spearman.json": {
+      "bytes": 5446,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "campaignD_spearman.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "596c6064d7b504d018b5eb6d5717b42bde11b04ddead0c3b567231a255eba71b"
+    },
+    "campaignE_frozen.json": {
+      "bytes": 2291,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "campaignE_predict.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "9bb8821c377f6af4829ebee011edaca0bf236c416a449126a5ea3153827dc03e"
+    },
+    "campaignE_models.json": {
+      "bytes": 1561,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": null,
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "a9ceda0372940ec70e163048632780a30bb0270e8c80496ea64c344800cd8068"
+    },
+    "campaignE_occupancy.json": {
+      "bytes": 65182,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignE_occupancy.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "9e3db7d40e036c4d2873afa550d8ce4cda21350c76eed5a301bd4b1e9d0a05f5"
+    },
+    "campaignE_ppl_gptneo125m.json": {
+      "bytes": 3194,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignE_ppl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "ce03b513627e224c20b864fcc0ff3d87b388c93f552de0e007dc089986f4ed12"
+    },
+    "campaignE_ppl_opt.json": {
+      "bytes": 3419,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignE_ppl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "6fc12e012c021924a53be7a9ca35bc10366a2a9c9ceafab7db261002777de779"
+    },
+    "campaignE_ppl_pythia.json": {
+      "bytes": 3409,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignE_ppl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "626f78bdc05df7042824c6840c55ca625b88fea0a97973df667c16a297d782d1"
+    },
+    "campaignE_ppl_qwen.json": {
+      "bytes": 2248,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignE_ppl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "0a0581b95f17774b2e124b3136ea242479eff874095dc20e54e755675214b70b"
+    },
+    "campaignE_ppl_smollm2.json": {
+      "bytes": 3405,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "campaignE_ppl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "6f8c0642a74c5705914dc49a84aa9f073c3caf6dcb5901262f5c0f86cbe80939"
+    },
+    "depth_mechanism.json": {
+      "bytes": 712,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "depth_mechanism.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "dc881f1d9aa75ae402fbacb1dac668491250410283cbb065b51bc985b03c616e"
+    },
+    "epseff_gptneo.json": {
+      "bytes": 591,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "effective_eps.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "21def0189f5705e2521767faed922f1f15e7d7db",
+          "src": "EleutherAI/gpt-neo-125m"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "b1214e6e7a3b67e2234d1c3887ccde8b6cbe0ef6ae6abd8ca4973e8ce3d0030d"
+    },
+    "epseff_opt.json": {
+      "bytes": 575,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "effective_eps.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "6d81eecd8e22523e5604010df116f39690ddaccdff17acddb04d915a7d092b95"
+    },
+    "exactness_payoff_qwen.json": {
+      "bytes": 561,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "exactness_payoff.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "6e4b37c2e5d5d57f1c1ec0da467a0a7ee2480fff13ab67c80f91fbf551ae2ec6"
+    },
+    "exactness_payoff_smollm2.json": {
+      "bytes": 642,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "exactness_payoff.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "83bf5eff20bcd35a281e537675be78e8fab2d8aea6ef966e10b18ed8ac02358a"
+    },
+    "exactness_threads_smollm2.json": {
+      "bytes": 819,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [
+        "/rows/*/gemm_sha",
+        "/rows/*/weight_sha"
+      ],
+      "needs": [],
+      "producer": "exactness_threads.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "91aa21b7491d7664831197fe9bfe2ad401cf7c926f3206b74ff3f806443a77cd"
+    },
+    "exactness_width.json": {
+      "bytes": 1211,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "exactness_width.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "5010771e36fb1c5d09b8105761c6d7fd8f366abf452296f761d9e622cfef6f8c"
+    },
+    "kurtosis_all.json": {
+      "bytes": 984,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": null,
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "fe51faa9097a6b9bed63d79b7be01e9bb2d8b33b3c13991456dee7ee25303634"
+    },
+    "lineB_prereg.json": {
+      "bytes": 2509,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "lineB_prereg.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "964a18522c59e1ab4d0a9795aabd662a8f4be7f4324d4861101198a8e756605d"
+    },
+    "lineB_ruler_opt.json": {
+      "bytes": 3650,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineB_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "5f15987d09ebb6e22867afd5c48c4d30e72e2a503e30bff6b8f1f0b1d4e9faa5"
+    },
+    "lineB_stats.json": {
+      "bytes": 13180,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "lineB_seed_vs_distance.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "bd23414305a154161fa968570d88f060299675e49bf12ce251c407211924073f"
+    },
+    "lineC_bloom.json": {
+      "bytes": 13408,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineC_fifth.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "4cfa1c37d30e150b56ef731dd69e6b3547f3ba2be0b80b93377f549f5ed34254"
+    },
+    "lineC_gpt2.json": {
+      "bytes": 23352,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineC_fifth.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "9ab0003ab10fa537e7c4860a405b778098ef0b0c3d3a4380eb20c48f2799eb4e"
+    },
+    "lineC_mamba.json": {
+      "bytes": 15755,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineC_fifth.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "1e76775f628fbf1350fbe4dbb3d971ba64af25a1",
+          "src": "state-spaces/mamba-130m-hf"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "cda6758a6c25609bc975d9134324223ff3c90cc83b2404104b42538b7f398f0c"
+    },
+    "lineC_opt.json": {
+      "bytes": 5291,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineC_fifth.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "dc626b4d9ae7110f8e023881c5f9cc41b3a67aeb39e4cb6af02c9264ff81e2dc"
+    },
+    "lineC_pythia.json": {
+      "bytes": 5280,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineC_fifth.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "899b16e684efbb0a8f3f9e1f87342b2c415d109416e93e6e64035b89a827274b"
+    },
+    "lineC_qwen.json": {
+      "bytes": 4519,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineC_fifth.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "4bedc9a039c3391c6118bbd7d64f14494e4b27072c2c3790a2a3e00956cbfc08"
+    },
+    "lineC_smollm2.json": {
+      "bytes": 5284,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineC_fifth.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "bb329fbe05b5f2b0f30bfe612ac9864438cde13fc4be48e3ade4655a0135659d"
+    },
+    "lineD_actgate_opt.json": {
+      "bytes": 377,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_actgate.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "86157311c4f20b3954d48174928c4f6b620d98463bae68c8e99e0e9231e3bf62"
+    },
+    "lineD_actgate_pythia.json": {
+      "bytes": 377,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_actgate.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "653af80f08454784703de0db69aeb6bf0be09202c97dd1613992f36e9a30b42e"
+    },
+    "lineD_actgate_qwen.json": {
+      "bytes": 377,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_actgate.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "be2c92859fc1fe1139483551514f3339688c3aecc7b63378851bf4deb0af5fa8"
+    },
+    "lineD_actgate_smollm2.json": {
+      "bytes": 380,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_actgate.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "eb6edccb17fa6b7e97965b75c13e763cf5370b890db04fcb410555c9d7f2f936"
+    },
+    "lineD_decompose_mamba130m.json": {
+      "bytes": 816,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_decompose.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "b3bb8bc89dbbb7eacfc243fae277aeabf526ec93d3d8f8dc66d403439011b33a"
+    },
+    "lineD_decompose_opt.json": {
+      "bytes": 811,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_decompose.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "b383126683af3156461ecf4270d5c39827e4555a606240eed779d8126761e589"
+    },
+    "lineD_decompose_pythia.json": {
+      "bytes": 809,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_decompose.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "b4f8cf6c57f1d1db0ffb0528dc565fef3017c2ae57bd01c0dbfb38dfb0a78ce8"
+    },
+    "lineD_decompose_qwen.json": {
+      "bytes": 814,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_decompose.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "5823797b8bf65032987d2ddeb944722468bea66e3703b1ea30d9f616feed51c4"
+    },
+    "lineD_decompose_smollm2.json": {
+      "bytes": 803,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_decompose.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "cb26059355b229cf16237b8f00e68346ec4a6874a18ad2e9f3a8e5f19e6dbbf4"
+    },
+    "lineD_predict.json": {
+      "bytes": 3201,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "lineD_predict.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "56877082b8cd01fbfa25de02f09862075530d38a17256bc152b122472b9a03ee"
+    },
+    "lineD_probe_opt.json": {
+      "bytes": 1051,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_probe.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "8316f25d621d4dfe2c8334ebe353d7771835e159ccc6648ff0f3e3f211c962d6"
+    },
+    "lineD_probe_pythia.json": {
+      "bytes": 1057,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_probe.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "b9971f1d985f88002189f88e640c01e6da8c004f25180b08710af565936bb14f"
+    },
+    "lineD_probe_qwen.json": {
+      "bytes": 1068,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_probe.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "14990280fc6e581d03aa876ddfc9f83e28fedf09bc3cb9bc2d3e3e5af01781f4"
+    },
+    "lineD_probe_smollm2.json": {
+      "bytes": 1065,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_probe.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "7c617ada7f67e695bb58fd351b2b37fb7bfb37d31a093cec98e77410f5a0264f"
+    },
+    "lineD_ruler_opt.json": {
+      "bytes": 3483,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_ruler.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "9abda1d9350faaa08583e746b7c72a6372c1d2af9d25ea6dcc42ceae5ce450d1"
+    },
+    "lineD_ruler_pythia.json": {
+      "bytes": 3474,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_ruler.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "6a3917aef3375737512abe5c37d995df02f2657b58b38fa7b54a0506f154cab3"
+    },
+    "lineD_ruler_qwen.json": {
+      "bytes": 2326,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_ruler.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "ca6b22abf98883608c5adbf0e84a7d79cee43d415f20d4c47168d430ee62acfe"
+    },
+    "lineD_ruler_smollm2.json": {
+      "bytes": 3502,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "lineD_ruler.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "1ecce1b2837e008e43e5cc4dee130b55a725d8eaf860c2a5e0ac98c729e5f33e"
+    },
+    "loguniform_rotation.json": {
+      "bytes": 7319,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "loguniform_rotation.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "1815b38fd0369a327a9934cf4431d530b7743eacb0ebfbf75da850ccd7004531"
+    },
+    "loguniform_size.json": {
+      "bytes": 7074,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "loguniform_size.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "bbd9c63fbae93925c4430faa36e6249568adadac9948aa0fa03c7e1265b83273"
+    },
+    "loguniform_test.json": {
+      "bytes": 3141,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "loguniform_test.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "a3cc1f7efe35e4a87c7d10ea2a63e982a4258aa7bfb96d386fcaea52793071e2"
+    },
+    "loguniform_theory.json": {
+      "bytes": 15183,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "loguniform_theory.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "1eff251016bb5321e8636ddeb91caac52d76618d0f8157a98575e96f1d391cc8"
+    },
+    "loguniform_verdict.json": {
+      "bytes": 17173,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "loguniform_verdict.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "77cb7708ad2f297d4cd8ac446e79dc5078a793887ab59dbd81a95fb1e08aa742"
+    },
+    "nsse_codebook_transfer_pythia.json": {
+      "bytes": 4507,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "nsse_codebook_transfer.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "549e3661b72c7d17aa15820c4e3b802f4d29ff440bfac5431575add4ad7bca40"
+    },
+    "nsse_codebook_transfer_qwen.json": {
+      "bytes": 2976,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "nsse_codebook_transfer.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "ad33aeae193b4674117ecc70f154cf2f5b94e93209b4de3f09e6b177d659ad14"
+    },
+    "nsse_codebook_transfer_smollm2.json": {
+      "bytes": 4547,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "nsse_codebook_transfer.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "ca766340e94180310f95c657ce3ce842341e6e3f485d3a94c8592756784d8254"
+    },
+    "occupancy_all.json": {
+      "bytes": 4238,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [
+        "/provenance/sha256"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "occupancy.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "7b64edab2593ac8b455504b37d34a3d31e4d8d599c97c014df0aeb1e15e4e96a"
+    },
+    "oneadder_ppl_qwen.json": {
+      "bytes": 873,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "oneadder_ppl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "cfc2afd438dd24aa3d64788a01a9cdd5a6270d779ac93f0769ecd42c33e02f72"
+    },
+    "oneadder_ppl_smollm2.json": {
+      "bytes": 875,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "oneadder_ppl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "75ccfba5fe2154c62d3806709c67c2928e1fc699fa5847962e88521c6d5ae832"
+    },
+    "onefit_kl_lloyd_opt.json": {
+      "bytes": 5191,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "12ef4c7166ec3c041bb97482845422c90e080a60d70b85eeb6bfc1a4bf53e70d"
+    },
+    "onefit_kl_lloyd_pythia.json": {
+      "bytes": 4562,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "3ce1aee7e271de5c7a41e05c7725b31b9fb7a4bbe419b1bdfdf436af1ac7578a"
+    },
+    "onefit_kl_lloyd_qwen.json": {
+      "bytes": 4853,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "9e8c68e41e90839bb560bf73037892261a3e2c03f317afac5f3ece9086fd82ea"
+    },
+    "onefit_kl_lloyd_smollm2.json": {
+      "bytes": 5626,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "2d221505852ebd5a1eb66955ec1b55a64a15d0ad4d1a4bbd9c790583bb971ce1"
+    },
+    "onefit_kl_opt.json": {
+      "bytes": 5929,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "2c178b5d41cc9d1900bec1f19b5ba2c87c2763928a4238db3a73aa1593801348"
+    },
+    "onefit_kl_pythia.json": {
+      "bytes": 3752,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "2afaee5554b3239a3370def39131f2fe7324a588cb32ce44a963436c07adecd8"
+    },
+    "onefit_kl_qwen.json": {
+      "bytes": 4470,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "212d93c7ed65051db94bae0351926e56d08091a307df8b796331c15e54940957"
+    },
+    "onefit_kl_smollm2.json": {
+      "bytes": 4967,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_kl.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "715bf59d4b8da71bc7756f2eb8cd3de14728942001d3f58d56b41fecc8ff75ea"
+    },
+    "onefit_klscore_opt.json": {
+      "bytes": 2616,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_klscore.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "393abf30c2763f0df9c34f3cdcee647d33eb047bea1f53b46f9ef1f5676f512f"
+    },
+    "onefit_klscore_pythia.json": {
+      "bytes": 2608,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_klscore.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "36e6c4e6265209a37c69b8946dfed7154d8d52173e7e5355b640bea979339a33"
+    },
+    "onefit_klscore_qwen.json": {
+      "bytes": 2615,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_klscore.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "74cffef922a1403d63871009a55fd27b83c91ef9de539dab588e1bd092c1e10e"
+    },
+    "onefit_klscore_smollm2.json": {
+      "bytes": 2612,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_klscore.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "0034e3420691bafa272de86ac68d44b3169f69fe0badb82d466a2d9d91255512"
+    },
+    "onefit_ppl_lloyd_opt.json": {
+      "bytes": 6727,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "003fc04a1bcecec29a66b74d19c58010d2c37450870f3a3ce8e7aca6f336a87b"
+    },
+    "onefit_ppl_lloyd_pythia.json": {
+      "bytes": 6673,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "96de1d151d0b7c12c1aea305273dd7bfd9306439b12bfc89a0a34f597dbebe80"
+    },
+    "onefit_ppl_lloyd_qwen.json": {
+      "bytes": 4400,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "daa984704c41feec16b062e1bf841a81b2a459ab2f25f7d0b8f9c0e0f6ca6a7d"
+    },
+    "onefit_ppl_lloyd_smollm2.json": {
+      "bytes": 6720,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "d5cbc8487d420f3107e24b6a11efbaa9d70c18409c880631a9b0aee69770d9f0"
+    },
+    "onefit_ppl_opt.json": {
+      "bytes": 6592,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "5e0e430a77b9ce7d927b5e33cd597156fe7ddbe3a131c06a3c4ba77d5114cefe"
+    },
+    "onefit_ppl_pythia.json": {
+      "bytes": 6632,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "7ca592271c7a5ad433de6854b934013f3fe9a01d549725639025358208be2214"
+    },
+    "onefit_ppl_qwen.json": {
+      "bytes": 4296,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "fb23d0bb830fd17f32c1e9ef96eda8498a86dfde5ed1f0099fe433178826b1e0"
+    },
+    "onefit_ppl_smollm2.json": {
+      "bytes": 6655,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "onefit_measure.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "888ec2289e0248c896cf59f5f5709f43cd8534f17beaab34695294c791c187c5"
+    },
+    "onefit_stats.json": {
+      "bytes": 18463,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "onefit_stats.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "corpus": {
+          "chars": 1294336,
+          "rows": 4358,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        },
+        "retrofitted": true
+      },
+      "sha256": "dbd61df575a15607004ad7c66683ca9035cc750ecd0bd4c65c8c8e1df26d9168"
+    },
+    "order_spread_smollm2.json": {
+      "bytes": 1555,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "order_spread.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "fc30782605f63d4c07f656f87472be868fc1a76d86d35010611035693ad34d20"
+    },
+    "scale_control_qwen.json": {
+      "bytes": 463,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "scale_control.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "5595ad19400ccd4262cfcc7f938f49d78c3070fc71cd81d0cb223ae5e756d699"
+    },
+    "scale_control_smollm2.json": {
+      "bytes": 468,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "scale_control.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "35acb63c3bb512049b1d35a83d296ad77ad19144a8b785086e4c91dab0170432"
+    },
+    "scale_equalbits_qwen.json": {
+      "bytes": 710,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "scale_equalbits.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "818b960af87b7465a891535201ac96624099020b213445c232c07e63deec6e5f"
+    },
+    "scale_equalbits_smollm2.json": {
+      "bytes": 711,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "scale_equalbits.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "060bf990ccc3801ff795abdc4f5bce8145a0ff79546625fa3fdeb28d958eaeff"
+    },
+    "scale_frontier_qwen.json": {
+      "bytes": 811,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "scale_frontier.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "5ff171965e55212bd349b48f5bc91145f76e9e43726d278c7db05fe3f88f43d4"
+    },
+    "scale_frontier_smollm2.json": {
+      "bytes": 815,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "scale_frontier.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "e9af9ba09887a4651f6917027993d0dc730452e9c1d58fa9912c62784d347438"
+    },
+    "scale_settled_smollm2.json": {
+      "bytes": 3092,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "scale_settled.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "b994ec7d3f9364e3fcbeaaf0cdd90cd8dffa795eca7060c2018d00c527854ad7"
+    },
+    "seedctl_bloom.json": {
+      "bytes": 1419,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "seed_control.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "ac2ae5fab2ce3f9f40dc79b5ca9f637430d24971",
+          "src": "bigscience/bloom-560m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "f5df4739cc4c2609b7bfa8a91dff2d6b938d69be1de2deacbc1377879f3c40f8"
+    },
+    "seedctl_gptneo.json": {
+      "bytes": 1404,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "seed_control.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "21def0189f5705e2521767faed922f1f15e7d7db",
+          "src": "EleutherAI/gpt-neo-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "b607e2a957e7c824844329a88f5e2bce00d9d39523f8e707f0bfcb3306e2df23"
+    },
+    "seedctl_opt.json": {
+      "bytes": 1614,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "seed_control.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "ae34ae826723bb23430d4b09cb2cf9a6ded27a1779128cb217aa6363c2fbebd4"
+    },
+    "seedctlhi_gptneo.json": {
+      "bytes": 1188,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "seed_control_hi.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "21def0189f5705e2521767faed922f1f15e7d7db",
+          "src": "EleutherAI/gpt-neo-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "163c85050226db5311f02286179516b07ca9cefd8ac863d53f81fd93358e893e"
+    },
+    "seedctlhi_opt.json": {
+      "bytes": 1197,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "seed_control_hi.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "8d042c0aec619ff156b5f1be67198c8a3d3b4eda2001abcdcfd33c3624258188"
+    },
+    "sensitivity_bloom.json": {
+      "bytes": 1268,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "sensitivity.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "ac2ae5fab2ce3f9f40dc79b5ca9f637430d24971",
+          "src": "bigscience/bloom-560m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "bc02747ced298cc7cfe57d0ae075bd87d6fc35b9bbd978e9c7ca2e4e9e48398c"
+    },
+    "sensitivity_gptneo.json": {
+      "bytes": 1264,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "sensitivity.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "21def0189f5705e2521767faed922f1f15e7d7db",
+          "src": "EleutherAI/gpt-neo-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "27af9f330638f272882a3474770b0ba0ea4c119737090fa3417c43c6dd9f6af3"
+    },
+    "sensitivity_mamba.json": {
+      "bytes": 1273,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "sensitivity.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "1e76775f628fbf1350fbe4dbb3d971ba64af25a1",
+          "src": "state-spaces/mamba-130m-hf"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "7c45ed9b233206d357fa6559a5d80d185133c2a54c0d564b1540734a4b8faa29"
+    },
+    "sensitivity_opt.json": {
+      "bytes": 875,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "sensitivity.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "27dcfa74d334bc871f3234de431e71c6eeba5dd6",
+          "src": "facebook/opt-125m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "6b250683e12e9fbdd8d0bb421a4cddad1d9e5f4d8bded68a6db73e67da2550c3"
+    },
+    "sensitivity_pythia.json": {
+      "bytes": 1260,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "sensitivity.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "50f5173d932e8e61f858120bcb800b97af589f46",
+          "src": "EleutherAI/pythia-160m"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "74a96bb8a5a8e786afdcdc6bc0bd59ca9a7dd389c83c0ba999ef33d738115b2c"
+    },
+    "sensitivity_qwen.json": {
+      "bytes": 1265,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "sensitivity.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+          "src": "Qwen/Qwen2.5-0.5B"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "67f54f177407ad4db7735b2877774a616253e50dcc277ef5780081b971ffc181"
+    },
+    "sensitivity_smollm2.json": {
+      "bytes": 1281,
+      "checkpoint_revision_is_hub_main_today": true,
+      "identity_fields": [
+        "/provenance/checkpoint",
+        "/provenance/checkpoint/revision"
+      ],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "sensitivity.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": {
+        "checkpoint": {
+          "kind": "hub",
+          "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+          "src": "HuggingFaceTB/SmolLM2-135M"
+        },
+        "corpus": {
+          "chars": 1294336,
+          "rows": null,
+          "sha256": "696cca6b65a171b0a358a4be6732cdfdf2dd6164a32e20fd70e3c13fc4dfae83"
+        },
+        "harness": {
+          "file": "block_tnf.py",
+          "matches_tree": true,
+          "present": true,
+          "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+        }
+      },
+      "sha256": "3d1a1416b86309370d42bd412f307b91c465ff83884c6fc5b59c737d5927a922"
+    },
+    "u_atoms_smollm2.json": {
+      "bytes": 121491,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_atoms.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "187992d948455713870087b95f6d25f1914e391c7f8d3e5c836742a01d1b343c"
+    },
+    "u_eval_floor.json": {
+      "bytes": 2967,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch"
+      ],
+      "producer": "u_eval_floor.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "ef838f7a05b3fe496fae82415419846043edab35d506389286966402a6c84eed"
+    },
+    "u_surface_qwen_nw4.json": {
+      "bytes": 4288,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "3841ca493ffc106163fe73731d416df37e216bc7c5527fef40f78f3dce81e179"
+    },
+    "u_surface_qwen_nw4K.json": {
+      "bytes": 3534,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "6f6057fa30cb3f1d984437906bfe12bea1c53e24304c24e02cb258c23cf63bad"
+    },
+    "u_surface_qwen_nw4a_K32.json": {
+      "bytes": 4288,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "3841ca493ffc106163fe73731d416df37e216bc7c5527fef40f78f3dce81e179"
+    },
+    "u_surface_qwen_nw4fine.json": {
+      "bytes": 980,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "7efe740737582930bfebe5dc070f5f343339736ddfddc03cbdfea71c3b9d29c5"
+    },
+    "u_surface_qwen_nw4fmt.json": {
+      "bytes": 3526,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "a07c8d135f1fe9e145d2e0fcef69a09bc83270149c38073a32d1ecb5ff395ed2"
+    },
+    "u_surface_qwen_t2K64.json": {
+      "bytes": 6355,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "59088b03961eb9aaa4d9e7bc471a6983c8b9734e2d119d3905e056ccc46d9412"
+    },
+    "u_surface_qwen_t2fill.json": {
+      "bytes": 510,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "2b4e7eb641de016d7655390f68c2f52e4deba45ddbfefd4c989edbc73416742e"
+    },
+    "u_surface_qwen_t2fill2.json": {
+      "bytes": 890,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "cea6a1ecf82fe53f2021b7f7cd01f180955b5fc5680f241a82b925f0e36eb32a"
+    },
+    "u_surface_qwen_t2fmtK.json": {
+      "bytes": 8435,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "2739e7831ca1ce0915f05467327bc6f5d62bb5c06cdf7d334081c0d1fad64860"
+    },
+    "u_surface_smollm2_nw20cliff.json": {
+      "bytes": 1842,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "5bff1e0981855616b1f4c7322b551f9284b7e0775e64dc4b0ea00f84ba0b2cd9"
+    },
+    "u_surface_smollm2_nw4.json": {
+      "bytes": 35621,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "2e66de0ea13b92549d894075f251d9eb808ea738a2bb87cbf98b81766b7ccbe5"
+    },
+    "u_surface_smollm2_nw4fine.json": {
+      "bytes": 3541,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "5c0bd11e7d3ce0abc3475b4c7c9d4837819f1cb543a68acf76c784108f860500"
+    },
+    "u_surface_smollm2_ocpexact.json": {
+      "bytes": 993,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "120c8d22dc69569dc86c450fa7646ecf1a2a4178295bd5fb0e53d7a14a1303fe"
+    },
+    "u_surface_smollm2_refE2M1.json": {
+      "bytes": 6599,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "96eb399ce9bd695315cce3c8bfdc2130384aebda4466d0f49a21b3a7828a20a0"
+    },
+    "u_surface_smollm2_stair.json": {
+      "bytes": 2272,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_surface.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "a2f3618e96be53605b9720e9a5cea6a35ed8bad2538747c75e63628d4245abf5"
+    },
+    "u_surface_verdict.json": {
+      "bytes": 6586,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": "u_surface_verdict.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "3e48f2618e003dc02d12247975e23462bfc42be5ce6a0b2f962fbb015b6f440d"
+    },
+    "u_theory_synth.json": {
+      "bytes": 264218,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_theory.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "f59a6bf5666ca3c28b3711f584ffcee3215cb5be6411387ff77f0e1cbc411d04"
+    },
+    "u_theory_weights.json": {
+      "bytes": 311187,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "u_theory.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "c217f41e63a4251d251ee592ddeaab3b8b8c5bdbd19fef5515973ae42446108d"
+    },
+    "u_theory_weights_qwen_pythia_partial.json": {
+      "bytes": 207407,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": null,
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "297121911dd080702e7fede5a314c734999a5fc6723200eb643f0a165b4d8e27"
+    },
+    "u_theory_weights_smollm2.json": {
+      "bytes": 103782,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": null,
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "c86707fb83e9cd5641a9b1d3b3d89430035c7b7aed83c2f53245d088c6a3dbff"
+    },
+    "zphi_acc_width.json": {
+      "bytes": 3636,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [],
+      "producer": null,
+      "producer_candidates": [],
+      "producer_has_machine_local_path": false,
+      "provenance": null,
+      "sha256": "09e49d815cf8899811dddd1ca6b820f5bdd2ec7704e4aa3750f6c2598d11543e"
+    },
+    "zphi_acc_width_f128.json": {
+      "bytes": 3504,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "zphi_acc_width.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "07f6c8a8089c736613744289c4f3d9acc0500aa27e14a48aeb0e5fa2ae95210e"
+    },
+    "zphi_acc_width_f16.json": {
+      "bytes": 3452,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "zphi_acc_width.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "899877f3ce9620ff7af3ee55b24495e016dc85d4c3992be5b32ac3953b4ba4a4"
+    },
+    "zphi_acc_width_f256.json": {
+      "bytes": 3559,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "zphi_acc_width.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "c9f1a88b436bb30860370a1be333ccbe4ad82ccf2154c0e8259be8dd060a40b7"
+    },
+    "zphi_acc_width_f32.json": {
+      "bytes": 3431,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "zphi_acc_width.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "ff739171a1eecb3d8ab6cdbfb9e9422dcf37ce0aab483eddff431a099ee45131"
+    },
+    "zphi_acc_width_f64.json": {
+      "bytes": 3452,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "zphi_acc_width.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "8670c346f017d4ab299c49175bde5f2458b50c13ee473fa35a88e097ca2c92c9"
+    },
+    "zphi_acc_width_f8.json": {
+      "bytes": 3456,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "zphi_acc_width.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "9116160cf470019c7fc30abe472d2d47eb51e279fc4624ef037d6e3684e2c251"
+    },
+    "zphi_acc_width_row.json": {
+      "bytes": 3575,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "zphi_acc_width.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "187c4eecd3d782b9187956551614eef33fb47624405bfb07b6545634ea31e8a2"
+    },
+    "zphi_span_origin.json": {
+      "bytes": 697,
+      "checkpoint_revision_is_hub_main_today": null,
+      "identity_fields": [],
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "producer": "zphi_span_origin.py",
+      "producer_candidates": [],
+      "producer_has_machine_local_path": true,
+      "provenance": null,
+      "sha256": "05fe75ed96cd7658f39417ca648ecd892d61f8684350bb2be5de8b098973c181"
+    }
+  },
+  "schema": "trinity-s3ai/block-reproducibility/1",
+  "scripts": {
+    "_sens_any.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "085ab0e8a82fa9db40b879194aee38c0967df22de369344d028a2f1a29dd75c5"
+    },
+    "_thr_child.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "97f8b8a0a99ffbc515bf8a3ec885f83827892a6f8a70c680ff7734cf97eb731b"
+    },
+    "align_harden.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "0df533b6ace6a6b17de5a59ff3fe418958b7503d82d1cb618d1107ecb45800ae"
+    },
+    "align_u.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "5484712120af7fcb2b39dc8c3fd10fdbbeb58b6494b10daf875ca6218aec5ec9"
+    },
+    "align_u_tiefloor.py": {
+      "machine_local_paths": true,
+      "needs": [],
+      "sha256": "b5d49d44eb6e1f3c677926ba76d328075d73564fa43efa531bc55822e8d54465"
+    },
+    "attack4_phase_sweep.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "af0b77c2bb4f957ca21f372282655d627f0258c45c5a6ae83d64db5bdbc371bd"
+    },
+    "attack4_scale_convention.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "b20d40cfd0420beaf466fe42ed2ca7f63bf930e12581308eec466a4799b32cc8"
+    },
+    "attack5_equal_budget.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "ab4cc2f76c22c6628a12315b69f4e2d68f3ea3fd2f7b8b5cc268722cca3f253b"
+    },
+    "attack5_fair_comparison.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "14499901508eb503e4f464512efa7e87216ae8612f7a778bfa207db76f7d211b"
+    },
+    "attack5_hessian_mse.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "56c13f55838d3c3a0851ac6aebf09f7bd525cb6534b6185f752bf3997d184695"
+    },
+    "attack5_true_lloyd.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "3d6c88542b661d2c29deb2bd49501a1fe7a5818843608eb7e943942f92d3181c"
+    },
+    "audit_real_weights.py": {
+      "machine_local_paths": true,
+      "needs": [],
+      "sha256": "4586505adf551fbea05f658c28d4bede4014f1f0997ba1da973df7c6deee7719"
+    },
+    "bennett_theory.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "9a40d7b0df26fc1ab8d14809c9bc90d744b66f5470ae09f00ae9553d3a0d36c0"
+    },
+    "bitfair_composition.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "08021bd029465580ef7d67ac44b3094e70df3eec9acbe68f772b0585c9e657c4"
+    },
+    "bitwidth_scaling.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "803e2665c62aab07e207d4a18caa331d58d4e4ec0b983af7a03317975a9f87f6"
+    },
+    "block_bound.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "2abad1ff84030f519b5fb7e307e19e2aaaa9762c5faf8183f3ca2d6ac75760a7"
+    },
+    "block_ladder.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "2773d676c4f5404a8819fda65bfc8e473501fb60bf40a2a176e6e84d2a342b1d"
+    },
+    "block_mixed.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "5b8da0bb0f9533ab5872a16744805cc0bd619189727ba59b9ebacaad10e4d432"
+    },
+    "block_shape_scale.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "335ede1bf3ead04cf86fc9865db21a6a957ff33847f35d5d0145a40f1fc065f4"
+    },
+    "block_tnf.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "cd39ef2305ed6e0518a2b75851327158e206bef6b35c1f507fe3eeed902ad678"
+    },
+    "campaignA_books.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "6f98338f081dc321401c4c1d9eda14cc4060545ed1f9be697be0b67c7312e94b"
+    },
+    "campaignA_run.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "bfb0406f2c6fed7087183a0fca10371184e9063817783abe9ab7fce60bc4ea29"
+    },
+    "campaignA_stats.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "d29d71c7fa4c7e66e77f625717267539578148b86647c166e0c3435acd792bb2"
+    },
+    "campaignB2_control.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "2fff6a868f1b60b57220074706a55dfc76bb7f432cbfd7faf95cdca8368535df"
+    },
+    "campaignB_agree.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "e64a6a4cf08409fdcd2b8ea17307d990c4786e5f0da08ed7a08ee37c93c8a998"
+    },
+    "campaignB_books.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "c81f5e410443ed7c0d19dc1b347d27a02163192b686c499c187116aa913bee70"
+    },
+    "campaignB_measure.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "578fdc9114aa8c1e574576bffb7237c0918a1c9a1f4518de4597acae35858275"
+    },
+    "campaignB_selector.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "e7e10dab54078e5ea1bbc584a839ffe533e540350f5e211064bbabe7e1d53e10"
+    },
+    "campaignB_stats.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "d57c5ccd97295dd0db528f75b1dfc96850bbae6a622a1cd5b9fa8e6cca323562"
+    },
+    "campaignC_agree.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "4e9c1f7103750c0f4554c260bbe174f2cbcc192a48e1a1ed1e2013700a172c62"
+    },
+    "campaignC_agree_synthetic.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch"
+      ],
+      "sha256": "99923c5bbb6f18a7f2e0e6494a8cb0702e0c4f29ad6f93ef420a97f63dba9255"
+    },
+    "campaignC_books.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch"
+      ],
+      "sha256": "e1205cbf0ba84342a517592dd9f80ec32bcf94ee8a1c56dca76f65889b609d5f"
+    },
+    "campaignC_measure.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "d0fd92e0e1f9b245008d30eeda14fd1f24a3e4191609ac21ec42660177e088cc"
+    },
+    "campaignC_ratio.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "107d4e105e257464f1034cc72afe94f72d8a8c7e626a0f7ad09391f4a68f8bee"
+    },
+    "campaignC_stats.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "c0889f9faf530d0d9604d6683d131554bf24d383db810d10e7581fb0cc4c0aa6"
+    },
+    "campaignC_width.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "4eddebb5681b4c5d3233054e49e77330d270c517019125062bda22caa7a41887"
+    },
+    "campaignD_audit.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "1dc50fc8f4c0f554f8a89bfc570923357fd10821064e1b57d705de7bf3c2c2af"
+    },
+    "campaignD_bins15.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "d66a57c1533b5e2a312df3c60b8b1756c3ce9ac319083e04cd7269fba4c7b7a6"
+    },
+    "campaignD_kl.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "bfef5b9ef955cb9a7a3125e6401978574493caa95f463e74524cd488037d41bf"
+    },
+    "campaignD_klnoise.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "29c81a5c1d69d81cad7c028db424d45ff8f02d8756be2f8274bd081529661b15"
+    },
+    "campaignD_pred.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "412c7d810d9e980215ad32221eae9826f25fb3e5f8cc9ee2e01cb2d2d44206b6"
+    },
+    "campaignD_rank.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "824d4ceabca2541154ce9e2138a362713ca7a91671337139878365dfa9abad30"
+    },
+    "campaignD_ruler.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "7f76f9cecfd56b11fb521a90de43abd9f48823177288e663c53e9fdec60942bd"
+    },
+    "campaignD_spearman.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "36e277dd408afd603b91c0e086382b57fe1303bc2c3f4f89a9cc6c44d10899cd"
+    },
+    "campaignE_occupancy.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "d455242417019d1b1faeed980ae7327468f503476d18475ab6f8d275fe35b28b"
+    },
+    "campaignE_ppl.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "6602d54921626da67ebf4a61227d5554e87c52b256709aa720c05d71095c9049"
+    },
+    "campaignE_predict.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "95d0dfcf691fc4090b6501a1907091fdfd11f414ebe48c0e736ad81dc172261f"
+    },
+    "campaignE_transfer.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "40802e57ed9e4a7aa0696752b8eb13f96caf9beb757af00334f8913de92b0af3"
+    },
+    "campaignE_zeroing.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "575d25dca0cea2fd9d9e76612ab9da5a7e1f3a72f1eaba27f4bd6b9398fa5510"
+    },
+    "competitors.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch"
+      ],
+      "sha256": "6b63d0aa8d861e998f45b027851351a808615b9e6f594bba115b0082aecf1d26"
+    },
+    "crossover.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "25c623501a26370850b5a369d4cd865dd1c49e0a5e1e94ce4b0a869fe913b83f"
+    },
+    "crossover_validation.py": {
+      "machine_local_paths": true,
+      "needs": [],
+      "sha256": "d8e9e840b99edcb1e3d5bcc2aa4aa8c944787f75870a81e897d1274d3dfc6cc5"
+    },
+    "depth_mechanism.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "ccc0705ca1b912f2d5ee494cde31bcb558c11692ec5161b9dd50ef38fa6532a7"
+    },
+    "design_robustness.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "b3dcd6a53267f2e16c1a6c133da165eac9840399a2b735be49ef0032797d6dea"
+    },
+    "design_space.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "ef6f059dd8718b58e6cd0f5fed4e856b8f13d9362aed6740b9a82795a5057a56"
+    },
+    "dp16_with_zero.py": {
+      "machine_local_paths": true,
+      "needs": [],
+      "sha256": "1ef2535c9ca4b503f367982543950e6e0b43958e65844fd3603624edb96b11a6"
+    },
+    "effective_eps.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "be9ab5b7efa5d9b918813f2bb40192449dbf82bf71ba9115c71d4277c28f9d22"
+    },
+    "escape_theory.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "c09b0e2882fec20a7d8b78b691c15dd43733c1a714103683ae137754dff35136"
+    },
+    "exact_optimum.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "f2c27f8b48f37775459904da53cb9d915e9a8758f255a9e6d11c8feb1c7f8f8e"
+    },
+    "exactness_payoff.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "896c28eaf4e1493ae0588cde6a1d65c8cb9a16e3ef52ed7ea069d53287f9cbb2"
+    },
+    "exactness_threads.py": {
+      "machine_local_paths": true,
+      "needs": [],
+      "sha256": "753043ed6445d605b8bc2ebba43960cbfb924664f5a1e90fd7d861f7a8bdfda2"
+    },
+    "exactness_width.py": {
+      "machine_local_paths": true,
+      "needs": [],
+      "sha256": "e548bc54c709cac8bd9d1fe252b61a79818fba4b12123feec5140641f464b56d"
+    },
+    "falsify_boundary.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "ce0654797de3fd1fb22cec8099d4c636d5399311a69e89a20bca0f6e0f96ee9c"
+    },
+    "final_ppl.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "cc76486142cabcd48923f93e279c8519cd1f6e89a2da350b393083a9c67ed1a3"
+    },
+    "finite_n_theory.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "40501b86bbc4249a908bae418ad3f6ea871b936c44add76fd5428904843b7fdd"
+    },
+    "flatness.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "723937732f165ca2cb57b04a4f5c80a2f419877e6f3d635ebf95784fe41be652"
+    },
+    "four_families.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "566fe01655a610f3a3e348cbdf24d61e454dd871ed2faec59f8050f7d2b2dc20"
+    },
+    "frontier_probe.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "6985db1904acdf97cef985e033d48bd448618ca0149fa36ee30d04f76ed09b80"
+    },
+    "global_optimality.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "bcf7d3b772126c97214133a878e434a5c94116de60a3b9af4d7a048a1cdb2706"
+    },
+    "gptq_baseline.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "2b9ea69df741e3a11f756df953e7b7876572154852a994b0a8117d0ec15c5fb7"
+    },
+    "gptq_gate.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch"
+      ],
+      "sha256": "f50a85d2307c29d3cd88619b83412ebccdfcff3c037ca16b069b0d725ddb23d0"
+    },
+    "grad_span.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "a96fe14934e1b747f1f52dd1e3b46df323d21dd49ff1643bc3e6b7c43901dc16"
+    },
+    "heavy_tail_test.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "86b1471d0c6ff3b8a35d4e040e69d8a5215c1cf315d11fc2ab0e990144ef6d60"
+    },
+    "importance_diagnostic.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "c615284a442552735b050bb0d7ebe55cf011a5064067a9c3c41b15800fa4f2d2"
+    },
+    "importance_theory.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "803fcdfeaf7c4009a810f731a0d3f0bc038777ec6138eed91314b28fae1996f0"
+    },
+    "kkt_element.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "44e7e0311f9d94611b472574c5bab38107b352a78d86bc9edb2f3b026fffcbac"
+    },
+    "kl_codebook_transfer.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "9f0e30334becdfb987349ba89333095b624e3e0010e343802ee15c69bb666b75"
+    },
+    "kl_optimal_codebook.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "90ac8ae72a9265671a3b8946eda7b60d210113f8293e33b8f431f4c7d033fb0b"
+    },
+    "knapsack_alloc.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch"
+      ],
+      "sha256": "8e55d787bd6115630722a1546c3e5067259cd1043f2923cc269905f79192f438"
+    },
+    "kurtosis_crossover.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "58f27006af8816bd4f67287e075ee94e5aab239f71fe3881e7e1a343934c154d"
+    },
+    "lineB_measure.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "5b4008ba794e2b1e932b847ff7b950ccc2d8dbe6b6edb9054d5b56a2e4bf7b75"
+    },
+    "lineB_prereg.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "a103737824c5cf4de6cd54cf7f53834e149fa273116f244ee96c971de0d2912b"
+    },
+    "lineB_seed_vs_distance.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "5ec7f5ab110386d00b33b9f271c05dd3d11cfcf7dbbf2b9a8d28df90c2f8e4f7"
+    },
+    "lineB_test.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "322ae02fe1e1bb891039797305c6af60f9d07a76110c3c5094a4422c42bdb388"
+    },
+    "lineC_fifth.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "2f6c24b7548ef8905750296a0f454eff32162eead17e47a5e60bdb76bce06411"
+    },
+    "lineC_stats.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "ec1b89633e71e207d5cb0ebebc316e063458582ab8259da93db7963d2e3cc3fd"
+    },
+    "lineD_actgate.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "f0374da4c84d376c9b003208e1cf7c45af07d6935f401f153944b815cee47e24"
+    },
+    "lineD_decompose.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "8d2926c884985312a2e09f21eb8d80c1340eafcc38a882a773b75a14e28adfdb"
+    },
+    "lineD_predict.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "1aa1de09b50f67803f305454a596bd33de583af7c8900bab591cfc89596e16fa"
+    },
+    "lineD_probe.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "d762b184a0a28dec898ecc5d8392302f85ab7165dfb9b0b65d0577cf42318a0d"
+    },
+    "lineD_ruler.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "95f88843aa2116078976b994ec9e305a47a99ffab7b9c495be945443af3aefda"
+    },
+    "loguniform_rotation.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "d31a94eeafe58153938b3d9d32b0721d60411603b5fbe5c44f90670be321c718"
+    },
+    "loguniform_size.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "f0ea8871c03a28cb13d3ca4fb188d15b1064c6e6335da69694ff098281e23f71"
+    },
+    "loguniform_test.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "23f801ad437e3e985006a0d2f9c7f0827643f411f8be3106365ff2136bee7974"
+    },
+    "loguniform_theory.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "be3db27be6a31dc2d1207b73d39bbec9f1fcc224641b1093bc8dd49d9c9c9f0a"
+    },
+    "loguniform_verdict.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "d7967bc08560d6a336ae5922b8d1f48bfca93251fcfa5d5b9c38ae21e1f8b711"
+    },
+    "metric_disagreement.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "6c321ea0e1cd8314fc57cf76c124ec71b813e706c3a49e2711aa581dd630d5d2"
+    },
+    "mismatch_detector.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "db78a41a43b16dae86e3acc9d2f00b2d9eb197989199a2c3770c7673940c4538"
+    },
+    "mismatch_enumeration.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "21b658f2d004abf6d0915bd2038b2b77bc1452c822d7001c203f5a88f93206dc"
+    },
+    "mixed_precision.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "04f87b844fe06998ef130f28876d77fb61cf20a18fc8409ee86bd344e47d27ff"
+    },
+    "nsse_codebook_transfer.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "3d10b1614d84e0b210893613eaa042a35d1bfec61af82d2106c2d5c48ce9b922"
+    },
+    "occupancy.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "f0749f7795d22699b1a0d8cc5568a1b7e8ae600f2c3d156d8d8830f07355c1a2"
+    },
+    "oneadder_ppl.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "7867083a703051d42045ecb77d834f30351dc38b6d5f67f30a91c5b1c01d005b"
+    },
+    "onefit_kl.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "f4814e7e8bd8e13590a9f0a510a042ba8ca89d88610aa46e8b8afe2394ab261f"
+    },
+    "onefit_klscore.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "d4273721d52fa6bfcc30bae82603ff283478f0a81c86287ee4ecddf28cd3bd8a"
+    },
+    "onefit_measure.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "9e293cd09d1779c7ddad952dd8001c15431caddc72f304bfe1dc4440890509e3"
+    },
+    "onefit_stats.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "df5db87489bc6e88bb299972626ba372f3f8962e65b9304cacabc40dbbce9067"
+    },
+    "order_spread.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "0a99afc93e122907cfae3140ff15a03a359b41a63e6eeb8ac09c8f89442273dc"
+    },
+    "order_spread_bf16.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "5a0355378385292f37022a98dbc1fa6fb46a6aa8287b25673c886b1a8964ecb0"
+    },
+    "perplexity.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "3695bb1c01d0da56cc53cf4f4895137603269ef600e45ca64ad1107af94d0575"
+    },
+    "phi_grid.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "safetensors",
+        "torch"
+      ],
+      "sha256": "daad27ac484fa6604db30f0487a01ff66488ea0b9e25d673716ef1413361abba"
+    },
+    "phi_scale.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "ab0b15b9b2ea5d81706d194cf7b8b850687a461cf324aa30461eb42da5968d0d"
+    },
+    "predict_inversion.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "8b54576de58919d6d624d88055d14e404537a3a5bb4011281fc85d0ce9cc96e6"
+    },
+    "profile_transfer.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "1f1abd7c9c50c7b773a723b50ffebea6b99c90a3698b517a15857676154bda52"
+    },
+    "promote_only.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "ec66ff58cba3e0e7a8879d6dcc11166dc468bf27aaaaf56d3d47cb611499d19a"
+    },
+    "provenance.py": {
+      "machine_local_paths": true,
+      "needs": [],
+      "sha256": "1ba55adda70b3d23572d665d6db679a94157610137b7411e1478f5ae40fa8429"
+    },
+    "real_weights.py": {
+      "machine_local_paths": true,
+      "needs": [],
+      "sha256": "061c6ef09b77338817f011c85ef956de0b0c13092b3c48c92e88d97da6dbddd8"
+    },
+    "real_weights_escape.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "f80e0058e612c260727156d01b0163a62ebbb5ae1ad4fe97be95be78301fadd5"
+    },
+    "rebaseline.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "3fb878dac4da4f6bddee0f1c2abc9d4be6b1472bda083d68b5298412262bae5c"
+    },
+    "rebaseline2.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "4fe02f370b5279b4c742e16ed8ae756e8c1a6a17c13d60c6d099aa333bdf8ebf"
+    },
+    "rotation_verdict.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "46e241dda84efb4b1a04b1c8b8e5a08f98fd011184cfa099ba1cf87968ed5f1e"
+    },
+    "router6.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "14ed985cd5876ca750b5e27588bcb908c5db16c7740923374b8ad23f32b87774"
+    },
+    "scale_axis_probe.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "c0cb1c3b03eabc94b887cbb01faaff50af3a69dca37abe1d12da1d6ceaaf1ff4"
+    },
+    "scale_control.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "f61d7a9b028bfc14d5e0a1834225c642faad9b7d5cd9dd64850efe139275d9d1"
+    },
+    "scale_equalbits.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "1f46798ef2308ad1fc5e4bc29cd8802eb548d105c1f4bf2ccfbe6ef4d0be7b1a"
+    },
+    "scale_frontier.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "de6f5bb3af5694a2de57f828be2ae9c0a08033f2ad47c715da59fb6958fc7468"
+    },
+    "scale_frontier_spec.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "e10f75a34372c268ea82497f68211316b41e0ac968c758fc663cb96f26add326"
+    },
+    "scale_perplexity.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "b7d9dd7951ab65ffc572aa5ff581863d06c1851eca88d5343d4fe04d6218e4f7"
+    },
+    "scale_settled.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "5ed4eb20bae36d1e5ca6c32d3d261182ab5398d482d1cf728babe5b9f3711773"
+    },
+    "scale_theory.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "1cdf563d0ea47a0a020fa417275907977476bdd94622dea9de71809afc91c3a7"
+    },
+    "second_model.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "7ac1a09d5882966e0f951b4e0d1c4f2c7fb3fce30276dce801ef588e7c0aa446"
+    },
+    "seed_control.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "86d6279943d970008fe3b41ca88d25ba54a2686b8a3acad423a052da76c9f739"
+    },
+    "seed_control_hi.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "b8161df06ee56a66f20a11fd4ea9a59810c32030ffc9dff1699229540d984e50"
+    },
+    "selection_vs_composition.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "08b7a7c42e5591f4591cce713276be8893d57b04c54304ae1d34c6dce3e8c63b"
+    },
+    "sensitivity.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "98f1c45f186dac190515dd2e16fe7ae4da4dac4d0cdde0890af7657e19876b7f"
+    },
+    "sensitivity_profile.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "c1b8c8a77b3df1dbf56b12deb0eb9244ca125752995d8bba36d6555cc3679abb"
+    },
+    "ternary_accumulator.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "safetensors",
+        "torch"
+      ],
+      "sha256": "81e1e1972525bd52402f04a77573e733d9f561e1f00b2ebd369864c6399b8c5e"
+    },
+    "test_own_prediction.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "707955ed279df11501b23dac0148b4a8f4cca47909e7ad8d5a077f770d40a57d"
+    },
+    "third_mismatch.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "85796dbb299ab13b1776fed7c9c338448c0320610d29bf21cf123bac51307e14"
+    },
+    "train_probe.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch"
+      ],
+      "sha256": "71992d5aa5ebf480a91e10a7569060c6f264fc7df8450b4d37d0ee7ea1406a6e"
+    },
+    "trinet_top.py": {
+      "machine_local_paths": true,
+      "needs": [],
+      "sha256": "9dbfb60516af6167505aca31c6bc4d0a310be6ade5ddddbd471d0643b00964d6"
+    },
+    "two_level_scale.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "4dbf8b8156197ada3c2f1b015eb732022402f525ea3f85601a7edd43a3523f45"
+    },
+    "u_atoms.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "30b4dc587e435ff33a800c58b6b48bd20387ad51802197283dd382ee4fb8c6d4"
+    },
+    "u_blockstats.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "eb8d11073cd331bd215edd06e069f0edccd327a98ab0465b8da9914976fc74d7"
+    },
+    "u_eval_floor.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch"
+      ],
+      "sha256": "e606a1a822980eb0c46bed50de05136b40c0a0c004091d7bcce840a307bad50f"
+    },
+    "u_interior_invariance.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch"
+      ],
+      "sha256": "03c351b487c0b2db73a3a7477d9d2da369bf7f4ca808078d6c89cda85d824678"
+    },
+    "u_predicted.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch"
+      ],
+      "sha256": "bfa143b6cfbc32b622542efbf4303f27e57896c1ee31246aa29801f6792fff0e"
+    },
+    "u_surface.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "50576ac2d990a8e8bb9f27775cc59a5f0b2bcbef335b2de88a9032ef45465bfa"
+    },
+    "u_surface_collate.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "97ffe4b217d95494a9557ede1f91489dadf8504fc16babfb6857d105580e1bad"
+    },
+    "u_surface_verdict.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "6fb462913d67c2215f62c4def1d9ab282e3d1dbafa2d67b8f149ddf66cab2f9c"
+    },
+    "u_theory.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "563555e63641611280f6fdeebf2c27f9657d9af94cf54809b3763165bb3aaf00"
+    },
+    "u_verdict.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "ac15d4305f679b1b21d2ebb508192a27070b4e8a4c300f60d14c34e95c73749c"
+    },
+    "universality_check.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "4d47571ecd4e75f305078786c4c66b87b71a73a0687085fda3e87351aef5b753"
+    },
+    "verify_clipping_theorem.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch"
+      ],
+      "sha256": "9249856fa365287cc228617a9a7f271bd5a1f3784ba174889b767c494bac4738"
+    },
+    "verify_grid_optimality.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "6c1b7ecaf8dbaef1fc2f58d8a8979cda0a6fd2261da3ba2be6911e1f61efafc8"
+    },
+    "verify_phase_theorem.py": {
+      "machine_local_paths": false,
+      "needs": [],
+      "sha256": "32de0b496f086d840713ce5a97d999aa06d2c46ef128168752895e02a40cbbfc"
+    },
+    "weighted_dp.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "e33bc97f477614dc6f54fe3b70fec11b28f4c0fbfc1abdb4289db9751d0c5bd4"
+    },
+    "where_error_lands.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "e8778e97eeeb17a35b8d213ef8f55fb452f31232dba25956d9f87a9e85a5b6de"
+    },
+    "why_rotation_hurts.py": {
+      "machine_local_paths": false,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "56b0aebd0c1ee0b3ccd2650911578fe1eec5614ab6833a3b9707274c3c0ec3e0"
+    },
+    "zero_hypothesis.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "73d005695fa1b3d9f710044886a3891a8cbdcbadf58c6fbb5f1bf0a1f58dfc7d"
+    },
+    "zphi_acc_width.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "9858c7ff84a7a27acaeecccf6e6162fa0d0d80d2e99536ac0727576424ce1d2d"
+    },
+    "zphi_span_origin.py": {
+      "machine_local_paths": true,
+      "needs": [
+        "torch",
+        "transformers"
+      ],
+      "sha256": "8d026dc831a67118b25788fbcff2c4ed7f4d2bcce90dc1304f5be321bda2eb96"
+    }
+  }
+}

@@ -10,6 +10,12 @@ instead of a number. The claim was true — it reproduced exactly once the depen
 was installed — but nothing said a dependency was needed. A result that holds only
 in the environment that produced it is weaker than one that says what it requires.
 
+**This file covers `research/` itself. The LLM perplexity work is one directory
+down and answers the same question about itself** — see
+[`block/REPRODUCE.md`](block/REPRODUCE.md), which is generated from the sources
+rather than written, and `block/verify_manifest.py`, which fails if it has drifted.
+The counts are not repeated here; asking the generator is the point.
+
 ## Dependencies
 
 Measured by AST across **all 49 scripts** in this directory, so lazy imports inside
