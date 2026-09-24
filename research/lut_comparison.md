@@ -94,8 +94,7 @@ extrapolations from a measured neighbor in the same family.
 The `synth_xilinx -nodsp` constraint is **imposed by the open toolchain**, not a
 design choice: prjxray documents DSP48E1 as only "Partially" reverse-engineered,
 and DSP inference breaks routing on this part. The LUT-only GF ADD numbers above
-(118 LUT for `gf16_add_top` (deprecated; no denormal/NaN handling); 491 LUT for
-the conformant `gf_adder_param` at GF16) are therefore a *lower bound on
+(118 LUT, the deprecated `gf16_add_top`) are therefore a *lower bound on
 engineering effort*, not an upper bound
 on performance — if/when prjxray completes DSP documentation, the MAC designs
 should port to DSP48E1 directly (the `gf_mul_dsp_param.v` wrapper already exists
@@ -129,7 +128,7 @@ suite) against adder LUT cost:
 
 ```
   mean_rel_err (log)
-   1e-4 │                                              • GF16 (118 LUT gf16_add_top*; 491 conformant)
+   1e-4 │                                              • GF16 (118 LUT*)
         │                                    • FP16 (~300 LUT)
    1e-3 │  • Takum16 (n/a — BRAM decode)        • Posit16,1 (~1500 LUT)
         │
@@ -140,13 +139,14 @@ suite) against adder LUT cost:
           0            100           1000          2000    Adder LUTs
 ```
 
-\* `gf16_add_top` (deprecated; no denormal/NaN handling). The conformant cell is
-`gf_adder_param` at GF16, 491 LUT.
+\* `gf16_add_top`, which `LUT_COMPARISON_MEASURED.md` records as deprecated, with
+no denormal or NaN/Inf handling. The conformant `gf_adder_param` is counted there
+at 486 LUT (491 with `-flatten`), but under `-nocarry`, not this document's flow,
+so it is not placed on this axis and no ratio is taken against it.
 
 **Reading:** GF16 occupies a favorable cost/accuracy corner (sub-2e-3 error at
-~118 LUT for `gf16_add_top` (deprecated; no denormal/NaN handling), ~491 LUT for
-the conformant `gf_adder_param` at GF16). Against the conformant 491, Posit16
-matches its accuracy at ~3× the LUT cost (but with tapered
+~118 LUT, the deprecated `gf16_add_top`\*). Posit16 matches its accuracy at ~12×
+that adder's LUT cost (but with tapered
 dynamic range — see the accuracy benchmark's dynamic_range suite, where posit's
 tapered precision shows). MXFP8 is cheap but its 8-bit width shows. Takum16's
 accuracy is competitive but its decode is BRAM-bound, not LUT-bound — a different
