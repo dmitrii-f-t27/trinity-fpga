@@ -16,7 +16,7 @@
 
 ## 0. До платы
 
-- [ ] Для сессии B нужны закоммиченные исходники обучалки XOR: RTL (`bpseq_capstone.v`, `uart_bpseq.v`, `gft_smul.v`, `gft_sadd.v`), драйвер `drive_bpseq.py`, битстрим `ax7203_MET_seed8_STABLE.bit` с `.sha256` и логом nextpnr этой сборки (seed, Fmax, был ли `--timing-allow-fail`). На них ссылается `gHashTag/t27/docs/SILICON_TRAINING_METHODOLOGY.md`. XDC уже в репо: `gHashTag/t27/docs/vivado_closure/bpseq_vivado.xdc`. Сессия A от них не зависит.
+- [ ] Для сессии B нужны файлы обучалки XOR, которых пока нет в публичных репо: RTL той сборки (`bpseq_capstone.v` или вывод генератора `gHashTag/t27/tools/gft_backprop_microcode.py` вместе с init), `uart_bpseq.v`, `drive_bpseq.py`, `board/build_trainer.py` и битстрим `ax7203_MET_seed8_STABLE.bit` с `.sha256` и логом nextpnr этой сборки. Ядра GftSmul/GftSadd генерируются из спек `gHashTag/t27/specs/ternary/gft_smul.t27` и `gft_sadd.t27`, XDC для Vivado уже в репо: `gHashTag/t27/docs/vivado_closure/bpseq_vivado.xdc`. Методика: `gHashTag/t27/docs/SILICON_TRAINING_METHODOLOGY.md`. Сессия A от этих файлов не зависит.
 
 ## 1. Что должно лежать на столе
 
@@ -35,9 +35,9 @@
 
 Диаметр штекера сверь с родным адаптером платы до покупки кабеля.
 
-**Битстрим пробы уже собран:** `bench007_probe_ax7203.bit`, sha256 `7d0691f9961d753d…` (полный — в `.sha256`).
-- Собран тем же образом openXC7 (`regymm/openxc7`), что и CI проекта.
-- Все три клока ограничены в XDC. Timing выполнен без `--timing-allow-fail`: ref_clk 189 МГц при цели 100, dut_clk 177 МГц при цели 100 (реально ~70), clk200 — с запасом.
+**Битстрим пробы уже собран:** `bench007_probe_ax7203.bit`, sha256 `9a4e5c2bccbeca3c…` (полный — в `.sha256`).
+- Собран в GitHub Actions этим воркфлоу (run 35993961960, seed 1), образ openXC7 закреплён по digest; подробности в `build_log/provenance.txt`. Конфигурационные данные совпадают байт в байт с двумя другими сборками тех же исходников, отличается только заголовок (путь и время).
+- Все три клока ограничены в XDC. Timing выполнен без `--timing-allow-fail`: ref_clk 189,18 МГц при цели 100, dut_clk 176,80 МГц при цели 100 (реально ~70), clk200 1221 МГц при цели 200.
 - Логи yosys и nextpnr лежат в `build_log/`.
 - **На железе не проверялся:** первая загрузка и есть проверка.
 
