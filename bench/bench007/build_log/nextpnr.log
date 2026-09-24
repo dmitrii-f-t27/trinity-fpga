@@ -58,7 +58,7 @@ Info:             22x FDSE
 Info: Constrained 207 LUTFF pairs.
 
 Info: Annotating ports with timing budgets for target frequency 50.00 MHz
-Info: Checksum: 0x436091eb
+Info: Checksum: 0xfec7f42c
 
 Info: Device utilisation:
 Info: 	          SLICE_LUTX:   953/269200     0%
@@ -126,19 +126,19 @@ Info:     at initial placer iter 1, wirelen = 2979
 Info:     at initial placer iter 2, wirelen = 3079
 Info:     at initial placer iter 3, wirelen = 2897
 Info: Running main analytical placer.
-Info:     at iteration #1, type ALL: wirelen solved = 3261, spread = 20645, legal = 21504; time = 0.05s
-Info:     at iteration #2, type ALL: wirelen solved = 3263, spread = 13179, legal = 13451; time = 0.05s
-Info:     at iteration #3, type ALL: wirelen solved = 3957, spread = 12208, legal = 12914; time = 0.05s
-Info:     at iteration #4, type ALL: wirelen solved = 4390, spread = 10562, legal = 10891; time = 0.05s
-Info:     at iteration #5, type ALL: wirelen solved = 4725, spread = 11742, legal = 12593; time = 0.07s
-Info:     at iteration #6, type ALL: wirelen solved = 5205, spread = 11308, legal = 12181; time = 0.05s
-Info:     at iteration #7, type ALL: wirelen solved = 5578, spread = 11430, legal = 11450; time = 0.05s
-Info:     at iteration #8, type ALL: wirelen solved = 5702, spread = 10020, legal = 11479; time = 0.05s
-Info:     at iteration #9, type ALL: wirelen solved = 5688, spread = 10215, legal = 11416; time = 0.05s
-Info: HeAP Placer Time: 0.69s
-Info:   of which solving equations: 0.20s
-Info:   of which spreading cells: 0.19s
-Info:   of which strict legalisation: 0.07s
+Info:     at iteration #1, type ALL: wirelen solved = 3261, spread = 20645, legal = 21504; time = 0.03s
+Info:     at iteration #2, type ALL: wirelen solved = 3263, spread = 13179, legal = 13451; time = 0.03s
+Info:     at iteration #3, type ALL: wirelen solved = 3957, spread = 12208, legal = 12914; time = 0.03s
+Info:     at iteration #4, type ALL: wirelen solved = 4390, spread = 10562, legal = 10891; time = 0.03s
+Info:     at iteration #5, type ALL: wirelen solved = 4725, spread = 11742, legal = 12593; time = 0.03s
+Info:     at iteration #6, type ALL: wirelen solved = 5205, spread = 11308, legal = 12181; time = 0.03s
+Info:     at iteration #7, type ALL: wirelen solved = 5578, spread = 11430, legal = 11450; time = 0.03s
+Info:     at iteration #8, type ALL: wirelen solved = 5702, spread = 10020, legal = 11479; time = 0.03s
+Info:     at iteration #9, type ALL: wirelen solved = 5688, spread = 10215, legal = 11416; time = 0.03s
+Info: HeAP Placer Time: 0.41s
+Info:   of which solving equations: 0.11s
+Info:   of which spreading cells: 0.11s
+Info:   of which strict legalisation: 0.04s
 
 Info: Running simulated annealing placer for refinement.
 Info:   at iteration #1: temp = 0.000000, timing cost = 79, wirelen = 10891
@@ -149,7 +149,7 @@ Info:   at iteration #20: temp = 0.000000, timing cost = 40, wirelen = 6776
 Info:   at iteration #25: temp = 0.000000, timing cost = 38, wirelen = 6744
 Info:   at iteration #30: temp = 0.000000, timing cost = 42, wirelen = 6725
 Info:   at iteration #31: temp = 0.000000, timing cost = 42, wirelen = 6725 
-Info: SA placement time 0.87s
+Info: SA placement time 0.52s
 
 Info: Max frequency for clock 'ref_clk': 122.49 MHz (PASS at 100.00 MHz)
 Info: Max frequency for clock 'dut_clk': 120.39 MHz (PASS at 100.00 MHz)
@@ -181,7 +181,7 @@ Info: [  8094,   8494) |********************+
 Info: [  8494,   8894) |******************+
 Info: [  8894,   9294) |*****************************+
 Info: [  9294,   9694) |**********************************+
-Info: Checksum: 0x48ff439d
+Info: Checksum: 0x631dc1a3
 Info: Running post-placement legalisation...
 Info: Routing Vcc connections...
 Info: Routing global clocks...
@@ -194,14 +194,14 @@ Info: Setting up routing queue.
 Info: Routing 3654 arcs.
 Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
 Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
-Info:       1000 |       36        963 |   36   963 |      2696|       1.07       1.07|
-Info:       2000 |       85       1914 |   49   951 |      1802|       0.56       1.63|
-Info:       3000 |      251       2748 |  166   834 |      1079|       1.09       2.72|
-Info:       4000 |      354       3645 |  103   897 |       228|       2.99       5.71|
-Info:       4227 |      354       3873 |    0   228 |         0|       0.02       5.73|
+Info:       1000 |       36        963 |   36   963 |      2696|       0.70       0.70|
+Info:       2000 |       85       1914 |   49   951 |      1802|       0.36       1.06|
+Info:       3000 |      251       2748 |  166   834 |      1079|       0.77       1.82|
+Info:       4000 |      354       3645 |  103   897 |       228|       1.90       3.72|
+Info:       4227 |      354       3873 |    0   228 |         0|       0.01       3.74|
 Info: Routing complete.
-Info: Router1 time 5.73s
-Info: Checksum: 0x33d376fa
+Info: Router1 time 3.74s
+Info: Checksum: 0xdd98c5e7
 
 Info: Critical path report for clock 'ref_clk' (posedge -> posedge):
 Info: curr total

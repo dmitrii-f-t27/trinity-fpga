@@ -15,7 +15,7 @@
 #     clock that silently fell back to the default is caught, not trusted.
 #   * The openXC7 image is pinned by digest (the chipdb cache key carries it),
 #     so a rebuild uses the same yosys/nextpnr as the recorded build.
-# Reference build of this exact flow (regymm/openxc7 sha256:eced1cdd..., seed 1):
+# Reference build of this exact flow (run 35993961960, image digest below, seed 1):
 #   ref_clk 189.18 MHz (target 100), dut_clk 176.80 MHz (target 100),
 #   clk200 1221 MHz (target 200) -- all PASS; 953 LUT, 625 FF, 83 CARRY4.
 #   Fmax moves between builds (178/153 on an earlier netlist): quote your own log.
@@ -25,7 +25,7 @@ name: BENCH-007 probe (AX7203)
 on:
   workflow_dispatch:
   push:
-    branches: [bench007-kit]
+    branches: [main]
     paths:
       - 'bench/bench007/rtl/**'
       - '.github/workflows/bench007-probe-ax7203.yml'

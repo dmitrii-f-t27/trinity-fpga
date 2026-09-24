@@ -20,4 +20,4 @@ bash sim/run_all.sh        # ends with ALL PASS
 ```
 
 `bench007_probe_ax7203.bit` + `.sha256` and `build_log/` (yosys, nextpnr, provenance) are the probe
-bitstream built from exactly these sources; the workflow above rebuilds it on GitHub Actions.
+bitstream built from exactly these sources by that workflow (run 35993961960); Run workflow rebuilds it.
