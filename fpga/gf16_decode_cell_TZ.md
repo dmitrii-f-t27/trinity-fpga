@@ -6,7 +6,7 @@
 
 ## Format parameters (from the SSOT `formats_catalog.t27`, [Verified])
 - gf16: **bits=16, s=1, e=6, m=9, bias=31** (PHI_BIAS=60), storage=u16, cluster=GoldenFloat.
-- FPGA component artifact: 35/35 @ 323 MHz Artix-7 (Zenodo 10.5281/zenodo.19227877).
+- FPGA component artifact: 35/35 functional testbench on Artix-7. No frequency is claimed: the 323 MHz figure is withdrawn (`research/frontier/APPARATUS_AUDIT_2026-08-12.md`). The Zenodo DOI formerly cited here (10.5281/zenodo.19227877) is not an FPGA record and does not support this line.
 
 ## RTL-spec (gf16_decode.v: gf16 u16 → binary32)
 A combinational decoder, a mirror of the gf16 decode law (the same one the conformance golden-oracle uses):
@@ -35,7 +35,7 @@ Decode gf16→fp32 ≈ parsing + LZC(9) + rebias + class multiplexers. A referen
 
 ## Honesty (binding)
 - No "first/best". gf16-decode ≠ gf16-compute — these are different cells; tag both honestly.
-- Until the cell is flashed on silicon — the status is [REQUIRES USER ACTION] (synth+flash is outside the sandbox).
+- Until the cell is flashed on the FPGA — the status is [REQUIRES USER ACTION] (synth+flash is outside the sandbox).
 - 1-ULP subnormal residuals (if they appear) = KNOWN_LIMITATION, not a hard-fail.
 
 *The gf16 parameters are cross-checked against the live SSOT 2026-07-04. This is a spec for the next design-loop, not a result of this session.*

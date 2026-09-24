@@ -7,6 +7,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
+const tri_time = @import("tri_time");
 const jit_tier2 = @import("jit_tier2.zig");
 const SSAFunction = jit_tier2.SSAFunction;
 const SSAInstr = jit_tier2.SSAInstr;
@@ -147,9 +148,9 @@ fn runBenchmark(allocator: std.mem.Allocator) !void {
         var jit = JITTier2.init(allocator);
         defer jit.deinit();
 
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         jit.compile(&func);
-        const end = std.time.nanoTimestamp();
+        const end = tri_time.nanoTimestamp();
 
         const after = countInstructions(&func);
         const stats = jit.getStats();
@@ -171,9 +172,9 @@ fn runBenchmark(allocator: std.mem.Allocator) !void {
         var jit = JITTier2.init(allocator);
         defer jit.deinit();
 
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         jit.compile(&func);
-        const end = std.time.nanoTimestamp();
+        const end = tri_time.nanoTimestamp();
 
         const after = countInstructions(&func);
         const stats = jit.getStats();
@@ -195,9 +196,9 @@ fn runBenchmark(allocator: std.mem.Allocator) !void {
         var jit = JITTier2.init(allocator);
         defer jit.deinit();
 
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         jit.compile(&func);
-        const end = std.time.nanoTimestamp();
+        const end = tri_time.nanoTimestamp();
 
         const after = countInstructions(&func);
         const stats = jit.getStats();
@@ -219,9 +220,9 @@ fn runBenchmark(allocator: std.mem.Allocator) !void {
         var jit = JITTier2.init(allocator);
         defer jit.deinit();
 
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         jit.compile(&func);
-        const end = std.time.nanoTimestamp();
+        const end = tri_time.nanoTimestamp();
 
         const after = countInstructions(&func);
         const stats = jit.getStats();
@@ -244,7 +245,7 @@ fn runBenchmark(allocator: std.mem.Allocator) !void {
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     try runBenchmark(gpa.allocator());
 }

@@ -60,30 +60,107 @@ VFILE = re.compile(r"(?<![\w./-])[A-Za-z0-9][\w./-]*\.v\b")
 
 
 def paths_block(text: str) -> list[str]:
-    """Every quoted path under a `paths:` key, push and pull_request alike."""
-    out, in_paths = [], False
-    for line in text.splitlines():
-        if re.match(r"\s*paths:\s*$", line):
-            in_paths = True
+    r"""Every path under a `paths:` key, push and pull_request alike.
+
+    NO third-party imports. This file is invoked by workflow-path-gate.yml and,
+    indirectly, by gate_status_ratchet.py across 95 scripts, on a runner whose
+    actions/setup-python toolchain has no PyYAML. An earlier version of this
+    function used yaml.safe_load and died with ModuleNotFoundError on CI while
+    passing on the author's machine -- the same "verified in the wrong
+    environment" mistake recorded as anomaly A28.
+
+    Two spellings, and the second is why this was rewritten. The line-based
+    predecessor required `paths:` to END its line, so it saw
+
+        paths:
+          - 'a/b.v'
+
+    and silently skipped
+
+        paths: ['a/b.v', 'c/d.v']
+
+    which 29 workflows use -- 87 of 432 entries, a fifth of what the gate is
+    supposed to police, including every ax7203-gf* board workflow.
+
+    A file containing `paths:` from which nothing is extracted is a PARSE GAP,
+    not an empty filter, and callers are expected to treat it as a finding --
+    see parse_gaps(). Silently returning [] is how the previous blind spot
+    stayed invisible.
+    """
+    out: list[str] = []
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        m = re.match(r"(\s*)paths:\s*(.*)$", lines[i])
+        if not m:
+            i += 1
             continue
-        if in_paths:
-            m = re.match(r"\s*-\s*'([^']+)'\s*$", line) or \
-                re.match(r'\s*-\s*"([^"]+)"\s*$', line)
-            if m:
-                out.append(m.group(1))
+        indent, rest = m.group(1), m.group(2).strip()
+
+        if rest.startswith("["):
+            # Inline flow sequence, possibly spanning lines until the closing ].
+            buf = rest
+            while "]" not in buf and i + 1 < len(lines):
+                i += 1
+                buf += " " + lines[i].strip()
+            inner = buf[buf.index("[") + 1: buf.rindex("]")] if "]" in buf else ""
+            for item in re.findall(r"'([^']*)'|\"([^\"]*)\"|([^,\s][^,]*)", inner):
+                val = (item[0] or item[1] or item[2]).strip()
+                if val:
+                    out.append(val)
+            i += 1
+            continue
+
+        # Block form: subsequent `- item` lines indented deeper than the key.
+        i += 1
+        while i < len(lines):
+            line = lines[i]
+            if not line.strip() or line.strip().startswith("#"):
+                i += 1
                 continue
-            if line.strip().startswith("#"):
-                continue
-            in_paths = False
+            cur = len(line) - len(line.lstrip())
+            if cur <= len(indent) or not line.strip().startswith("-"):
+                break
+            item = line.strip()[1:].strip()
+            if item.startswith("'") and item.endswith("'") and len(item) > 1:
+                item = item[1:-1]
+            elif item.startswith('"') and item.endswith('"') and len(item) > 1:
+                item = item[1:-1]
+            if item:
+                out.append(item)
+            i += 1
+    return out
+
+
+def parse_gaps() -> list:
+    """Workflows that declare `paths:` but from which nothing could be read.
+
+    The point of the gate is coverage, so a file the parser cannot read is a
+    finding about the parser, reported rather than skipped. The previous blind
+    spot survived precisely because unreadable meant invisible.
+    """
+    out = []
+    for fn in sorted(f for f in os.listdir(WF) if f.endswith((".yml", ".yaml"))):
+        text = open(os.path.join(WF, fn), encoding="utf-8", errors="replace").read()
+        if re.search(r"^\s*paths:", text, re.M) and not paths_block(text):
+            out.append(fn)
     return out
 
 
 def matches(pattern: str, path: str) -> bool:
-    """A `paths:` glob against a repo-relative file, loosely but not wrongly.
+    r"""A `paths:` glob against a repo-relative file, loosely but not wrongly.
 
-    Only the forms this tree actually uses are handled -- ** and * -- and a pattern
-    with no wildcard has to match exactly. Being loose here would turn a real finding
-    into a false clean.
+    Only the forms GitHub actually supports are handled -- * ** ? + [] -- and a
+    pattern with no wildcard has to match exactly. Being loose here would turn a real
+    finding into a false clean.
+
+    This used to emulate brace expansion (`\{`->`(`, `,`->`|`). GitHub's path filter
+    does NOT support braces, so that emulation made the auditor agree with a pattern
+    GitHub itself would never match: `corona_compute_gf*_{div,sqrt,quire}_ax7203.v`
+    looked like it matched 12 files here and matched 0 on GitHub, which is why the
+    workflow it belonged to had never once been triggered by the wrappers it exists to
+    check. Emulating a feature the target does not have is not leniency, it is
+    measuring a different system.
     """
     # A pattern naming a directory covers everything beneath it, which is how
     # GitHub Actions reads it -- and is the only way to watch a submodule, whose
@@ -91,8 +168,8 @@ def matches(pattern: str, path: str) -> bool:
     if "*" not in pattern and not pattern.endswith(".v"):
         if path == pattern or path.startswith(pattern.rstrip("/") + "/"):
             return True
-    rx = re.escape(pattern).replace(r"\*\*", ".*").replace(r"\*", "[^/]*")
-    rx = rx.replace(r"\{", "(").replace(r"\}", ")").replace(",", "|")
+    rx = (re.escape(pattern).replace(r"\*\*", ".*")
+          .replace(r"\*", "[^/]*").replace(r"\?", "[^/]"))
     return re.fullmatch(rx, path) is not None
 
 
@@ -116,9 +193,35 @@ def script_gaps(tracked: set) -> list:
         if not watched:
             continue
         run = {m for m in RUNS.findall(text) if m in tracked}
-        miss = [r for r in sorted(run) if not any(matches(r, p) for p in watched)]
+        miss = [r for r in sorted(run) if not any(matches(p, r) for p in watched)]
         if miss:
             out.append((fn, miss))
+    return out
+
+
+def dead_paths(tracked: set) -> list:
+    """`paths:` entries that match no tracked file, so the trigger can never fire.
+
+    Nothing checked this before. Nine such entries had accumulated across five
+    workflows -- four distinct causes, each with a named commit: a .vibee->.tri
+    rename, a trinity-nexus->deploy/trinity-nexus move, deleted synth*.sh
+    scripts, and a path *inside* a gitlink, which can never appear in a
+    superproject diff because git reports the submodule as one entry.
+
+    One workflow (fpga-bitstream.yml) had NO other entry, so it had been
+    unfirable since 2026-04-19 while looking perfectly healthy in the sidebar.
+
+    Negated (`!`) entries are excluded: an exclusion matching nothing today is
+    not a defect, it is a filter that has nothing to exclude yet.
+    """
+    out = []
+    for fn in sorted(f for f in os.listdir(WF) if f.endswith((".yml", ".yaml"))):
+        text = open(os.path.join(WF, fn), encoding="utf-8", errors="replace").read()
+        for pat in paths_block(text):
+            if pat.startswith("!"):
+                continue
+            if not any(matches(pat, f) for f in tracked):
+                out.append((fn, pat))
     return out
 
 
@@ -140,6 +243,41 @@ def self_check() -> int:
         print(f"self-check: SKIP -- {victim} is gone")
         return 0
     orig = open(path, encoding="utf-8").read()
+
+    # Negative control for dead_paths(): plant an entry that cannot match
+    # anything and require it to be seen. Without this, "0 dead entries" is
+    # indistinguishable from a check that never looks.
+    #
+    # Planted in BOTH `paths:` spellings, and that is the whole point. The first
+    # version of this control only ever planted the block form, into a victim
+    # that uses the block form -- while paths_block() was blind to the inline
+    # flow-sequence form and missed 87 of 432 entries across 29 workflows. The
+    # control ran entirely through code the gap did not touch and reported PASS.
+    # A control that cannot reach the blind spot is not evidence there is none.
+    dead_probe = "specs/does-not-exist/**/*.nope"
+    dp_before = len(dead_paths(tracked))
+
+    forms = [
+        ("block", lambda t: t.replace("    paths:", f"    paths:\n      - '{dead_probe}'", 1)),
+        ("inline", lambda t: t.replace("    paths:", f"    paths: ['{dead_probe}']\n    _unused:", 1)),
+    ]
+    for form_name, mutate in forms:
+        mutated = mutate(orig)
+        if mutated == orig:
+            open(path, "w", encoding="utf-8").write(orig)
+            print(f"self-check: FAIL -- could not plant the {form_name} probe "
+                  f"into {victim}; a no-op injection proves nothing")
+            return 1
+        open(path, "w", encoding="utf-8").write(mutated)
+        seen = any(p == dead_probe for _, p in dead_paths(tracked))
+        open(path, "w", encoding="utf-8").write(orig)
+        print(f"  planted a dead paths entry ({form_name} form) -> flagged: {seen}")
+        if not seen:
+            print(f"self-check: FAIL -- dead_paths() cannot see a planted dead "
+                  f"entry in the {form_name} form")
+            return 1
+    print(f"  (baseline dead entries: {dp_before})")
+
     before = {f for f, _ in script_gaps(tracked)}
     probe = "research/audit_workflow_paths.py"
     try:
@@ -274,7 +412,15 @@ are exactly what went stale in the case that prompted this, so neither is consul
     # first version's behaviour, and the negative control caught it: that is the
     # direction which found the unwatched parametric cores behind the Tier-E proofs,
     # so a gate blind to it would be a gate blind to the worst case so far.
-    return 1 if (watch_not_build or build_not_watch or gaps) else 0
+    # Dead `paths:` entries -- see dead_paths(). Reported separately from the
+    # watch/build findings because the failure is different in kind: not a
+    # workflow watching the wrong thing, but a trigger that cannot fire at all.
+    dead = dead_paths(tracked_files())
+    print(f"dead paths: entries                : {len(dead)}")
+    for fn, pat in dead:
+        print(f"  {fn}: {pat} -- matches no tracked file")
+
+    return 1 if (dead or watch_not_build or build_not_watch or gaps) else 0
 
 
 if __name__ == "__main__":

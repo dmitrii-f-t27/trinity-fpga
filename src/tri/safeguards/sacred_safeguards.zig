@@ -19,6 +19,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
+const tri_time = @import("tri_time");
 const mem = std.mem;
 const fs = std.fs;
 const time = std.time;
@@ -347,7 +348,7 @@ pub const RateLimiter = struct {
     last_minute_reset: i64,
 
     pub fn init() RateLimiter {
-        const now = time.timestamp();
+        const now = tri_time.timestamp();
         return RateLimiter{
             .commits_this_session = 0,
             .commits_this_hour = 0,
@@ -360,7 +361,7 @@ pub const RateLimiter = struct {
 
     /// Reset counters if time window has passed
     pub fn update(self: *RateLimiter) void {
-        const now = time.timestamp();
+        const now = tri_time.timestamp();
 
         // Reset hourly counter
         if (now - self.last_hour_reset >= 3600) {
@@ -529,7 +530,8 @@ pub const SacredSafeguards = struct {
 
         // Check if safeguards file
         if (mem.indexOf(u8, file, "safeguards") == null and
-            mem.indexOf(u8, file, "auto_code_patcher") == null) {
+            mem.indexOf(u8, file, "auto_code_patcher") == null)
+        {
             return SafetyCheckResult.allowedConf(1.0);
         }
 
@@ -620,7 +622,7 @@ pub const SacredSafeguards = struct {
 
         // Log event
         try self.logSafetyEvent(.{
-            .timestamp = time.timestamp(),
+            .timestamp = tri_time.timestamp(),
             .event_type = "approval_request",
             .operation = operation,
             .allowed = result.approved,
@@ -682,7 +684,7 @@ pub const SacredSafeguards = struct {
     ) !void {
         const record = ApprovalRecord{
             .operation = try self.allocator.dupe(u8, operation),
-            .timestamp = time.timestamp(),
+            .timestamp = tri_time.timestamp(),
             .approved = approved,
             .reason = try self.allocator.dupe(u8, reason),
             .confidence = confidence,
@@ -709,7 +711,7 @@ pub const SacredSafeguards = struct {
         self.config.dry_run_mode = enabled;
 
         try self.logSafetyEvent(.{
-            .timestamp = time.timestamp(),
+            .timestamp = tri_time.timestamp(),
             .event_type = "dry_run_mode_change",
             .operation = if (enabled) "enable" else "disable",
             .allowed = true,
@@ -798,7 +800,7 @@ pub const SacredSafeguards = struct {
         self.emergency.triggered = true;
         self.emergency.reason = try self.allocator.dupe(u8, reason);
         self.emergency.reason_owned = true;
-        self.emergency.timestamp = time.timestamp();
+        self.emergency.timestamp = tri_time.timestamp();
         self.emergency.rollback_performed = false;
 
         try self.logSafetyEvent(.{
@@ -830,7 +832,7 @@ pub const SacredSafeguards = struct {
         self.emergency = EmergencyStop.init();
 
         try self.logSafetyEvent(.{
-            .timestamp = time.timestamp(),
+            .timestamp = tri_time.timestamp(),
             .event_type = "emergency_stop",
             .operation = "clear",
             .allowed = true,
@@ -1442,7 +1444,7 @@ test "SacredSafeguards logSafetyEvent" {
     defer safeguards.deinit();
 
     const event = SafetyEvent{
-        .timestamp = time.timestamp(),
+        .timestamp = tri_time.timestamp(),
         .event_type = "test",
         .operation = "test_operation",
         .allowed = true,
@@ -1464,7 +1466,7 @@ test "SacredSafeguards getSafetyLog" {
     defer safeguards.deinit();
 
     const event = SafetyEvent{
-        .timestamp = time.timestamp(),
+        .timestamp = tri_time.timestamp(),
         .event_type = "test",
         .operation = "test_operation",
         .allowed = true,
@@ -1503,7 +1505,7 @@ test "SacredSafeguards exportSafetyLog" {
     defer safeguards.deinit();
 
     const event = SafetyEvent{
-        .timestamp = time.timestamp(),
+        .timestamp = tri_time.timestamp(),
         .event_type = "test",
         .operation = "test_operation",
         .allowed = true,

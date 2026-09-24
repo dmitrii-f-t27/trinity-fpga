@@ -5,6 +5,7 @@
 //! Supports multiple output formats: ANSI text, JSON, CSV.
 
 const std = @import("std");
+const tri_io = @import("tri_io");
 const Allocator = std.mem.Allocator;
 const json = std.json;
 
@@ -23,10 +24,15 @@ fn stringifyJsonMinified(allocator: Allocator, value: json.Value) ![]const u8 {
     return std.json.Stringify.valueAlloc(allocator, value, .{ .whitespace = .minified });
 }
 
-/// Helper to get stdout writer in Zig 0.15
-fn getStdOutWriter() @TypeOf((std.fs.File{ .handle = 0 }).writer()) {
-    const stdout_file = std.fs.File{ .handle = std.posix.STDOUT_FILENO };
-    return stdout_file.writer();
+/// Buffer backing the stdout writer below. At module scope so the returned
+/// writer does not point into a dead stack frame.
+var stdout_write_buf: [4096]u8 = undefined;
+
+/// Helper to get stdout writer. 0.16's `File.writer` takes an Io and a
+/// buffer, and the result is buffered -- callers write through
+/// `&w.interface` and must flush.
+fn getStdOutWriter() std.Io.File.Writer {
+    return std.Io.File.stdout().writer(tri_io.get(), &stdout_write_buf);
 }
 
 /// ANSI color codes for terminal output
@@ -242,7 +248,6 @@ fn runFit(allocator: Allocator, options: SparcOptions) !void {
 
 /// Batch fit all galaxies and output summary statistics
 fn runBatchFit(allocator: Allocator, data_content: []const u8, options: SparcOptions) !void {
-
     std.debug.print("\n{s}SPARC Batch Fit{s}\n", .{ colorize("════════════════════════════════════════════════════════════", .cyan), colorize("", .reset) });
     std.debug.print("{s}Fitting Savchenko model to all galaxies...{s}\n\n", .{
         colorize("", .yellow), colorize("", .reset),
@@ -303,7 +308,7 @@ fn runBatchFit(allocator: Allocator, data_content: []const u8, options: SparcOpt
 
         if (options.verbose) {
             const status = if (is_good) colorize("GOOD", .green) else colorize("POOR", .red);
-            std.debug.print("{s} (χ²={:.3f})\n", .{ status, result.reduced_chi_squared });
+            std.debug.print("{s} (χ²={d:.3})\n", .{ status, result.reduced_chi_squared });
         } else {
             // Simple progress indicator
             if ((i + 1) % 10 == 0 or i + 1 == galaxies.len) {
@@ -336,9 +341,9 @@ fn runBatchFit(allocator: Allocator, data_content: []const u8, options: SparcOpt
     std.debug.print("{s}Batch Fit Summary{s}\n", .{ colorize("════════════════════════════════════════════════════════════", .cyan), colorize("", .reset) });
     std.debug.print("\n", .{});
     std.debug.print("  Total galaxies: {d}\n", .{results.items.len});
-    std.debug.print("  Good fits (χ² < 2.0): {d} ({:.1f}%)\n", .{ total_good, if (results.items.len > 0) @as(f64, @floatFromInt(total_good)) / @as(f64, @floatFromInt(results.items.len)) * 100 else 0 });
-    std.debug.print("  Mean reduced χ²: {:.3f}\n", .{mean_chi});
-    std.debug.print("  Median reduced χ²: {:.3f}\n", .{median_chi});
+    std.debug.print("  Good fits (χ² < 2.0): {d} ({d:.1}%)\n", .{ total_good, if (results.items.len > 0) @as(f64, @floatFromInt(total_good)) / @as(f64, @floatFromInt(results.items.len)) * 100 else 0 });
+    std.debug.print("  Mean reduced χ²: {d:.3}\n", .{mean_chi});
+    std.debug.print("  Median reduced χ²: {d:.3}\n", .{median_chi});
     std.debug.print("\n", .{});
 
     // Quality indicator
@@ -355,7 +360,7 @@ fn runBatchFit(allocator: Allocator, data_content: []const u8, options: SparcOpt
     else
         colorize("POOR", .red);
 
-    std.debug.print("  Overall quality: {s} ({:.1f}% good fits){s}\n\n", .{ status_str, success_rate * 100, colorize("", .reset) });
+    std.debug.print("  Overall quality: {s} ({d:.1}% good fits){s}\n\n", .{ status_str, success_rate * 100, colorize("", .reset) });
 
     // Output detailed results based on format
     switch (options.format) {
@@ -368,36 +373,36 @@ fn runBatchFit(allocator: Allocator, data_content: []const u8, options: SparcOpt
             var root = std.json.Array.init(allocator);
             defer root.deinit();
 
-            var summary_obj = std.json.ObjectMap.init(allocator);
-            defer summary_obj.deinit();
+            var summary_obj = std.json.ObjectMap.empty;
+            defer summary_obj.deinit(allocator);
 
-            try summary_obj.put("total_galaxies", json.Value{ .integer = @intCast(results.items.len) });
-            try summary_obj.put("good_fits", json.Value{ .integer = @intCast(total_good) });
-            try summary_obj.put("good_fit_percentage", json.Value{ .float = success_rate * 100 });
-            try summary_obj.put("mean_reduced_chi_squared", json.Value{ .float = mean_chi });
-            try summary_obj.put("median_reduced_chi_squared", json.Value{ .float = median_chi });
+            try summary_obj.put(allocator, "total_galaxies", json.Value{ .integer = @intCast(results.items.len) });
+            try summary_obj.put(allocator, "good_fits", json.Value{ .integer = @intCast(total_good) });
+            try summary_obj.put(allocator, "good_fit_percentage", json.Value{ .float = success_rate * 100 });
+            try summary_obj.put(allocator, "mean_reduced_chi_squared", json.Value{ .float = mean_chi });
+            try summary_obj.put(allocator, "median_reduced_chi_squared", json.Value{ .float = median_chi });
 
             var results_array = std.json.Array.init(allocator);
             defer results_array.deinit();
 
             for (results.items) |r| {
-                var r_obj = std.json.ObjectMap.init(allocator);
-                defer r_obj.deinit();
+                var r_obj = std.json.ObjectMap.empty;
+                defer r_obj.deinit(allocator);
 
-                try r_obj.put("name", json.Value{ .string = r.name });
-                try r_obj.put("chi_squared", json.Value{ .float = r.chi_sq });
-                try r_obj.put("reduced_chi_squared", json.Value{ .float = r.reduced_chi_sq });
-                try r_obj.put("is_good_fit", json.Value{ .bool = r.is_good });
-                try r_obj.put("num_points", json.Value{ .integer = @intCast(r.num_points) });
+                try r_obj.put(allocator, "name", json.Value{ .string = r.name });
+                try r_obj.put(allocator, "chi_squared", json.Value{ .float = r.chi_sq });
+                try r_obj.put(allocator, "reduced_chi_squared", json.Value{ .float = r.reduced_chi_sq });
+                try r_obj.put(allocator, "is_good_fit", json.Value{ .bool = r.is_good });
+                try r_obj.put(allocator, "num_points", json.Value{ .integer = @intCast(r.num_points) });
 
                 try results_array.append(json.Value{ .object = r_obj });
             }
 
-            var output_obj = std.json.ObjectMap.init(allocator);
-            defer output_obj.deinit();
+            var output_obj = std.json.ObjectMap.empty;
+            defer output_obj.deinit(allocator);
 
-            try output_obj.put("summary", json.Value{ .object = summary_obj });
-            try output_obj.put("results", json.Value{ .array = results_array });
+            try output_obj.put(allocator, "summary", json.Value{ .object = summary_obj });
+            try output_obj.put(allocator, "results", json.Value{ .array = results_array });
 
             {
                 const json_str = try stringifyJson(allocator, json.Value{ .object = output_obj });
@@ -407,7 +412,7 @@ fn runBatchFit(allocator: Allocator, data_content: []const u8, options: SparcOpt
         },
         .csv => {
             std.debug.print("name,chi_squared,reduced_chi_squared,is_good_fit,num_points\n", .{});
-            for (results) |r| {
+            for (results.items) |r| {
                 const good_str = if (r.is_good) "true" else "false";
                 std.debug.print("{s},{e},{e},{s},{}\n", .{
                     r.name, r.chi_sq, r.reduced_chi_sq, good_str, r.num_points,
@@ -435,9 +440,9 @@ fn outputText(allocator: Allocator, result: mod.FitResult, options: SparcOptions
 
     std.debug.print("\n", .{});
     std.debug.print("{s}Fit Quality:{s}\n", .{ "  ", "" });
-    std.debug.print("{s}  χ²:         {:.6f}\n", .{ "  ", result.chi_squared });
+    std.debug.print("{s}  χ²:         {d:.6}\n", .{ "  ", result.chi_squared });
     std.debug.print("{s}  DOF:         {}\n", .{ "  ", result.dof });
-    std.debug.print("{s}  Reduced χ²: {:.6f}\n", .{ "  ", result.reduced_chi_squared });
+    std.debug.print("{s}  Reduced χ²: {d:.6}\n", .{ "  ", result.reduced_chi_squared });
 
     // Quality indicator
     const is_good = Fitting.isGoodFit(result);
@@ -447,49 +452,48 @@ fn outputText(allocator: Allocator, result: mod.FitResult, options: SparcOptions
 
 /// Output fit results in JSON format
 fn outputJson(allocator: Allocator, result: mod.FitResult, points: []const mod.GalaxyDataPoint) !void {
-
     var root = std.json.Array.init(allocator);
     defer root.deinit();
 
     // Parameters object - use ObjectMap for JSON compatibility
-    var params_obj = std.json.ObjectMap.init(allocator);
-    defer params_obj.deinit();
+    var params_obj = std.json.ObjectMap.empty;
+    defer params_obj.deinit(allocator);
 
-    try params_obj.put("rho0", json.Value{ .float = result.params.rho0 });
-    try params_obj.put("r_mem", json.Value{ .float = result.params.r_mem });
-    try params_obj.put("r_core", json.Value{ .float = result.params.r_core });
-    try params_obj.put("upsilon_bul", json.Value{ .float = result.params.upsilon_bul });
+    try params_obj.put(allocator, "rho0", json.Value{ .float = result.params.rho0 });
+    try params_obj.put(allocator, "r_mem", json.Value{ .float = result.params.r_mem });
+    try params_obj.put(allocator, "r_core", json.Value{ .float = result.params.r_core });
+    try params_obj.put(allocator, "upsilon_bul", json.Value{ .float = result.params.upsilon_bul });
 
     // Result object
-    var result_obj = std.json.ObjectMap.init(allocator);
-    defer result_obj.deinit();
+    var result_obj = std.json.ObjectMap.empty;
+    defer result_obj.deinit(allocator);
 
-    try result_obj.put("params", json.Value{ .object = params_obj });
-    try result_obj.put("chi_squared", json.Value{ .float = result.chi_squared });
-    try result_obj.put("degrees_of_freedom", json.Value{ .integer = @intCast(result.dof) });
-    try result_obj.put("reduced_chi_squared", json.Value{ .float = result.reduced_chi_squared });
-    try result_obj.put("is_good_fit", json.Value{ .bool = Fitting.isGoodFit(result) });
+    try result_obj.put(allocator, "params", json.Value{ .object = params_obj });
+    try result_obj.put(allocator, "chi_squared", json.Value{ .float = result.chi_squared });
+    try result_obj.put(allocator, "degrees_of_freedom", json.Value{ .integer = @intCast(result.dof) });
+    try result_obj.put(allocator, "reduced_chi_squared", json.Value{ .float = result.reduced_chi_squared });
+    try result_obj.put(allocator, "is_good_fit", json.Value{ .bool = Fitting.isGoodFit(result) });
 
     // Output array
     var data_array = std.json.Array.init(allocator);
     defer data_array.deinit();
 
     for (points) |*point| {
-        var data_obj = std.json.ObjectMap.init(allocator);
-        defer data_obj.deinit();
+        var data_obj = std.json.ObjectMap.empty;
+        defer data_obj.deinit(allocator);
 
-        try data_obj.put("radius_kpc", json.Value{ .float = point.radius });
-        try data_obj.put("velocity_kms", json.Value{ .float = point.velocity });
-        try data_obj.put("velocity_err_kms", json.Value{ .float = point.velocity_err });
+        try data_obj.put(allocator, "radius_kpc", json.Value{ .float = point.radius });
+        try data_obj.put(allocator, "velocity_kms", json.Value{ .float = point.velocity });
+        try data_obj.put(allocator, "velocity_err_kms", json.Value{ .float = point.velocity_err });
 
         try data_array.append(json.Value{ .object = data_obj });
     }
 
-    var output_obj = std.json.ObjectMap.init(allocator);
-    defer output_obj.deinit();
+    var output_obj = std.json.ObjectMap.empty;
+    defer output_obj.deinit(allocator);
 
-    try output_obj.put("result", json.Value{ .object = result_obj });
-    try output_obj.put("data_points", json.Value{ .array = data_array });
+    try output_obj.put(allocator, "result", json.Value{ .object = result_obj });
+    try output_obj.put(allocator, "data_points", json.Value{ .array = data_array });
 
     // Write as compact JSON
     {
@@ -513,7 +517,7 @@ fn outputCsv(allocator: Allocator, result: mod.FitResult, points: []const mod.Ga
         result.chi_squared,
         result.dof,
         result.reduced_chi_squared,
-    }) catch unreachable;
+    });
 
     // Data points header
     std.debug.print("\nradius_kpc,velocity_kms,velocity_err_kms\n", .{});
@@ -522,7 +526,7 @@ fn outputCsv(allocator: Allocator, result: mod.FitResult, points: []const mod.Ga
             point.radius,
             point.velocity,
             point.velocity_err,
-        }) catch unreachable;
+        });
     }
 }
 
@@ -563,7 +567,7 @@ fn runList(allocator: Allocator, options: SparcOptions) !void {
                 else
                     galaxy.name[0..12];
 
-                std.debug.print("{s: <12} {d: >6}  {:.1f}  {:.0f}  {:.0f}\n", .{
+                std.debug.print("{s: <12} {d: >6}  {d:.1}  {d:.0}  {d:.0}\n", .{
                     colorize(name_fmt, .blue),
                     galaxy.points.len,
                     galaxy.distance,
@@ -578,16 +582,16 @@ fn runList(allocator: Allocator, options: SparcOptions) !void {
             defer root.deinit();
 
             for (galaxies) |galaxy| {
-                var galaxy_obj = std.json.ObjectMap.init(allocator);
-                defer galaxy_obj.deinit();
+                var galaxy_obj = std.json.ObjectMap.empty;
+                defer galaxy_obj.deinit(allocator);
 
-                try galaxy_obj.put("name", json.Value{ .string = galaxy.name });
-                try galaxy_obj.put("points", json.Value{ .integer = @intCast(galaxy.points.len) });
-                try galaxy_obj.put("distance_mpc", json.Value{ .float = galaxy.distance });
-                try galaxy_obj.put("inclination_deg", json.Value{ .float = galaxy.inclination });
-                try galaxy_obj.put("position_angle_deg", json.Value{ .float = galaxy.position_angle });
+                try galaxy_obj.put(allocator, "name", json.Value{ .string = galaxy.name });
+                try galaxy_obj.put(allocator, "points", json.Value{ .integer = @intCast(galaxy.points.len) });
+                try galaxy_obj.put(allocator, "distance_mpc", json.Value{ .float = galaxy.distance });
+                try galaxy_obj.put(allocator, "inclination_deg", json.Value{ .float = galaxy.inclination });
+                try galaxy_obj.put(allocator, "position_angle_deg", json.Value{ .float = galaxy.position_angle });
 
-                try root.append(allocator, json.Value{ .object = galaxy_obj });
+                try root.append(json.Value{ .object = galaxy_obj });
             }
 
             {
@@ -613,7 +617,6 @@ fn runList(allocator: Allocator, options: SparcOptions) !void {
 
 /// Run plot command (ASCII-art rotation curve plot)
 fn runPlot(allocator: Allocator, options: SparcOptions) !void {
-
     if (options.galaxy_name.len == 0) {
         std.debug.print("Error: Please specify a galaxy name for plotting.\n", .{});
         std.debug.print("Usage: tri sparc plot <galaxy_name>\n", .{});
@@ -655,7 +658,7 @@ fn runPlot(allocator: Allocator, options: SparcOptions) !void {
 
     // Print legend
     std.debug.print("{s}●{s} Observed data  {s}─{s} Savchenko model\n\n", .{
-        colorize("", .blue), colorize("", .reset),
+        colorize("", .blue),  colorize("", .reset),
         colorize("", .green), colorize("", .reset),
     });
 
@@ -666,12 +669,18 @@ fn runPlot(allocator: Allocator, options: SparcOptions) !void {
 
         // Y-axis label
         if (y % 5 == 0) {
-            std.debug.print("{:.0f} |", .{v_at_y});
+            std.debug.print("{d:.0} |", .{v_at_y});
         } else {
             std.debug.print("      |", .{});
         }
 
         // Draw row
+        // One byte per column. The glyphs printed below are multi-byte
+        // UTF-8, so the buffer holds ASCII markers and the print loop draws
+        // the real characters -- it already did, and only ever compared these
+        // values, so nothing about the output changes.
+        const MARK_POINT: u8 = 'o';
+        const MARK_LINE: u8 = '-';
         var row_buffer: [PLOT_WIDTH]u8 = undefined;
         @memset(&row_buffer, ' ');
         for (0..PLOT_WIDTH) |x| {
@@ -683,7 +692,7 @@ fn runPlot(allocator: Allocator, options: SparcOptions) !void {
                 const v_pos = PLOT_HEIGHT - 1 - @as(usize, @intFromFloat((p.velocity / max_v) * @as(f64, @floatFromInt(PLOT_HEIGHT - 1))));
 
                 if (x == x_pos and y == v_pos) {
-                    row_buffer[x] = '●'; // Data point
+                    row_buffer[x] = MARK_POINT;
                     break;
                 }
             }
@@ -691,7 +700,6 @@ fn runPlot(allocator: Allocator, options: SparcOptions) !void {
             // If no data point, check for model line
             if (row_buffer[x] == ' ') {
                 const model_v = Savchenko.totalVelocity(
-                    allocator,
                     r_at_x,
                     result.params.rho0,
                     result.params.r_mem,
@@ -708,16 +716,16 @@ fn runPlot(allocator: Allocator, options: SparcOptions) !void {
                 const model_y = PLOT_HEIGHT - 1 - @as(usize, @intFromFloat((model_v / max_v) * @as(f64, @floatFromInt(PLOT_HEIGHT - 1))));
 
                 if (y == model_y or (y + 1 == model_y and model_y < PLOT_HEIGHT)) {
-                    row_buffer[x] = '─'; // Model line
+                    row_buffer[x] = MARK_LINE;
                 }
             }
         }
 
         // Print row
         for (row_buffer) |c| {
-            if (c == '●') {
+            if (c == MARK_POINT) {
                 std.debug.print("{s}●{s}", .{ colorize("", .blue), colorize("", .reset) });
-            } else if (c == '─') {
+            } else if (c == MARK_LINE) {
                 std.debug.print("{s}─{s}", .{ colorize("", .green), colorize("", .reset) });
             } else {
                 std.debug.print(" ", .{});
@@ -735,7 +743,7 @@ fn runPlot(allocator: Allocator, options: SparcOptions) !void {
 
     // X-axis labels
     std.debug.print("     0.0", .{});
-    std.debug.print(" {:.1f} kpc (R)\n", .{max_r});
+    std.debug.print(" {d:.1} kpc (R)\n", .{max_r});
 
     // Print fit parameters below
     std.debug.print("\n{s}Fit Parameters:{s}\n", .{ colorize("", .magenta), colorize("", .reset) });
@@ -743,7 +751,7 @@ fn runPlot(allocator: Allocator, options: SparcOptions) !void {
     std.debug.print("  r_mem:   {e:.4} kpc\n", .{result.params.r_mem});
     std.debug.print("  r_core:  {e:.4} kpc\n", .{result.params.r_core});
     std.debug.print("  Υ_bul:   {e:.4}\n", .{result.params.upsilon_bul});
-    std.debug.print("  χ²:      {:.4f} (reduced: {:.4f})\n", .{result.chi_squared, result.reduced_chi_squared});
+    std.debug.print("  χ²:      {d:.4} (reduced: {d:.4})\n", .{ result.chi_squared, result.reduced_chi_squared });
 }
 
 /// Argument parsing error set

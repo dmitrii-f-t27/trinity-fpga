@@ -4,6 +4,7 @@
 //! Serves JSON for dashboard consumption
 
 const std = @import("std");
+const tri_time = @import("tri_time");
 const cluster = @import("cluster.zig");
 const http = std.http;
 
@@ -81,7 +82,7 @@ pub const ApiServer = struct {
 
     pub fn init(allocator: std.mem.Allocator, cluster_state: *cluster.ClusterState, port: u16) !ApiServer {
         const address = try std.net.Address.parseIp4("127.0.0.1", port);
-        var server = http.Server(*cluster.ClusterState).init(address, cluster_state);
+        const server = http.Server(*cluster.ClusterState).init(address, cluster_state);
 
         return ApiServer{
             .allocator = allocator,
@@ -171,7 +172,7 @@ pub const ApiServer = struct {
                 .epsilon = cluster.EPSILON,
                 .lucas_10 = 123,
             },
-            .timestamp = std.time.nanoTimestamp() / 1_000_000,
+            .timestamp = tri_time.nanoTimestamp() / 1_000_000,
         };
 
         const json = try status.toJson(self.allocator);
@@ -312,7 +313,7 @@ test "API Response JSON generation" {
             .epsilon = cluster.EPSILON,
             .lucas_10 = 123,
         },
-        .timestamp = std.time.nanoTimestamp() / 1_000_000,
+        .timestamp = tri_time.nanoTimestamp() / 1_000_000,
     };
 
     const json = try status.toJson(allocator);

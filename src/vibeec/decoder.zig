@@ -88,7 +88,7 @@ pub const Decoder = struct {
 
     /// Generate text from initial activation
     pub fn generate(self: *Decoder, activation: f32, max_tokens: usize) ![]const u8 {
-        var result = std.ArrayListUnmanaged(u8){};
+        var result = @as(std.ArrayListUnmanaged(u8), .empty);
         errdefer result.deinit(self.allocator);
 
         var state: f32 = activation;
@@ -134,7 +134,7 @@ pub const Decoder = struct {
 
 /// Test the decoder
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

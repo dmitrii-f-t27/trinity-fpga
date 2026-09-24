@@ -1,0 +1,608 @@
+{
+  "differed_provenance_only": 3,
+  "exit_zero": 45,
+  "failed_by_reason": {
+    "missing_input": 7,
+    "script_error": 1
+  },
+  "generated_by": "rerun_dependency_free.py",
+  "python": "3.14.6",
+  "records_differed": 4,
+  "records_identical": 9,
+  "records_new": 0,
+  "scripts": [
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "bennett_theory.py",
+      "seconds": 1.0
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "bitfair_composition.py",
+      "seconds": 3.7
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignA_books.py",
+      "seconds": 4.4
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [
+        "campaignA_stats.json"
+      ],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignA_stats.py",
+      "seconds": 3.5
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignB_books.py",
+      "seconds": 3.5
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [
+        "campaignB_selector.json"
+      ],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignB_selector.py",
+      "seconds": 19.5
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [
+        "campaignB_stats.json"
+      ],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignB_stats.py",
+      "seconds": 3.4
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [
+        "campaignC_ratio.json"
+      ],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignC_ratio.py",
+      "seconds": 1.8
+    },
+    {
+      "differed": {
+        "campaignC_stats.json": {
+          "comparable": true,
+          "differing": 7,
+          "leaves": 303,
+          "provenance_only": true,
+          "substantive": []
+        }
+      },
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignC_stats.py",
+      "seconds": 1.0
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignD_bins15.py",
+      "seconds": 1.0
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignD_klnoise.py",
+      "seconds": 1.6
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [
+        "campaignD_rank.json"
+      ],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignD_rank.py",
+      "seconds": 2.2
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [
+        "campaignD_spearman.json"
+      ],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignD_spearman.py",
+      "seconds": 0.3
+    },
+    {
+      "differed": {
+        "campaignE_frozen.json": {
+          "comparable": true,
+          "differing": 10,
+          "leaves": 51,
+          "provenance_only": false,
+          "substantive": [
+            "/amended_utc",
+            "/amendment_P4/claim",
+            "/amendment_P4/information_state",
+            "/amendment_P4/registered_utc",
+            "/amendment_P4/scored_by",
+            "/per_model/gptneo125m/L",
+            "/per_model/gptneo125m/MXFP4",
+            "/per_model/gptneo125m/fp32",
+            "/per_model/gptneo125m/pred_pct",
+            "/per_model/gptneo125m/ruler_src"
+          ]
+        }
+      },
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "campaignE_predict.py",
+      "seconds": 0.1
+    },
+    {
+      "differed": {},
+      "error": "FileNotFoundError: [Errno 2] No such file or directory: './campaignE_score.json'",
+      "identical": [],
+      "new": [],
+      "rc": 1,
+      "reason": "missing_input",
+      "script": "campaignE_transfer.py",
+      "seconds": 0.3
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "crossover.py",
+      "seconds": 3.3
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "design_robustness.py",
+      "seconds": 79.6
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "design_space.py",
+      "seconds": 53.8
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "escape_theory.py",
+      "seconds": 137.5
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "exact_optimum.py",
+      "seconds": 55.8
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "falsify_boundary.py",
+      "seconds": 0.8
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "finite_n_theory.py",
+      "seconds": 1.8
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "flatness.py",
+      "seconds": 0.2
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "frontier_probe.py",
+      "seconds": 0.1
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "global_optimality.py",
+      "seconds": 70.4
+    },
+    {
+      "differed": {},
+      "error": "no checkpoints present yet",
+      "identical": [],
+      "new": [],
+      "rc": 1,
+      "reason": "missing_input",
+      "script": "importance_theory.py",
+      "seconds": 54.0
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "kurtosis_crossover.py",
+      "seconds": 1.2
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [
+        "lineB_prereg.json"
+      ],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "lineB_prereg.py",
+      "seconds": 0.1
+    },
+    {
+      "differed": {
+        "lineB_stats.json": {
+          "comparable": true,
+          "differing": 7,
+          "leaves": 482,
+          "provenance_only": true,
+          "substantive": []
+        }
+      },
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "lineB_seed_vs_distance.py",
+      "seconds": 3.8
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "lineB_test.py",
+      "seconds": 1.3
+    },
+    {
+      "differed": {},
+      "error": "missing ./lineC_gptneo.json -- a pre-registered checkpoint may not be dropped after the fact",
+      "identical": [],
+      "new": [],
+      "rc": 1,
+      "reason": "missing_input",
+      "script": "lineC_stats.py",
+      "seconds": 1.2
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [
+        "lineD_predict.json"
+      ],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "lineD_predict.py",
+      "seconds": 1.2
+    },
+    {
+      "differed": {},
+      "error": "FileNotFoundError: [Errno 2] No such file or directory: './loguniform_x_smollm2.npy'",
+      "identical": [],
+      "new": [],
+      "rc": 1,
+      "reason": "missing_input",
+      "script": "loguniform_rotation.py",
+      "seconds": 1.1
+    },
+    {
+      "differed": {},
+      "error": "FileNotFoundError: [Errno 2] No such file or directory: './loguniform_x_smollm2.npy'",
+      "identical": [],
+      "new": [],
+      "rc": 1,
+      "reason": "missing_input",
+      "script": "loguniform_theory.py",
+      "seconds": 0.6
+    },
+    {
+      "differed": {},
+      "error": "FileNotFoundError: [Errno 2] No such file or directory: './loguniform_x_smollm2.npy'",
+      "identical": [],
+      "new": [],
+      "rc": 1,
+      "reason": "missing_input",
+      "script": "loguniform_verdict.py",
+      "seconds": 1.3
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "mismatch_detector.py",
+      "seconds": 0.7
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "mismatch_enumeration.py",
+      "seconds": 0.6
+    },
+    {
+      "differed": {
+        "onefit_stats.json": {
+          "comparable": true,
+          "differing": 7,
+          "leaves": 888,
+          "provenance_only": true,
+          "substantive": []
+        }
+      },
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "onefit_stats.py",
+      "seconds": 1.2
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "predict_inversion.py",
+      "seconds": 19.4
+    },
+    {
+      "differed": {},
+      "error": "no checkpoints present yet",
+      "identical": [],
+      "new": [],
+      "rc": 1,
+      "reason": "missing_input",
+      "script": "real_weights_escape.py",
+      "seconds": 57.5
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "router6.py",
+      "seconds": 2.1
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "scale_axis_probe.py",
+      "seconds": 3.7
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "scale_theory.py",
+      "seconds": 8.7
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "selection_vs_composition.py",
+      "seconds": 0.9
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "test_own_prediction.py",
+      "seconds": 3.4
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "third_mismatch.py",
+      "seconds": 1.8
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "two_level_scale.py",
+      "seconds": 23.2
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "u_surface_collate.py",
+      "seconds": 0.1
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [
+        "u_surface_verdict.json"
+      ],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "u_surface_verdict.py",
+      "seconds": 0.0
+    },
+    {
+      "differed": {},
+      "error": "TypeError: list indices must be integers or slices, not str",
+      "identical": [],
+      "new": [],
+      "rc": 1,
+      "reason": "script_error",
+      "script": "u_verdict.py",
+      "seconds": 0.1
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "universality_check.py",
+      "seconds": 61.7
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "verify_grid_optimality.py",
+      "seconds": 1.3
+    },
+    {
+      "differed": {},
+      "error": "",
+      "identical": [],
+      "new": [],
+      "rc": 0,
+      "reason": "",
+      "script": "verify_phase_theorem.py",
+      "seconds": 0.6
+    }
+  ],
+  "scripts_run": 53,
+  "timeout_seconds": 180
+}

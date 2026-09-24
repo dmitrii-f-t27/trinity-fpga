@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const tri_time = @import("tri_time");
 /// BATCH GENERATOR - within notand VIBEE
 /// withtoand: 10-50x by withinnotand with bywithbeforein notand
 pub const ModuleDef = struct {
@@ -15,6 +16,7 @@ pub const DomainConfig = struct {
 
 /// Generates .tri withandtoand
 pub fn generateSpec(allocator: std.mem.Allocator, domain: []const u8, module: ModuleDef, version: u32) ![]const u8 {
+    _ = domain;
     const v1 = version / 100;
     const v2 = (version / 10) % 10;
     const v3 = version % 10;
@@ -95,7 +97,7 @@ pub fn generateZig(allocator: std.mem.Allocator, module: ModuleDef, version: u32
         \\    return .{{
         \\        .status = "initialized",
         \\        .data = "{{}}",
-        \\        .timestamp = std.time.timestamp(),
+        \\        .timestamp = tri_time.timestamp(),
         \\    }};
         \\}}
         \\
@@ -167,14 +169,13 @@ pub fn generateDomain(allocator: std.mem.Allocator, config: DomainConfig) !void 
     }
 }
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+pub fn main(init: std.process.Init.Minimal) !void {
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
-
+    const args = try init.args.toSlice(allocator);
+    defer allocator.free(args);
     if (args.len < 2) {
         std.debug.print("Usage: batch_gen <config.json>\n", .{});
         return;

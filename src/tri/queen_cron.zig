@@ -9,6 +9,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
+const tri_time = @import("tri_time");
+const tri_mutex = @import("tri_mutex");
 const Allocator = std.mem.Allocator;
 const qt = @import("queen_types.zig");
 const ofc = @import("queen_ofc.zig");
@@ -261,7 +263,7 @@ pub const TamagotchiState = struct {
 // GLOBAL STATE (protected by mutex)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-var cron_mutex = std.Thread.Mutex{};
+var cron_mutex = tri_mutex.Mutex{};
 var cron_state: CronState = .{
     .schedule = undefined,
     .tamagotchi = .{},
@@ -305,7 +307,7 @@ pub fn startTamagotchiCron(allocator: Allocator) !void {
     // Spawn cron thread
     const thread = try std.Thread.spawn(.{}, cronLoop, .{});
     cron_state.thread_handle = thread;
-    cron_state.tamagotchi.last_update = std.time.timestamp();
+    cron_state.tamagotchi.last_update = tri_time.timestamp();
 }
 
 /// Stop Tamagotchi cron daemon
@@ -335,7 +337,7 @@ pub fn getCronStatus() CronStatus {
     defer cron_mutex.unlock();
 
     const next_run = if (cron_state.initialized)
-        cron_state.schedule.nextRun(std.time.timestamp())
+        cron_state.schedule.nextRun(tri_time.timestamp())
     else
         0;
 
@@ -398,26 +400,26 @@ pub fn generateTamagotchiReport(allocator: Allocator) ![]const u8 {
         // Health
         health_emoji,    health_bar,
         tama.health,
-        // Hunger
+            // Hunger
             if (tama.hunger >= 70) qt.E_CHECK else if (tama.hunger >= 30) qt.E_WRENCH else qt.E_SIREN,
         hunger_bar,      tama.hunger,
         // Happiness
         mood_emoji,      happy_bar,
         tama.happiness,
-        // Discipline
+            // Discipline
          qt.E_GEAR,
         disc_bar,        tama.discipline,
         // Rest
         qt.E_TIMER,      rest_bar,
         tama.rest,
-        // Arousal
+            // Arousal
               qt.E_BOLT,
         tama.arousal,
-        // Stats
+            // Stats
            qt.E_CHART,
         tama.age_hours,  tama.feed_count,
         tama.play_count,
-        // Message
+            // Message
         qt.E_BRAIN,
         stage_message,
     });
@@ -433,7 +435,7 @@ pub fn feedTamagotchi() !void {
     cron_state.tamagotchi.hunger = @min(100, cron_state.tamagotchi.hunger + 20);
     cron_state.tamagotchi.happiness = @min(100, cron_state.tamagotchi.happiness + 5);
     cron_state.tamagotchi.feed_count += 1;
-    cron_state.tamagotchi.last_update = std.time.timestamp();
+    cron_state.tamagotchi.last_update = tri_time.timestamp();
 
     try saveTamagotchiState(&cron_state.tamagotchi);
 }
@@ -448,7 +450,7 @@ pub fn playTamagotchi() !void {
     cron_state.tamagotchi.happiness = @min(100, cron_state.tamagotchi.happiness + 15);
     cron_state.tamagotchi.rest = if (cron_state.tamagotchi.rest >= 10) cron_state.tamagotchi.rest - 10 else 0;
     cron_state.tamagotchi.play_count += 1;
-    cron_state.tamagotchi.last_update = std.time.timestamp();
+    cron_state.tamagotchi.last_update = tri_time.timestamp();
 
     try saveTamagotchiState(&cron_state.tamagotchi);
 }
@@ -462,7 +464,7 @@ pub fn disciplineTamagotchi() !void {
 
     cron_state.tamagotchi.discipline = @min(100, cron_state.tamagotchi.discipline + 15);
     cron_state.tamagotchi.happiness = if (cron_state.tamagotchi.happiness >= 10) cron_state.tamagotchi.happiness - 10 else 0;
-    cron_state.tamagotchi.last_update = std.time.timestamp();
+    cron_state.tamagotchi.last_update = tri_time.timestamp();
 
     try saveTamagotchiState(&cron_state.tamagotchi);
 }
@@ -476,7 +478,7 @@ pub fn restTamagotchi() !void {
 
     cron_state.tamagotchi.rest = @min(100, cron_state.tamagotchi.rest + 25);
     cron_state.tamagotchi.health = @min(100, cron_state.tamagotchi.health + 5);
-    cron_state.tamagotchi.last_update = std.time.timestamp();
+    cron_state.tamagotchi.last_update = tri_time.timestamp();
 
     try saveTamagotchiState(&cron_state.tamagotchi);
 }
@@ -498,7 +500,7 @@ fn cronLoop() void {
             if (should_stop) break;
         }
 
-        const now = std.time.timestamp();
+        const now = tri_time.timestamp();
 
         // Check if schedule matches
         cron_mutex.lock();
@@ -529,7 +531,7 @@ fn cronLoop() void {
         }
 
         // Sleep until next check
-        std.Thread.sleep(interval_ns);
+        tri_time.sleep(interval_ns);
     }
 }
 
@@ -1128,7 +1130,7 @@ test "queen_cron — CronStatus job_id field" {
 
 test "queen_cron — CronStatus timestamps" {
     var status = CronStatus{};
-    const ts = std.time.timestamp();
+    const ts = tri_time.timestamp();
 
     status.next_run = ts;
     status.last_run = ts - 3600;

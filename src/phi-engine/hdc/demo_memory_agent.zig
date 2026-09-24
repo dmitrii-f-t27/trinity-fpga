@@ -6,6 +6,7 @@
 //! φ² + 1/φ² = 3 | TRINITY
 
 const std = @import("std");
+const tri_time = @import("tri_time");
 const hdc = @import("hdc_core.zig");
 const gw = @import("gridworld.zig");
 const rlm = @import("rl_agent_memory.zig");
@@ -82,7 +83,7 @@ pub fn runDemo(allocator: std.mem.Allocator, config: DemoConfig) !void {
     var consecutive_wins: u64 = 0;
     var max_consecutive_wins: u64 = 0;
 
-    const start_time = std.time.milliTimestamp();
+    const start_time = tri_time.milliTimestamp();
 
     for (0..config.num_episodes) |episode| {
         var state = env.reset();
@@ -147,7 +148,7 @@ pub fn runDemo(allocator: std.mem.Allocator, config: DemoConfig) !void {
         }
     }
 
-    const end_time = std.time.milliTimestamp();
+    const end_time = tri_time.milliTimestamp();
     const duration_ms = end_time - start_time;
 
     print("─────────────────────────────────────────────────────────────\n", .{});
@@ -214,7 +215,7 @@ pub fn runDemo(allocator: std.mem.Allocator, config: DemoConfig) !void {
 
 /// to login (to for andwithby file)
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

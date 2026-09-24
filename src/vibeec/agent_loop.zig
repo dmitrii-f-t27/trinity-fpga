@@ -127,7 +127,7 @@ pub const AgentLoop = struct {
             .router = router,
             .dao_manager = dao.DAOManager.init(allocator),
             .config = config,
-            .history = .{},
+            .history = .empty,
         };
         return self;
     }
@@ -364,7 +364,7 @@ pub const AgentLoop = struct {
 // ============================================================================
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
