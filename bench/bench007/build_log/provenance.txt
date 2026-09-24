@@ -1,0 +1,33 @@
+bench007_probe_ax7203.bit -- how it was built (2026-09-24, cloud container, not the CI runner)
+
+image      regymm/openxc7 sha256:eced1cdd4727549f2d983328e0cf170fb6f6f67d87f19b2bf24365163368c70c   yosys 0.62 (7326bb7d6), nextpnr-xilinx 45a986b
+part       xc7a200tfbg484-2   chipdb generated in the same image (bbaexport.py + bbasm)
+yosys      read_verilog rtl/bench_meter.v rtl/bench007_probe_ax7203.v;
+           synth_xilinx -flatten -abc9 -arch xc7 -top bench007_probe_ax7203; write_json probe.json
+nextpnr    nextpnr-xilinx --chipdb xc7a200tfbg484-2.bin --xdc rtl/bench007_probe_ax7203.xdc
+             --json probe.json --fasm probe.fasm --freq 50 --seed 1 --router router1
+           exit 0; no --timing-allow-fail; log = nextpnr.log (it ends at "Running post-routing
+           legalisation..." -- that is where this nextpnr-xilinx build stops printing; exit status
+           and the written fasm are the completion signal)
+bitgen     fasm2frames --db-root .../prjxray-db/artix7 --part xc7a200tfbg484-2 probe.fasm probe.frames
+           xc7frames2bit --part_file .../xc7a200tfbg484-2/part.yaml --part_name xc7a200tfbg484-2
+             --frm_file probe.frames --output_file bench007_probe_ax7203.bit
+
+timing     post-route: ref_clk 189.18 MHz (target 100.00), dut_clk 176.80 MHz (target 100.00),
+           clk200 1221.00 MHz (target 200.00); all PASS; no clock at the --freq 50 fallback
+resources  953 SLICE_LUTX, 625 SLICE_FFX, 83 CARRY4, 3 BUFGCTRL, 1 STARTUP
+
+sha256
+  probe.json  408d424bbdedc5252c0fb88f4ea6511132317a0f6104c585c416d47ec6c4fb11
+  probe.fasm  6030e2bb016e654e00a5eb136637a46428a1de3feb39508e96b3bd8ceb71c50e
+  .bit        7d0691f9961d753d4e85f45137be8d48a3871ecc5dff1bc8520c482d805da86a
+
+bitstream header: generator xc7frames2bit, part xc7a200tfbg484-2, IDCODE 0x03636093, sync word at
+byte 164 -- same structure as artifacts/bitstreams/gf8_clean_ax7203.bit in gHashTag/trinity-fpga.
+Reproducibility: an earlier build of the same design (identical logic, source comments
+differed) placed to a different bitstream with ref_clk 178.19 / dut_clk 152.74 MHz, and a
+second nextpnr run on THAT netlist reproduced its fasm byte for byte. So: same netlist + seed
+-> same bitstream; a text-only source change renames cells and moves the placement. Quote
+the Fmax of the build you flashed, from its own log -- this file's log.
+
+NOT yet loaded on hardware.
