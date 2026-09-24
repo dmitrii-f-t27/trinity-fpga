@@ -78,9 +78,11 @@ def sourced(v):
     data literal that starts with the paper's digits, so rounding is not counted
     as a missing source.
 
-    A bare substring test is not a source test: it matches 0.145 inside 0.1456
-    and inside 10.1452, so a digit that happens to sit next to other digits reads
-    as traced. Require a digit boundary on both sides."""
+    A bare substring test is not a source test: it matches 145 inside 1456 and
+    0.145 inside 10.1452, so digits that sit inside a longer number read as
+    traced. Require a digit boundary on both sides. The one extension still
+    accepted is the rounding rule above, for decimals only: 0.145 is sourced by
+    0.1456, never by 10.1452."""
     if re.search(r'(?<![\d.])' + re.escape(v) + r'(?![\d])', blob): return True
     if "." in v:
         return re.search(r'(?<![\d.])' + re.escape(v) + r'\d', blob) is not None
