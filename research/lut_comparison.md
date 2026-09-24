@@ -73,7 +73,7 @@ extrapolations from a measured neighbor in the same family.
 | **GF4** `[1\|1\|2]` bias=0 | 4 | ~50 `[estimate]` | 0 + 0 DSP | ~20 `[estimate]` | algebraic | Exhaustive 6/6 HW-verified; ADD RTL tiny (2-bit datapath) |
 | **GF8** `[1\|3\|4]` bias=3 | 8 | ~80 `[estimate]` | ~60 + 0 DSP | ~30 `[estimate]` | algebraic | Exhaustive 7/7 HW-verified; single-CARRY4 chain |
 | **GF12** `[1\|4\|7]` bias=7 | 12 | ~110 `[estimate]` | ~80 + 0 DSP | ~40 `[estimate]` | algebraic | SW-exhaustive 16 777 216 pairs; HW 7/7 |
-| **GF16** `[1\|6\|9]` bias=31 | 16 | **118** `[measured]` | **94 + 1 DSP** `[measured]` | ~50 `[estimate]` | algebraic | The catalog's flagship; 10/10 HW; GF16-NaN silicon case study |
+| **GF16** `[1\|6\|9]` bias=31 | 16 | **118** `[measured]`, deprecated `gf16_add_top` | **94 + 1 DSP** `[measured]` | ~50 `[estimate]` | algebraic | The catalog's flagship; 10/10 HW; GF16-NaN silicon case study |
 | **GF20** `[1\|7\|12]` bias=63 | 20 | ~180 `[estimate]` | ~140 + 1 DSP | ~70 `[estimate]` | algebraic | SW-verified 1 M random; HW pending |
 | **GF24** `[1\|9\|14]` bias=255 | 24 | ~300 `[estimate]` | ~250 + 1 DSP | ~90 `[estimate]` | algebraic | SW-only (reference model impractical at 525-bit) |
 | **GF32** `[1\|12\|19]` bias=2047 | 32 | ~600 `[estimate]` | ~500 + 1 DSP | ~120 `[estimate]` | algebraic | Tier-E 64-vector HW proof; full-width reference TBD |
@@ -140,15 +140,16 @@ suite) against adder LUT cost:
 ```
 
 \* `gf16_add_top`, which `LUT_COMPARISON_MEASURED.md` records as deprecated, with
-no denormal or NaN/Inf handling. The conformant `gf_adder_param` is counted there
-at 486 LUT (491 with `-flatten`), but under `-nocarry`, not this document's flow,
-so it is not placed on this axis and no ratio is taken against it.
+no denormal or NaN/Inf handling. The current `gf_adder_param`, which has both, is
+counted there at 486 LUT (491 with `-flatten`), but under `-nocarry`, not this
+document's flow, so it is not placed on this axis.
 
 **Reading:** GF16 occupies a favorable cost/accuracy corner (sub-2e-3 error at
-~118 LUT, the deprecated `gf16_add_top`\*). Posit16 matches its accuracy at ~12×
-that adder's LUT cost (but with tapered
-dynamic range — see the accuracy benchmark's dynamic_range suite, where posit's
-tapered precision shows). MXFP8 is cheap but its 8-bit width shows. Takum16's
+~118 LUT, the deprecated `gf16_add_top`\*). Posit16 matches its accuracy at higher
+adder cost (but with tapered dynamic range — see the accuracy benchmark's
+dynamic_range suite, where posit's tapered precision shows); its ~1500 LUT is
+closed-flow Vivado literature, not directly comparable to this document's
+openXC7 counts (§2). MXFP8 is cheap but its 8-bit width shows. Takum16's
 accuracy is competitive but its decode is BRAM-bound, not LUT-bound — a different
 resource axis entirely.
 
