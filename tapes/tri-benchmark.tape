@@ -1,5 +1,5 @@
 # VHS tape for tri benchmark
-# Key demo: benchmark suite for addressing speed objections (the old "63 tok/s" caption is withdrawn: tri benchmark prints no tok/s figure)
+# Key demo: caption withdrawn (was "63 tok/s"): tri benchmark is not a registered tri command (it falls through to chat), and tri bench prints no tok/s figure
 
 Output tri-benchmark.gif
 Set FontSize 26
