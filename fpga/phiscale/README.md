@@ -66,8 +66,8 @@ attached to load it into.
   area only. The frequencies measured since for the φ and multiplier arms are
   on iCE40 HX8K, a fabric with no DSP blocks (`FMAX.md`, `PIPELINED.md`), and
   do not carry over to xc7. This note covers `scale_mul` and `scale_phi` only,
-  not the later ladder runs; reading it as covering them caused a false
-  withdrawal, since retracted
+  not the later ladder runs; reading it as covering them led to a withdrawal
+  that was later retracted
   (`research/frontier/WITHDRAWAL_FMAX_UNSOURCED_2026-08-10.md`).
 - **The built direction is not the one deployed.** Real layer scales are below
   one — `α = mean|W| ≈ 0.02` gives `k = round(log_φ α) ≈ −8` — so a deployed
