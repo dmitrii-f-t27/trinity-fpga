@@ -35,7 +35,7 @@ The golden ratio connects to ternary systems! This isn't coincidence — it's fu
 
 ## Real-world performance
 
-- **63 tok/s @ 1W** on FPGA (QMTech XC7A100T, $30)
+- ~~**63 tok/s @ 1W** on FPGA (QMTech XC7A100T, $30)~~ withdrawn: ~34 tok/s measured at 50 MHz, 63 tok/s was a 92 MHz projection, and power was not measured (`gHashTag/trinity/README.md`)
 - **CPU inference** without GPU
 - **SIMD 17x+** speedup, **JIT 22x+** speedup
 
