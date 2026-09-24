@@ -68,7 +68,7 @@ using hyperdimensional computing mathematics.
 
 ![tri-benchmark](https://gHashTag.github.io/trinity/recordings/tri-benchmark.gif)
 
-~~**63 tok/s**~~ (withdrawn: `tri benchmark` prints no tok/s figure, see `runBenchCommand` in `src/tri/tri_commands.zig`; 63 tok/s was the FPGA LLM's projection at 92 MHz, measured ~34 tok/s at 50 MHz per `gHashTag/trinity/README.md`) — Addresses performance objections about Trinity's speed.
+~~**63 tok/s**~~ (withdrawn: `tri benchmark` is not a registered command and falls through to chat, because `parseCommand` in `src/tri/tri_utils.zig` returns `.none` for it; `tri bench` prints a TODO (`runBenchCommandAsync`) and the legacy `runBenchCommand` prints three fixed VSA ops/ms values, both in `src/tri/tri_commands.zig`, and neither prints a tok/s figure. 63 tok/s was the FPGA LLM's projection at 92 MHz; `gHashTag/trinity/README.md` gives ~34 tok/s at 50 MHz) — Addresses performance objections about Trinity's speed.
 
 **Results:**
 - VSA operations: 17x+ speedup via SIMD
