@@ -6,6 +6,9 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
+const tri_rand = @import("tri_rand");
+const tri_io = @import("tri_io");
+const tri_time = @import("tri_time");
 const crypto = @import("crypto.zig");
 const protocol = @import("protocol.zig");
 const storage_mod = @import("storage.zig");
@@ -148,7 +151,7 @@ pub const ShardManager = struct {
 
         // 5. Encrypt entire compressed payload
         var nonce: [12]u8 = undefined;
-        std.crypto.random.bytes(&nonce);
+        tri_rand.random().bytes(&nonce);
         const ciphertext = try self.allocator.alloc(u8, compressed_data.len);
         defer self.allocator.free(ciphertext);
         var tag: [16]u8 = undefined;
@@ -302,7 +305,7 @@ pub const ShardManager = struct {
             .shard_size = @intCast(shard_size),
             .encryption_nonce = nonce,
             .encryption_tag = tag,
-            .created_at = std.time.timestamp(),
+            .created_at = tri_time.timestamp(),
             .parity_hash = parity_hash,
             .rs_data_shards = rs_data_shards,
             .rs_parity_shards = rs_parity_shards,
@@ -347,7 +350,7 @@ pub const ShardManager = struct {
         };
 
         // Padded shards must live until reassembly (after RS decode block)
-        var rs_padded_shards = std.ArrayListUnmanaged([]u8){};
+        var rs_padded_shards: std.ArrayListUnmanaged([]u8) = .empty;
         defer {
             for (rs_padded_shards.items) |p| self.allocator.free(p);
             rs_padded_shards.deinit(self.allocator);
@@ -680,23 +683,48 @@ test "shard distribution across peers" {
 test "5-node simulation with disk persistence" {
     const allocator = std.testing.allocator;
 
-    // Create 5 temp directories for 5 nodes
-    const base_dir = "/tmp/trinity_test_5node";
+    // Create 5 temp directories for 5 nodes, under a directory unique to THIS
+    // run.
+    //
+    // This used to be the fixed path `/tmp/trinity_test_5node`, and the test
+    // deleteTree's it both on entry ("clean up from previous run") and on
+    // exit. Two copies of the test running at once -- which happens whenever
+    // two `zig build test` invocations overlap -- means one instance deletes
+    // the other's directories mid-run, and the loser fails with
+    // `failed to persist shard to disk: error.FileNotFound`. Measured at 4
+    // failures in 20 runs while another build was in flight.
+    //
+    // A unique suffix makes the test hermetic: no shared path, so no
+    // collision, and the entry-time deleteTree becomes unnecessary rather
+    // than dangerous.
+    const suffix = tri_rand.random().int(u64);
+    const base_dir = try std.fmt.allocPrint(
+        allocator,
+        "/tmp/trinity_test_5node_{x}",
+        .{suffix},
+    );
+    defer allocator.free(base_dir);
+
+    var dir_bufs: [5][]u8 = undefined;
+    var made: usize = 0;
+    defer for (dir_bufs[0..made]) |d| allocator.free(d);
+    for (0..5) |i| {
+        dir_bufs[i] = try std.fmt.allocPrint(allocator, "{s}/node{d}", .{ base_dir, i });
+        made += 1;
+    }
     const dirs = [_][]const u8{
-        "/tmp/trinity_test_5node/node0",
-        "/tmp/trinity_test_5node/node1",
-        "/tmp/trinity_test_5node/node2",
-        "/tmp/trinity_test_5node/node3",
-        "/tmp/trinity_test_5node/node4",
+        dir_bufs[0], dir_bufs[1], dir_bufs[2], dir_bufs[3], dir_bufs[4],
     };
 
+    const io = tri_io.get();
+
     // Clean up from previous run
-    std.fs.cwd().deleteTree(base_dir) catch |err| {
+    std.Io.Dir.cwd().deleteTree(io, base_dir) catch |err| {
         std.log.debug("shard_manager: pre-test cleanup failed: {}", .{err});
     };
 
     // Create base directory first
-    std.fs.cwd().makePath(base_dir) catch |err| {
+    std.Io.Dir.cwd().createDirPath(io, base_dir) catch |err| {
         std.log.debug("shard_manager: failed to create base dir: {}", .{err});
         return error.SetupFailed;
     };
@@ -704,17 +732,17 @@ test "5-node simulation with disk persistence" {
     for (dirs) |dir| {
         // Use the base directory handle for creating subdirectories
         const basename = std.fs.path.basename(dir);
-        var base_dir_handle = std.fs.cwd().openDir(base_dir, .{}) catch {
+        var base_dir_handle = std.Io.Dir.cwd().openDir(io, base_dir, .{}) catch {
             std.log.debug("shard_manager: failed to open base dir", .{});
             return error.SetupFailed;
         };
-        defer base_dir_handle.close();
-        base_dir_handle.makePath(basename) catch |err| {
+        defer base_dir_handle.close(io);
+        base_dir_handle.createDirPath(io, basename) catch |err| {
             std.log.debug("shard_manager: failed to create node dir {s}: {}", .{ basename, err });
             return error.SetupFailed;
         };
     }
-    defer std.fs.cwd().deleteTree(base_dir) catch |err| {
+    defer std.Io.Dir.cwd().deleteTree(io, base_dir) catch |err| {
         std.log.debug("shard_manager: post-test cleanup failed: {}", .{err});
     };
 

@@ -11,6 +11,7 @@
 
 const std = @import("std");
 
+const tri_time = @import("tri_time");
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -472,7 +473,7 @@ pub const ANALOGY_TESTS = [_]AnalogyTest{
 // ═══════════════════════════════════════════════════════════════════════════════
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -501,7 +502,7 @@ pub fn main() !void {
     const embedding_path = "data/models/embeddings/glove.6B.300d.txt";
     const max_words: usize = 400_000;
 
-    var timer = try std.time.Timer.start();
+    var timer = try tri_time.Timer.start();
     const word_count = engine.loadFromFile(embedding_path, max_words) catch |err| {
         print("  ERROR loading embeddings: {}\n", .{err});
         print("  Make sure {s} exists\n", .{embedding_path});
@@ -601,7 +602,7 @@ pub fn main() !void {
     print("═══════════════════════════════════════════════════════════════\n\n", .{});
 
     const iterations: usize = 100;
-    timer = try std.time.Timer.start();
+    timer = try tri_time.Timer.start();
 
     for (0..iterations) |_| {
         _ = engine.analogy("man", "king", "woman") catch continue;

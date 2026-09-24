@@ -6,6 +6,7 @@
 
 const std = @import("std");
 
+const tri_time = @import("tri_time");
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -241,7 +242,7 @@ pub const PipelineState = struct {
             .version = version,
             .phase = .tvc_gate, // Start at TVC Gate (Link 0)
             .status = .not_started,
-            .started_at = std.time.timestamp(),
+            .started_at = tri_time.timestamp(),
             .results = results,
             .improvement_rate = 0.0,
             .task_description = task,
@@ -475,7 +476,7 @@ test "Improvement rate calculation" {
 }
 
 test "PipelineState initialization" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

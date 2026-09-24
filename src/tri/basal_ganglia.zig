@@ -9,6 +9,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
+const tri_time = @import("tri_time");
+const tri_mutex = @import("tri_mutex");
 const Allocator = std.mem.Allocator;
 const qt = @import("queen_types.zig");
 
@@ -112,7 +114,7 @@ pub fn health() CellHealth {
     return CellHealth{
         .status = .healthy,
         .cycle = 0,
-        .last_check = std.time.timestamp(),
+        .last_check = tri_time.timestamp(),
     };
 }
 
@@ -147,7 +149,7 @@ pub const TaskClaim = struct {
 
     pub fn isValid(self: *const TaskClaim) bool {
         if (self.status != .active) return false;
-        const now_ms = std.time.timestamp() * 1000;
+        const now_ms = tri_time.timestamp() * 1000;
         const age_ms = @as(u64, @intCast(now_ms - self.claimed_at));
         if (age_ms > self.ttl_ms) return false;
         const heartbeat_age_ms = @as(u64, @intCast(now_ms - self.last_heartbeat));
@@ -158,12 +160,12 @@ pub const TaskClaim = struct {
 
 pub const Registry = struct {
     claims: std.StringHashMap(TaskClaim),
-    mutex: std.Thread.Mutex,
+    mutex: tri_mutex.Mutex,
 
     pub fn init(allocator: std.mem.Allocator) Registry {
         return Registry{
             .claims = std.StringHashMap(TaskClaim).init(allocator),
-            .mutex = std.Thread.Mutex{},
+            .mutex = tri_mutex.Mutex{},
         };
     }
 
@@ -181,7 +183,7 @@ pub const Registry = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
 
-        const now_ms = std.time.timestamp() * 1000;
+        const now_ms = tri_time.timestamp() * 1000;
 
         // Check if already claimed and valid
         if (self.claims.get(task_id)) |existing| {
@@ -219,7 +221,7 @@ pub const Registry = struct {
         if (self.claims.getEntry(task_id)) |entry| {
             const entry_claim = &entry.value_ptr.*;
             if (std.mem.eql(u8, entry_claim.agent_id, agent_id) and entry_claim.isValid()) {
-                entry_claim.last_heartbeat = std.time.timestamp() * 1000;
+                entry_claim.last_heartbeat = tri_time.timestamp() * 1000;
                 return true;
             }
         }
@@ -234,7 +236,7 @@ pub const Registry = struct {
             const entry_claim = &entry.value_ptr.*;
             if (std.mem.eql(u8, entry_claim.agent_id, agent_id) and entry_claim.isValid()) {
                 entry_claim.status = .completed;
-                entry_claim.completed_at = std.time.timestamp() * 1000;
+                entry_claim.completed_at = tri_time.timestamp() * 1000;
                 return true;
             }
         }
@@ -249,7 +251,7 @@ pub const Registry = struct {
             const entry_claim = &entry.value_ptr.*;
             if (std.mem.eql(u8, entry_claim.agent_id, agent_id) and entry_claim.isValid()) {
                 entry_claim.status = .abandoned;
-                entry_claim.completed_at = std.time.timestamp() * 1000;
+                entry_claim.completed_at = tri_time.timestamp() * 1000;
                 return true;
             }
         }
@@ -347,7 +349,7 @@ pub const ClaimInfo = struct {
 
 // Global singleton
 var global_registry: ?*Registry = null;
-var global_mutex = std.Thread.Mutex{};
+var global_mutex = tri_mutex.Mutex{};
 
 pub fn getGlobal(allocator: std.mem.Allocator) !*Registry {
     global_mutex.lock();
@@ -715,7 +717,7 @@ test "basal_ganglia — CellHealth custom values" {
 // ═══════════════════════════════════════════════════════════════════
 
 test "basal_ganglia — TaskClaim expired by TTL" {
-    const now_ms = std.time.timestamp() * 1000;
+    const now_ms = tri_time.timestamp() * 1000;
     var claim = TaskClaim{
         .task_id = "test-task",
         .agent_id = "agent-1",
@@ -730,7 +732,7 @@ test "basal_ganglia — TaskClaim expired by TTL" {
 }
 
 test "basal_ganglia — TaskClaim expired by heartbeat" {
-    const now_ms = std.time.timestamp() * 1000;
+    const now_ms = tri_time.timestamp() * 1000;
     var claim = TaskClaim{
         .task_id = "test-task",
         .agent_id = "agent-1",
@@ -745,7 +747,7 @@ test "basal_ganglia — TaskClaim expired by heartbeat" {
 }
 
 test "basal_ganglia — TaskClaim completed is not valid" {
-    const now_ms = std.time.timestamp() * 1000;
+    const now_ms = tri_time.timestamp() * 1000;
     var claim = TaskClaim{
         .task_id = "test-task",
         .agent_id = "agent-1",
@@ -760,7 +762,7 @@ test "basal_ganglia — TaskClaim completed is not valid" {
 }
 
 test "basal_ganglia — TaskClaim valid active claim" {
-    const now_ms = std.time.timestamp() * 1000;
+    const now_ms = tri_time.timestamp() * 1000;
     var claim = TaskClaim{
         .task_id = "test-task",
         .agent_id = "agent-1",

@@ -10,9 +10,77 @@ about the tree, and nothing checked it.
 Sixteen claims were withdrawn during this work and three gates were added,
 renamed or moved. A path in prose does not update itself.
 """
-import re, pathlib, sys
+import os, re, pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+
+
+def exists(p):
+    """`Path.exists()` that cannot abort the run.
+
+    A document naming an absolute path -- `/root/bitnet_h100_metrics.json` is
+    the one in this tree -- makes `base / p` collapse to that absolute path,
+    because joining with an absolute right operand discards the left. Stat-ing
+    it is then a stat of somebody's home directory. pathlib ignores ENOENT and
+    ENOTDIR but not EACCES, so on a machine where `/root` exists and is 0700 --
+    every CI runner -- this raised PermissionError and killed the checker
+    before it reported anything.
+
+    On a developer Mac `/root` does not exist, so `.exists()` answered False and
+    the whole gate looked fine. Unreadable is not the same as absent, but for a
+    checker asking "does this repository contain the file it names" the answer
+    is False either way.
+    """
+    try:
+        if not p.exists():
+            return False
+    except OSError:
+        return False
+    return _case_exact(p)
+
+
+_LISTING = {}
+
+
+def _case_exact(p):
+    """Does every component of `p` match the case actually stored on disk?
+
+    `Path.exists()` answers a question about the HOST FILESYSTEM, and macOS
+    answers it case-insensitively while every Linux runner does not. One
+    reference -- `docs/internal/agents.md` against a tree holding
+    `docs/docs/internal/AGENTS.md` -- resolved on a developer Mac and failed in
+    CI, so this gate was verified green locally and was red on main at the very
+    commit that "fixed" it. A checker whose verdict depends on who ran it is
+    not a checker.
+
+    Walking the components against real directory listings makes the answer the
+    same everywhere. Listings are memoised: successes are the common path and
+    the walk would otherwise be a stat storm.
+    """
+    try:
+        # `..` and `.` are not entries in any directory listing, so a path
+        # carrying them must be normalised BEFORE the walk. Textual
+        # normalisation, not `resolve()`: resolving follows symlinks and would
+        # answer about the link target rather than the path the document wrote.
+        parts = pathlib.Path(os.path.normpath(str(p.absolute()))).parts
+    except OSError:
+        return False
+    cur = pathlib.Path(parts[0])
+    for part in parts[1:]:
+        key = str(cur)
+        entries = _LISTING.get(key)
+        if entries is None:
+            try:
+                entries = set(os.listdir(cur))
+            except OSError:
+                return False
+            _LISTING[key] = entries
+        if part not in entries:
+            return False
+        cur = cur / part
+    return True
+
+
 DOCS = sorted(set(list(ROOT.glob("research/**/*.md")) + list(ROOT.glob("*.md"))
                   + list(ROOT.glob("docs/**/*.md"))))
 
@@ -21,6 +89,21 @@ PATHY = re.compile(r'`([A-Za-z0-9_./-]+\.(?:py|v|sh|tex|yml|yaml|md|t27|json))`'
 
 SIBLING_NAMES = ["t27", "trinity-s3ai", "claim-audit-lab", "tri-net", "trios-mesh",
                  "zig-golden-float"]
+
+# Trees this checker cannot see, named by the first path segment. Two kinds,
+# one rule: if the author says which repository a file lives in, the reference
+# is answerable by a reader even though no runner can resolve it.
+#
+#   UPSTREAM  -- third-party, never checked out anywhere, ours to reference only
+#   OWNER     -- our OTHER repositories. `gHashTag/trinity/...`, owner-first,
+#                because `trinity/` alone would shadow the real ./trinity
+#                directory in this tree and silently excuse local rot. Checked:
+#                no ./gHashTag exists, and none of the UPSTREAM names collide
+#                with a directory here either.
+UPSTREAM = ["nextpnr-xilinx", "prjxray", "prjxray-db", "litex-boards", "litex",
+            "openxc7", "yosys", "openFPGALoader"]
+OWNER = ["gHashTag"]
+QUALIFIED = set(UPSTREAM) | set(OWNER)
 
 def _index(root):
     """basename -> True, built once. The first version ran an rglob per reference
@@ -32,19 +115,11 @@ def _index(root):
             if q.is_file(): names.add(q.name)
     return names
 
-def _exists(q):
-    """Path.exists() propagates OSError when a parent directory cannot be read
-    -- PermissionError on the CI runner, where /root is 0700 -- so a single
-    unreadable path aborts the whole gate before it prints anything. Unreadable
-    is not a claim about whether the file is there, so treat it as absent."""
-    try: return q.exists()
-    except OSError: return False
-
 _OWN = _index(ROOT)
 _SIB = {s_: _index(ROOT.parent / s_) for s_ in SIBLING_NAMES}
 
 fails, checked, refs = [], 0, 0
-cross, vendored, by_design = [], [], []
+cross, vendored, by_design, upstream = [], [], [], []
 for d in DOCS:
     try: txt = d.read_text(errors="ignore")
     except Exception: continue
@@ -59,12 +134,17 @@ for d in DOCS:
         p = m.group(1); refs += 1
         if p.startswith("http"): continue
         # A temporary path is expected to be gone; naming one is not a broken
-        # reference, it is a note about a run that has finished. The same holds
-        # for any absolute path: it names a location on some machine, not a file
-        # in this tree, so resolving it here measures nothing -- and on CI it can
-        # kill the run, because .exists() under an unreadable directory (/root is
-        # 0700) raises PermissionError instead of returning False.
-        if p.startswith("/"): continue
+        # reference, it is a note about a run that has finished.
+        if p.startswith(("/tmp/", "/private/tmp/", "/var/")): continue
+        # A path in a third-party repository is a real reference, and no CI
+        # runner will ever have that tree to check it against. Requiring the
+        # repo name as the first segment is what makes it checkable at all:
+        # existence cannot be confirmed, but the author having said WHICH tree
+        # it lives in can be -- and that is also the thing a reader needs. A
+        # bare `design.json` is unresolvable by anybody; the prefixed form
+        # names a file someone can actually go and open.
+        if p.split("/")[0] in QUALIFIED:
+            upstream.append(f"{str(d.relative_to(ROOT))}: names `{p}`"); continue
         rel = str(d.relative_to(ROOT))
         if p.startswith("external/") or rel.startswith("external/"):
             # A vendored document carries paths relative to ITS OWN root.
@@ -94,14 +174,14 @@ for d in DOCS:
                 # is a reason to name them, not to drop them silently.
                 cross.append(f"{str(d.relative_to(ROOT))}: names `{p}`" f" -> resolves in {_hit}")
                 continue
-        _sib = next((sib for sib in SIBLINGS if _exists(ROOT.parent / sib / p)), None)
-        if _sib and not _exists(ROOT / p):
+        _sib = next((sib for sib in SIBLINGS if exists(ROOT.parent / sib / p)), None)
+        if _sib and not exists(ROOT / p):
             # Same rule as the bare-name case: excluded, but named. CI has no
             # siblings, so it cannot tell this from rot -- which is why the
             # exclusion belongs in a file rather than in the checker's silence.
             cross.append(f"{str(d.relative_to(ROOT))}: names `{p}` -> resolves in {_sib}")
             continue
-        if any(_exists(c) for c in cands): continue
+        if any(exists(c) for c in cands): continue
         fails.append(f"{d.relative_to(ROOT)}: names `{p}`, which does not exist")
 
 # Ratchet: the tree carries historical documents naming files removed long ago.
@@ -111,15 +191,21 @@ BASE = pathlib.Path(__file__).with_name("doc_refs_baseline.txt")
 print(f"documents scanned: {checked}   path references: {refs}")
 print(f"excluded as cross-repo (target exists in a sibling): {len(cross)}")
 print(f"excluded as vendored (relative to their own root):   {len(vendored)}")
+print(f"excluded as upstream (third-party, repo-qualified):  {len(upstream)}")
 print(f"excluded by declaration (documents recording absent names): {len(by_design)}")
 [print(f"    {b}") for b in by_design]
 (pathlib.Path(__file__).with_name("doc_refs_crossrepo.txt")
  .write_text("\n".join(sorted(cross)) + ("\n" if cross else "")))
+# Written for the same reason as the cross-repo list: an exclusion nobody can
+# see reads as coverage. These are the references the gate deliberately does
+# not verify, in a file someone can read.
+(pathlib.Path(__file__).with_name("doc_refs_upstream.txt")
+ .write_text("\n".join(sorted(upstream)) + ("\n" if upstream else "")))
 uniq = sorted(set(fails))
 if "--update-baseline" in _s.argv:
     BASE.write_text("\n".join(uniq) + ("\n" if uniq else ""))
     print(f"baseline written: {len(uniq)} known"); _s.exit(0)
-known = {l for l in BASE.read_text().splitlines() if l.strip()} if BASE.exists() else set()
+known = {l for l in BASE.read_text().splitlines() if l.strip()} if exists(BASE) else set()
 new = sorted(set(uniq) - known)
 if new:
     print(f"\nFAIL: {len(new)} NEW dangling reference(s)\n")

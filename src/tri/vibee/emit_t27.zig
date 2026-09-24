@@ -257,22 +257,22 @@ pub const T27Emitter = struct {
 
                 // += operator
                 if (std.mem.endsWith(u8, lhs, "+")) {
-                    const target = std.mem.trimRight(u8, lhs, "+ ");
+                    const target = std.mem.trimEnd(u8, lhs, "+ ");
                     try self.emitCode("ADD {s}, {s}", .{ target, rhs });
                 }
                 // -= operator
                 else if (std.mem.endsWith(u8, lhs, "-")) {
-                    const target = std.mem.trimRight(u8, lhs, "- ");
+                    const target = std.mem.trimEnd(u8, lhs, "- ");
                     try self.emitCode("SUB {s}, {s}", .{ target, rhs });
                 }
                 // *= operator
                 else if (std.mem.endsWith(u8, lhs, "*")) {
-                    const target = std.mem.trimRight(u8, lhs, "* ");
+                    const target = std.mem.trimEnd(u8, lhs, "* ");
                     try self.emitCode("MUL {s}, {s}", .{ target, rhs });
                 }
                 // /= operator
                 else if (std.mem.endsWith(u8, lhs, "/")) {
-                    const target = std.mem.trimRight(u8, lhs, "/ ");
+                    const target = std.mem.trimEnd(u8, lhs, "/ ");
                     try self.emitCode("DIV {s}, {s}", .{ target, rhs });
                 }
                 // = assignment
@@ -905,17 +905,18 @@ pub const TriParser = struct {
 
                         if (std.mem.startsWith(u8, trimmed, "- name:")) {
                             std.debug.print("DEBUG: Found - name: line, in_params=true, current_func={}\n", .{current_func != null});
-                        if (current_func) |f| {
-                            const list_content = std.mem.trim(u8, trimmed[1..], " \t");
-                            if (std.mem.indexOfScalar(u8, list_content, ':')) |p_colon| {
-                                const p_name = std.mem.trim(u8, list_content[0..p_colon], " ");
-                                std.debug.print("DEBUG: Adding param: {s}\n", .{p_name});
-                                const param = AstParam{
-                                    .name = try self.allocator.dupe(u8, p_name),
-                                    .type = .{ .base = "f32" },
-                                    .description = "",
-                                };
-                                try f.params.append(self.allocator, param);
+                            if (current_func) |f| {
+                                const list_content = std.mem.trim(u8, trimmed[1..], " \t");
+                                if (std.mem.indexOfScalar(u8, list_content, ':')) |p_colon| {
+                                    const p_name = std.mem.trim(u8, list_content[0..p_colon], " ");
+                                    std.debug.print("DEBUG: Adding param: {s}\n", .{p_name});
+                                    const param = AstParam{
+                                        .name = try self.allocator.dupe(u8, p_name),
+                                        .type = .{ .base = "f32" },
+                                        .description = "",
+                                    };
+                                    try f.params.append(self.allocator, param);
+                                }
                             }
                         }
                     }
@@ -982,12 +983,11 @@ pub const TriParser = struct {
 // MAIN ENTRY POINT
 // ============================================================================
 
-pub fn main() !void {
+pub fn main(init: std.process.Init.Minimal) !void {
     const allocator = std.heap.page_allocator;
 
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
-
+    const args = try init.args.toSlice(allocator);
+    defer allocator.free(args);
     if (args.len < 2) {
         std.debug.print("Usage: {s} <input.tri> [output.t27]\n", .{args[0]});
         std.debug.print("\nemit_t27: .tri spec → .t27 assembly code generator\n", .{});

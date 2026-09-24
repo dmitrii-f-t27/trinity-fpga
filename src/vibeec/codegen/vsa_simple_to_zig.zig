@@ -7,7 +7,7 @@ const Allocator = std.mem.Allocator;
 
 pub fn generate(allocator: Allocator, source: []const u8) ![]const u8 {
     _ = source;
-    var output = std.ArrayListUnmanaged(u8){};
+    var output = @as(std.ArrayListUnmanaged(u8), .empty);
 
     try output.appendSlice(allocator,
         \\// VSA Simple — Generated from specs/vsa_simple/vsa.tri
@@ -91,7 +91,7 @@ pub fn generate(allocator: Allocator, source: []const u8) ![]const u8 {
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

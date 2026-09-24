@@ -278,20 +278,19 @@ pub fn runConstantsCommand(allocator: std.mem.Allocator, args: []const []const u
             // Build data JSON with all constants
             var data_json = try std.ArrayList(u8).initCapacity(allocator, 2048);
             defer data_json.deinit(allocator);
-            const data_writer = data_json.writer(allocator);
 
             try data_json.append(allocator, '{');
-            try data_writer.print("\"phi\":{d:.16},", .{parent_mod.PHI});
-            try data_writer.print("\"phi_squared\":{d:.16},", .{parent_mod.PHI_SQUARED});
-            try data_writer.print("\"phi_inverse_squared\":{d:.16},", .{parent_mod.INVERSE_PHI_SQUARED});
-            try data_writer.print("\"trinity\":{d:.1},", .{parent_mod.PHI_SQUARED + parent_mod.INVERSE_PHI_SQUARED});
-            try data_writer.print("\"pi\":{d:.20},", .{std.math.pi});
-            try data_writer.print("\"e\":{d:.20},", .{std.math.e});
-            try data_writer.print("\"gamma\":{d:.20},", .{1.0 / (parent_mod.PHI * parent_mod.PHI * parent_mod.PHI)});
-            try data_writer.print("\"mu\":{d:.4},", .{parent_mod.MU});
-            try data_writer.print("\"chi\":{d:.4},", .{parent_mod.CHI});
-            try data_writer.print("\"sigma\":{d:.3},", .{parent_mod.SIGMA});
-            try data_writer.print("\"epsilon\":{d:.3}", .{parent_mod.EPSILON});
+            try data_json.print(allocator, "\"phi\":{d:.16},", .{parent_mod.PHI});
+            try data_json.print(allocator, "\"phi_squared\":{d:.16},", .{parent_mod.PHI_SQUARED});
+            try data_json.print(allocator, "\"phi_inverse_squared\":{d:.16},", .{parent_mod.INVERSE_PHI_SQUARED});
+            try data_json.print(allocator, "\"trinity\":{d:.1},", .{parent_mod.PHI_SQUARED + parent_mod.INVERSE_PHI_SQUARED});
+            try data_json.print(allocator, "\"pi\":{d:.20},", .{std.math.pi});
+            try data_json.print(allocator, "\"e\":{d:.20},", .{std.math.e});
+            try data_json.print(allocator, "\"gamma\":{d:.20},", .{1.0 / (parent_mod.PHI * parent_mod.PHI * parent_mod.PHI)});
+            try data_json.print(allocator, "\"mu\":{d:.4},", .{parent_mod.MU});
+            try data_json.print(allocator, "\"chi\":{d:.4},", .{parent_mod.CHI});
+            try data_json.print(allocator, "\"sigma\":{d:.3},", .{parent_mod.SIGMA});
+            try data_json.print(allocator, "\"epsilon\":{d:.3}", .{parent_mod.EPSILON});
             try data_json.append(allocator, '}');
 
             output.data_raw = try allocator.dupe(u8, data_json.items);
@@ -380,7 +379,7 @@ pub fn runEvalCommand(allocator: std.mem.Allocator, args: []const []const u8) !v
 pub fn runComputeCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
     if (args.len == 0) {
         std.debug.print("Usage: tri math compute [spiral|verify|compare] [args...]\n", .{});
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
 
     const operation = args[0];
@@ -435,13 +434,12 @@ pub fn runPhiCommand(allocator: std.mem.Allocator, args: []const []const u8) !vo
     // Build data JSON with phi^n result
     var data_json = try std.ArrayList(u8).initCapacity(allocator, 256);
     defer data_json.deinit(allocator);
-    const data_writer = data_json.writer(allocator);
 
     try data_json.append(allocator, '{');
-    try data_writer.print("\"n\":{d},", .{n});
-    try data_writer.print("\"result\":{d:.16},", .{result});
+    try data_json.print(allocator, "\"n\":{d},", .{n});
+    try data_json.print(allocator, "\"result\":{d:.16},", .{result});
     try data_json.appendSlice(allocator, "\"expression\":\"phi^");
-    try data_writer.print("{d}\"", .{n});
+    try data_json.print(allocator, "{d}\"", .{n});
     try data_json.appendSlice(allocator, ",");
 
     // Add special notes for n = 0, 1, 2
@@ -467,7 +465,11 @@ pub fn runPhiCommand(allocator: std.mem.Allocator, args: []const []const u8) !vo
 pub fn runFibCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
     if (args.len == 0) {
         std.debug.print("Usage: tri fib <n>\n", .{});
-        return;
+        // Same exit code as runPhiCommand above, which handles the identical
+        // situation correctly. These two printed the usage line and returned
+        // normally, so a caller could not tell a missing argument from a
+        // successful run.
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
     const n = try std.fmt.parseInt(usize, args[0], 10);
     var wr = DirectWriter{};
@@ -477,7 +479,11 @@ pub fn runFibCommand(allocator: std.mem.Allocator, args: []const []const u8) !vo
 pub fn runLucasCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
     if (args.len == 0) {
         std.debug.print("Usage: tri lucas <n>\n", .{});
-        return;
+        // Same exit code as runPhiCommand above, which handles the identical
+        // situation correctly. These two printed the usage line and returned
+        // normally, so a caller could not tell a missing argument from a
+        // successful run.
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
     const n = try std.fmt.parseInt(usize, args[0], 10);
     var wr = DirectWriter{};
@@ -493,9 +499,14 @@ pub fn runSpiralCommand(allocator: std.mem.Allocator, args: []const []const u8) 
         n = try std.fmt.parseInt(u32, args[0], 10);
     }
 
-    for (args[1..]) |arg| {
-        if (std.mem.eql(u8, arg, "--plot") or std.mem.eql(u8, arg, "-p")) {
-            show_plot = true;
+    // args[1..] panics when args is empty -- args[0] was guarded above and
+    // this was not. n defaults to 12, so `tri spiral` with no arguments is a
+    // supported call and used to abort on it.
+    if (args.len > 1) {
+        for (args[1..]) |arg| {
+            if (std.mem.eql(u8, arg, "--plot") or std.mem.eql(u8, arg, "-p")) {
+                show_plot = true;
+            }
         }
     }
 
@@ -549,18 +560,16 @@ pub fn runBenchCommand(allocator: std.mem.Allocator, args: []const []const u8) !
     var data_json = try std.ArrayList(u8).initCapacity(allocator, 2048);
     defer data_json.deinit(allocator);
 
-    const data_writer = data_json.writer(allocator);
-
     try data_json.append(allocator, '{');
-    try data_writer.print("\"total_duration_ms\":{d},", .{suite.total_duration_ms});
+    try data_json.print(allocator, "\"total_duration_ms\":{d},", .{suite.total_duration_ms});
     try data_json.appendSlice(allocator, "\"benchmarks\":[");
 
     for (suite.benchmarks, 0..) |bench, i| {
         if (i > 0) try data_json.append(allocator, ',');
         try data_json.append(allocator, '{');
-        try data_writer.print("\"name\":\"{s}\",", .{bench.name});
-        try data_writer.print("\"ops_per_sec\":{d:.2},", .{bench.ops_per_sec});
-        try data_writer.print("\"avg_time_ns\":{d:.2}", .{bench.avg_time_ns});
+        try data_json.print(allocator, "\"name\":\"{s}\",", .{bench.name});
+        try data_json.print(allocator, "\"ops_per_sec\":{d:.2},", .{bench.ops_per_sec});
+        try data_json.print(allocator, "\"avg_time_ns\":{d:.2}", .{bench.avg_time_ns});
         try data_json.append(allocator, '}');
     }
 
@@ -590,7 +599,10 @@ pub fn runFormulaCommand(allocator: std.mem.Allocator, args: []const []const u8)
     if (args.len == 0) {
         std.debug.print("Usage: tri formula <number>\n", .{});
         std.debug.print("  Decompose a number using Sacred Formula V = n × 3^k × π^m × φ^p × e^q\n", .{});
-        return;
+        // Third command in this file to have reported a usage error as
+        // success; phi, fib and lucas were the others. Unlike spiral, formula
+        // has no default, so a missing argument really is an error.
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
     const value = std.fmt.parseFloat(f64, args[0]) catch {
         std.debug.print("Error: '{s}' is not a valid number\n", .{args[0]});
@@ -1059,7 +1071,7 @@ pub fn runEvidenceCommand(allocator: std.mem.Allocator, args: []const []const u8
         std.debug.print("  Show sacred formula evidence card for a constant or prediction\n", .{});
         std.debug.print("  Example: tri math evidence \"fine structure\"\n", .{});
         std.debug.print("  Example: tri math evidence Lambda_QCD\n", .{});
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
 
     // Join args into query, lowercase for matching
@@ -1203,7 +1215,7 @@ pub fn runSearchBestFitCommand(allocator: std.mem.Allocator, args: []const []con
     if (args.len == 0) {
         std.debug.print("Usage: tri math search <value>\n", .{});
         std.debug.print("  Find best sacred formula match for a numerical value\n", .{});
-        return;
+        return tri_exit_codes.exitWithCode(.validation_error);
     }
     const value = std.fmt.parseFloat(f64, args[0]) catch {
         std.debug.print("Error: '{s}' is not a valid number\n", .{args[0]});

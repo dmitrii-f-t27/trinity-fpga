@@ -40,7 +40,7 @@ pub const Tokenizer = struct {
     /// Detokenize float tensor back to text
     /// Ignores special tokens (BOS, EOS, PAD)
     pub fn detokenize(self: *Tokenizer, tokens: []const f32) ![]const u8 {
-        var result = std.ArrayListUnmanaged(u8){};
+        var result = @as(std.ArrayListUnmanaged(u8), .empty);
         errdefer result.deinit(self.allocator);
 
         for (tokens) |token| {
@@ -69,7 +69,7 @@ pub const Tokenizer = struct {
 
 // Test
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

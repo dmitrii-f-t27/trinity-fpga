@@ -224,7 +224,7 @@ pub const UIContext = struct {
     pub fn init(allocator: std.mem.Allocator) Self {
         return .{
             .allocator = allocator,
-            .commands = .{},
+            .commands = .empty,
             .window_size = .{ .x = WINDOW_WIDTH, .y = WINDOW_HEIGHT },
             .mouse_pos = Vec2.zero(),
             .mouse_down = false,
@@ -571,7 +571,7 @@ pub fn demoOnaUI(ctx: *UIContext) void {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

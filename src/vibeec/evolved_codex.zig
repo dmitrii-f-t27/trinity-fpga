@@ -28,7 +28,7 @@ pub const AdaptiveCache = struct {
             .entries = std.StringHashMap(CacheEntry).init(allocator),
             .capacity = capacity,
             .current_type = .LRU,
-            .access_patterns = .{},
+            .access_patterns = .empty,
             .access_counter = 0,
             .allocator = allocator,
             .cpu_load = 0.1,
@@ -204,7 +204,7 @@ pub const EvolvedCodex = struct {
 
 // --- MAIN LOOP ---
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

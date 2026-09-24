@@ -21,7 +21,7 @@ on:
       - 'specs/fpga/**'
       - 'src/vibeec/**'
       - 'fpga/openxc7-synth/**'
-      - 'trinity-nexus/lang/src/**'
+      - 'deploy/trinity-nexus/lang/src/**'
       - '.github/workflows/fpga-ci.yml'
   pull_request:
     branches: [main]
@@ -29,7 +29,7 @@ on:
       - 'specs/fpga/**'
       - 'src/vibeec/**'
       - 'fpga/openxc7-synth/**'
-      - 'trinity-nexus/lang/src/**'
+      - 'deploy/trinity-nexus/lang/src/**'
       - '.github/workflows/fpga-ci.yml'
   workflow_dispatch:
 
@@ -46,7 +46,7 @@ jobs:
       - name: Setup Zig
         uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.2
+          version: 0.16.0
 
       - name: Test sacred constants
         run: |
@@ -91,7 +91,7 @@ jobs:
       - name: Setup Zig
         uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.2
+          version: 0.16.0
 
       - name: Build
         run: |
@@ -142,7 +142,7 @@ jobs:
       - name: Setup Zig
         uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.2
+          version: 0.16.0
 
       - name: Build and run tests
         run: |

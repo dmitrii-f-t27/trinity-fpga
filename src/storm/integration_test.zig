@@ -4,6 +4,7 @@
 
 const std = @import("std");
 
+const tri_time = @import("tri_time");
 const gc = @import("golden_chain.zig");
 const ee = @import("experience_engine.zig");
 const th = @import("timeout_handler.zig");
@@ -78,12 +79,12 @@ pub const IntegrationTest = struct {
     }
 
     fn testGoldenChainInit(self: *IntegrationTest, results: *std.ArrayList(TestResult)) !void {
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         var passed = false;
         var error_msg: ?[]const u8 = null;
 
         defer {
-            const end = std.time.nanoTimestamp();
+            const end = tri_time.nanoTimestamp();
             const duration_ms = @as(u64, @intFromFloat(@divTrunc(@as(f128, @floatFromInt(end - start)), 1_000_000)));
 
             try results.append(.{
@@ -138,12 +139,12 @@ pub const IntegrationTest = struct {
     }
 
     fn testExperienceEngineInit(self: *IntegrationTest, results: *std.ArrayList(TestResult)) !void {
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         var passed = false;
         var error_msg: ?[]const u8 = null;
 
         defer {
-            const end = std.time.nanoTimestamp();
+            const end = tri_time.nanoTimestamp();
             const duration_ms = @as(u64, @intFromFloat(@divTrunc(@as(f128, @floatFromInt(end - start)), 1_000_000)));
 
             try results.append(.{
@@ -170,12 +171,12 @@ pub const IntegrationTest = struct {
     }
 
     fn testExperienceConsult(self: *IntegrationTest, results: *std.ArrayList(TestResult)) !void {
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         var passed = false;
         var error_msg: ?[]const u8 = null;
 
         defer {
-            const end = std.time.nanoTimestamp();
+            const end = tri_time.nanoTimestamp();
             const duration_ms = @as(u64, @intFromFloat(@divTrunc(@as(f128, @floatFromInt(end - start)), 1_000_000)));
 
             try results.append(.{
@@ -207,12 +208,12 @@ pub const IntegrationTest = struct {
     }
 
     fn testExperienceRecordFailure(self: *IntegrationTest, results: *std.ArrayList(TestResult)) !void {
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         var passed = false;
         var error_msg: ?[]const u8 = null;
 
         defer {
-            const end = std.time.nanoTimestamp();
+            const end = tri_time.nanoTimestamp();
             const duration_ms = @as(u64, @intFromFloat(@divTrunc(@as(f128, @floatFromInt(end - start)), 1_000_000)));
 
             try results.append(.{
@@ -237,12 +238,12 @@ pub const IntegrationTest = struct {
     }
 
     fn testCheckpointDir(self: *IntegrationTest, results: *std.ArrayList(TestResult)) !void {
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         var passed = false;
         var error_msg: ?[]const u8 = null;
 
         defer {
-            const end = std.time.nanoTimestamp();
+            const end = tri_time.nanoTimestamp();
             const duration_ms = @as(u64, @intFromFloat(@divTrunc(@as(f128, @floatFromInt(end - start)), 1_000_000)));
 
             try results.append(.{
@@ -279,12 +280,12 @@ pub const IntegrationTest = struct {
     }
 
     fn testLinkValidation(self: *IntegrationTest, results: *std.ArrayList(TestResult)) !void {
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         var passed = false;
         var error_msg: ?[]const u8 = null;
 
         defer {
-            const end = std.time.nanoTimestamp();
+            const end = tri_time.nanoTimestamp();
             const duration_ms = @as(u64, @intFromFloat(@divTrunc(@as(f128, @floatFromInt(end - start)), 1_000_000)));
 
             try results.append(.{
@@ -336,12 +337,12 @@ pub const IntegrationTest = struct {
     }
 
     fn testHandoffValidation(self: *IntegrationTest, results: *std.ArrayList(TestResult)) !void {
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         var passed = false;
         var error_msg: ?[]const u8 = null;
 
         defer {
-            const end = std.time.nanoTimestamp();
+            const end = tri_time.nanoTimestamp();
             const duration_ms = @as(u64, @intFromFloat(@divTrunc(@as(f128, @floatFromInt(end - start)), 1_000_000)));
 
             try results.append(.{
@@ -377,12 +378,12 @@ pub const IntegrationTest = struct {
     }
 
     fn testTimeoutHandler(self: *IntegrationTest, results: *std.ArrayList(TestResult)) !void {
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         var passed = false;
         var error_msg: ?[]const u8 = null;
 
         defer {
-            const end = std.time.nanoTimestamp();
+            const end = tri_time.nanoTimestamp();
             const duration_ms = @as(u64, @intFromFloat(@divTrunc(@as(f128, @floatFromInt(end - start)), 1_000_000)));
 
             try results.append(.{
@@ -421,12 +422,12 @@ pub const IntegrationTest = struct {
     }
 
     fn testParallelExecutor(self: *IntegrationTest, results: *std.ArrayList(TestResult)) !void {
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         var passed = false;
         var error_msg: ?[]const u8 = null;
 
         defer {
-            const end = std.time.nanoTimestamp();
+            const end = tri_time.nanoTimestamp();
             const duration_ms = @as(u64, @intFromFloat(@divTrunc(@as(f128, @floatFromInt(end - start)), 1_000_000)));
 
             try results.append(.{
@@ -497,12 +498,12 @@ pub const IntegrationTest = struct {
     }
 
     fn testChainExecution(self: *IntegrationTest, results: *std.ArrayList(TestResult)) !void {
-        const start = std.time.nanoTimestamp();
+        const start = tri_time.nanoTimestamp();
         var passed = false;
         var error_msg: ?[]const u8 = null;
 
         defer {
-            const end = std.time.nanoTimestamp();
+            const end = tri_time.nanoTimestamp();
             const duration_ms = @as(u64, @intFromFloat(@divTrunc(@as(f128, @floatFromInt(end - start)), 1_000_000)));
 
             try results.append(.{
@@ -582,7 +583,7 @@ pub const IntegrationTest = struct {
 
 /// Main entry point for integration test
 pub fn main() !u8 {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -593,7 +594,7 @@ pub fn main() !u8 {
 }
 
 test "integration: golden_chain_init" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -604,7 +605,7 @@ test "integration: golden_chain_init" {
 }
 
 test "integration: experience_consult" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -616,7 +617,7 @@ test "integration: experience_consult" {
 }
 
 test "integration: checkpoint_structure" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

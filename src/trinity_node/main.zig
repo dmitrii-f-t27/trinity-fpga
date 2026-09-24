@@ -6,6 +6,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
+const tri_io = @import("tri_io");
+const tri_time = @import("tri_time");
 const builtin = @import("builtin");
 const protocol = @import("protocol.zig");
 const crypto = @import("crypto.zig");
@@ -123,12 +125,21 @@ const Args = struct {
     help: bool = false,
 };
 
+/// The process argv.
+///
+/// 0.16 removed the ambient `std.process.args()`: argv now reaches a program
+/// only as a parameter to `main`. `main` publishes it here so `parseArgs`
+/// keeps its shape. On POSIX `Args.toSlice` allocates just the outer array --
+/// the argument bytes themselves point into the OS argv block and live for
+/// the whole process, so the `Args` returned below may borrow from them.
+var g_argv: []const [:0]const u8 = &.{};
+
 fn parseArgs() Args {
     var args = Args{};
-    var arg_iter = std.process.args();
-    _ = arg_iter.skip(); // Skip program name
+    // Skip the program name.
+    const rest = if (g_argv.len > 1) g_argv[1..] else g_argv[0..0];
 
-    while (arg_iter.next()) |arg| {
+    for (rest) |arg| {
         if (std.mem.eql(u8, arg, "--headless") or std.mem.eql(u8, arg, "-d")) {
             args.headless = true;
         } else if (std.mem.eql(u8, arg, "--distributed") or std.mem.eql(u8, arg, "--dist")) {
@@ -333,10 +344,16 @@ fn printHelp() void {
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════════════
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+pub fn main(init: std.process.Init.Minimal) !void {
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
+
+    // 0.16: argv arrives through `init` instead of an ambient iterator.
+    // Published to g_argv so parseArgs can read it; see the comment there.
+    const process_args = try init.args.toSlice(allocator);
+    defer allocator.free(process_args);
+    g_argv = process_args;
 
     const args = parseArgs();
 
@@ -348,9 +365,12 @@ pub fn main() !void {
     // Distributed inference mode — bypass normal node startup
     if (args.distributed) {
         const alloc = std.heap.page_allocator;
-        const process_args = try std.process.argsAlloc(alloc);
-        defer std.process.argsFree(alloc, process_args);
-        const dist_args = if (process_args.len > 1) process_args[1..] else &[_][]const u8{};
+        // runDistributed takes []const []const u8; toSlice yields
+        // sentinel-terminated slices, and slices do not coerce element-wise.
+        const tail = if (process_args.len > 1) process_args[1..] else process_args[0..0];
+        const dist_args = try alloc.alloc([]const u8, tail.len);
+        defer alloc.free(dist_args);
+        for (dist_args, tail) |*dst, src| dst.* = src;
         try distributed.runDistributed(alloc, dist_args);
         return;
     }
@@ -879,7 +899,7 @@ fn runHeadless(allocator: std.mem.Allocator, network: *network_mod.NetworkNode, 
                 std.debug.print("Generated {d} tokens in {d}ms\n", .{ tokens_generated, latency_ms });
             } else {
                 // Simulate processing
-                std.Thread.sleep(1 * std.time.ns_per_s);
+                tri_time.sleep(1 * std.time.ns_per_s);
             }
 
             // Record job completion
@@ -891,7 +911,7 @@ fn runHeadless(allocator: std.mem.Allocator, network: *network_mod.NetworkNode, 
             });
         }
 
-        const now = std.time.timestamp();
+        const now = tri_time.timestamp();
 
         // Broadcast storage announce periodically
         // TODO: Implement broadcastStorageAnnounce in NetworkNode
@@ -913,7 +933,7 @@ fn runHeadless(allocator: std.mem.Allocator, network: *network_mod.NetworkNode, 
         }
 
         // Sleep to avoid busy loop
-        std.Thread.sleep(100 * std.time.ns_per_ms);
+        tri_time.sleep(100 * std.time.ns_per_ms);
     }
 }
 
@@ -976,17 +996,24 @@ fn runStoreFile(allocator: std.mem.Allocator, sp: *storage_mod.StorageProvider, 
     std.debug.print("Storing file: {s}\n", .{file_path});
 
     // Read file from disk
-    const file = std.fs.cwd().openFile(file_path, .{}) catch |err| {
+    const io = tri_io.get();
+    const file = std.Io.Dir.cwd().openFile(io, file_path, .{}) catch |err| {
         std.debug.print("Cannot open file: {s} ({s})\n", .{ file_path, @errorName(err) });
         return err;
     };
-    defer file.close();
+    defer file.close(io);
 
-    const stat = try file.stat();
+    const stat = try file.stat(io);
     const file_data = try allocator.alloc(u8, stat.size);
     defer allocator.free(file_data);
-    const bytes_read = try file.readAll(file_data);
-    if (bytes_read != stat.size) return error.IncompleteRead;
+    // Exactly `stat.size` bytes are expected; a short read means the file
+    // changed under us, which the old readAll reported as IncompleteRead.
+    var read_scratch: [4096]u8 = undefined;
+    var file_reader = file.reader(io, &read_scratch);
+    file_reader.interface.readSliceAll(file_data) catch |err| switch (err) {
+        error.EndOfStream => return error.IncompleteRead,
+        error.ReadFailed => return file_reader.err.?,
+    };
 
     // v1.3: HKDF key derivation (or legacy SHA256)
     const key = getEncryptionKey(password, legacy_key);
@@ -1057,9 +1084,10 @@ fn runRetrieveFile(allocator: std.mem.Allocator, sp: *storage_mod.StorageProvide
     const out_path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ out_dir, file_name });
     defer allocator.free(out_path);
 
-    const out_file = try std.fs.cwd().createFile(out_path, .{});
-    defer out_file.close();
-    try out_file.writeAll(recovered);
+    const io = tri_io.get();
+    const out_file = try std.Io.Dir.cwd().createFile(io, out_path, .{});
+    defer out_file.close(io);
+    try out_file.writeStreamingAll(io, recovered);
 
     std.debug.print("\nFile retrieved successfully!\n", .{});
     std.debug.print("  Output:    {s}\n", .{out_path});

@@ -43,7 +43,7 @@ pub fn checkInstallation(allocator: Allocator) !bool {
     defer allocator.free(output);
 
     // 'which' returns path on success, empty on not found
-    return output.len > 0 and !std.mem.eql(u8, std.mem.trimRight(u8, output, "\n\r"), "");
+    return output.len > 0 and !std.mem.eql(u8, std.mem.trimEnd(u8, output, "\n\r"), "");
 }
 
 /// Get the installed Claude Code version
@@ -218,7 +218,7 @@ fn runVersionCheck(allocator: Allocator) !void {
     const min_version_str = "2.1.80";
     const meets_min = try compareVersions(allocator, version, min_version_str);
     if (!meets_min) {
-        std.debug.print("{s}⚠ Channels requires Claude {s} or later{m}\n", .{ YELLOW, min_version_str, RESET });
+        std.debug.print("{s}⚠ Channels requires Claude {s} or later{s}\n", .{ YELLOW, min_version_str, RESET });
     }
 }
 
