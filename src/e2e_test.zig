@@ -14,11 +14,12 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
-const vsa = @import("vsa.zig");
+const tri_time = @import("tri_time");
+const builtin = @import("builtin");
+const vsa = @import("vsa");
 const vm = @import("vm.zig");
 const sdk = @import("sdk.zig");
-const hybrid = @import("hybrid.zig");
-const packed_trit = @import("packed_trit.zig");
+const hybrid = vsa; // one source: the module, not the local vsa_hybrid copy
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // E2E TEST 1: VSA → VM → SDK Full Pipeline
@@ -235,6 +236,20 @@ test "E2E: VM program — random → bind → cosine pipeline" {
 // BENCHMARKS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// A wall-clock threshold measures the machine and the build mode, not the code.
+// These benchmarks run under `zig build test`, which is an unoptimized Debug
+// build using the leak-checking test allocator, on a shared CI runner -- a
+// configuration in which the number says nothing about Trinity's speed. Report
+// the measurement there and skip the claim, so the result reads as "skipped"
+// rather than a green tick nobody earned. In an optimized build the number is
+// meaningful and the threshold is enforced.
+const bench_is_measurable = builtin.mode != .Debug;
+
+fn benchAssert(measured: u64, limit: u64) !void {
+    if (!bench_is_measurable) return error.SkipZigTest;
+    try std.testing.expect(measured < limit);
+}
+
 const BENCH_DIM = 1024;
 const BENCH_ITERS = 1000;
 
@@ -242,7 +257,7 @@ test "BENCH: VSA bind throughput" {
     var a = vsa.randomVector(BENCH_DIM, 1);
     var b = vsa.randomVector(BENCH_DIM, 2);
 
-    var timer = try std.time.Timer.start();
+    var timer = try tri_time.Timer.start();
     for (0..BENCH_ITERS) |_| {
         _ = vsa.bind(&a, &b);
     }
@@ -254,14 +269,14 @@ test "BENCH: VSA bind throughput" {
     });
 
     // Sanity: bind should take less than 1ms per op
-    try std.testing.expect(ns_per_op < 1_000_000);
+    try benchAssert(ns_per_op, 1_000_000);
 }
 
 test "BENCH: VSA bundle2 throughput" {
     var a = vsa.randomVector(BENCH_DIM, 3);
     var b = vsa.randomVector(BENCH_DIM, 4);
 
-    var timer = try std.time.Timer.start();
+    var timer = try tri_time.Timer.start();
     for (0..BENCH_ITERS) |_| {
         _ = vsa.bundle2(&a, &b);
     }
@@ -269,14 +284,14 @@ test "BENCH: VSA bundle2 throughput" {
     const ns_per_op = elapsed_ns / BENCH_ITERS;
 
     std.debug.print("[BENCH] bundle2({d}): {d} ns/op\n", .{ BENCH_DIM, ns_per_op });
-    try std.testing.expect(ns_per_op < 1_000_000);
+    try benchAssert(ns_per_op, 1_000_000);
 }
 
 test "BENCH: VSA cosineSimilarity throughput" {
     var a = vsa.randomVector(BENCH_DIM, 5);
     var b = vsa.randomVector(BENCH_DIM, 6);
 
-    var timer = try std.time.Timer.start();
+    var timer = try tri_time.Timer.start();
     for (0..BENCH_ITERS) |_| {
         _ = vsa.cosineSimilarity(&a, &b);
     }
@@ -284,14 +299,14 @@ test "BENCH: VSA cosineSimilarity throughput" {
     const ns_per_op = elapsed_ns / BENCH_ITERS;
 
     std.debug.print("[BENCH] cosine({d}): {d} ns/op\n", .{ BENCH_DIM, ns_per_op });
-    try std.testing.expect(ns_per_op < 1_000_000);
+    try benchAssert(ns_per_op, 1_000_000);
 }
 
 test "BENCH: VSA hammingDistance throughput" {
     var a = vsa.randomVector(BENCH_DIM, 7);
     var b = vsa.randomVector(BENCH_DIM, 8);
 
-    var timer = try std.time.Timer.start();
+    var timer = try tri_time.Timer.start();
     for (0..BENCH_ITERS) |_| {
         _ = vsa.hammingDistance(&a, &b);
     }
@@ -299,13 +314,13 @@ test "BENCH: VSA hammingDistance throughput" {
     const ns_per_op = elapsed_ns / BENCH_ITERS;
 
     std.debug.print("[BENCH] hamming({d}): {d} ns/op\n", .{ BENCH_DIM, ns_per_op });
-    try std.testing.expect(ns_per_op < 1_000_000);
+    try benchAssert(ns_per_op, 1_000_000);
 }
 
 test "BENCH: VSA permute throughput" {
     var a = vsa.randomVector(BENCH_DIM, 9);
 
-    var timer = try std.time.Timer.start();
+    var timer = try tri_time.Timer.start();
     for (0..BENCH_ITERS) |_| {
         _ = vsa.permute(&a, 7);
     }
@@ -313,7 +328,7 @@ test "BENCH: VSA permute throughput" {
     const ns_per_op = elapsed_ns / BENCH_ITERS;
 
     std.debug.print("[BENCH] permute({d}): {d} ns/op\n", .{ BENCH_DIM, ns_per_op });
-    try std.testing.expect(ns_per_op < 1_000_000);
+    try benchAssert(ns_per_op, 1_000_000);
 }
 
 test "BENCH: VM program execution (6 instructions)" {
@@ -331,7 +346,7 @@ test "BENCH: VM program execution (6 instructions)" {
         .{ .opcode = .halt },
     };
 
-    var timer = try std.time.Timer.start();
+    var timer = try tri_time.Timer.start();
     for (0..100) |_| {
         try machine.loadProgram(&program);
         try machine.run();
@@ -344,13 +359,13 @@ test "BENCH: VM program execution (6 instructions)" {
     });
 
     // Full VM program should complete in under 100ms (generous headroom for CI/heavy-load)
-    try std.testing.expect(ns_per_run < 100_000_000);
+    try benchAssert(ns_per_run, 100_000_000);
 }
 
 test "BENCH: HybridBigInt pack/unpack cycle" {
     var v = vsa.randomVector(BENCH_DIM, 99);
 
-    var timer = try std.time.Timer.start();
+    var timer = try tri_time.Timer.start();
     for (0..BENCH_ITERS) |_| {
         v.pack();
         v.ensureUnpacked();
@@ -359,7 +374,7 @@ test "BENCH: HybridBigInt pack/unpack cycle" {
     const ns_per_op = elapsed_ns / BENCH_ITERS;
 
     std.debug.print("[BENCH] pack/unpack({d}): {d} ns/cycle\n", .{ BENCH_DIM, ns_per_op });
-    try std.testing.expect(ns_per_op < 1_000_000);
+    try benchAssert(ns_per_op, 1_000_000);
 }
 
 test "BENCH: Memory — packed vs unpacked size" {
@@ -636,7 +651,7 @@ fn runVerdict(allocator: std.mem.Allocator) !VerdictResult {
     {
         var a = vsa.randomVector(1024, 1);
         var b = vsa.randomVector(1024, 2);
-        var timer = try std.time.Timer.start();
+        var timer = try tri_time.Timer.start();
         for (0..100) |_| {
             _ = vsa.bind(&a, &b);
         }
@@ -648,7 +663,7 @@ fn runVerdict(allocator: std.mem.Allocator) !VerdictResult {
     {
         var a = vsa.randomVector(1024, 3);
         var b = vsa.randomVector(1024, 4);
-        var timer = try std.time.Timer.start();
+        var timer = try tri_time.Timer.start();
         for (0..100) |_| {
             _ = vsa.cosineSimilarity(&a, &b);
         }
@@ -657,8 +672,12 @@ fn runVerdict(allocator: std.mem.Allocator) !VerdictResult {
     }
 
     const perf_score = @as(f64, @floatFromInt(perf_passed)) / @as(f64, @floatFromInt(perf_total)) * 10.0;
-    total_checks += perf_total;
-    passed_checks += perf_passed;
+    // Same reason as benchAssert: scoring speed from a Debug build would make
+    // the verdict a measurement of the runner.
+    if (bench_is_measurable) {
+        total_checks += perf_total;
+        passed_checks += perf_passed;
+    }
 
     // ── Final Score ──────────────────────────────────────────────────────
     const total_score = vsa_score + vm_score + sdk_score_val + mem_score + perf_score;

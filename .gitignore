@@ -210,6 +210,10 @@ img/
 !docs/static/img/
 favicon.ico
 manifest.json
+# The rule above is for the generated PWA manifest, and it is unanchored, so on a
+# case-insensitive filesystem it also swallows research/block/MANIFEST.json --
+# silently on macOS, not at all on Linux. Same repository, two different commits.
+!research/block/MANIFEST.json
 og-image.svg
 robots.txt
 sitemap.xml
@@ -329,8 +333,12 @@ fpga/openxc7-synth/fpga/
 fpga/tools/weight_col2wide
 fpga/tools/weight_pack_wide
 
-# Docker files in root (use deploy/ subdirectory instead)
-Dockerfile*
+# Docker files in root (use deploy/ subdirectory instead).
+# Anchored: an unanchored `Dockerfile*` matches at every depth, so it was also
+# ignoring deploy/Dockerfile.*, which is exactly where this rule tells you to
+# put them. The existing deploy Dockerfiles are tracked only because they
+# predate the rule; a new one silently failed to add.
+/Dockerfile*
 
 # Fly deploy config
 fly.toml
@@ -416,7 +424,16 @@ trinet-keys.txt
 *.trinet-keys
 research/.gate_cache/
 
-# synthesis scratch from the closure measurements: generated wrappers and netlists
-fpga/phiscale/c_*.v
+# Synthesis scratch: netlists and logs are regenerable, and large.
+# The generated WRAPPERS are not scratch -- they are the evidence of how a
+# number was observed, and the harness gate reads them. Ignoring them once cost
+# the provenance of several published figures, so only the netlists go.
 fpga/phiscale/c_*.json
 fpga/phiscale/c[sy]_*.log
+
+# yosys netlist dumps: regenerable, tens of MB each
+fpga/codebook/*.json
+fpga/codebook/__pycache__/
+
+# Phase-distribution dumps: regenerable from the checkpoints, tens of MB
+research/block/loguniform_x_*.npy

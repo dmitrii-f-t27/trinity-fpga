@@ -10,6 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
+const tri_time = @import("tri_time");
 const ann_interface = @import("ann_interface.zig");
 const ann_utils = @import("ann_utils.zig");
 
@@ -77,7 +78,7 @@ pub const BenchmarkSuite = struct {
         return Self{
             .results = try std.ArrayList(BenchmarkResult).initCapacity(allocator, 32),
             .config = config,
-            .timestamp = std.time.timestamp(),
+            .timestamp = tri_time.timestamp(),
             .allocator = allocator,
         };
     }
@@ -215,7 +216,6 @@ pub fn benchmarkAlgorithm(
         .hnsw => {
             index.hnsw = try HNSWIndex.init(allocator, .{ .dim = config.dim });
             for (vectors, 0..) |vec, i| {
-                _ = i;
                 try index.hnsw.insert(symbol_ids[i], vec);
             }
         },
@@ -279,7 +279,6 @@ pub fn benchmarkAlgorithm(
             .hnsw => {
                 idx.hnsw = try HNSWIndex.init(allocator, .{ .dim = config.dim });
                 for (vectors, 0..) |vec, i| {
-                    _ = i;
                     try idx.hnsw.insert(symbol_ids[i], vec);
                 }
             },
@@ -543,7 +542,7 @@ pub fn runBenchmark(allocator: std.mem.Allocator) !void {
 
 /// Main entry point for ann-bench executable
 pub fn main() !u8 {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

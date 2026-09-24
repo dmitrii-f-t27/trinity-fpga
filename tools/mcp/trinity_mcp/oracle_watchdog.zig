@@ -13,6 +13,10 @@
 // @origin(manual) @regen(pending)
 
 const std = @import("std");
+const tri_env = @import("tri_env");
+const tri_io = @import("tri_io");
+const tri_proc = @import("tri_proc");
+const tri_time = @import("tri_time");
 const swarm = @import("swarm_tools.zig");
 const mu_doctor = @import("mu_doctor.zig");
 
@@ -179,19 +183,19 @@ pub fn oracleStatus(buf: []u8) []const u8 {
 
 /// Auto-start from env vars (called from server.zig main)
 pub fn tryAutoStart() void {
-    const token = std.posix.getenv("TELEGRAM_BOT_TOKEN") orelse
-        std.posix.getenv("RALPH_TELEGRAM_BOT_TOKEN") orelse return;
-    const chat_id = std.posix.getenv("TELEGRAM_CHAT_ID") orelse
-        std.posix.getenv("RALPH_TELEGRAM_CHAT_ID") orelse return;
-    const oracle_enabled = std.posix.getenv("ORACLE_ENABLED") orelse "false";
+    const token = tri_env.getPosix("TELEGRAM_BOT_TOKEN") orelse
+        tri_env.getPosix("RALPH_TELEGRAM_BOT_TOKEN") orelse return;
+    const chat_id = tri_env.getPosix("TELEGRAM_CHAT_ID") orelse
+        tri_env.getPosix("RALPH_TELEGRAM_CHAT_ID") orelse return;
+    const oracle_enabled = tri_env.getPosix("ORACLE_ENABLED") orelse "false";
 
     if (!std.mem.eql(u8, oracle_enabled, "true") and !std.mem.eql(u8, oracle_enabled, "1")) return;
 
     var buf: [512]u8 = undefined;
     _ = oracleStart(&buf, token, chat_id, "300000");
 
-    const stderr_fd: std.posix.fd_t = 2;
-    _ = std.posix.write(stderr_fd, "ORACLE Watchdog auto-started from env vars\n") catch |err| {
+    // 0.16 removed std.posix.write; stderr is an Io.File now.
+    std.Io.File.stderr().writeStreamingAll(tri_io.get(), "ORACLE Watchdog auto-started from env vars\n") catch |err| {
         std.log.debug("oracle_watchdog: stderr write failed: {}", .{err});
     };
 }
@@ -216,7 +220,7 @@ fn watchdogLoop() void {
     var last_hash: u64 = 0;
 
     // Allocator for shell commands
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -259,7 +263,7 @@ fn watchdogLoop() void {
         // Sleep for interval (check stop flag every second)
         var slept: u64 = 0;
         while (slept < stored_interval_ms and oracle_running.load(.acquire)) {
-            std.Thread.sleep(1_000_000_000); // 1 second
+            tri_time.sleep(1_000_000_000); // 1 second
             slept += 1000;
         }
     }
@@ -280,7 +284,7 @@ fn collectLiveStatus(allocator: std.mem.Allocator) LiveReport {
     // 2. Git: last commit
     if (runCommand(allocator, &.{ "git", "log", "--oneline", "-1" })) |output| {
         defer allocator.free(output);
-        const trimmed = std.mem.trimRight(u8, output, "\n\r ");
+        const trimmed = std.mem.trimEnd(u8, output, "\n\r ");
         const copy_len = @min(trimmed.len, report.last_commit.len);
         @memcpy(report.last_commit[0..copy_len], trimmed[0..copy_len]);
         report.last_commit_len = copy_len;
@@ -289,7 +293,7 @@ fn collectLiveStatus(allocator: std.mem.Allocator) LiveReport {
     // 3. Git: branch
     if (runCommand(allocator, &.{ "git", "branch", "--show-current" })) |output| {
         defer allocator.free(output);
-        const trimmed = std.mem.trimRight(u8, output, "\n\r ");
+        const trimmed = std.mem.trimEnd(u8, output, "\n\r ");
         const copy_len = @min(trimmed.len, report.branch.len);
         @memcpy(report.branch[0..copy_len], trimmed[0..copy_len]);
         report.branch_len = copy_len;
@@ -348,7 +352,7 @@ fn collectLiveStatus(allocator: std.mem.Allocator) LiveReport {
 
 /// Run a command and return stdout (caller owns memory), or null on failure
 fn runCommand(allocator: std.mem.Allocator, argv: []const []const u8) ?[]const u8 {
-    const result = std.process.Child.run(.{
+    const result = tri_proc.run(.{
         .allocator = allocator,
         .argv = argv,
         .max_output_bytes = 8192,
@@ -356,7 +360,7 @@ fn runCommand(allocator: std.mem.Allocator, argv: []const []const u8) ?[]const u
     allocator.free(result.stderr);
 
     if ((switch (result.term) {
-        .Exited => |code| code,
+        .exited => |code| code,
         else => @as(u32, 1),
     }) != 0) {
         allocator.free(result.stdout);
@@ -368,7 +372,7 @@ fn runCommand(allocator: std.mem.Allocator, argv: []const []const u8) ?[]const u
 
 /// Run a command, return true if exit code == 0
 fn runCheckExitCode(allocator: std.mem.Allocator, argv: []const []const u8) bool {
-    const result = std.process.Child.run(.{
+    const result = tri_proc.run(.{
         .allocator = allocator,
         .argv = argv,
         .max_output_bytes = 8192,
@@ -376,7 +380,7 @@ fn runCheckExitCode(allocator: std.mem.Allocator, argv: []const []const u8) bool
     allocator.free(result.stdout);
     allocator.free(result.stderr);
     return (switch (result.term) {
-        .Exited => |code| code,
+        .exited => |code| code,
         else => @as(u32, 1),
     }) == 0;
 }
@@ -562,11 +566,11 @@ fn sendTelegram(token: []const u8, chat_id: []const u8, text: []const u8) void {
 
     const body = body_buf[0..body_idx];
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var client = std.http.Client{ .allocator = allocator };
+    var client = std.http.Client{ .allocator = allocator, .io = tri_io.get() };
     defer client.deinit();
 
     const result = client.fetch(.{
@@ -603,7 +607,7 @@ fn hashMessage(msg: []const u8) u64 {
 }
 
 fn currentTimeMs() u64 {
-    const ts = std.time.milliTimestamp();
+    const ts = tri_time.milliTimestamp();
     return @intCast(if (ts < 0) 0 else ts);
 }
 

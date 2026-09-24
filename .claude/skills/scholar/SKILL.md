@@ -129,6 +129,165 @@ Model weights for this line live under a *previous session's* scratchpad
 Qwen, Pythia, GPT-2, OPT, and wikitext-2). Check there before downloading
 anything — it survives across sessions but not forever.
 
+### Pool over the unit your claim is about
+
+Three times in this campaign a window-pooled p-value certified a claim that
+model-level pooling does not support. It is the single most repeated error here.
+
+    "beats NF4 out of sample, -2.87%, p = 1.7e-13"     100 windows, 3 models
+    the same data, pooled by model:  -2.55% [-7.43, +2.59], p = 0.163
+
+Windows are replicates of the **text**. A claim about *this model on this corpus*
+may pool them. A claim of the form "beats X across models" has n = 3, and the
+window count is not evidence for it — it is evidence about wikitext-2.
+
+- **Name the unit before computing the statistic.** Whichever noun follows
+  "across" in the sentence you intend to write is the unit: across models, across
+  layers, across seeds. `KL_CODEBOOK_WITHDRAWN` is the standing precedent — a
+  `t = -12.51` over 40 windows certified an overfit that failed on two families.
+- **A selection protocol needs a leave-one-out rotation.** If a placement,
+  hyperparameter or variant was chosen on one model, re-run the choice on each of
+  the others and report all of them. For the sixteenth-codeword result three of
+  four rotations gave a tie and the fourth **lost**: one rotation of four produced
+  the headline, which is what the single-selection number was silently reporting.
+- **A comparison that survives the rotation is the one to quote.** The same work's
+  MXFP4 comparison held under every rotation and every model, so that is the
+  claim that shipped; the NF4 comparison did not, so it was demoted to a tie.
+
+### Equal bits is not equal levels
+
+The single cleanest result of 2026-08-12, and it came from checking an arithmetic
+detail nobody had checked in a week of comparisons.
+
+Eight codebooks were compared at "strictly equal budget", 4.250 bits per element.
+True. But a **symmetric** book of 8 magnitudes plus a sign bit represents `+0` and
+`−0` with two of its sixteen codewords, for one number — **15 distinct values**.
+An **asymmetric** book spends all sixteen. Every comparison in this repository had
+been putting a 15-value book against a 16-value one and crediting the difference
+to the shape of the curve.
+
+`bitsandbytes` ships the control: `create_normal_map(use_extra_value=False)` is
+NF4 with the extra codeword off. It is a **tie** with MXFP4 (+0.33 %, p = 0.46),
+and `(+0.335 %) × (−4.429 %) = −4.109 %` reproduces the full NF4 margin with a
+residual of `0.00e+00`.
+
+- **Count the representable values, not the bits.** Two schemes can cost the same
+  and offer different alphabets. Put the count in the table as its own column;
+  it took a week to notice because it was never written down.
+- **Look for the vendor's own ablation before building one.** The switch that
+  isolated the effect was a keyword argument in the reference implementation.
+- **A margin that decomposes exactly is telling you the mechanism.** When two
+  ratios multiply to the third with zero residual, that is not a coincidence to
+  report — it is the explanation, and it should replace the observation.
+
+### Run the baselines before building the alternative
+
+The single most expensive omission of 2026-08-11, and it cost three sessions.
+
+`BLOCK_AXIS_CLOSED` concluded no eight-level element format takes the block axis
+from MXFP4. Three codebooks were then designed and searched here to test it. The
+thing that actually falsified it was **NF4** — the 4-bit NormalFloat from QLoRA,
+published in 2023, sixteen constants in `bitsandbytes`, fitted to a Gaussian
+prior and to nothing in this repository. It beats MXFP4 in this harness by
+**−6.50 % pooled out of sample**, `t = −15.60`, `p = 2e-28`, at strictly equal
+budget. **Nobody had ever run it.**
+
+A day of searching produced a codebook five times weaker than that.
+
+- **Every "we beat X by Y %" is meaningless until the field's own leader is in
+  the same table.** Beating a *deployed hardware format* is not the same as
+  beating the *research* in the class your work belongs to, and the second is the
+  one a reviewer will ask about.
+- **The strongest opponent is usually free.** Published constants, a pip install,
+  an afternoon. That is cheaper than any search, and it bounds what a search is
+  worth before the search is run.
+- **A conclusion of the form "nothing can do X" needs a literature check, not
+  just an argument.** The argument in `BLOCK_AXIS_CLOSED` was wrong *and* the
+  counterexample predated it by three years.
+
+The corollary for reporting: once a real baseline is in the table, restate old
+margins against it. "−1.31 % against MXFP4" and "five times weaker than NF4" are
+the same measurement, and only the second tells the reader where the work stands.
+
+### Hold out the unit the parameters were fitted against
+
+The most expensive lesson of 2026-08-11. A codebook with six free parameters was
+fitted against one model's logits and beat MXFP4 by 7.66 %. It was checked on
+held-out **windows** — disjoint text, a paired per-window test, `t(39) = −12.51`,
+better in 39 of 40, `p = 7.5e-11`, and the two leaked windows deleted for a
+0.12 pp change. Every part of that check was sound, and it certified an overfit.
+
+Run on two models it had never seen, the codebook **lost** to MXFP4 by 1.98 % and
+8.63 %, worse on 17 of 20 and 37 of 40 windows. First of three where it was
+fitted; second of three where it was not.
+
+The check varied text. The parameters were fitted to a *model*. A test that
+varies the wrong axis measures generalisation across an axis nobody was
+overfitting to, and passes with an impressive p-value.
+
+- **Name the fitted unit before designing the check.** Model, layer, dataset,
+  seed, board — whichever the parameters saw is the one to hold out.
+- **A strong statistic on the wrong axis is worse than no check**, because it
+  buys confidence. `p = 7.5e-11` was true and irrelevant.
+- **Look for the ranking inversion.** Best on the fitting unit, middle of the
+  pack elsewhere, is the signature. Compare against *both* neighbours, not just
+  the headline opponent — here the weaker claim (beats the squared-error optimum
+  on all three models) transferred and was worth keeping.
+
+### The graceful failure is the dangerous one
+
+Two codebooks were fitted to the same model with the same search and the same six
+free parameters, differing only in what they were fitted *against*. Both failed
+out of sample, and the two failures do not look alike:
+
+| fitted against | in sample | on two unseen models |
+|---|---:|---|
+| the model's **logits** | −7.66 % | **loses**, +1.98 % and +8.63 % — ranking inverts |
+| the model's **weight statistics** | −5.24 % | −0.10 %, −0.19 % — ranking holds, `t = −0.22`, `p = 0.83` |
+
+The logit fit goes **actively wrong**: first of three where fitted, second of
+three everywhere else. The weight-statistics fit merely **stops helping**: the
+sign never flips, the magnitude collapses 30–50× into a tie.
+
+- **Fitting against a static property of a system degrades gracefully; fitting
+  against its behaviour can reverse.** Weight distributions are more alike across
+  checkpoints than logit distributions are.
+- **The graceful one is easier to mistake for a result**, precisely because the
+  sign holds. `−0.19 %` reads like a small win and is a tie: `t = −0.181`,
+  `p = 0.858`, 22 windows better and 18 worse. A point estimate without its
+  paired statistic beside it is noise with a decimal point.
+- **Report the confidence interval when a margin shrinks**, not just the new
+  point estimate. The pooled CI here was `[−1.56 %, +1.27 %]`, which settles the
+  question in one line where three perplexity figures did not.
+
+### Before calling a result new, read what it would be new against
+
+A measured win over a *deployed* format says nothing about the *research* it
+belongs to. The KL-optimised codebook beat MXFP4 by 7.66 %, which sounds like a
+result until you notice MXFP4 is a hardware standard and the thing being claimed
+is a learned codebook — a class with its own literature and its own leader.
+
+Read on 2026-08-11: **every learned 4-bit codebook in the field minimises squared
+error.** BOF4 via EM on Lloyd's, any4 via k-means, QAM-W via Lloyd-Max on a
+circular Gaussian, LO-BCQ via clustering. The strongest of them, BOF4, improves
+NF4 by ≈1.2 %. Their contribution is always a better *estimator* of the same
+objective; none questions the objective.
+
+That is what made the finding worth having rather than deflating it — this
+repository has *measured* that objective pointing the wrong way. But it also
+means:
+
+- **Name the right opponent.** For an element-codebook claim that is NF4/BOF4,
+  not MXFP4. Beating a hardware format says nothing about beating the research
+  leader, and that comparison has not been run.
+- **List what is not comparable, in the document.** Different model, different
+  block size, different *kind* of scale — BOF4 uses a real-valued absmax, which
+  by T38 has no headroom phase at all, so its setup is free of an effect ours has
+  to control for.
+- **Read the full text, not the abstract.** BOF4's abstract does not say what it
+  optimises; the body says MSE and MAE. The abstract would have left the whole
+  comparison unresolved.
+
 ### Testing a mechanism you proposed yourself
 
 A measured result attracts an explanation, and the explanation is where the next

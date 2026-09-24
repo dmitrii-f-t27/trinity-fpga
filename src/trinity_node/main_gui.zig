@@ -6,6 +6,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
+const tri_env = @import("tri_env");
 const protocol = @import("protocol.zig");
 const wallet_mod = @import("wallet.zig");
 const network_mod = @import("network.zig");
@@ -25,7 +26,7 @@ pub const PROTOCOL_VERSION: u16 = 1;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -40,7 +41,7 @@ pub fn main() !void {
     const wallet_path = try config_mod.Config.getWalletPath(allocator);
     defer allocator.free(wallet_path);
 
-    const password = std.posix.getenv("TRINITY_WALLET_PASSWORD") orelse {
+    const password = tri_env.getPosix("TRINITY_WALLET_PASSWORD") orelse {
         std.debug.print("ERROR: set TRINITY_WALLET_PASSWORD env var\n", .{});
         return error.MissingPassword;
     };

@@ -12,12 +12,11 @@ const Behavior = struct {
     code: []const u8, // ✅
 };
 
-pub fn main() !void {
+pub fn main(init: std.process.Init.Minimal) !void {
     const allocator = std.heap.page_allocator;
 
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
-
+    const args = try init.args.toSlice(allocator);
+    defer allocator.free(args);
     if (args.len < 2) {
         std.debug.print("Usage: {s} <spec.tri> [output.zig]\\n", .{args[0]});
         return error.Usage;
@@ -146,7 +145,7 @@ fn parse_simple_spec(path: []const u8, allocator: std.mem.Allocator) !SimpleSpec
                 code_lines = std.ArrayList([]const u8).init(allocator);
             }
         } else if (std.mem.startsWith(u8, trimmed, "    code: |")) {
-            if (current_behavior) |*b| {
+            if (current_behavior) |_| {
                 const code_start = std.mem.indexOf(u8, trimmed, "|").? + 1;
                 const first_line = std.mem.trim(u8, trimmed[code_start..], &std.ascii.whitespace);
 

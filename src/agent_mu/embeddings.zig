@@ -4,6 +4,8 @@
 //! Provides O(log n) similarity search for pattern matching.
 
 const std = @import("std");
+const tri_rand = @import("tri_rand");
+const tri_time = @import("tri_time");
 const ArrayListManaged = std.array_list.Managed;
 const diagnostic = @import("diagnostic.zig");
 
@@ -27,7 +29,7 @@ pub const HNSWNode = struct {
     level: usize,
 
     pub fn init(allocator: std.mem.Allocator, id: usize, embedding: *const [EMBEDDING_DIM]f32, level: usize) !HNSWNode {
-        var neighbors = ArrayListManaged(usize).init(allocator);
+        const neighbors = ArrayListManaged(usize).init(allocator);
         return HNSWNode{
             .id = id,
             .embedding = embedding,
@@ -92,7 +94,6 @@ pub const HNSWIndex = struct {
         // HNSW neighbor connection not yet implemented
         // Full implementation would connect this node to neighbors at each level
         // following the HNSW algorithm for approximate nearest neighbor search
-        _ = level;
     }
 
     /// Search for k nearest neighbors
@@ -107,14 +108,15 @@ pub const HNSWIndex = struct {
         // 2. Greedy descent to find nearest neighbor
         // 3. Search ef_construction nearest neighbors
         // For now, return just the entry point as a stub
-        var current = self.entry_point.?;
-        var best_dist = self.distance(query, current.embedding);
+        const current = self.entry_point.?;
+        const best_dist = self.distance(query, current.embedding);
         _ = best_dist;
         return &[_]*HNSWNode{current};
     }
 
     /// Calculate Euclidean distance between vectors
     fn distance(self: *const HNSWIndex, a: *const [EMBEDDING_DIM]f32, b: *const [EMBEDDING_DIM]f32) f32 {
+        _ = self;
         var sum: f32 = 0.0;
         for (0..EMBEDDING_DIM) |i| {
             const diff = a[i] - b[i];
@@ -128,7 +130,7 @@ pub const HNSWIndex = struct {
         var level: usize = 0;
         var rand_val: u32 = undefined;
         while (true) {
-            std.crypto.random.bytes(std.mem.asBytes(&rand_val));
+            tri_rand.random().bytes(std.mem.asBytes(&rand_val));
             const unif: f32 = @as(f32, @floatFromInt(rand_val)) / @as(f32, std.math.maxInt(u32));
             if (unif > self.ml) break;
             level += 1;
@@ -250,7 +252,7 @@ test "HNSWIndex: insert and search" {
         .vector = embedding,
         .confidence = 1.0,
         .fix_type = .TYPE_FIX,
-        .timestamp = std.time.timestamp(),
+        .timestamp = tri_time.timestamp(),
     };
 
     try index.insert(allocator, &error_emb);

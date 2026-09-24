@@ -10,6 +10,7 @@
 //!   - Self-prediction
 
 const std = @import("std");
+const tri_time = @import("tri_time");
 const mem = std.mem;
 
 // Import unified state (from src/consciousness/core/)
@@ -85,7 +86,7 @@ pub const SelfModel = struct {
     agency_level: f64 = 0.0,
     self_boundary: f64 = 0.0,
     identity_coherence: f64 = 0.0,
-    history: std.ArrayListUnmanaged(IntrospectionResult) = .{},
+    history: std.ArrayListUnmanaged(IntrospectionResult) = .empty,
 
     /// Initialize self-model
     pub fn init(allocator: mem.Allocator) SelfModel {
@@ -145,7 +146,7 @@ pub const SelfModel = struct {
             .how_i_got_here = causal_chain,
             .likely_next_states = &.{},
             .confidence = consciousness,
-            .timestamp = std.time.nanoTimestamp(),
+            .timestamp = tri_time.nanoTimestamp(),
         };
 
         // Store in history
@@ -344,6 +345,7 @@ pub const OtherModel = struct {
 
     /// Deinitialize other model
     pub fn deinit(self: *OtherModel, allocator: mem.Allocator) void {
+        _ = self;
         _ = allocator;
         // Note: agent_id is owned by the HashMap, not by this struct
         // The HashMap key will be freed when the HashMap is deinited

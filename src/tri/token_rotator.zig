@@ -1,4 +1,8 @@
 const std = @import("std");
+
+const tri_time = @import("tri_time");
+const tri_io = @import("tri_io");
+const tri_env = @import("tri_env");
 const fs = std.fs;
 const time = std.time;
 
@@ -11,6 +15,26 @@ pub const TokenInfo = struct {
     reset_at: ?i64 = null,
     usage_count: u64 = 0,
 };
+
+/// Creates `path` already narrowed to 0600, before a single byte is written.
+///
+/// The ordering is the whole point, and it is why this is a function rather
+/// than two lines inside `save`. 0.16's CreateFileOptions dropped `mode`, so
+/// the file is born at default_file (0o666, 0644 after umask). Writing tokens
+/// first and narrowing afterwards leaves them world-readable in between --
+/// measured, not assumed: a stat right after the write reported 0o644 -- and
+/// a crash in that window leaves them at 0644 for good.
+///
+/// Extracting it also makes the property TESTABLE. Asserting the mode after
+/// `save` cannot see the defect: the final mode is 0600 whichever order the
+/// two calls are in. A test can only catch a reordering by checking the file
+/// this function returns, before anything has been written to it.
+fn createPrivateFile(io: std.Io, path: []const u8) !std.Io.File {
+    var file = try std.Io.Dir.cwd().createFile(io, path, .{});
+    errdefer file.close(io);
+    try file.setPermissions(io, @enumFromInt(0o600));
+    return file;
+}
 
 pub const TokenRotator = struct {
     allocator: std.mem.Allocator,
@@ -25,7 +49,7 @@ pub const TokenRotator = struct {
         var rotator = TokenRotator{
             .allocator = allocator,
             .current_index = 0,
-            .tokens = .{},
+            .tokens = .empty,
             .total_rotations = 0,
             .last_rotation = 0,
             .state_file = try allocator.dupe(u8, state_path),
@@ -54,7 +78,7 @@ pub const TokenRotator = struct {
         };
 
         for (TOKEN_ENV_VARS) |env_var| {
-            const key = std.posix.getenv(env_var) orelse continue;
+            const key = tri_env.getPosix(env_var) orelse continue;
             if (key.len == 0) continue;
 
             try self.tokens.append(allocator, TokenInfo{
@@ -70,7 +94,7 @@ pub const TokenRotator = struct {
             return error.NoTokensAvailable;
         }
 
-        self.last_rotation = time.timestamp();
+        self.last_rotation = tri_time.timestamp();
     }
 
     pub fn getActiveToken(self: *TokenRotator) ![]const u8 {
@@ -78,7 +102,7 @@ pub const TokenRotator = struct {
 
         const token = &self.tokens.items[self.current_index];
 
-        const now = time.timestamp();
+        const now = tri_time.timestamp();
         if (token.status == .rate_limited) {
             if (token.reset_at) |reset_time| {
                 if (reset_time <= now) {
@@ -91,7 +115,7 @@ pub const TokenRotator = struct {
             return try self.getNextToken();
         }
 
-        const key = std.posix.getenv(token.name) orelse return error.TokenNotFound;
+        const key = tri_env.getPosix(token.name) orelse return error.TokenNotFound;
         token.usage_count += 1;
         return self.allocator.dupe(u8, key);
     }
@@ -99,7 +123,7 @@ pub const TokenRotator = struct {
     pub fn getNextToken(self: *TokenRotator) ![]const u8 {
         if (self.tokens.items.len == 0) return error.NoTokensAvailable;
 
-        const now = time.timestamp();
+        const now = tri_time.timestamp();
 
         for (0..self.tokens.items.len) |_| {
             self.current_index = (self.current_index + 1) % self.tokens.items.len;
@@ -113,7 +137,7 @@ pub const TokenRotator = struct {
             }
 
             if (token.status == .active) {
-                const key = std.posix.getenv(token.name) orelse continue;
+                const key = tri_env.getPosix(token.name) orelse continue;
                 if (key.len == 0) continue;
 
                 token.usage_count += 1;
@@ -131,7 +155,7 @@ pub const TokenRotator = struct {
         if (self.tokens.items.len == 0) return;
 
         const token = &self.tokens.items[self.current_index];
-        const now = time.timestamp();
+        const now = tri_time.timestamp();
         token.status = .rate_limited;
         token.last_429 = now;
 
@@ -149,7 +173,7 @@ pub const TokenRotator = struct {
 
         self.current_index = (self.current_index + 1) % self.tokens.items.len;
         self.total_rotations += 1;
-        self.last_rotation = time.timestamp();
+        self.last_rotation = tri_time.timestamp();
 
         try self.save();
     }
@@ -165,56 +189,69 @@ pub const TokenRotator = struct {
     }
 
     pub fn save(self: *const TokenRotator) !void {
+        // std.fs.path survives in 0.16; only Dir/File moved to std.Io.
         const state_dir = std.fs.path.dirname(self.state_file) orelse ".";
-        try fs.cwd().makePath(state_dir);
+        const io = tri_io.get();
+        try std.Io.Dir.cwd().createDirPath(io, state_dir);
 
         var buffer = std.ArrayList(u8).initCapacity(self.allocator, 1024) catch return error.OutOfMemory;
         defer buffer.deinit(self.allocator);
 
-        const writer = buffer.writer(self.allocator);
-        try writer.print("{{\n", .{});
-        try writer.print("  \"current_index\": {},\n", .{self.current_index});
-        try writer.print("  \"total_rotations\": {},\n", .{self.total_rotations});
-        try writer.print("  \"last_rotation\": {},\n", .{self.last_rotation});
-        try writer.writeAll("  \"tokens\": [\n");
+        try buffer.print(self.allocator, "{{\n", .{});
+        try buffer.print(self.allocator, "  \"current_index\": {},\n", .{self.current_index});
+        try buffer.print(self.allocator, "  \"total_rotations\": {},\n", .{self.total_rotations});
+        try buffer.print(self.allocator, "  \"last_rotation\": {},\n", .{self.last_rotation});
+        try buffer.appendSlice(self.allocator, "  \"tokens\": [\n");
 
         for (self.tokens.items, 0..) |token, i| {
-            try writer.print("    {{\"name\": \"{s}\", \"status\": {}, ", .{ token.name, @intFromEnum(token.status) });
+            try buffer.print(self.allocator, "    {{\"name\": \"{s}\", \"status\": {}, ", .{ token.name, @intFromEnum(token.status) });
 
             if (token.last_429) |ts| {
-                try writer.print("\"last_429\": {}, ", .{ts});
+                try buffer.print(self.allocator, "\"last_429\": {}, ", .{ts});
             } else {
-                try writer.writeAll("\"last_429\": null, ");
+                try buffer.appendSlice(self.allocator, "\"last_429\": null, ");
             }
 
             if (token.reset_at) |ts| {
-                try writer.print("\"reset_at\": {}, ", .{ts});
+                try buffer.print(self.allocator, "\"reset_at\": {}, ", .{ts});
             } else {
-                try writer.writeAll("\"reset_at\": null, ");
+                try buffer.appendSlice(self.allocator, "\"reset_at\": null, ");
             }
 
-            try writer.print("\"usage_count\": {}}}", .{token.usage_count});
+            try buffer.print(self.allocator, "\"usage_count\": {}}}", .{token.usage_count});
 
             if (i < self.tokens.items.len - 1) {
-                try writer.writeAll(",\n");
+                try buffer.appendSlice(self.allocator, ",\n");
             } else {
-                try writer.writeAll("\n");
+                try buffer.appendSlice(self.allocator, "\n");
             }
         }
 
-        try writer.writeAll("  ]\n");
-        try writer.writeAll("}\n");
+        try buffer.appendSlice(self.allocator, "  ]\n");
+        try buffer.appendSlice(self.allocator, "}\n");
 
-        var file = try fs.cwd().createFile(self.state_file, .{ .mode = 0o600 });
-        defer file.close();
-        try file.writeAll(buffer.items);
+        // 0.16's CreateFileOptions dropped `mode`, and this file holds API
+        // tokens. The first repair applied 0600 with chmod AFTER the write,
+        // which restored the final mode but left a window: createFile uses
+        // default_file (0o666, so 0644 after umask), so the tokens hit the
+        // disk world-readable and were narrowed only afterwards. A crash in
+        // between left them at 0644 permanently. Measured, not assumed --
+        // stat right after the write reported 0o644.
+        //
+        // Narrowing BEFORE anything is written closes the window, and
+        // File.setPermissions does it without the libc extern the first
+        // repair needed.
+        var file = try createPrivateFile(io, self.state_file);
+        defer file.close(io);
+        try file.writeStreamingAll(io, buffer.items);
     }
 
     pub fn load(self: *TokenRotator) !void {
-        const file_obj = fs.cwd().openFile(self.state_file, .{}) catch return error.FileNotFound;
-        defer file_obj.close();
-
-        const content = try std.fs.cwd().readFileAlloc(self.allocator, self.state_file, 10 * 1024);
+        // The open was only ever a existence probe; readFileAlloc does the
+        // read and reports a missing file itself, so the separate handle goes.
+        const io = tri_io.get();
+        const content = std.Io.Dir.cwd().readFileAlloc(io, self.state_file, self.allocator, .limited(10 * 1024)) catch
+            return error.FileNotFound;
         defer self.allocator.free(content);
 
         var pos: usize = 0;
@@ -309,25 +346,28 @@ pub fn extractRetryAfter(response_body: []const u8) ?[]const u8 {
 
 fn logEvent(timestamp: i64, token_name: []const u8, event_type: []const u8, duration: i64) !void {
     const log_path = ".trinity/event_log.jsonl";
-    std.fs.cwd().makePath(".trinity") catch {};
+    const io = tri_io.get();
+    std.Io.Dir.cwd().createDirPath(io, ".trinity") catch {};
 
-    var file_obj = std.fs.cwd().openFile(log_path, .{}) catch |err| {
+    var file_obj = std.Io.Dir.cwd().openFile(io, log_path, .{}) catch |err| {
         if (err == error.FileNotFound) {
-            const new_file = try std.fs.cwd().createFile(log_path, .{});
-            new_file.close();
+            const new_file = try std.Io.Dir.cwd().createFile(io, log_path, .{});
+            new_file.close(io);
             return;
         } else {
             return err;
         }
     };
-    defer file_obj.close();
+    defer file_obj.close(io);
 
-    try file_obj.seekFromEnd(0);
+    // 0.16's Io.File has no seek. The append that seekFromEnd(0) + writeAll
+    // expressed is now a positional write at the current end of the file.
+    const end = try file_obj.length(io);
 
     const log_entry = try std.fmt.allocPrint(std.heap.page_allocator, "{{\"timestamp\":{},\"event\":\"token_{s}\",\"token_name\":\"{s}\",\"duration\":{}}}\n", .{ timestamp, event_type, token_name, duration });
     defer std.heap.page_allocator.free(log_entry);
 
-    try file_obj.writeAll(log_entry);
+    try file_obj.writePositionalAll(io, log_entry, end);
 }
 
 const testing = std.testing;
@@ -350,4 +390,129 @@ test "parseRetryAfter" {
     try testing.expectEqual(@as(i64, 3600), parseRetryAfter("3600"));
     try testing.expectEqual(@as(i64, 60), parseRetryAfter("60"));
     try testing.expectEqual(@as(i64, 3600), parseRetryAfter("Tue, 15 Nov 1994 08:12:31 GMT"));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Permission tests (#764)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// This file writes API tokens to disk. 0.16's CreateFileOptions dropped `mode`,
+// so the permission had to be re-applied by hand -- and the first repair did it
+// AFTER the write, leaving the tokens world-readable in between. That was found
+// by measuring, not by reading the code, which is why it is now measured here
+// every run.
+
+/// Builds a rotator over a throwaway state file. Deliberately does NOT call
+/// `init`, which reads the real environment and the real `.trinity/` state.
+fn testRotator(gpa: std.mem.Allocator, path: []const u8) !TokenRotator {
+    var r = TokenRotator{
+        .allocator = gpa,
+        .current_index = 0,
+        .tokens = .empty,
+        .total_rotations = 0,
+        .last_rotation = 0,
+        .state_file = try gpa.dupe(u8, path),
+    };
+    try r.tokens.append(gpa, .{
+        .name = try gpa.dupe(u8, "TEST_TOKEN_A"),
+        .status = .active,
+        .usage_count = 3,
+    });
+    return r;
+}
+
+test "createPrivateFile hands back a file that is ALREADY private" {
+    // This is the test that can actually see the defect. Asserting the mode
+    // after save() cannot: 0600 is the final mode whether the narrowing
+    // happens before or after the write, so that assertion passes on the
+    // broken ordering too -- verified by reinstating it.
+    //
+    // Checking the file at the moment it is handed over, with nothing yet
+    // written, is the only point where the two orderings differ.
+    const io = tri_io.get();
+    const path = "/tmp/tri_perm_d/state.json";
+    try std.Io.Dir.cwd().createDirPath(io, "/tmp/tri_perm_d");
+    std.Io.Dir.cwd().deleteFile(io, path) catch {};
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var f = try createPrivateFile(io, path);
+    defer f.close(io);
+
+    const st = try f.stat(io);
+    try testing.expectEqual(@as(u64, 0), st.size); // nothing written yet
+    try testing.expectEqual(@as(u32, 0o600), @as(u32, @intCast(@intFromEnum(st.permissions) & 0o777)));
+}
+
+test "the token state file is never world-readable, not even for an instant" {
+    const gpa = testing.allocator;
+    const io = tri_io.get();
+    const path = "/tmp/tri_perm_a/state.json";
+    std.Io.Dir.cwd().deleteFile(io, path) catch {};
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var r = try testRotator(gpa, path);
+    defer r.deinit();
+
+    try r.save();
+
+    var f = try std.Io.Dir.cwd().openFile(io, path, .{});
+    defer f.close(io);
+    const st = try f.stat(io);
+    const mode = @intFromEnum(st.permissions) & 0o777;
+
+    // 0600 exactly: no group, no other, not even read.
+    try testing.expectEqual(@as(u32, 0o600), @as(u32, @intCast(mode)));
+    try testing.expect(mode & 0o077 == 0);
+}
+
+test "the file holding the tokens is the one that was narrowed" {
+    // A permission test passes trivially if it stats the wrong file or an
+    // empty one. This asserts the token really is in the file whose mode was
+    // just checked -- otherwise 0600 on an empty file would look like a pass.
+    const gpa = testing.allocator;
+    const io = tri_io.get();
+    const path = "/tmp/tri_perm_b/state.json";
+    std.Io.Dir.cwd().deleteFile(io, path) catch {};
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var r = try testRotator(gpa, path);
+    defer r.deinit();
+    try r.save();
+
+    var buf: [8192]u8 = undefined;
+    const content = try std.Io.Dir.cwd().readFile(io, path, &buf);
+    try testing.expect(std.mem.indexOf(u8, content, "TEST_TOKEN_A") != null);
+    try testing.expect(content.len > 0);
+}
+
+test "save narrows an existing file that was left permissive" {
+    // The crash-in-between case: a previous run died after createFile and
+    // before the permission was set, leaving 0644 on disk. The next save must
+    // not inherit it.
+    const gpa = testing.allocator;
+    const io = tri_io.get();
+    const path = "/tmp/tri_perm_c/state.json";
+    std.Io.Dir.cwd().deleteFile(io, path) catch {};
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    try std.Io.Dir.cwd().createDirPath(io, "/tmp/tri_perm_c");
+    {
+        var pre = try std.Io.Dir.cwd().createFile(io, path, .{});
+        defer pre.close(io);
+        try pre.setPermissions(io, @enumFromInt(0o644));
+        try pre.writeStreamingAll(io, "stale");
+        const st = try pre.stat(io);
+        // Confirm the precondition, so a failure here cannot be mistaken for
+        // the assertion below succeeding for the wrong reason.
+        try testing.expectEqual(@as(u32, 0o644), @as(u32, @intCast(@intFromEnum(st.permissions) & 0o777)));
+    }
+
+    var r = try testRotator(gpa, path);
+    defer r.deinit();
+    try r.save();
+
+    var f = try std.Io.Dir.cwd().openFile(io, path, .{});
+    defer f.close(io);
+    const st = try f.stat(io);
+    try testing.expectEqual(@as(u32, 0o600), @as(u32, @intCast(@intFromEnum(st.permissions) & 0o777)));
 }

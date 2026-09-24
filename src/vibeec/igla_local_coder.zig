@@ -22,6 +22,7 @@
 
 const std = @import("std");
 
+const tri_time = @import("tri_time");
 // ═══════════════════════════════════════════════════════════════════════════════
 // CODE TEMPLATE DATABASE (50+ templates)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -465,7 +466,7 @@ pub const TEMPLATES = [_]CodeTemplate{
         \\}
         \\
         \\pub fn main() !void {
-        \\    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        \\    var gpa = std.heap.DebugAllocator(.{}){};
         \\    defer _ = gpa.deinit();
         \\
         \\    var arr = [_]i32{ 64, 34, 25, 12, 22, 11, 90 };
@@ -978,7 +979,7 @@ pub const TEMPLATES = [_]CodeTemplate{
         \\const std = @import("std");
         \\
         \\pub fn main() !void {
-        \\    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        \\    var gpa = std.heap.DebugAllocator(.{}){};
         \\    defer _ = gpa.deinit();
         \\    const allocator = gpa.allocator();
         \\
@@ -1034,7 +1035,7 @@ pub const TEMPLATES = [_]CodeTemplate{
         \\const std = @import("std");
         \\
         \\pub fn main() !void {
-        \\    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        \\    var gpa = std.heap.DebugAllocator(.{}){};
         \\    defer _ = gpa.deinit();
         \\    const allocator = gpa.allocator();
         \\
@@ -1182,7 +1183,7 @@ pub const TEMPLATES = [_]CodeTemplate{
         \\}
         \\
         \\pub fn main() !void {
-        \\    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        \\    var gpa = std.heap.DebugAllocator(.{}){};
         \\    defer _ = gpa.deinit();
         \\    const allocator = gpa.allocator();
         \\
@@ -1215,7 +1216,7 @@ pub const TEMPLATES = [_]CodeTemplate{
         \\const std = @import("std");
         \\
         \\pub fn main() !void {
-        \\    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        \\    var gpa = std.heap.DebugAllocator(.{}){};
         \\    defer _ = gpa.deinit();
         \\    const allocator = gpa.allocator();
         \\
@@ -1275,7 +1276,7 @@ pub const TEMPLATES = [_]CodeTemplate{
         \\
         \\pub fn main() !void {
         \\    // General Purpose Allocator (recommended for most cases)
-        \\    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        \\    var gpa = std.heap.DebugAllocator(.{}){};
         \\    defer _ = gpa.deinit();
         \\    const allocator = gpa.allocator();
         \\
@@ -1728,7 +1729,7 @@ pub const TEMPLATES = [_]CodeTemplate{
         \\const std = @import("std");
         \\
         \\pub fn main() !void {
-        \\    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        \\    var gpa = std.heap.DebugAllocator(.{}){};
         \\    defer _ = gpa.deinit();
         \\    const allocator = gpa.allocator();
         \\
@@ -1911,7 +1912,7 @@ fn containsIgnoreCase(haystack: []const u8, needle: []const u8) bool {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -1953,9 +1954,9 @@ pub fn main() !void {
 
     std.debug.print("\n", .{});
     for (queries, 0..) |query, i| {
-        const start = std.time.microTimestamp();
+        const start = tri_time.microTimestamp();
         const result = coder.generateCode(query);
-        const elapsed = @as(u64, @intCast(std.time.microTimestamp() - start));
+        const elapsed = @as(u64, @intCast(tri_time.microTimestamp() - start));
         total_time_us += elapsed;
 
         if (result.is_match) matches += 1;

@@ -3,6 +3,8 @@
 **Location:** `fpga/FLASH_HISTORY.md`  
 **Purpose:** Track all FPGA programming attempts with full characteristics
 
+**Terminology (2026-09-05):** every entry below is an FPGA flash (AX7203 / Artix-7); "on silicon" in the entries means the FPGA, not an ASIC — no die of any Trinity chip exists.
+
 ---
 
 ## Flash Attempt #001 — TERNARY_DOT Quantum Design ✅ SUCCESS
@@ -79,9 +81,9 @@ led  → T23 (LED D6, LVCMOS33)
 
 ```
 # FPGA tools without password
-playra ALL=(ALL) NOPASSWD: /Users/playra/trinity-w1/fpga/tools/fxload
-playra ALL=(ALL) NOPASSWD: /Users/playra/trinity-w1/fpga/tools/jtag_program
-playra ALL=(ALL) NOPASSWD: /Users/playra/trinity-w1/fpga/flash.sh
+playra ALL=(ALL) NOPASSWD: /Users/playom/trinity-fpga/fpga/tools/fxload
+playra ALL=(ALL) NOPASSWD: /Users/playom/trinity-fpga/fpga/tools/jtag_program
+playra ALL=(ALL) NOPASSWD: /Users/playom/trinity-fpga/fpga/flash.sh
 ```
 
 ---
@@ -134,7 +136,7 @@ playra ALL=(ALL) NOPASSWD: /Users/playra/trinity-w1/fpga/flash.sh
 
 **Build:**
 ```bash
-cd /Users/playra/trinity-w1/fpga/openxc7-synth
+cd "$(git rev-parse --show-toplevel)/fpga/openxc7-synth"
 zig build-exe uart_host_v2.zig -O ReleaseFast
 ```
 

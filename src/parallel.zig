@@ -16,8 +16,9 @@
 // φ² + 1/φ² = 3
 
 const std = @import("std");
-const hybrid = @import("hybrid.zig");
-const vsa = @import("vsa.zig");
+const tri_time = @import("tri_time");
+const hybrid = vsa; // one source: the module, not the local vsa_hybrid copy
+const vsa = @import("vsa");
 
 const HybridBigInt = hybrid.HybridBigInt;
 const Trit = hybrid.Trit;
@@ -66,7 +67,7 @@ pub const ThreadPool = struct {
 };
 
 /// Global allocator for pool
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+var gpa = std.heap.DebugAllocator(.{}){};
 
 /// Get or create global thread pool
 /// WARNING: NOT IMPLEMENTED - this was planned for a singleton pool pattern
@@ -689,7 +690,7 @@ test "benchmark SIMD vs Spawn vs Pool" {
         var b = vsa.randomVector(size, 67890);
 
         // Benchmark SIMD (sequential)
-        var timer = std.time.Timer.start() catch unreachable;
+        var timer = tri_time.Timer.start() catch unreachable;
         for (0..iterations) |_| {
             _ = vsa.bind(&a, &b);
         }
