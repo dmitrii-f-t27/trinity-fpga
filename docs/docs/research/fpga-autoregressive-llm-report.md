@@ -26,14 +26,14 @@ First autoregressive ternary language model running on an FPGA with a fully open
 | Metric | Value |
 |--------|-------|
 | Board | QMTech XC7A100T-1FGG676C ($30) |
-| Power | ~1W |
+| Power | not measured (the earlier ~1W figure is withdrawn: no instrument, rail or method is on record, per `gHashTag/trinity/README.md`) |
 | Toolchain | openXC7 (yosys + nextpnr-xilinx + prjxray) |
 | DSP blocks | **0** |
 | LUT usage | ~7,400 (5.8%) |
 | BRAM usage | ~98% |
-| Fmax | 92 MHz |
-| Latency | 15.9 ms/token @ 92 MHz |
-| Throughput | ~63 tok/s @ 92 MHz |
+| Fmax | 92 MHz (estimate, not measured on the board; the run below was clocked at 50 MHz) |
+| Latency | 15.9 ms/token @ 92 MHz (projected; ~29.2 ms/token at 50 MHz, see Latency Breakdown) |
+| Throughput | ~63 tok/s @ 92 MHz projected; ~34 tok/s measured at 50 MHz (16 tokens in ~467 ms), per `gHashTag/trinity/README.md` |
 | Tokens generated | 16 (autoregressive from seed=42) |
 | Total generation time | ~467 ms @ 50 MHz |
 
@@ -88,7 +88,7 @@ All weights use 2-bit ternary encoding: `01` = +1, `10` = -1, `00` = 0. Multipli
 
 | Platform | tok/s/W |
 |----------|---------|
-| **Trinity XC7A100T** | **~63** |
+| **Trinity XC7A100T** | withdrawn: derived from the unmeasured ~1W figure (`gHashTag/trinity/README.md`) |
 | FlightLLM (Alveo U280) | ~1.5 |
 | Bitnet.cpp (M2 Ultra) | ~0.12 |
 | Bitnet.cpp (i7-13700H) | ~0.03 |

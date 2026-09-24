@@ -1,5 +1,5 @@
 # VHS tape for tri benchmark
-# Key demo: 63 tok/s performance for addressing speed objections
+# Key demo: benchmark suite for addressing speed objections (the old "63 tok/s" caption is withdrawn: tri benchmark prints no tok/s figure)
 
 Output tri-benchmark.gif
 Set FontSize 26
