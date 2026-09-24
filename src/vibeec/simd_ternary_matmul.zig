@@ -12,6 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
+const tri_time = @import("tri_time");
 const builtin = @import("builtin");
 
 pub const PHI: f64 = 1.618033988749895;
@@ -612,7 +613,7 @@ pub fn runBenchmark(allocator: std.mem.Allocator) !void {
     std.debug.print("\n", .{});
 
     // Benchmark Opt8
-    var timer = try std.time.Timer.start();
+    var timer = try tri_time.Timer.start();
     for (0..iterations) |_| {
         simdTernaryMatmulOpt8(output, weights, input, rows, cols);
     }
@@ -688,7 +689,7 @@ pub fn runBenchmark(allocator: std.mem.Allocator) !void {
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     try runBenchmark(gpa.allocator());
 }

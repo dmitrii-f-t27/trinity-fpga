@@ -234,6 +234,56 @@ pub fn mapType(type_name: []const u8) []const u8 {
     if (std.mem.eql(u8, clean_input, "Float32")) return "f32";
     if (std.mem.eql(u8, clean_input, "Float64")) return "f64";
 
+    // Lowercase-i case variants (Uint64, Uint32, ...).
+    //
+    // These are NOT decorative aliases. validate_cmd.zig's `known_base_types`
+    // blesses them under the heading "Case variants (common in specs)", so a
+    // spec author writing `last_update: Uint64` is told the spec validates --
+    // and then gets Zig with a bare `Uint64` in it, because this function used
+    // to fall through to `return clean_input` for exactly this spelling.
+    //
+    // That is what src/tri/sacred_economy_global.zig and
+    // src/tri/self_improving_formula_discovery.zig are: generated output that
+    // has never compiled, from specs that have always validated. The gap was
+    // one missing capitalisation, and the test below now pins the two
+    // vocabularies together so it cannot silently reopen.
+    if (std.mem.eql(u8, clean_input, "Uint")) return "u32";
+    if (std.mem.eql(u8, clean_input, "Uint64")) return "u64";
+    if (std.mem.eql(u8, clean_input, "Uint32")) return "u32";
+    if (std.mem.eql(u8, clean_input, "Uint16")) return "u16";
+    if (std.mem.eql(u8, clean_input, "Uint8")) return "u8";
+    if (std.mem.eql(u8, clean_input, "Uint4")) return "u4";
+    if (std.mem.eql(u8, clean_input, "Uint2")) return "u2";
+
+    // Case variants of the pointer-sized integer. `USize` is the spelling
+    // seven fields across the corpus actually use, and it was in neither
+    // mapType nor `known_base_types` -- so the validator rejected it AND the
+    // generator emitted it verbatim, producing `use of undeclared identifier
+    // 'USize'`. Same shape as the Uint64 gap in #774: a spelling the specs use
+    // and neither vocabulary knows.
+    if (std.ascii.eqlIgnoreCase(clean_input, "usize")) return "usize";
+    if (std.ascii.eqlIgnoreCase(clean_input, "isize")) return "isize";
+
+    // `Bytes8` and friends: a fixed-width byte buffer.
+    if (std.mem.startsWith(u8, clean_input, "Bytes") and clean_input.len > 5) {
+        const digits = clean_input[5..];
+        var all_digits = digits.len > 0;
+        for (digits) |c| {
+            if (!std.ascii.isDigit(c)) all_digits = false;
+        }
+        if (all_digits) {
+            // The width is part of the type, so it cannot come from this
+            // function's static-string return. Only the common widths the
+            // corpus uses are spelled out; anything else falls through to the
+            // generic handling rather than being guessed at.
+            if (std.mem.eql(u8, digits, "4")) return "[4]u8";
+            if (std.mem.eql(u8, digits, "8")) return "[8]u8";
+            if (std.mem.eql(u8, digits, "16")) return "[16]u8";
+            if (std.mem.eql(u8, digits, "32")) return "[32]u8";
+            if (std.mem.eql(u8, digits, "64")) return "[64]u8";
+        }
+    }
+
     // Short capitalization aliases (U64, U32, etc.)
     if (std.mem.eql(u8, clean_input, "U64")) return "u64";
     if (std.mem.eql(u8, clean_input, "U32")) return "u32";
@@ -325,6 +375,28 @@ pub fn mapType(type_name: []const u8) []const u8 {
     {
         return "[]const u8"; // Simplified: maps as serialized data
     }
+    // Inline enum: `safety_level: Enum[low, medium, high]`.
+    //
+    // 21 occurrences across 9 specs, and mapType had no case for it, so the
+    // whole `Enum[low, medium, high]` reached the generated struct verbatim
+    // and the file did not PARSE -- five of the twenty-five specs whose
+    // output failed ast-check failed on this.
+    //
+    // Lowered to `[]const u8`, the same answer this function already gives for
+    // Map and Set: complex types become serialized data. A real Zig enum
+    // would be better and is what the spec means, but mapType returns static
+    // strings and cannot build `enum { low, medium, high }` without an
+    // allocator. Widening that signature is a change to every caller, so it
+    // is a separate piece of work -- this makes the output compile and keeps
+    // the field, rather than dropping either.
+    if (std.mem.startsWith(u8, clean_input, "Enum[") or
+        std.mem.startsWith(u8, clean_input, "enum[") or
+        std.mem.startsWith(u8, clean_input, "Enum<") or
+        std.mem.startsWith(u8, clean_input, "enum<"))
+    {
+        return "[]const u8";
+    }
+
     // Set types -> []const u8
     if (std.mem.startsWith(u8, clean_input, "Set<") or std.mem.startsWith(u8, clean_input, "set<") or
         std.mem.startsWith(u8, clean_input, "Set(") or std.mem.startsWith(u8, clean_input, "set("))
@@ -351,6 +423,18 @@ pub fn mapType(type_name: []const u8) []const u8 {
     if (std.mem.startsWith(u8, clean_input, "List(") and clean_input.len > 5) {
         if (std.mem.indexOf(u8, clean_input[5..], ")")) |end| {
             const inner = std.mem.trim(u8, clean_input[5 .. 5 + end], " ");
+            // Recurse only on a STRICTLY SHORTER string. `extractInnerType`
+            // returns its input unchanged for a malformed generic -- `List<`
+            // with no closing bracket -- and mapType then called itself on the
+            // same text forever. Feeding the whole spec corpus through this
+            // crashed with a stack overflow inside std.mem.eql.
+            if (inner.len >= clean_input.len) return clean_input;
+            // Recurse only on a STRICTLY SHORTER string. `extractInnerType`
+            // returns its input unchanged for a malformed generic -- `List<`
+            // with no closing bracket -- and mapType then called itself on the
+            // same text forever. Feeding the whole spec corpus through this
+            // crashed with a stack overflow inside std.mem.eql.
+            if (inner.len >= clean_input.len) return clean_input;
             const inner_zig = mapType(inner);
             if (std.mem.eql(u8, inner_zig, "[]const u8")) return "[]const u8";
             if (std.mem.eql(u8, inner_zig, "i64")) return "[]const i64";
@@ -389,6 +473,12 @@ pub fn mapType(type_name: []const u8) []const u8 {
         if (std.mem.eql(u8, inner, "Int") or std.mem.eql(u8, inner, "int")) return "[]const i64";
         if (std.mem.eql(u8, inner, "Float") or std.mem.eql(u8, inner, "float")) return "[]const f64";
         if (std.mem.eql(u8, inner, "Bool") or std.mem.eql(u8, inner, "bool")) return "[]const bool";
+        // Recurse only on a STRICTLY SHORTER string. `extractInnerType`
+        // returns its input unchanged for a malformed generic -- `List<`
+        // with no closing bracket -- and mapType then called itself on the
+        // same text forever. Feeding the whole spec corpus through this
+        // crashed with a stack overflow inside std.mem.eql.
+        if (inner.len >= clean_input.len) return clean_input;
         const inner_zig = mapType(inner);
         if (std.mem.eql(u8, inner_zig, "[]const u8")) return "[]const []const u8";
         return "[]const u8";
@@ -405,6 +495,12 @@ pub fn mapType(type_name: []const u8) []const u8 {
         if (std.mem.eql(u8, inner, "usize")) return "[]const usize";
         if (std.mem.eql(u8, inner, "u8")) return "[]u8";
         // For complex inner types (generics, custom types), use mapType recursively
+        // Recurse only on a STRICTLY SHORTER string. `extractInnerType`
+        // returns its input unchanged for a malformed generic -- `List<`
+        // with no closing bracket -- and mapType then called itself on the
+        // same text forever. Feeding the whole spec corpus through this
+        // crashed with a stack overflow inside std.mem.eql.
+        if (inner.len >= clean_input.len) return clean_input;
         const inner_zig = mapType(inner);
         // Nested generics support for already-converted types
         if (std.mem.eql(u8, inner_zig, "[]const u8")) return "[]const []const u8"; // List<List<String>>
@@ -427,6 +523,18 @@ pub fn mapType(type_name: []const u8) []const u8 {
             if (std.mem.eql(u8, inner, "Bool")) return "[]const bool";
             if (std.mem.eql(u8, inner, "usize")) return "[]const usize";
             if (std.mem.eql(u8, inner, "u8")) return "[]u8";
+            // Recurse only on a STRICTLY SHORTER string. `extractInnerType`
+            // returns its input unchanged for a malformed generic -- `List<`
+            // with no closing bracket -- and mapType then called itself on the
+            // same text forever. Feeding the whole spec corpus through this
+            // crashed with a stack overflow inside std.mem.eql.
+            if (inner.len >= clean_input.len) return clean_input;
+            // Recurse only on a STRICTLY SHORTER string. `extractInnerType`
+            // returns its input unchanged for a malformed generic -- `List<`
+            // with no closing bracket -- and mapType then called itself on the
+            // same text forever. Feeding the whole spec corpus through this
+            // crashed with a stack overflow inside std.mem.eql.
+            if (inner.len >= clean_input.len) return clean_input;
             const inner_zig = mapType(inner);
             if (std.mem.eql(u8, inner_zig, "[]const u8")) return "[]const []const u8";
             return "[]const u8"; // custom types fallback to serialized
@@ -446,6 +554,12 @@ pub fn mapType(type_name: []const u8) []const u8 {
             inner_end = inner_start + pos;
         }
         const inner = std.mem.trim(u8, clean_input[inner_start..inner_end], " ");
+        // Recurse only on a STRICTLY SHORTER string. `extractInnerType`
+        // returns its input unchanged for a malformed generic -- `List<`
+        // with no closing bracket -- and mapType then called itself on the
+        // same text forever. Feeding the whole spec corpus through this
+        // crashed with a stack overflow inside std.mem.eql.
+        if (inner.len >= clean_input.len) return clean_input;
         const inner_zig = mapType(inner);
         if (std.mem.eql(u8, inner_zig, "f64")) return "?f64";
         if (std.mem.eql(u8, inner_zig, "i64")) return "?i64";
@@ -457,6 +571,12 @@ pub fn mapType(type_name: []const u8) []const u8 {
     // Generic types Option<T> -> ?T (FIXED: parse inner type)
     if (std.mem.startsWith(u8, clean_input, "Option<")) {
         const inner = extractInnerType(clean_input, "Option<", ">");
+        // Recurse only on a STRICTLY SHORTER string. `extractInnerType`
+        // returns its input unchanged for a malformed generic -- `List<`
+        // with no closing bracket -- and mapType then called itself on the
+        // same text forever. Feeding the whole spec corpus through this
+        // crashed with a stack overflow inside std.mem.eql.
+        if (inner.len >= clean_input.len) return clean_input;
         const inner_zig = mapType(inner);
         // Map common inner types to correct optional types
         if (std.mem.eql(u8, inner_zig, "f64")) return "?f64";

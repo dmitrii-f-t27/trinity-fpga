@@ -8,6 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
+const tri_time = @import("tri_time");
 const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 
@@ -549,7 +550,7 @@ pub fn runBenchmark(allocator: Allocator) !void {
     std.debug.print("\n", .{});
 
     // Benchmark simulated CUDA kernel
-    var timer = try std.time.Timer.start();
+    var timer = try tri_time.Timer.start();
     for (0..iterations) |_| {
         cudaTernaryMatmulKernel(output, weights, input, rows, cols, config);
     }
@@ -597,7 +598,7 @@ pub fn runBenchmark(allocator: Allocator) !void {
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     try runBenchmark(gpa.allocator());
 }

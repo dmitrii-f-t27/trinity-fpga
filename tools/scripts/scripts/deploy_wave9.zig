@@ -3,10 +3,11 @@
 
 const std = @import("std");
 
+const tri_time = @import("tri_time");
 const Allocator = std.mem.Allocator;
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -121,7 +122,7 @@ pub fn main() !void {
             }
 
             // Rate limiting: sleep 200ms between requests
-            std.Thread.sleep(200 * std.time.ns_per_ms);
+            tri_time.sleep(200 * std.time.ns_per_ms);
         }
 
         std.debug.print("\n", .{});

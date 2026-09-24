@@ -6,7 +6,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
-const ArrayList = std.array_list.Managed;
+const tri_time = @import("tri_time");
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MESSAGE TYPES
@@ -83,8 +83,9 @@ pub const NodeCapabilities = struct {
     version: u16, // Protocol version
 
     pub fn serialize(self: *const NodeCapabilities, allocator: std.mem.Allocator) ![]u8 {
-        var list = ArrayList(u8).init(allocator);
-        const writer = list.writer();
+        var aw: std.Io.Writer.Allocating = .init(allocator);
+        errdefer aw.deinit();
+        const writer = &aw.writer;
 
         // Node ID (32 bytes)
         try writer.writeAll(&self.node_id);
@@ -108,7 +109,7 @@ pub const NodeCapabilities = struct {
             try writer.writeAll(model);
         }
 
-        return list.toOwnedSlice();
+        return aw.toOwnedSlice();
     }
 };
 
@@ -129,8 +130,9 @@ pub const InferenceJob = struct {
     created_at: i64, // Unix timestamp
 
     pub fn serialize(self: *const InferenceJob, allocator: std.mem.Allocator) ![]u8 {
-        var list = ArrayList(u8).init(allocator);
-        const writer = list.writer();
+        var aw: std.Io.Writer.Allocating = .init(allocator);
+        errdefer aw.deinit();
+        const writer = &aw.writer;
 
         // Job ID (16 bytes)
         try writer.writeAll(&self.job_id);
@@ -151,44 +153,43 @@ pub const InferenceJob = struct {
         try writer.writeInt(u32, @intCast(self.prompt.len), .little);
         try writer.writeAll(self.prompt);
 
-        return list.toOwnedSlice();
+        return aw.toOwnedSlice();
     }
 
     pub fn deserialize(data: []const u8, allocator: std.mem.Allocator) !InferenceJob {
-        var reader = std.io.fixedBufferStream(data);
-        const r = reader.reader();
+        var r: std.Io.Reader = .fixed(data);
 
         var job: InferenceJob = undefined;
 
         // Job ID
-        _ = try r.readAll(&job.job_id);
+        try r.readSliceAll(&job.job_id);
         // Requester ID
-        _ = try r.readAll(&job.requester_id);
+        try r.readSliceAll(&job.requester_id);
         // Created at
-        job.created_at = try r.readInt(i64, .little);
+        job.created_at = try r.takeInt(i64, .little);
         // Max tokens
-        job.max_tokens = try r.readInt(u32, .little);
+        job.max_tokens = try r.takeInt(u32, .little);
         // Temperature
         var temp_bytes: [4]u8 = undefined;
-        _ = try r.readAll(&temp_bytes);
+        try r.readSliceAll(&temp_bytes);
         job.temperature = @bitCast(temp_bytes);
         // Top-p
         var top_p_bytes: [4]u8 = undefined;
-        _ = try r.readAll(&top_p_bytes);
+        try r.readSliceAll(&top_p_bytes);
         job.top_p = @bitCast(top_p_bytes);
         // Model ID (max 1KB)
-        const model_len = try r.readInt(u16, .little);
+        const model_len = try r.takeInt(u16, .little);
         if (model_len > 1024) return error.InvalidData;
         const model_buf = try allocator.alloc(u8, model_len);
         errdefer allocator.free(model_buf);
-        _ = try r.readAll(model_buf);
+        try r.readSliceAll(model_buf);
         job.model_id = model_buf;
         // Prompt (max 16MB)
-        const prompt_len = try r.readInt(u32, .little);
+        const prompt_len = try r.takeInt(u32, .little);
         if (prompt_len > 16 * 1024 * 1024) return error.InvalidData;
         const prompt_buf = try allocator.alloc(u8, prompt_len);
         errdefer allocator.free(prompt_buf);
-        _ = try r.readAll(prompt_buf);
+        try r.readSliceAll(prompt_buf);
         job.prompt = prompt_buf;
 
         return job;
@@ -208,8 +209,9 @@ pub const InferenceResult = struct {
     signature: [64]u8, // ed25519 signature over (job_id || response hash)
 
     pub fn serialize(self: *const InferenceResult, allocator: std.mem.Allocator) ![]u8 {
-        var list = ArrayList(u8).init(allocator);
-        const writer = list.writer();
+        var aw: std.Io.Writer.Allocating = .init(allocator);
+        errdefer aw.deinit();
+        const writer = &aw.writer;
 
         // Job ID (16 bytes)
         try writer.writeAll(&self.job_id);
@@ -225,31 +227,30 @@ pub const InferenceResult = struct {
         try writer.writeInt(u32, @intCast(self.response.len), .little);
         try writer.writeAll(self.response);
 
-        return list.toOwnedSlice();
+        return aw.toOwnedSlice();
     }
 
     pub fn deserialize(data: []const u8, allocator: std.mem.Allocator) !InferenceResult {
-        var reader = std.io.fixedBufferStream(data);
-        const r = reader.reader();
+        var r: std.Io.Reader = .fixed(data);
 
         var result: InferenceResult = undefined;
 
         // Job ID
-        _ = try r.readAll(&result.job_id);
+        try r.readSliceAll(&result.job_id);
         // Worker ID
-        _ = try r.readAll(&result.worker_id);
+        try r.readSliceAll(&result.worker_id);
         // Tokens generated
-        result.tokens_generated = try r.readInt(u32, .little);
+        result.tokens_generated = try r.takeInt(u32, .little);
         // Latency
-        result.latency_ms = try r.readInt(u32, .little);
+        result.latency_ms = try r.takeInt(u32, .little);
         // Signature
-        _ = try r.readAll(&result.signature);
+        try r.readSliceAll(&result.signature);
         // Response (max 16MB)
-        const response_len = try r.readInt(u32, .little);
+        const response_len = try r.takeInt(u32, .little);
         if (response_len > 16 * 1024 * 1024) return error.InvalidData;
         const response_buf = try allocator.alloc(u8, response_len);
         errdefer allocator.free(response_buf);
-        _ = try r.readAll(response_buf);
+        try r.readSliceAll(response_buf);
         result.response = response_buf;
 
         return result;
@@ -268,8 +269,9 @@ pub const RewardNotification = struct {
     coordinator_signature: [64]u8,
 
     pub fn serialize(self: *const RewardNotification, allocator: std.mem.Allocator) ![]u8 {
-        var list = ArrayList(u8).init(allocator);
-        const writer = list.writer();
+        var aw: std.Io.Writer.Allocating = .init(allocator);
+        errdefer aw.deinit();
+        const writer = &aw.writer;
 
         try writer.writeAll(&self.job_id);
         try writer.writeAll(&self.worker_id);
@@ -277,7 +279,7 @@ pub const RewardNotification = struct {
         try writer.writeInt(i64, self.timestamp, .little);
         try writer.writeAll(&self.coordinator_signature);
 
-        return list.toOwnedSlice();
+        return aw.toOwnedSlice();
     }
 };
 
@@ -300,8 +302,9 @@ pub const Heartbeat = struct {
     };
 
     pub fn serialize(self: *const Heartbeat, allocator: std.mem.Allocator) ![]u8 {
-        var list = ArrayList(u8).init(allocator);
-        const writer = list.writer();
+        var aw: std.Io.Writer.Allocating = .init(allocator);
+        errdefer aw.deinit();
+        const writer = &aw.writer;
 
         try writer.writeAll(&self.node_id);
         try writer.writeInt(i64, self.timestamp, .little);
@@ -309,7 +312,7 @@ pub const Heartbeat = struct {
         try writer.writeInt(u64, self.uptime_seconds, .little);
         try writer.writeByte(@intFromEnum(self.status));
 
-        return list.toOwnedSlice();
+        return aw.toOwnedSlice();
     }
 };
 
@@ -627,8 +630,9 @@ pub const StoreRequest = struct {
     data: []const u8, // Encrypted shard data
 
     pub fn serialize(self: *const StoreRequest, allocator: std.mem.Allocator) ![]u8 {
-        var list = ArrayList(u8).init(allocator);
-        const writer = list.writer();
+        var aw: std.Io.Writer.Allocating = .init(allocator);
+        errdefer aw.deinit();
+        const writer = &aw.writer;
 
         try writer.writeAll(&self.shard_hash);
         try writer.writeAll(&self.file_id);
@@ -637,7 +641,7 @@ pub const StoreRequest = struct {
         try writer.writeInt(u32, @intCast(self.data.len), .little);
         try writer.writeAll(self.data);
 
-        return list.toOwnedSlice();
+        return aw.toOwnedSlice();
     }
 
     pub fn deserialize(data: []const u8, allocator: std.mem.Allocator) !StoreRequest {
@@ -719,15 +723,16 @@ pub const RetrieveResponse = struct {
     data: []const u8,
 
     pub fn serialize(self: *const RetrieveResponse, allocator: std.mem.Allocator) ![]u8 {
-        var list = ArrayList(u8).init(allocator);
-        const writer = list.writer();
+        var aw: std.Io.Writer.Allocating = .init(allocator);
+        errdefer aw.deinit();
+        const writer = &aw.writer;
 
         try writer.writeAll(&self.shard_hash);
         try writer.writeByte(if (self.found) 1 else 0);
         try writer.writeInt(u32, @intCast(self.data.len), .little);
         try writer.writeAll(self.data);
 
-        return list.toOwnedSlice();
+        return aw.toOwnedSlice();
     }
 
     pub fn deserialize(data: []const u8, allocator: std.mem.Allocator) !RetrieveResponse {
@@ -805,14 +810,15 @@ pub const ManifestStoreMessage = struct {
     data: []const u8,
 
     pub fn serialize(self: *const ManifestStoreMessage, allocator: std.mem.Allocator) ![]u8 {
-        var list = ArrayList(u8).init(allocator);
-        const writer = list.writer();
+        var aw: std.Io.Writer.Allocating = .init(allocator);
+        errdefer aw.deinit();
+        const writer = &aw.writer;
 
         try writer.writeAll(&self.file_id);
         try writer.writeInt(u32, @intCast(self.data.len), .little);
         try writer.writeAll(self.data);
 
-        return list.toOwnedSlice();
+        return aw.toOwnedSlice();
     }
 
     pub fn deserialize(data: []const u8, allocator: std.mem.Allocator) !ManifestStoreMessage {
@@ -863,15 +869,16 @@ pub const ManifestRetrieveResponse = struct {
     data: []const u8,
 
     pub fn serialize(self: *const ManifestRetrieveResponse, allocator: std.mem.Allocator) ![]u8 {
-        var list = ArrayList(u8).init(allocator);
-        const writer = list.writer();
+        var aw: std.Io.Writer.Allocating = .init(allocator);
+        errdefer aw.deinit();
+        const writer = &aw.writer;
 
         try writer.writeAll(&self.file_id);
         try writer.writeByte(if (self.found) 1 else 0);
         try writer.writeInt(u32, @intCast(self.data.len), .little);
         try writer.writeAll(self.data);
 
-        return list.toOwnedSlice();
+        return aw.toOwnedSlice();
     }
 
     pub fn deserialize(data: []const u8, allocator: std.mem.Allocator) !ManifestRetrieveResponse {
@@ -1401,7 +1408,7 @@ test "peer announce serialize/deserialize" {
         .public_key = undefined,
         .listen_port = 9333,
         .capabilities_hash = undefined,
-        .timestamp = std.time.timestamp(),
+        .timestamp = tri_time.timestamp(),
     };
     @memset(&announce.node_id, 0xAB);
     @memset(&announce.public_key, 0xCD);
@@ -2578,4 +2585,143 @@ test "semantic query message serialize/deserialize" {
     const parsed_threshold: f64 = @bitCast(parsed.threshold_bits);
     try std.testing.expectEqual(threshold, parsed_threshold);
     try std.testing.expectEqual(@as(u8, 10), parsed.max_results);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Truncation tests (#764)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// The 0.16 migration TIGHTENED this decoder, and the tightening had never been
+// exercised. The 0.15 code read fields with `_ = try r.readAll(buf)` and
+// DISCARDED the byte count, so a short packet produced a half-filled struct
+// that looked valid: uninitialised job_id, a prompt of the wrong length, a
+// temperature read out of whatever was in the buffer.
+//
+// `readSliceAll` errors instead. That is the behaviour these tests pin, at
+// every truncation point rather than at one, because the failure mode of the
+// old code was silence and silence has no single boundary.
+
+fn sampleJob() InferenceJob {
+    var job: InferenceJob = .{
+        .job_id = undefined,
+        .requester_id = undefined,
+        .model_id = "phi-3-mini",
+        .prompt = "what is the golden ratio",
+        .max_tokens = 512,
+        .temperature = 0.7,
+        .top_p = 0.95,
+        .created_at = 1_700_000_000,
+    };
+    @memset(&job.job_id, 0xAB);
+    @memset(&job.requester_id, 0xCD);
+    return job;
+}
+
+test "InferenceJob survives a round trip intact" {
+    // The control for the truncation tests below: if this fails, a truncation
+    // test passing proves nothing, because everything would be failing.
+    const gpa = std.testing.allocator;
+    const job = sampleJob();
+    const bytes = try job.serialize(gpa);
+    defer gpa.free(bytes);
+
+    const back = try InferenceJob.deserialize(bytes, gpa);
+    defer gpa.free(back.model_id);
+    defer gpa.free(back.prompt);
+
+    try std.testing.expectEqualSlices(u8, &job.job_id, &back.job_id);
+    try std.testing.expectEqualSlices(u8, &job.requester_id, &back.requester_id);
+    try std.testing.expectEqualStrings(job.model_id, back.model_id);
+    try std.testing.expectEqualStrings(job.prompt, back.prompt);
+    try std.testing.expectEqual(job.max_tokens, back.max_tokens);
+    try std.testing.expectEqual(job.temperature, back.temperature);
+    try std.testing.expectEqual(job.top_p, back.top_p);
+    try std.testing.expectEqual(job.created_at, back.created_at);
+}
+
+test "a truncated InferenceJob errors at EVERY cut point, never decodes partially" {
+    const gpa = std.testing.allocator;
+    const job = sampleJob();
+    const bytes = try job.serialize(gpa);
+    defer gpa.free(bytes);
+
+    // Every prefix short of the whole packet. Testing one cut point would miss
+    // the fields whose reads happen to land on a boundary.
+    var cut: usize = 0;
+    var checked: usize = 0;
+    while (cut < bytes.len) : (cut += 1) {
+        const partial = bytes[0..cut];
+        if (InferenceJob.deserialize(partial, gpa)) |decoded| {
+            // Reaching here is the 0.15 behaviour this migration removed.
+            gpa.free(decoded.model_id);
+            gpa.free(decoded.prompt);
+            std.debug.print("\ntruncated to {d}/{d} bytes still decoded\n", .{ cut, bytes.len });
+            return error.TruncatedPacketDecoded;
+        } else |_| {
+            checked += 1;
+        }
+    }
+
+    // An empty loop would pass silently; the packet must be long enough for
+    // the sweep to have meant something.
+    try std.testing.expect(checked == bytes.len);
+    try std.testing.expect(checked > 60);
+}
+
+test "a truncated InferenceResult errors at every cut point too" {
+    const gpa = std.testing.allocator;
+    var result: InferenceResult = .{
+        .job_id = undefined,
+        .worker_id = undefined,
+        .response = "phi squared plus its inverse is three",
+        .tokens_generated = 42,
+        .latency_ms = 1234,
+        .signature = undefined,
+    };
+    @memset(&result.job_id, 0x11);
+    @memset(&result.worker_id, 0x22);
+    @memset(&result.signature, 0x33);
+
+    const bytes = try result.serialize(gpa);
+    defer gpa.free(bytes);
+
+    // Control first: the full packet must decode, or the sweep below is vacuous.
+    {
+        const back = try InferenceResult.deserialize(bytes, gpa);
+        defer gpa.free(back.response);
+        try std.testing.expectEqualStrings(result.response, back.response);
+        try std.testing.expectEqual(result.tokens_generated, back.tokens_generated);
+        try std.testing.expectEqualSlices(u8, &result.signature, &back.signature);
+    }
+
+    var cut: usize = 0;
+    while (cut < bytes.len) : (cut += 1) {
+        if (InferenceResult.deserialize(bytes[0..cut], gpa)) |decoded| {
+            gpa.free(decoded.response);
+            std.debug.print("\nresult truncated to {d}/{d} still decoded\n", .{ cut, bytes.len });
+            return error.TruncatedPacketDecoded;
+        } else |_| {}
+    }
+}
+
+test "a length header longer than the payload is rejected, not trusted" {
+    // The dangerous shape: the packet is well-formed up to a length field that
+    // claims more bytes than remain. The old readAll would return short and be
+    // ignored; readSliceAll must refuse.
+    const gpa = std.testing.allocator;
+    const job = sampleJob();
+    const bytes = try job.serialize(gpa);
+    defer gpa.free(bytes);
+
+    const forged = try gpa.dupe(u8, bytes);
+    defer gpa.free(forged);
+
+    // model_len sits after job_id(16) + requester_id(32) + created_at(8)
+    // + max_tokens(4) + temperature(4) + top_p(4).
+    const model_len_at = 16 + 32 + 8 + 4 + 4 + 4;
+    const original = std.mem.readInt(u16, forged[model_len_at..][0..2], .little);
+    try std.testing.expectEqual(@as(u16, @intCast(job.model_id.len)), original);
+
+    std.mem.writeInt(u16, forged[model_len_at..][0..2], original + 64, .little);
+    try std.testing.expectError(error.EndOfStream, InferenceJob.deserialize(forged, gpa));
 }

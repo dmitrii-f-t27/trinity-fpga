@@ -5,6 +5,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const std = @import("std");
+const tri_time = @import("tri_time");
+const tri_io = @import("tri_io");
 const qt = @import("queen_types.zig");
 const queen_senses = @import("queen_senses.zig");
 const queen_actions = @import("queen_actions.zig");
@@ -72,14 +74,14 @@ pub fn startPollThread(ctx: *PollContext) !std.Thread {
 }
 
 fn pollLoop(ctx: *PollContext) void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
     while (ctx.running.load(.acquire)) {
         const offset = ctx.last_update_id.load(.acquire) + 1;
         pollOnce(allocator, ctx, offset);
-        std.Thread.sleep(5 * std.time.ns_per_s);
+        tri_time.sleep(5 * std.time.ns_per_s);
     }
 }
 
@@ -87,7 +89,7 @@ fn pollOnce(allocator: Allocator, ctx: *PollContext, offset: i64) void {
     var url_buf: [512]u8 = undefined;
     const url = std.fmt.bufPrint(&url_buf, "https://api.telegram.org/bot{s}/getUpdates?offset={d}&timeout=5&allowed_updates=[\"message\"]", .{ ctx.tg.bot_token, offset }) catch return;
 
-    var client = std.http.Client{ .allocator = allocator };
+    var client = std.http.Client{ .allocator = allocator, .io = tri_io.get() };
     defer client.deinit();
 
     var aw: std.Io.Writer.Allocating = .init(allocator);
@@ -431,11 +433,11 @@ pub fn tgSendCapture(config: qt.TgConfig, text: []const u8) ?i64 {
     var body_buf: [4096]u8 = undefined;
     const body = qt.buildTgBody(&body_buf, config.chat_id, null, text) orelse return null;
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var client = std.http.Client{ .allocator = allocator };
+    var client = std.http.Client{ .allocator = allocator, .io = tri_io.get() };
     defer client.deinit();
 
     var aw: std.Io.Writer.Allocating = .init(allocator);
@@ -477,11 +479,11 @@ pub fn tgPin(config: qt.TgConfig, message_id: i64) void {
     var body_buf: [256]u8 = undefined;
     const body = std.fmt.bufPrint(&body_buf, "{{\"chat_id\":\"{s}\",\"message_id\":{d}}}", .{ config.chat_id, message_id }) catch return;
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var client = std.http.Client{ .allocator = allocator };
+    var client = std.http.Client{ .allocator = allocator, .io = tri_io.get() };
     defer client.deinit();
 
     _ = client.fetch(.{
@@ -501,11 +503,11 @@ fn tgPost(config: qt.TgConfig, endpoint: []const u8, text: []const u8, message_i
     var body_buf: [4096]u8 = undefined;
     const body = qt.buildTgBody(&body_buf, config.chat_id, message_id, text) orelse return;
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var client = std.http.Client{ .allocator = allocator };
+    var client = std.http.Client{ .allocator = allocator, .io = tri_io.get() };
     defer client.deinit();
 
     _ = client.fetch(.{

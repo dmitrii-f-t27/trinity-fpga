@@ -1,4 +1,5 @@
 const std = @import("std");
+const tri_time = @import("tri_time");
 const dao = @import("dao_integration.zig");
 const p2p = @import("p2p_module.zig");
 
@@ -104,7 +105,7 @@ fn chatReflex(ctx: *Context, args: []const []const u8) !void {
 
     if (ctx.app.mode == .TURBO) {
         std.debug.print("🚀 [Multi-Core] Dispatching parallel MatVec to 8 threads...\n", .{});
-        std.Thread.sleep(50 * std.time.ns_per_ms);
+        tri_time.sleep(50 * std.time.ns_per_ms);
     }
 
     std.debug.print("🤖: {s} ... [END]\n", .{input});
@@ -146,7 +147,7 @@ fn contributeReflex(ctx: *Context, args: []const []const u8) !void {
 
 // --- MAIN LOOP ---
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

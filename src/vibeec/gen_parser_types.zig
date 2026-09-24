@@ -106,13 +106,13 @@ pub const TypeDef = struct {
         return TypeDef{
             .name = "",
             .base = null,
-            .fields = .{},
-            .constraints = .{},
+            .fields = .empty,
+            .constraints = .empty,
             .generic = null,
             .description = "",
-            .enum_variants = .{},
+            .enum_variants = .empty,
             .consts = std.StringHashMap([]const u8).init(allocator),
-            .implements = .{},
+            .implements = .empty,
         };
     }
 
@@ -135,7 +135,11 @@ pub const TypeDef = struct {
 /// Behavior definition (function contract)
 pub const Behavior = struct {
     name: []const u8,
-    owner: ?[]const u8, // Which struct owns this method
+    // Defaults to null so a Behavior literal need not spell it out. Twelve
+    // construction sites across codegen/ omitted it and would not compile;
+    // the field is optional, so "absent" and "null" are the same thing, and
+    // one default is better than twelve `.owner = null,` lines.
+    owner: ?[]const u8 = null, // Which struct owns this method
     given: []const u8,
     when: []const u8,
     then: []const u8,
@@ -151,7 +155,7 @@ pub const Behavior = struct {
             .when = "",
             .then = "",
             .implementation = "",
-            .test_cases = .{},
+            .test_cases = .empty,
         };
     }
 
@@ -172,9 +176,9 @@ pub const Algorithm = struct {
         _ = allocator;
         return Algorithm{
             .name = "",
-            .inputs = .{},
-            .outputs = .{},
-            .steps = .{},
+            .inputs = .empty,
+            .outputs = .empty,
+            .steps = .empty,
             .big_o = "",
         };
     }
@@ -222,21 +226,32 @@ pub const VibeeSpec = struct {
             .license = "MIT",
             .zig_mode = .standard,
             .allocator_strategy = .none,
-            .types = .{},
-            .behaviors = .{},
-            .algorithms = .{},
-            .constants = .{},
-            .imports = .{},
-            .tests = .{},
+            .types = .empty,
+            .behaviors = .empty,
+            .algorithms = .empty,
+            .constants = .empty,
+            .imports = .empty,
+            .tests = .empty,
         };
     }
 
+    /// OWNERSHIP CONTRACT for the string fields.
+    ///
+    /// Each is either the exact default literal `init` put there, or memory
+    /// allocated with the allocator passed here. There is no third option:
+    /// assigning a non-default string LITERAL to one of these fields makes
+    /// this function call `free` on read-only memory, which is a bus error,
+    /// not a leak.
+    ///
+    /// That is not hypothetical -- the test "validate missing name" did
+    /// exactly that with `spec.module = "test.module"`, and it aborted the
+    /// whole test binary at test 9 of 16, so the seven tests after it had
+    /// never run. The comment this replaces conceded the design was a
+    /// "simple heuristic - in production, use a flag"; the heuristic it
+    /// described for `name` (`ptr[0] != 0`) only ever worked by accident,
+    /// since the first byte of any real name is non-zero.
     pub fn deinit(self: *VibeeSpec, allocator: Allocator) void {
-        // Note: Only free strings that were allocated (not string literals from init)
-        // We track this by checking if the string doesn't match the default values
-        if (self.name.len > 0 and self.name.ptr[0] != 0) {
-            // Check if it's not a literal by comparing address
-            // This is a simple heuristic - in production, use a flag
+        if (self.name.len > 0) {
             allocator.free(self.name);
         }
         if (self.module.len > 0) {

@@ -9,16 +9,19 @@
 //   "command": "echo $CLAUDE_TOOL_INPUT | \"${CLAUDE_PROJECT_DIR:-.}/zig-out/bin/pipeline-guard\""
 
 const std = @import("std");
+const tri_io = @import("tri_io");
 
 pub fn main() !void {
-    // Read tool input JSON from stdin
+    const io = tri_io.get();
+
+    // Read tool input JSON from stdin.
+    // `readSliceShort` is the 0.16 spelling of the old fill-until-EOF loop:
+    // it returns fewer bytes than requested if and only if the stream ended,
+    // so a short result here means EOF and not merely a short read.
     var input_buf: [65536]u8 = undefined;
-    var total: usize = 0;
-    while (total < input_buf.len) {
-        const n = std.posix.read(0, input_buf[total..]) catch break;
-        if (n == 0) break;
-        total += n;
-    }
+    var stdin_scratch: [4096]u8 = undefined;
+    var stdin_reader = std.Io.File.stdin().readerStreaming(io, &stdin_scratch);
+    const total = stdin_reader.interface.readSliceShort(&input_buf) catch 0;
     if (total == 0) return;
     const input = input_buf[0..total];
 
@@ -81,7 +84,7 @@ pub fn main() !void {
         // Output deny JSON to stdout (Claude Code hook protocol)
         var out_buf: [1024]u8 = undefined;
         const msg = std.fmt.bufPrint(&out_buf, "{{\"hookSpecificOutput\":{{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"PIPELINE-FIRST: {s} has a .tri spec. Edit the spec, then run: tri pipeline run\"}}}}", .{file_path}) catch return;
-        _ = std.posix.write(1, msg) catch return;
+        std.Io.File.stdout().writeStreamingAll(io, msg) catch return;
         return;
     }
 
@@ -98,7 +101,7 @@ fn hasTriSpec(basename: []const u8) bool {
     var path_buf: [512]u8 = undefined;
     const direct_path = std.fmt.bufPrint(&path_buf, "specs/tri/{s}", .{target_name}) catch return false;
 
-    std.fs.cwd().access(direct_path, .{}) catch {
+    std.Io.Dir.cwd().access(tri_io.get(), direct_path, .{}) catch {
         // Not in specs/tri/, try recursive search
         return hasTriSpecRecursive(target_name);
     };
@@ -107,18 +110,20 @@ fn hasTriSpec(basename: []const u8) bool {
 }
 
 fn hasTriSpecRecursive(target_name: []const u8) bool {
-    var dir = std.fs.cwd().openDir("specs", .{ .iterate = true }) catch return false;
-    defer dir.close();
+    const io = tri_io.get();
+    var dir = std.Io.Dir.cwd().openDir(io, "specs", .{ .iterate = true }) catch return false;
+    defer dir.close(io);
 
     return searchDir(dir, target_name);
 }
 
-fn searchDir(dir: std.fs.Dir, target_name: []const u8) bool {
+fn searchDir(dir: std.Io.Dir, target_name: []const u8) bool {
+    const io = tri_io.get();
     var iter = dir.iterate();
-    while (iter.next() catch null) |entry| {
+    while (iter.next(io) catch null) |entry| {
         if (entry.kind == .directory) {
-            var sub = dir.openDir(entry.name, .{ .iterate = true }) catch continue;
-            defer sub.close();
+            var sub = dir.openDir(io, entry.name, .{ .iterate = true }) catch continue;
+            defer sub.close(io);
             if (searchDir(sub, target_name)) return true;
         }
         if (std.mem.eql(u8, entry.name, target_name)) {

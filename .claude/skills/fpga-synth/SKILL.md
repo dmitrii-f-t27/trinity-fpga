@@ -6,6 +6,8 @@ allowed-tools: Bash(docker *), Bash(ls *), Read, Grep, Glob, Write, Edit
 
 # FPGA Pipeline — AX7203 XC7A200T
 
+> **Terminology (2026-09-05):** wherever this skill says "on silicon", "silicon-proven" or the like, it means the AX7203 (Artix-7 XC7A200T) FPGA boards. No die of any Trinity ASIC exists — the Tiny Tapeout submissions TTSKY26a and TTSKY26b were withdrawn before fabrication.
+
 ## 🔥 3-BOARD FLEET — all independently flashable + a working inference cluster (2026-08-08)
 
 **Fleet = 3× AX7203 (XC7A200T), each with its OWN onboard FT232H JTAG *and* CP2102N UART.**
@@ -474,7 +476,7 @@ The vendor Ethernet design has **no UART and no LED**, so a dead link was indist
 held-in-reset PHY, a wrong pin, or an unplugged cable — hours of blind guessing. The fix that
 actually moved things: build a **probe** that reports over UART.
 
-**Reusable skeleton: `trinity-fpga/build/gft_mul/gft_mul_ax7203.v`** (silicon-proven). Key trick —
+**Reusable skeleton: `trinity-fpga/build/gft_mul/gft_mul_ax7203.v`** (proven on the AX7203 FPGA). Key trick —
 it clocks off **`STARTUPE2` CFGMCLK, so it needs NO external clock pin**:
 - `STARTUPE2 → CFGMCLK` ≈ 65–70 MHz (uncalibrated ring oscillator; **varies per board by ±5%**,
   so use it for ratios, not absolute frequency)
@@ -1076,9 +1078,14 @@ The synthesis loop exists to **update the publications**. Status:
 - **Board §1.2 is OPEN:** three parts are cited for "the" GF16 result — abstract
   **XC7A35T**, `trinity-gf16.tex` body **XC7A100T (QMTECH FGG676)**, this work
   **XC7A200T (ALINX AX7203, FBG484)**. Paper should name one part + package.
-- **Fmax is an unstated distinction:** paper's **323 MHz** is the bare-core
-  *combinational* max-freq (probe clock `chain[19]`), NOT a routed clocked design.
-  A routed wrapper on 200T is ~27.55 MHz static. Report both, labelled.
+- **323 MHz is WITHDRAWN (2026-08-08). Never report it, in any form.** The
+  `chain[19]` "probe clock" is the last inverter of a 20-stage ring oscillator in
+  the test top, so `Max frequency for clock 'chain[19]'` measured the oscillator,
+  not GF16. The GF16 cores have no `posedge` (no clock domain), and the synthesis
+  tops feed literal operands, so the arithmetic is constant-folded away (GF16 contributes zero cells). Full proof:
+  `research/frontier/APPARATUS_AUDIT_2026-08-12.md`. The GF16 Fmax is **not characterised**; do not
+  substitute another number for it. A routed wrapper on 200T is ~27.55 MHz static
+  and may be reported only as that, labelled.
 - **Prepared correction material** (not a submission — needs author arXiv creds):
   `trinity-fpga/research/XC7A200T_GF16_DATAPOINT_2026-08-05.md` (this row + the
   board table + on-silicon conformance vectors).
@@ -1111,7 +1118,8 @@ arXiv replacement (which only the author can submit):
 4. Apply `ARXIV_ABSTRACTS_READY_TO_PASTE.md` + `ARXIV_BODY_FIXES_READY_TO_PASTE.md`
    (abstract wording, 20 citation defects, `-nodsp` soft-logic subsection).
 5. Reconcile board §1.2 using `research/XC7A200T_GF16_DATAPOINT_2026-08-05.md`:
-   bare-core combinational 323 MHz vs routed-wrapper ~27.55 MHz; part = XC7A200T-FBG484.
+   part = XC7A200T-FBG484. The 323 MHz figure is withdrawn (see the bullet above);
+   do not reintroduce it while reconciling the board.
 
 ## The failure this pipeline keeps producing: the frame path, not the arithmetic
 
@@ -1141,13 +1149,13 @@ encoding.
 |------|-------|--------|
 | SW-bitexact | ~62-69/83 | (CATALOG_MATRIX: strict 62, self-consistent 69) |
 | decode-HW Tier-E | 41 formats | 41 unique formats with bit-exact decode cells |
-| compute-HW Tier-E | 10 GF formats × {ADD,MUL} | GF4-GF32 (10 formats), 0 failures on silicon (vectors vary by run) |
+| compute-HW Tier-E | 10 GF formats × {ADD,MUL} | GF4-GF32 (10 formats), 0 failures on the FPGA (AX7203; vectors vary by run) |
 | GF64 ADD | 70.1% (359/512) | timing closure failure; clamp reverted (regressed to 48.9%) |
 | DIV/SQRT | binary32 proxy | NOT native GF, stale output bug, no conformance |
 | QUIRE | untested | no conformance vectors |
 
 **Honest catalog**: 10 formats bit-exact (add/mul) + 2 proxy (div/sqrt) + 1 untested (quire)
-**Paper**: ~41/83 formats (NOT 71 — that was cell count, not format count)
+**Paper**: ~41 of the 83 in the 2026-06-28 catalogue snapshot (NOT 71 — that was cell count, not format count; the catalogue is 109 formats at v3, Sep 2026, so the denominator has moved)
 
 ## Synthesis Flags (MEASURED, not assumed)
 
@@ -1202,7 +1210,7 @@ Timeline:
 14. takum16 adder RTL does NOT EXIST
 15. **div/sqrt = binary32 proxy** — NOT native, hardcoded, stale output
 16. **gf_mul_param same timing risk** as adder for GF64+
-17. **"71/83 formats" was wrong** — double-counted cells as formats (real: ~41)
+17. **"71/83" was wrong as a format count** — it double-counted cells as formats (real: ~41 of the 83 in the 2026-06-28 snapshot; that denominator is the snapshot's, not the current catalogue count)
 18. **"-nodsp mandatory" was wrong** — only MUL uses -nodsp, ADD doesn't
 19. **Clamp regressed** — reverted to make HEAD reproducible at 70.1%
 20. **build-matrix.yml was dead code** — both if/else branches identical, now fixed

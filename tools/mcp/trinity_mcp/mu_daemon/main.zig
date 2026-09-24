@@ -13,30 +13,35 @@
 //   MU_REPORT_ISSUE     — GitHub issue number for progress reports (optional)
 //
 const std = @import("std");
+const tri_env = @import("tri_env");
+const tri_proc = @import("tri_proc");
 const mu_loop = @import("mu_loop.zig");
 const telegram = @import("telegram");
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+/// 0.16 removed `std.process.argsAlloc` and left no global argv, so arguments
+/// can only come from the runtime. `Init.Minimal` is the smallest form std's
+/// start code will hand to main.
+pub fn main(init: std.process.Init.Minimal) !void {
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
     // Optional config from env
-    const sleep_s: []const u8 = std.posix.getenv("MU_SLEEP_INTERVAL") orelse "300";
-    const wakes_s: []const u8 = std.posix.getenv("MU_MAX_WAKES") orelse "0";
+    const sleep_s: []const u8 = tri_env.getPosix("MU_SLEEP_INTERVAL") orelse "300";
+    const wakes_s: []const u8 = tri_env.getPosix("MU_MAX_WAKES") orelse "0";
 
     const sleep_interval = std.fmt.parseInt(u64, sleep_s, 10) catch 300;
     const max_wakes = std.fmt.parseInt(u32, wakes_s, 10) catch 0;
 
     // Telegram reporting (optional)
-    const tg_token: []const u8 = std.posix.getenv("TELEGRAM_BOT_TOKEN") orelse "";
-    const tg_chat_id: []const u8 = std.posix.getenv("TELEGRAM_CHAT_ID") orelse "";
+    const tg_token: []const u8 = tri_env.getPosix("TELEGRAM_BOT_TOKEN") orelse "";
+    const tg_chat_id: []const u8 = tri_env.getPosix("TELEGRAM_CHAT_ID") orelse "";
     const tg_enabled = tg_token.len > 0 and tg_chat_id.len > 0;
 
     // Detect project root
     const project_root = blk: {
-        if (std.posix.getenv("PROJECT_ROOT")) |root| break :blk @as([]const u8, root);
-        const result = std.process.Child.run(.{
+        if (tri_env.getPosix("PROJECT_ROOT")) |root| break :blk @as([]const u8, root);
+        const result = tri_proc.run(.{
             .allocator = allocator,
             .argv = &.{ "git", "rev-parse", "--show-toplevel" },
         }) catch {
@@ -48,13 +53,13 @@ pub fn main() !void {
             std.debug.print("[mu-agent] ERROR: Not in a git repository.\n", .{});
             std.process.exit(1);
         }
-        break :blk std.mem.trimRight(u8, result.stdout, &std.ascii.whitespace);
+        break :blk std.mem.trimEnd(u8, result.stdout, &std.ascii.whitespace);
     };
 
     // Parse CLI args for --single-shot
     var single_shot = false;
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
+    const args = try init.args.toSlice(allocator);
+    defer allocator.free(args);
     for (args) |arg| {
         if (std.mem.eql(u8, arg, "--single-shot")) {
             single_shot = true;
@@ -75,7 +80,7 @@ pub fn main() !void {
     }
 
     // GitHub issue reporting (optional)
-    const report_issue: []const u8 = std.posix.getenv("MU_REPORT_ISSUE") orelse "";
+    const report_issue: []const u8 = tri_env.getPosix("MU_REPORT_ISSUE") orelse "";
     if (report_issue.len > 0) {
         std.debug.print("[mu-agent] GitHub reporting: issue #{s}\n", .{report_issue});
     }

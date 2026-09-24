@@ -62,13 +62,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The project follows a strict "spec-first" workflow:
 
 ```
-specs/**/*.tri (VIBEE/Tri spec)  ← SINGLE source of truth
+specs/**/*.tri (VIBEE spec, YAML)
     │
-    ├── tools/bin/vibee_gen  → var/trinity/output/*.zig
-    ├── tools/bin/vibee_gen  → *.t27 (TRI-27 assembly)
-    ├── tools/bin/vibee_gen  → *.v (Verilog/FPGA)
-    └── future: Python, Rust, Go targets
+    ├── vibee_gen → *.zig          scaffolding: real signatures, stub bodies
+    └── vibee_gen → *.v            Verilog backend
 ```
+
+**`vibee_gen` does NOT emit `.t27`.** An earlier version of this diagram claimed
+it did; there is no t27 emission anywhere in `src/vibeec/`. Nor is t27
+"TRI-27 assembly" — it is a high-level language with modules, typed signatures
+and `invariant { assert ... }` blocks, compiled by `t27c` (Rust) in a separate
+repository.
+
+### Two different languages share the `.tri` extension
+
+| | VIBEE `.tri` | t27 |
+|---|---|---|
+| syntax | YAML, top-level `name:` | `spec X { }`, `pub fn f(x f32) -> gf16` |
+| compiler | `vibee_gen` (Zig, this repo) | `t27c` (Rust, separate repo) |
+| backends | Zig, Verilog | Zig, Verilog, HIR, SystemVerilog assertions |
+| this repo | 1137 specs | 25 `.t27` files under `specs/numeric/` |
+
+They are not interchangeable, and each compiler used to accept the other's
+files **silently**, producing an empty result and exit 0. `vibee_gen` now
+refuses a t27 spec by name and points at `t27c`. Nothing yet stops `t27c`
+reading a VIBEE spec, where it parses 835 of our 1137 into an empty module.
+
+Measured, so the split is not mistaken for a plan:
+
+  * `vibee_gen` → Zig: **788 of 1033** specs produce ast-check-clean output,
+    with stub bodies
+  * `t27c` → Zig: **0 of 9** of its own specs produce valid Zig -- it emits
+    invariants and tests but not the declarations they use
+  * `t27c` → Verilog: **9 of 9** produce real module structure
+
+So t27's strength today is the hardware path, and VIBEE's is breadth of
+scaffolding. Neither produces working software logic yet.
 
 - `src/vibeec/` is the VIBEE compiler: parser, codegen, type checker, bytecode emitter, VM runtime, JIT, Verilog backend.
 - `.tri` specs define modules with `name`, `version`, `language`, `module`, `types`, and `behaviors` (each behavior has `given`, `when`, `then`).
@@ -165,6 +194,7 @@ trinity                 ← Orchestrator (links all via build.zig.zon)
 
 - Do not create, edit, or reference `.sh`/`.bash` files. Legacy scripts in `scripts/`, `deploy/`, `.ralph/scripts/`, and `fpga/` are marked for deletion.
 - Add new tooling as `tri` subcommands or Zig binaries, not shell scripts.
+- **One exemption**: `research/benchmark/**/harness/` retains the shell harnesses that produced published measurements. They are evidence, not tooling — never sourced, extended, or copied from, and never included in a sweep that deletes `.sh` files. See `.claude/rules/no-shell-scripts.md`.
 
 ### Author Attribution
 
@@ -177,13 +207,52 @@ trinity                 ← Orchestrator (links all via build.zig.zon)
 - VSA operations use the trit set `{-1, 0, +1}`. Never mix with binary representations.
 - Ternary VM and sacred-geometry constants derive from `φ² + 1/φ² = 3`.
 
-### Zig 0.15 / 0.16 API Notes
+### Zig 0.16 (the toolchain here) — read before editing any .zig file
 
-- `SplitIterator.first()` / `.next()` return `?[]const u8` in Zig 0.15+. Use `if (it.next()) |slice|` instead of direct slice access.
-- `ArrayList.init()` returns an error union in newer Zig; prefer `ArrayList(T).initCapacity(allocator, capacity)` or explicitly handle the error union.
-- `orelse` requires an optional on the left-hand side.
-- `std.io.Reader.read(buffer)` returns the number of bytes read; use `if (bytes_read > 0)` checks. `readAll()` was removed in Zig 0.15.
-- The installed Zig in this environment is 0.16.0; many files still target 0.15.x APIs, so verify compatibility when editing.
+**Full reference: `.claude/rules/zig-016-migration.md`.** `tri` and seven other
+executables build on 0.16; parts of the wider tree still target 0.15.
+
+**Do not "fix" a build error by restoring a 0.15 API** — that undoes migrated
+work. Nine stdlib families were removed. Six shim modules restore them, and
+they are **build modules, imported by name**, never by relative path:
+
+| use | replaces |
+|---|---|
+| `@import("tri_time")` | `std.time.timestamp/milli/micro/nanoTimestamp`, `Timer`, `std.Thread.sleep` |
+| `@import("tri_env")` | `std.process.getEnvVarOwned/getEnvMap`, `std.posix.getenv` |
+| `@import("tri_proc")` | `std.process.Child.run/.init`, `std.process.spawn` |
+| `@import("tri_mutex")` | `std.Thread.Mutex`, `std.Thread.RwLock` |
+| `@import("tri_rand")` | `std.crypto.random` |
+| `@import("tri_io")` | the process `Io`, only where none is in scope |
+
+File I/O is genuinely migrated rather than shimmed: `std.fs.Dir/File` →
+`std.Io.Dir/File`, every call takes `io` first. **Prefer an `io` parameter
+already in scope over `tri_io.get()`.**
+
+**Always call subprocesses through `tri_proc`.** In 0.16 neither
+`std.process.spawn` nor `std.process.run` resolves a bare program name through
+PATH, so `.{ "zig", "fmt" }` compiles fine and fails at runtime with
+`FileNotFound`. `tri_proc` does the lookup.
+
+Three traps, each of which has cost real time here:
+
+- **`zig ast-check` proves a file PARSES, not that the API exists.** It does
+  not resolve members, so an invented function name passes clean — four
+  non-existent `std.Io.Dir` functions were written this way. Grep the stdlib
+  for `pub fn <name>` before using anything you have not personally seen.
+- **`readAll` has no drop-in replacement.** `readStreaming` is one attempt that
+  may return 0 without being at EOF and signals EOF by error — the inverse of
+  the old contract. Use `Dir.readFile`/`readFileAlloc` for whole files,
+  `readSliceAll` where a short read means corruption.
+- **Namespace aliases hide work.** `const fs = std.fs;` then `fs.cwd()` is
+  invisible to a `std.fs.` grep; 17% of remaining sites are alias-only.
+
+Audit with `zig run tools/api_census.zig -lc` — it resolves aliases, ignores
+comments and string literals, and reports which sites block the `tri` binary
+specifically rather than the whole tree.
+
+Build one target, not all: `zig build tri-compile`. Bare `zig build` builds
+every target and has filled the disk.
 
 ### Testing
 
@@ -198,8 +267,19 @@ trinity                 ← Orchestrator (links all via build.zig.zon)
 ### FPGA
 
 - Target board: Artix-7 `xc7a200tfbg484-2` (ALINX AX7203).
-- Canonical UART bridge constraints: `fpga/constraints/uart_bridge_j2.xdc`.
-- LED on pin T23 is active-low.
+- Canonical AX7203 constraints: `specs/fpga/constraints/ax7203.xdc`. Every pin in it
+  is checked against the package: clock `R4`/`T4` (200 MHz differential,
+  `DIFF_SSTL15`, both `MRCC`), LEDs `B13`/`C13`/`D14`/`D15` (bank 16, `LVCMOS18`),
+  UART `N15`/`P20`, reset `T6`.
+- `fpga/constraints/uart_bridge_j2.xdc` is **not** for this board — its own header says
+  QMTech `XC7A100T-1FGG676C`, and the pins it declares (`T23`, `R5`, `T8`, `T9`) do
+  not exist in the `fbg484` package at all. The `T23` LED that used to be documented
+  here was one of them; the `fbg484` T-row ends at `T21`. Check a pin against
+  `prjxray-db/artix7/xc7a200tfbg484-2/package_pins.csv` before trusting any xdc in
+  `fpga/`.
+- Bank 34 is the DDR3 bank (1.5 V — `DIFF_SSTL15` clock, `LVCMOS15` reset). Of its 50
+  pins only `R4`/`T4`/`T6` are accounted for; do not drive the others as outputs
+  without the board schematic, or you risk contending with the memory.
 - After modifying Verilog, run synthesis via the openXC7 Docker flow or the `/fpga-synth` skill.
 
 ## Key Reference Files
@@ -211,3 +291,53 @@ trinity                 ← Orchestrator (links all via build.zig.zon)
 - `.claude/rules/` — detailed per-domain rules (testing, FPGA, specs, HSLM, MCP, docsite, etc.).
 - `.cursor/rules/author-attribution-lock.mdc` — author attribution lock for Cursor/Copilot.
 - `.github/copilot-instructions.md` — Copilot-specific forbidden-file and toxic-verdict rules.
+
+## Own language first
+
+When this project publishes something about itself, it publishes in **this
+project's own language and format** -- not translated into somebody else's.
+
+Owner's rule, 2026-09-20: stop writing in other people's languages, we have our
+own.
+
+This bites on any file whose only reason to exist is that an outside tool
+expects that shape: `llms.txt`, `agents.json`, `ai.txt`, `.well-known/*.json`,
+A2A agent cards, `ai-plugin` manifests, OpenAPI stubs, JSON-LD blocks, a README
+that restates a spec. The reflex is to write four of them in four foreign
+formats, and the reflex is wrong: a project whose claim is "here is a language
+worth writing" and which then describes itself in three of other people's
+formats has published three documents that are not true of it.
+
+**The move:** find the address the outside world already fetches, then serve our
+own language at it. `/llms.txt` at t27.ai **is** a t27 module -- `llms.txt`
+requires nothing but text, and every prose line of a `.t27` file is a `;`
+comment, so it stays readable to anything that cannot compile it.
+
+**Three qualifications, so the rule stays honest:**
+
+- A format a resolver genuinely parses -- a sitemap, `package.json`, a lockfile
+  -- is machinery, not a description. **Generate** it from our own source; never
+  hand-write it into a second home for the truth.
+- Code against someone else's API uses their types. Prose for a human who has
+  never heard of the project uses that human's language.
+- If a format demands a claim we cannot back, **publish nothing**. An A2A card
+  with no A2A server behind it is a false claim, and a missing file is more
+  honest than a lying one.
+
+The test: *is this file the project speaking about itself?* If yes, it speaks
+our language. If it is plumbing, it speaks the plumbing's.
+
+**Worked example, compiler-checked rather than asserted:** in `gHashTag/trinity`,
+`apps/website/public/t27/files/specs/catalog/onboarding.t27` generates
+`/llms.txt` and `/agents.t27` byte-identically, gated in CI as
+`check:onboarding`. The generator evaluates the spec's own `test` blocks --
+`typecheck.ok` stays true for `assert 1 > 2`, so a compiler saying "this parses"
+is not a compiler saying "this is true" -- and re-compiles the rendered document
+before writing it.
+
+**The full rule lives in exactly one place: the `own-language-first` skill**
+(`~/.claude/skills/own-language-first/SKILL.md`). It carries the consent gate for
+documents addressed to other people's agents, the six negative controls, and the
+`;`-alone-on-a-line trap that silently discards a `module` declaration. This
+section is a pointer, not a copy -- the recorded defect in this codebase family
+is the hand-copied rule that only two of its three homes knew about.

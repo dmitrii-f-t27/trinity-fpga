@@ -1,4 +1,5 @@
 const std = @import("std");
+const tri_time = @import("tri_time");
 const evolved = @import("evolved_codex.zig");
 
 // ============================================================================
@@ -32,7 +33,7 @@ pub const NetworkOrganism = struct {
 
     pub fn syncWithTrinityL2(self: *NetworkOrganism, node_addr: []const u8) !void {
         std.debug.print("🌐 [Network] Connecting to Trinity L2 at {s}...\n", .{node_addr});
-        std.Thread.sleep(100 * std.time.ns_per_ms);
+        tri_time.sleep(100 * std.time.ns_per_ms);
 
         // Mobile-aware mutation
         if (self.stats.bandwidth_mbps < 10.0 or self.stats.latency_ms > 50) {
@@ -81,7 +82,7 @@ fn networkHandler(ctx: *evolved.Context, args: []const []const u8) !void {
 // ============================================================================
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
